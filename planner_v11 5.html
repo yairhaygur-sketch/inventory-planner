@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>Inventory Planner v0.11 — לוח בקרה מודולרי</title>
+<title>Inventory Planner v0.12 — לוח בקרה מודולרי</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -300,7 +300,26 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 const CLEAN=s=>String(s==null?'':s).replace(/[\u200e\u200f\u202a-\u202e]/g,'').trim();
 const NUM=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
 const money=n=>'₪'+Math.round(n).toLocaleString('he-IL');
-const Z={50:0,80:.84,90:1.28,95:1.65,99:2.33};
+// ── v0.12 · תיקוני מנוע ─────────────────────────────────────────────────────
+// פרמטרים ניתנים לכוונון במקום אחד:
+const MED_FLOOR_FOR_DROP=3;   // חציון מינימלי שמעליו מזוהה אזילה (היה 5)
+const MAX_DROP_RUN=4;         // אורך רצף אזילה מקסימלי שעדיין נחשב אזילה ולא מוות
+const MIN_ACTIVE_FOR_SHORTAGE=3; // חודשים פעילים נדרשים להתרעת מחסור
+const EXCESS_MONTHS=12;       // כיסוי שמעליו הפריט נחשב עודף
+// מקדם Z מחושב מהתפלגות נורמלית הפוכה. הטבלה הקודמת החזיקה חמישה ערכים בלבד
+// והחזירה 1.28 לכל ערך אחר — כך ש"רמת שירות 98" קיבלה פחות מלאי ביטחון מ-95.
+function zFor(srv){const p=srv/100;
+ if(!(p>0.5))return 0; if(p>=0.9999)return 3.719;
+ const a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239],
+       b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1],
+       c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],
+       d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996,3.754408661907416];
+ let q,r,x;
+ if(p<0.97575){q=p-0.5;r=q*q;
+  x=(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+ else{q=Math.sqrt(-2*Math.log(1-p));
+  x=-(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+ return Math.round(x*1000)/1000;}
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 function colToIdx(letters){let n=0;for(const ch of letters.toUpperCase())n=n*26+(ch.charCodeAt(0)-64);return n-1}
 function idxToCol(i){let s='';i=i+1;while(i>0){const r=(i-1)%26;s=String.fromCharCode(65+r)+s;i=Math.floor((i-1)/26)}return s}
@@ -361,10 +380,25 @@ function analyze(m){
   const avg=pos.reduce((a,b)=>a+b,0)/11;
   const active=pos.filter(v=>v>0).length;
   const spikes=[],drops=[];
-  if(med>0){pos.forEach((v,i)=>{
-      if(v>=3&&v/med>=2.0)spikes.push({i:i+1,q:v,x:+(v/med).toFixed(1)});
-      const prev=pos[i+1]!=null?pos[i+1]:med, next=pos[i-1]!=null?pos[i-1]:med;
-      if(med>=5&&v/med<=0.3&&prev/med>=0.6&&next/med>=0.6)drops.push({i:i+1,q:v,x:+(v/med).toFixed(2)});});}
+  if(med>0){
+    pos.forEach((v,i)=>{if(v>=3&&v/med>=2.0)spikes.push({i:i+1,q:v,x:+(v/med).toFixed(1)});});
+    // אזילה מזוהה כרצף ולא רק כחודש בודד. הגרסה הקודמת דרשה ששני השכנים
+    // הישירים יהיו תקינים, ולכן אזילה של חודשיים ומעלה לא זוהתה כלל —
+    // והמגמה סיווגה אותה כ"ירידה בביקוש" עם המלצה להקטין פרמטרים.
+    const healthy=pos.filter(v=>v/med>=0.6).length;
+    if(med>=MED_FLOOR_FOR_DROP&&healthy>=4){
+      let i=0;
+      while(i<11){
+        if(pos[i]/med<=0.3){
+          let j=i; while(j+1<11&&pos[j+1]/med<=0.3)j++;
+          const older=(j+1<=10)?pos[j+1]:med, newer=(i-1>=0)?pos[i-1]:med;
+          if(j-i+1<=MAX_DROP_RUN&&older/med>=0.6&&newer/med>=0.6)
+            for(let k=i;k<=j;k++)drops.push({i:k+1,q:pos[k],x:+(pos[k]/med).toFixed(2)});
+          i=j+1;
+        }else i++;
+      }
+    }
+  }
   const rec=pos.slice(0,5).reduce((a,b)=>a+b,0), pre=pos.slice(6,11).reduce((a,b)=>a+b,0);
   const pct=pre>0?Math.round((rec/pre-1)*100):(rec>0?999:0);
   const adi=active?11/active:99;
@@ -373,7 +407,12 @@ function analyze(m){
   const cv2=mu>0?varr/(mu*mu):0;
   let pattern='ללא ביקוש';
   if(active>0)pattern=adi<1.32?(cv2<0.49?'חלק':'תנודתי'):(cv2<0.49?'ספורדי':'גושי');
-  const muAll=pos.reduce((a,b)=>a+b,0)/11, varAll=pos.reduce((a,b)=>a+(b-muAll)**2,0)/10;
+  // σ על סדרה שבה חודשי אזילה שוחזרו לחציון — אזילה היא נתון מצונזר
+  // ("לא היה מה למכור"), לא תנודתיות ביקוש. פיקים נשמרים במלואם: פיק הוא
+  // ביקוש אמיתי, וזה בדיוק מה שמלאי הביטחון אמור לכסות.
+  const dropSet=new Set(drops.map(d=>d.i));
+  const forSd=pos.map((v,i)=>dropSet.has(i+1)?med:v);
+  const muAll=forSd.reduce((a,b)=>a+b,0)/11, varAll=forSd.reduce((a,b)=>a+(b-muAll)**2,0)/10;
   const sd=Math.sqrt(varAll), peak=Math.max(...pos,0);
   return {med,avg,active,spikes,drops,trend:{rec,pre,pct},adi:+adi.toFixed(2),cv2:+cv2.toFixed(2),pattern,sd,peak,mu};}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
@@ -399,9 +438,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const cov=rate>0?Math.max(0,free)/rate:null;
     const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),accRaw=m.acc>=0?CLEAN(r[m.acc]):'';
     const isAcc=/אביזר/.test(mkt1)||/אביזר/.test(mkt2)||/אביזר/.test(accRaw);
-    const srv=NUM(r[m.srv])||50,price=NUM(r[m.price]),sell=NUM(r[m.sell]);
+    const srvRaw=m.srv>=0?NUM(r[m.srv]):0,srvMissing=!(srvRaw>0),srv=srvRaw||50,price=NUM(r[m.price]),sell=NUM(r[m.sell]);
     const mrp=CLEAN(r[m.mrp]);
-    const z=Z[srv]!==undefined?Z[srv]:1.28,dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
+    const z=zFor(srv),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
     const lumpFloor=(!isPDItem&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
     const ssStat=(rate>0&&!isPDItem)?Math.ceil(z*sdLT):0;
@@ -412,7 +451,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:TXT(r,m.brand)||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:TXT(r,m.hier3)||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,cust,price,sell,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,cust,price,sell,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,srvMissing,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -449,6 +488,13 @@ function classify(items){const Q={immediate:[],follow:[],prevent:[],excess:[],qu
     it.why=[['err',`זמן אספקה חסר/0 — לא ניתן לחשב ROP/SS · יש ביקוש ${it.rate.toFixed(1)} יח׳/חודש`],
             ['idea','LT=0 מאפס את ביקוש-בזמן-האספקה ואת מרכיב הביטחון — הזן זמן אספקה אמיתי ואז יחושבו נכון']];
     it.act=['להזין זמן אספקה בשדה "אספ.מתוכנ."','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
+  // רמת שירות חסרה מאפסת את מרכיב הביטחון בדיוק כמו LT=0, ולכן היא מקבלת
+  // דרגה משלה באותו מקום. קודם היא נבלעה בברירת מחדל 50% (Z=0) בשקט מוחלט.
+  if(it.rate>0&&it.srvMissing){it.sev=1;it.cat='עדכון פרמטרים';it.risk=it.rate*(it.sell||it.price);
+    it.why=[['err','רמת שירות לא הוזנה — נלקחה ברירת מחדל 50%, ש-Z שלה הוא 0'],
+            ['idea',`Z=0 מאפס את מרכיב הביטחון הסטטיסטי לגמרי — מלאי הביטחון המוצע (${it.sugSS}) נשען כרגע רק על רצפות, לא על תנודתיות`],
+            ['warn',`עם רמת שירות 95% מלאי הביטחון היה ${Math.max(Math.ceil(1.645*it.sdLT),it.ssMin,it.lumpFloor)} במקום ${it.sugSS}`]];
+    it.act=['להזין רמת שרות בשדה "רמת שרות" (90 / 95 / 99)','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
   if(A.drops.length&&it.d12>20){const d=A.drops[0];
     it.sev=2;it.cat='מכירות אבודות';it.risk=(A.med-d.q)*(it.sell||it.price);
     it.why=[['err',`צניחה חריגה ב${LABELS[d.i-1].name}: ${d.q} יח׳ בלבד מול חציון ${A.med} — כשהחודשים סביבו תקינים`],
@@ -458,21 +504,29 @@ function classify(items){const Q={immediate:[],follow:[],prevent:[],excess:[],qu
       `הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`,
       `להעלות מלאי ביטחון ל-${it.sugSS} כדי למנוע הישנות`];
     Q.prevent.push(it);continue}
-  if(it.isAcc&&it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.risk=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
+  if(it.isAcc&&it.cov!==null&&it.cov>EXCESS_MONTHS){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.risk=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`אביזר עם כיסוי ${it.cov.toFixed(1)} חודשים`],['info',`עודף כ-${it.excessQty} יח׳ · ${money(it.risk)}`]];
     it.act=['קידום מכירות מול השיווק','לא לשנות ROP/SS לפני החלטה שיווקית'];Q.excess.push(it);continue}
-  if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&A.active>=3){it.cat='מניעת חוסר';
+  if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&(A.active>=MIN_ACTIVE_FOR_SHORTAGE||it.cov<it.ltM*0.5)){
+    it.orderQty=Math.max(0,Math.ceil(it.sugROP+it.rate-(it.free+it.po)));
+    // רכש פתוח שכבר סוגר את הפער אינו מחסור רכש אלא שאלת מועד אספקה.
+    // קודם הפריט נחת ב"מניעת חוסר" עם משימה ריקה ("לבחון מועד הזמנה קרוב").
+    if(it.orderQty<=0&&it.po>0){it.sev=2;it.cat='מעקב אספקה';it.risk=it.dLT*(it.sell||it.price);
+      it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} חודשים`],
+              ['info',`רכש פתוח של ${it.po} יח׳ מכסה את הפער — אין צורך בהזמנה נוספת`],
+              ['info','אין תאריך אספקה בדוח — הסיכון הוא מועד, לא כמות']];
+      it.act=['לוודא מול הספק שהאספקה מגיעה לפני שהמלאי נגמר','לזרז במידת הצורך'];Q.follow.push(it);continue}
+    it.cat='מניעת חוסר';
     it.why=[['err',`כיסוי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} חודשים`]];
     if(it.rop<it.sugROP)it.why.push(['warn',`נקודת הזמנה ${it.rop} נמוכה מהנדרש ${it.sugROP}`]);
     if(it.ss<it.sugSS)it.why.push(['warn',`מלאי ביטחון ${it.ss} נמוך מהנדרש ${it.sugSS}`]);
     if(A.trend.pct>=30&&A.trend.pct<900)it.why.push(['warn',`מגמת עלייה: 5 חודשים אחרונים ${A.trend.rec} יח׳ מול ${A.trend.pre} — עלייה של ${A.trend.pct}%`]);
     if(A.spikes.length)it.why.push(['warn',`פיק ב${LABELS[A.spikes[0].i-1].name}: ${A.spikes[0].q} יח׳ — פי ${A.spikes[0].x} מהחציון (נוטרל מחישוב הקצב)`]);
-    it.orderQty=Math.max(0,Math.ceil(it.sugROP+it.rate-(it.free+it.po)));
     it.act=[it.orderQty>0?`לפתוח רכש יזום ל-${it.orderQty} יח׳`:'לבחון מועד הזמנה קרוב',
       it.ss<it.sugSS?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון תקין',
       it.rop<it.sugROP?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה תקינה'];
     it.risk=it.dLT*(it.sell||it.price);it.sev=2;Q.prevent.push(it);continue}
-  if(it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.risk=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
+  if(it.cov!==null&&it.cov>EXCESS_MONTHS){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.risk=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים — עודף של כ-${it.excessQty} יח׳ מעל 12 חודשי כיסוי`],['info',`שווי העודף ${money(it.risk)}`]];
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
     if(A.trend.pct<=-40&&A.trend.pct>-900)it.why.push(['idea',`הביקוש בירידה של ${Math.abs(A.trend.pct)}% — העודף צפוי להחמיר, לא להיפתר מעצמו`]);
@@ -480,16 +534,19 @@ function classify(items){const Q={immediate:[],follow:[],prevent:[],excess:[],qu
       it.rop>it.sugROP?`להקטין נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה סבירה',
       it.ss>it.sugSS?`להקטין מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון סביר','לסמן למעקב'];
     Q.excess.push(it);continue}
-  if(it.rop>0&&it.d12===0&&it.stock>0){it.risk=it.price*it.stock;
+  // התנאי היה d12===0 בדיוק, ולכן פריט עם 1–3 יחידות בשנה (rate=0) חמק
+  // מכאן והוגדר "תקין" בעוד ROP ו-SS ממשיכים לשבת עליו ב-SAP.
+  if(it.rop>0&&it.rate<=0&&it.stock>0){it.risk=it.price*it.stock;
+    const dtxt=it.d12>0?`צריכה זניחה (${it.d12} יח׳ ב-11 חו׳)`:'ללא צריכה 12 חו׳';
     if(it.free<=it.rop){it.sev=1;it.cat='עדכון פרמטרים';
-      it.why=[['warn',`נקודת הזמנה ${it.rop} פעילה ללא צריכה 12 חו׳ · מלאי פנוי ${it.free} ≤ ROP — סיכון הזמנה של מלאי מת`],['info',`שווי מלאי מוקפא ${money(it.risk)}`]];
+      it.why=[['warn',`נקודת הזמנה ${it.rop} פעילה · ${dtxt} · מלאי פנוי ${it.free} ≤ ROP — סיכון הזמנה של מלאי מת`],['info',`שווי מלאי מוקפא ${money(it.risk)}`]];
       it.act=[`לאפס נקודת הזמנה מ-${it.rop} ל-0`,`לאפס מלאי ביטחון מ-${it.ss} ל-0`,'לבדוק רכש פתוח'];Q.quality.push(it);continue}
-    it.cat='רקע';it.why=[['info',`מלאי ללא תנועה 12 חו׳ · פנוי ${it.free} מעל ROP ${it.rop} — אין סיכון הזמנה מיידי`],['info',`שווי מלאי מוקפא ${money(it.risk)}`]];
+    it.cat='רקע';it.why=[['info',`${dtxt} · פנוי ${it.free} מעל ROP ${it.rop} — אין סיכון הזמנה מיידי`],['info',`שווי מלאי מוקפא ${money(it.risk)}`]];
     it.act=['לנקות פרמטרים כשמתפנה — לא דחוף'];Q.passive.push(it);continue}
   if(A.trend.pct<=-50&&A.trend.pct>-900&&it.d12>=12){it.sev=1;it.cat='ירידה בביקוש';
     it.why=[['warn',`הביקוש ירד ב-${Math.abs(A.trend.pct)}%: ${A.trend.rec} יח׳ ב-5 החודשים האחרונים מול ${A.trend.pre} קודם`],
             ['idea','ירידה מתמשכת לפני שנוצר עודף — זה הרגע הנכון להקטין פרמטרים, לא אחרי שהמחסן מלא']];
-    it.act=[`לשקול הקטנת נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
+    it.act=[`לשקול ${it.sugROP<it.rop?'הקטנת':'העלאת'} נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
     it.risk=it.price*it.free;Q.excess.push(it);continue}
   if(A.spikes.length&&it.rate>0&&it.cov!==null&&it.cov<6&&A.active>=3){it.risk=A.spikes[0].q*(it.sell||it.price);it.sev=2;it.cat='מניעת חוסר';
     it.why=[['warn',`פיק ב${LABELS[A.spikes[0].i-1].name}: ${A.spikes[0].q} יח׳ — פי ${A.spikes[0].x} מהחציון ${A.med}`],
@@ -897,7 +954,7 @@ function explain(r){const A=r.A;
     <tr><td>סדרת צריכה</td><td style="direction:ltr">${r.months.join(' · ')}</td></tr>
     ${r.curMonth!=null?`<tr><td>חודש נוכחי (חלקי — מוחרג)</td><td>${r.curMonth}</td></tr>`:''}${mvRow}
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
-   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים (v0.11) — כדי לשקף תנודתיות אמיתית. לגושי/ספורדי נוספת רצפת-הגנת-פיק. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. חודשי אזילה הוחלפו בחציון ופיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
+   <div class="mrpline">σ מחושבת על 11 החודשים כולל אפסים, כשחודשי <b>אזילה שוחזרו לחציון</b> — אזילה היא נתון מצונזר ולא תנודתיות ביקוש. <b>פיקים נשמרים במלואם ב-σ</b> (ביקוש אמיתי שהביטחון אמור לכסות) אך נחתכים לפי-2 חציון בחישוב הקצב. מקדם Z מחושב מהתפלגות נורמלית הפוכה, ולכן כל רמת שירות מקבלת ערך מדויק ומונוטוני. לגושי/ספורדי נוספת רצפת-הגנת-פיק. פריטי PD לא מקבלים מלאי ביטחון אוטומטי. (v0.12)</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
 document.getElementById('mclose').onclick=()=>document.getElementById('modalwrap').classList.remove('open');
 document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')document.getElementById('modalwrap').classList.remove('open')};
