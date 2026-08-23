@@ -348,7 +348,7 @@ const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור �
  mrp:['סוג MRP'],abc:['ABC'],srv:['רמת שרות'],ss:['מלאי בטחון'],rop:['נק.הז.מחדש'],lt:['אספ.מתוכנ.'],ltAdd:['זמ.עב.קבלת'],
  ssMin:['מל.בט.מינ.'],price:['מח.ממצ.ניד'],sell:['מחיר מכירה'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
  po:['הז. רכש'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
- grpTxt:['תיאור קבוצת חומרים'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"]};
+ grpTxt:['תיאור קבוצת חומרים','תיא.קבוצ.חומרים','תיאור קבוצת חומר 2'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"]};
 const MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
 const CRITICAL={pn:'מק״ט',free:'מלאי פנוי',lt:'זמן אספקה',cust:'הזמנות לקוח'};
 let DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
@@ -1022,6 +1022,18 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
+  // כשאין תאריך מעל שורת הכותרות, נגזור את חודש העוגן מהתנועה האחרונה בקובץ
+  // ולא משעון המחשב — אחרת אותו דוח יציג שמות חודשים שונים בכל פעם שנפתח.
+  if(!detected&&ALL.length){
+    let mx=0;
+    for(const it of ALL)for(const mv of [it.sales,it.entries])
+      if(mv&&mv.date&&!isNaN(mv.date))mx=Math.max(mx,mv.date.getTime());
+    if(mx){detected=new Date(mx);
+      const d=new Date(mx);d.setDate(1);d.setMonth(d.getMonth()-1);ANCHOR=d;
+      rebuildLabels();
+      document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
+      DIAG.warn.push(`בדוח אין תאריך מעל הכותרות — חודש העוגן נגזר מהתנועה האחרונה בקובץ (${fmtDate(detected)}).`);}
+  }
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
