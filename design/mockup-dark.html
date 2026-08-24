@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>מרכז עבודה יומי</title>
+  <style>
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;background:#0f1216;color:#e7ebf0;font-family:Rubik,Archivo,sans-serif;direction:rtl;}
+    header{display:flex;align-items:center;gap:20px;padding:0 24px;height:60px;border-bottom:2px solid #262c34;background:#161a1f;}
+    header>:nth-child(2){margin-inline-start:auto;}
+    header button{font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;}
+    header button:last-child{background:#7aa7d4;border-color:#7aa7d4;color:#0f1216;font-weight:700;}
+    .metrics{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;border-bottom:2px solid #262c34;background:#161a1f;}
+    .metric{padding:18px 22px;border-inline-end:1px solid #262c34;display:flex;flex-direction:column;justify-content:center;}
+    .metric.primary{background:#b23b32;color:#fdf2f0;}
+    .metric.primary>:first-child{font-size:13px;font-weight:700;}
+    .metric.primary>:last-child{font-family:Archivo;font-size:52px;font-weight:800;line-height:1;margin-top:4px;}
+    .metric:not(.primary)>:first-child{font-size:13px;color:#8d97a3;font-weight:500;margin-bottom:2px;}
+    .metric:not(.primary)>:last-child{font-family:Archivo;font-size:32px;font-weight:800;line-height:1.1;}
+    .main{display:grid;grid-template-columns:minmax(0,1fr) 360px;flex:1 1 auto;min-height:0;}
+    .content{display:flex;flex-direction:column;min-width:0;background:#161a1f;}
+    .tabs{display:flex;border-bottom:2px solid #262c34;}
+    .tab{flex:1 1 0;min-width:0;padding:12px 14px 14px;border:0;background:transparent;color:#e7ebf0;text-align:start;cursor:pointer;border-top:4px solid transparent;font-family:inherit;}
+    .tab.active{background:#1d222a;border-top-color:#b23b32;}
+    .tab>:first-child{font-size:13px;font-weight:600;white-space:nowrap;}
+    .tab>:last-child{font-family:Archivo;font-size:26px;font-weight:800;line-height:1.15;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th{text-align:start;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;background:#12161a;}
+    td{padding:12px 18px;border-bottom:1px solid #202630;text-align:start;}
+    td:first-child{font-family:Archivo;font-weight:700;font-size:15px;border-inline-start:4px solid;}
+    tr.urgent td:first-child{border-inline-start-color:#b23b32;}
+    tr.warning td:first-child{border-inline-start-color:#c9974a;}
+    tr.normal td:first-child{border-inline-start-color:#495260;}
+    tbody tr:hover{background:#1e2228;}
+    .badge{font-size:12px;font-weight:600;padding:2px 8px;white-space:nowrap;display:inline-block;}
+    .badge.urgent{background:#b23b32;color:#fdf2f0;}
+    .badge.warning{background:#3a2519;color:#c9974a;}
+    .aside{border-inline-start:2px solid #262c34;background:#161a1f;display:flex;flex-direction:column;min-height:0;}
+    .aside-header{padding:16px 18px;border-bottom:2px solid #262c34;}
+    .aside-header>:first-child{font-family:Archivo;font-size:17px;font-weight:800;direction:ltr;text-align:right;}
+    .aside-action{padding:18px;border-bottom:2px solid #262c34;background:#1d222a;border-inline-start:4px solid #7aa7d4;}
+    .aside-action>:first-child{font-family:Archivo;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7aa7d4;font-weight:700;}
+    .aside-action>:nth-child(2){font-size:20px;font-weight:700;margin-top:8px;}
+    .aside-action>:nth-child(3){font-family:Archivo;font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:#7aa7d4;}
+    .aside-action button{margin-top:14px;display:flex;gap:8px;}
+    .btn-primary{font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 16px;cursor:pointer;white-space:nowrap;}
+    .btn-secondary{font-family:inherit;font-size:14px;background:transparent;border:1px solid #3a414a;color:#c3cbd4;padding:10px 16px;cursor:pointer;white-space:nowrap;}
+    .aside-body{padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0;}
+    .aside-body>:first-child{font-family:Archivo;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;}
+    .chart{position:relative;height:120px;display:flex;align-items:flex-end;gap:4px;direction:ltr;margin-top:12px;}
+    .bar{flex:1 1 0;min-width:2px;background:#495260;}
+    .bar.drop{background:#b23b32;}
+    .bar.spike{background:#262c34;}
+  </style>
+</head>
+<body>
+  <header>
+    <div>מרכז עבודה יומי</div>
+    <div>ZMRP_2608.xlsx · חודש בסיס יולי 2026 · 07:41</div>
+    <button>ייצוא</button>
+    <button>טעינת דוח</button>
+  </header>
+
+  <div class="metrics">
+    <div class="metric primary">
+      <div>בוער · לקוח ממתין ללא רכש</div>
+      <div style="font-family:Archivo;">14</div>
+      <div>₪ 312,400 בסיכון</div>
+    </div>
+    <div class="metric"><div>מניעת חוסר</div><div style="color:#c9974a;">38</div><div>₪ 184,100</div></div>
+    <div class="metric"><div>מכירות אבודות</div><div style="color:#c9974a;">9</div><div>₪ 96,700</div></div>
+    <div class="metric"><div>עודף מלאי</div><div>61</div><div>₪ 421,300</div></div>
+    <div class="metric"><div>עדכון פרמטרים</div><div>27</div><div>איכות נתונים</div></div>
+  </div>
+
+  <div class="main">
+    <div class="content">
+      <div class="tabs">
+        <button class="tab active"><div>הכול</div><div>12</div></button>
+        <button class="tab"><div>לקוח ממתין</div><div>2</div></button>
+        <button class="tab"><div>פער כיסוי</div><div>1</div></button>
+        <button class="tab"><div>מניעת חוסר</div><div>3</div></button>
+        <button class="tab"><div>מכירות אבודות</div><div>2</div></button>
+        <button class="tab"><div>עוד</div><div>2</div></button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>מק״ט</th><th>תיאור</th><th>מצב</th><th>11M</th><th>חסר</th><th>כיסוי</th><th>סיכון</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="urgent"><td>51 8410 3300</td><td>רפידות בלם קדמי</td><td><span class="badge urgent">לקוח ממתין</span></td><td style="text-align:center;">▁▂▂▂▂▂▂▃▂▂▃</td><td style="text-align:end;color:#b23b32;">-24</td><td style="text-align:end;">0.4 ח׳</td><td style="text-align:end;font-family:Archivo;">64,200</td></tr>
+          <tr class="urgent"><td>34 1160 7712</td><td>דיסק בלם אחורי</td><td><span class="badge urgent">לקוח ממתין</span></td><td style="text-align:center;">▁▂▁▂▁▂▁▂▁▂▁</td><td style="text-align:end;color:#b23b32;">-12</td><td style="text-align:end;">0.0</td><td style="text-align:end;font-family:Archivo;">51,800</td></tr>
+          <tr class="warning"><td>63 2170 4418</td><td>פנס ראשי ימין</td><td><span class="badge warning">מכירות אבודות</span></td><td style="text-align:center;">▄▃▄▁▃▄▃█▃▃▃</td><td style="text-align:end;">0</td><td style="text-align:end;">1.2 ח׳</td><td style="text-align:end;font-family:Archivo;">42,900</td></tr>
+          <tr class="normal"><td>11 4270 9903</td><td>משאבת מים</td><td><span class="badge urgent">פער כיסוי</span></td><td style="text-align:center;">▂▃▂▃▂▃▂▂▃▂▃</td><td style="text-align:end;">6</td><td style="text-align:end;">0.7 ח׳</td><td style="text-align:end;font-family:Archivo;">38,400</td></tr>
+          <tr class="normal"><td>17 1180 2265</td><td>מצנן מנוע</td><td><span class="badge warning">מניעת חוסר</span></td><td style="text-align:center;">▂▂▂▂▂▂▂▂▂▂▂</td><td style="text-align:end;">0</td><td style="text-align:end;">0.9 ח׳</td><td style="text-align:end;font-family:Archivo;">31,600</td></tr>
+          <tr class="normal"><td>64 1190 0221</td><td>מסנן אוויר מנוע</td><td><span class="badge">עודף מלאי</span></td><td style="text-align:center;">▁▁▁▁▁▂▂▂▂▂▂</td><td style="text-align:end;">0</td><td style="text-align:end;">14.2 ח׳</td><td style="text-align:end;font-family:Archivo;">18,900</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="aside">
+      <div class="aside-header">
+        <div>51 8410 3300</div>
+        <div style="font-size:14px;color:#8d97a3;margin-top:2px;">רפידות בלם קדמי</div>
+      </div>
+      <div class="aside-action">
+        <div>ההחלטה</div>
+        <div>לפתוח הזמנת רכש</div>
+        <div style="font-family:Archivo;">24 יח׳</div>
+        <div style="font-size:14px;color:#8d97a3;margin-top:4px;">₪ 64,200 בסיכון</div>
+        <button><button class="btn-primary">פתיחת רכש</button><button class="btn-secondary">סמן כטופל</button></button>
+      </div>
+      <div class="aside-body">
+        <div>צריכה · 11 חודשים</div>
+        <div class="chart">
+          <div class="bar" style="height:60%;"></div>
+          <div class="bar" style="height:48%;"></div>
+          <div class="bar" style="height:55%;"></div>
+          <div class="bar drop" style="height:12%;"></div>
+          <div class="bar" style="height:51%;"></div>
+          <div class="bar" style="height:58%;"></div>
+          <div class="bar" style="height:44%;"></div>
+          <div class="bar" style="height:88%;"></div>
+          <div class="bar" style="height:53%;"></div>
+          <div class="bar" style="height:47%;"></div>
+          <div class="bar" style="height:60%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
