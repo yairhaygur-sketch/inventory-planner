@@ -645,9 +645,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','ירידה מתמשכת לפני שנוצר עודף — זה הרגע הנכון להקטין פרמטרים, לא אחרי שהמחסן מלא']];
     it.act=[`לשקול הקטנת נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
     it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;Q.excess.push(it);continue}
-  if(A.spikes.length&&it.rate>0&&it.cov!==null&&it.cov<6&&A.active>=3){it.expRev=Math.max(0,A.spikes[0].q-it.avail)*(it.sell||it.price);it.sev=2;it.cat='מניעת חוסר';
+  /* פיק היסטורי מעניין רק אם הזמין היום (מלאי + רכש בדרך) לא מכסה חזרה שלו */
+  if(A.spikes.length&&it.rate>0&&it.covA!==null&&it.covA<6&&A.active>=3&&it.avail<A.spikes[0].q){
+    it.expRev=(A.spikes[0].q-it.avail)*(it.sell||it.price);it.sev=2;it.cat='מניעת חוסר';
     it.why=[['warn',`פיק ב${LABELS[A.spikes[0].i-1].name}: ${A.spikes[0].q} יח׳ — פי ${A.spikes[0].x} מהחציון ${A.med}`],
-            ['err',`כיסוי נוכחי ${it.cov.toFixed(1)} חודשים — אם הפיק חוזר צפוי חוסר`]];
+            ['err',`זמין היום ${it.avail} יח׳${it.po>0?` (כולל ${it.po} בדרך)`:''} — חסרות ${A.spikes[0].q-it.avail} יח׳ אם הפיק חוזר`]];
     it.act=['לבדוק אם הפיק חד-פעמי או תחילת מגמה',`אם מגמה: מלאי ביטחון ל-${it.sugSS}, נקודת הזמנה ל-${it.sugROP}`];
     Q.prevent.push(it);continue}
   if(it.rate>0&&(it.rop!==it.sugROP||it.ss!==it.sugSS)){it.sev=1;it.cat='עדכון פרמטרים';
