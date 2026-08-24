@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>מרכז עבודה יומי למעתד מלאי חלפים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Archivo:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -295,6 +297,89 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 .sug{color:var(--acc);font-weight:700;font-size:10.5px;margin-inline-start:3px}
 @media(max-width:1180px){.wkpi{min-height:104px}}
 @media(max-width:760px){.dash{flex-direction:column}.wkpi{min-height:0;flex:0 0 auto}}
+
+/* ============ שכבת עיצוב — מבוסס design/mockup-dark.html ============ */
+:root{
+ --num:"Archivo","Assistant",Arial,sans-serif;
+ --bg:#eef1f7;--panel:#ffffff;--panel2:#f4f6fa;--ink:#1e2433;--dim:#6b7280;--dimmer:#8891a0;
+ --line:#dfe4ec;--line2:#e9edf3;--acc:#3f77ad;--accD:#2f5c88;--accL:#eaf1f8;--accBorder:#c5d8ea;
+ --red:#b23b32;--redL:#fbeceb;--redInk:#fdf2f0;--org:#c9974a;--orgL:#fdf5e9;--grn:#4a8a5c;--grnL:#eef6f0;
+ --blue:#3f77ad;--blueL:#eaf1f8;--purple:#6d5aa8;--purpleL:#f0edf8;--gray:#6f7885;
+ --neutral:#8d97a3;--neutralL:#eef1f5;--bar:#8b97a6;
+ --shadow:none;--shadowH:0 8px 24px rgba(15,18,22,.18);--r:0}
+body.dark{
+ --bg:#0f1216;--panel:#161a1f;--panel2:#1d222a;--ink:#e7ebf0;--dim:#8d97a3;--dimmer:#6f7885;
+ --line:#262c34;--line2:#202630;--acc:#7aa7d4;--accD:#9ec2e6;--accL:#1d2836;--accBorder:#31465c;
+ --red:#b23b32;--redL:#2c1614;--redInk:#fdf2f0;--org:#c9974a;--orgL:#3a2519;--grn:#5aa06e;--grnL:#16281c;
+ --blue:#7aa7d4;--blueL:#17222e;--purple:#9c8ad4;--purpleL:#221d33;--gray:#8d97a3;
+ --neutral:#495260;--neutralL:#1e2228;--bar:#495260;
+ --shadow:none;--shadowH:0 10px 30px rgba(0,0,0,.55)}
+body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+/* קצוות חדים בכל הממשק */
+.widget,.kpi,.tab,.btn,.badge,.chip,.fchip,.rq,.cp,.dn,.qbtn,.sxls,.seg,.menu,.ddpanel,.colpop,.modal,
+.sinput,.qsearch,.ddbtn,.marknote,.sres,.spanel,.kv,.acts li,.fixbox,.mvcard,.snone,.msg,.calc,.flag,
+.agebadge,.avb,.markbadge,.kbd,.updated,.fclear,.explain,.toast,.rank,.top input[type=month],.colpop input,.colpop .rng input
+ {border-radius:0}
+canvas{border-radius:0}
+/* משטחים — עוקבים אחרי הערכה במקום לבן קשיח */
+.top,.widget,.wqueue,.wdetail,.wfilters,.whead,.menu,.ddpanel,.colpop,.modal{background:var(--panel)}
+.kpi,.tab,.acts li,.fixbox,.mvcard,.kv .box,.calc .ch,.calc tr.step td,.updated,.btn,.cp,.dn,.qbtn,.sxls,.fchip,.rq,.kbd,
+.qsearch,.ddbtn,.sinput,.seg,.marknote,.fclear,.top input[type=month]{background:var(--panel2);color:var(--ink)}
+thead th{background:var(--bg);color:var(--dimmer);text-transform:uppercase;letter-spacing:.08em;font-size:11px}
+tbody tr:hover{background:var(--panel2)}
+tbody tr.sel{background:var(--accL)}
+td{border-bottom:1px solid var(--line2)}
+.top,.whead,.phd,.tabs,.pager{border-color:var(--line)}
+.top{border-bottom:2px solid var(--line)}
+.widget{border:1px solid var(--line)}
+.dash{background:var(--bg)}
+/* מספרים בפונט ייעודי */
+.kpi .v,.tab .n,.fixbox .new,.stake,.opn,.mvcard .dt,.calc .ch .res,.obj,.rank,.aside-num{font-family:var(--num);font-weight:800}
+.brand .mk{background:var(--acc);color:var(--panel);border-radius:0;font-family:var(--num)}
+/* אריח המדד הבוער — כמו במוקאפ */
+.kpis{grid-template-columns:1.6fr repeat(7,minmax(0,1fr));gap:0;border:1px solid var(--line)}
+.kpi{border:0;border-inline-end:1px solid var(--line);padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px}
+.kpi:last-child{border-inline-end:0}
+.kpi .ic{display:none}
+.kpi .l{font-size:12px;font-weight:600;color:var(--dim)}
+.kpi .v{font-size:30px;letter-spacing:-.5px}
+.kpi .sub{font-size:11px;color:var(--dimmer)}
+#kpis .kpi:first-child{background:var(--red);color:var(--redInk)}
+#kpis .kpi:first-child .l{color:var(--redInk);font-weight:700}
+#kpis .kpi:first-child .v{color:var(--redInk);font-size:40px}
+#kpis .kpi:first-child .sub{color:var(--redInk);opacity:.9}
+.kpi.urgent{background:var(--panel2)}.kpi.urgent .v{color:var(--red)}
+.kpi.mny.cap .v{color:var(--blue)}
+/* טאבים בסגנון המוקאפ */
+.tabs{gap:0;border:1px solid var(--line);border-bottom:0}
+.tab{border:0;border-inline-end:1px solid var(--line);border-top:4px solid transparent;padding:9px 12px}
+.tab:last-child{border-inline-end:0}
+.tab.sel{background:var(--panel2);border-top-color:var(--c,var(--red));box-shadow:none}
+.tab .t{font-size:12px;font-weight:600;color:var(--ink)}
+.tab .n{font-size:24px;color:var(--c,var(--ink))}
+.tab .m{color:var(--dimmer)}
+/* כרטיס הפריט — בלוק ההחלטה */
+.wdetail .ohead{border-bottom:2px solid var(--line)}
+.opn{font-family:var(--num);font-size:16px;color:var(--acc);direction:ltr;text-align:start}
+.sec h3{text-transform:uppercase;letter-spacing:.1em;color:var(--dimmer);font-size:10px}
+.acts li::before{border-radius:0;background:var(--acc);color:var(--panel)}
+.fixbox{border:1px solid var(--line);border-inline-start:4px solid var(--acc)}
+.fixbox .new{color:var(--acc);font-size:26px}
+.explain,.btn.pri{background:var(--acc);color:var(--panel);border-color:var(--acc);font-weight:700}
+.explain:hover,.btn.pri:hover{background:var(--accD);border-color:var(--accD)}
+.msg.err{background:var(--redL);border-inline-start:3px solid var(--red)}
+.msg.warn{background:var(--orgL);border-inline-start:3px solid var(--org)}
+.badge{border-radius:0;font-weight:600}
+.dot{border-radius:0;width:4px;height:22px;vertical-align:middle}
+.stake.rev{color:var(--red)}.stake.cap{color:var(--blue)}
+.cutrow td{background:var(--redL);border-top:2px solid var(--red)}
+body.dark .diag.warn{background:#2a2210;border-bottom-color:#6b5313;color:#d8b45e}
+body.dark .cantknow .ck{background:var(--blueL);border-color:#2b3a4d;color:#9ec2e6}
+body.dark .sdbadge{background:#332a10;border-color:#6b5313;color:#d8b45e}
+body.dark .msg.info{background:var(--blueL)}body.dark .msg.idea{background:var(--purpleL)}
+body.dark .msg.ok{background:var(--grnL)}
+body.dark .snone,body.dark .fclear{border-color:var(--line)}
+body.dark .sres mark{background:#5c4a12;color:#fff}
 </style>
 </head>
 <body>
@@ -739,7 +824,7 @@ function wireDrag(){
 }
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1600)}
 const DARK_KEY='planner_dark_v1';
-let DARKON=false;try{DARKON=localStorage.getItem(DARK_KEY)==='1'}catch(_){}
+let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
 function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
