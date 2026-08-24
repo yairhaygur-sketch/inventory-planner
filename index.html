@@ -1,285 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html dir="rtl" lang="he">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>מרכז עבודה יומי</title>
+  <style>
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;background:#0f1216;color:#e7ebf0;font-family:Rubik,Archivo,sans-serif;direction:rtl;}
+    header{display:flex;align-items:center;gap:20px;padding:0 24px;height:60px;border-bottom:2px solid #262c34;background:#161a1f;}
+    header>:nth-child(2){margin-inline-start:auto;}
+    header button{font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;}
+    header button:last-child{background:#7aa7d4;border-color:#7aa7d4;color:#0f1216;font-weight:700;}
+    .metrics{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;border-bottom:2px solid #262c34;background:#161a1f;}
+    .metric{padding:18px 22px;border-inline-end:1px solid #262c34;display:flex;flex-direction:column;justify-content:center;}
+    .metric.primary{background:#b23b32;color:#fdf2f0;}
+    .metric.primary>:first-child{font-size:13px;font-weight:700;}
+    .metric.primary>:last-child{font-family:Archivo;font-size:52px;font-weight:800;line-height:1;margin-top:4px;}
+    .metric:not(.primary)>:first-child{font-size:13px;color:#8d97a3;font-weight:500;margin-bottom:2px;}
+    .metric:not(.primary)>:last-child{font-family:Archivo;font-size:32px;font-weight:800;line-height:1.1;}
+    .main{display:grid;grid-template-columns:minmax(0,1fr) 360px;flex:1 1 auto;min-height:0;}
+    .content{display:flex;flex-direction:column;min-width:0;background:#161a1f;}
+    .tabs{display:flex;border-bottom:2px solid #262c34;}
+    .tab{flex:1 1 0;min-width:0;padding:12px 14px 14px;border:0;background:transparent;color:#e7ebf0;text-align:start;cursor:pointer;border-top:4px solid transparent;font-family:inherit;}
+    .tab.active{background:#1d222a;border-top-color:#b23b32;}
+    .tab>:first-child{font-size:13px;font-weight:600;white-space:nowrap;}
+    .tab>:last-child{font-family:Archivo;font-size:26px;font-weight:800;line-height:1.15;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;font-size:14px;}
+    th{text-align:start;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;background:#12161a;}
+    td{padding:12px 18px;border-bottom:1px solid #202630;text-align:start;}
+    td:first-child{font-family:Archivo;font-weight:700;font-size:15px;border-inline-start:4px solid;}
+    tr.urgent td:first-child{border-inline-start-color:#b23b32;}
+    tr.warning td:first-child{border-inline-start-color:#c9974a;}
+    tr.normal td:first-child{border-inline-start-color:#495260;}
+    tbody tr:hover{background:#1e2228;}
+    .badge{font-size:12px;font-weight:600;padding:2px 8px;white-space:nowrap;display:inline-block;}
+    .badge.urgent{background:#b23b32;color:#fdf2f0;}
+    .badge.warning{background:#3a2519;color:#c9974a;}
+    .aside{border-inline-start:2px solid #262c34;background:#161a1f;display:flex;flex-direction:column;min-height:0;}
+    .aside-header{padding:16px 18px;border-bottom:2px solid #262c34;}
+    .aside-header>:first-child{font-family:Archivo;font-size:17px;font-weight:800;direction:ltr;text-align:right;}
+    .aside-action{padding:18px;border-bottom:2px solid #262c34;background:#1d222a;border-inline-start:4px solid #7aa7d4;}
+    .aside-action>:first-child{font-family:Archivo;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#7aa7d4;font-weight:700;}
+    .aside-action>:nth-child(2){font-size:20px;font-weight:700;margin-top:8px;}
+    .aside-action>:nth-child(3){font-family:Archivo;font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:#7aa7d4;}
+    .aside-action button{margin-top:14px;display:flex;gap:8px;}
+    .btn-primary{font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 16px;cursor:pointer;white-space:nowrap;}
+    .btn-secondary{font-family:inherit;font-size:14px;background:transparent;border:1px solid #3a414a;color:#c3cbd4;padding:10px 16px;cursor:pointer;white-space:nowrap;}
+    .aside-body{padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0;}
+    .aside-body>:first-child{font-family:Archivo;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;}
+    .chart{position:relative;height:120px;display:flex;align-items:flex-end;gap:4px;direction:ltr;margin-top:12px;}
+    .bar{flex:1 1 0;min-width:2px;background:#495260;}
+    .bar.drop{background:#b23b32;}
+    .bar.spike{background:#262c34;}
+  </style>
 </head>
 <body>
-<x-dc>
-<helmet>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-html,body{margin:0;background:#0f1216;direction:rtl;}
-body{font-family:"Rubik",Archivo,sans-serif;color:#e7ebf0;}
-a{color:#7aa7d4;text-decoration:none;}
-a:hover{color:#93bce0;text-decoration:underline;}
-::selection{background:#7aa7d4;color:#0f1216;}
-input::placeholder{color:#6f7885;}
-</style>
-</helmet>
-
-<div dir="rtl" style="font-family:'Rubik',Archivo,sans-serif;background:#0f1216;color:#e7ebf0;min-height:940px;height:100vh;min-width:1400px;display:flex;flex-direction:column;">
-
-  <header style="display:flex;align-items:center;gap:20px;padding:0 24px;height:60px;border-bottom:2px solid #262c34;background:#161a1f;flex:0 0 auto;">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:28px;height:28px;background:#7aa7d4;color:#0f1216;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;">מ</div>
-      <div style="font-size:15px;font-weight:700;">מרכז עבודה יומי</div>
-    </div>
-    <div style="width:1px;height:26px;background:#262c34;"></div>
-    <div style="font-size:14px;color:#8d97a3;">{{ headerLine }}</div>
-    <div style="margin-inline-start:auto;display:flex;align-items:center;gap:8px;">
-      <button onClick="{{ toggleState }}" style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#8d97a3;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260;color:#e7ebf0">{{ toggleLabel }}</button>
-      <button style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260">ייצוא</button>
-      <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:1px solid #7aa7d4;color:#0f1216;padding:8px 20px;cursor:pointer;white-space:nowrap;" style-hover="background:#93bce0;border-color:#93bce0">טעינת דוח</button>
-    </div>
+  <header>
+    <div>מרכז עבודה יומי</div>
+    <div>ZMRP_2608.xlsx · חודש בסיס יולי 2026 · 07:41</div>
+    <button>ייצוא</button>
+    <button>טעינת דוח</button>
   </header>
 
-  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
-    <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:48px;">
-      <div style="width:min(760px,100%);">
-        <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#7aa7d4;">מצב פתיחה</div>
-        <h1 style="font-size:40px;font-weight:700;margin:12px 0 0;line-height:1.1;">להתחיל את היום — טען את דוח ZMRP</h1>
-        <p style="font-size:16px;line-height:1.6;color:#8d97a3;max-width:56ch;margin:14px 0 0;">אחרי הטעינה המערכת תסווג את כל הפריטים לפי דחיפות, תחשב סיכון בשקלים ותפתח את תור העבודה על הקטגוריה הבוערת ביותר.</p>
-        <div style="border:2px dashed #333b45;background:#161a1f;padding:38px 28px;margin-top:24px;display:flex;align-items:center;gap:24px;">
-          <div style="flex:1 1 auto;">
-            <div style="font-size:20px;font-weight:700;">גרירת קובץ לכאן</div>
-            <div style="font-size:14px;color:#8d97a3;margin-top:4px;">xlsx · הכותרות נקראות אוטומטית</div>
-          </div>
-          <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 18px;cursor:pointer;" style-hover="background:#93bce0">בחירת קובץ</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:16px;border-top:2px solid #262c34;margin-top:24px;padding-top:16px;">
-          <div style="font-size:14px;color:#8d97a3;">אחרון: <b style="color:#e7ebf0;">ZMRP_2608.xlsx</b> · אתמול 08:12 · חודש בסיס יולי 2026</div>
-          <button onClick="{{ toggleState }}" style="margin-inline-start:auto;font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260">טעינה מחדש</button>
+  <div class="metrics">
+    <div class="metric primary">
+      <div>בוער · לקוח ממתין ללא רכש</div>
+      <div style="font-family:Archivo;">14</div>
+      <div>₪ 312,400 בסיכון</div>
+    </div>
+    <div class="metric"><div>מניעת חוסר</div><div style="color:#c9974a;">38</div><div>₪ 184,100</div></div>
+    <div class="metric"><div>מכירות אבודות</div><div style="color:#c9974a;">9</div><div>₪ 96,700</div></div>
+    <div class="metric"><div>עודף מלאי</div><div>61</div><div>₪ 421,300</div></div>
+    <div class="metric"><div>עדכון פרמטרים</div><div>27</div><div>איכות נתונים</div></div>
+  </div>
+
+  <div class="main">
+    <div class="content">
+      <div class="tabs">
+        <button class="tab active"><div>הכול</div><div>12</div></button>
+        <button class="tab"><div>לקוח ממתין</div><div>2</div></button>
+        <button class="tab"><div>פער כיסוי</div><div>1</div></button>
+        <button class="tab"><div>מניעת חוסר</div><div>3</div></button>
+        <button class="tab"><div>מכירות אבודות</div><div>2</div></button>
+        <button class="tab"><div>עוד</div><div>2</div></button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>מק״ט</th><th>תיאור</th><th>מצב</th><th>11M</th><th>חסר</th><th>כיסוי</th><th>סיכון</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="urgent"><td>51 8410 3300</td><td>רפידות בלם קדמי</td><td><span class="badge urgent">לקוח ממתין</span></td><td style="text-align:center;">▁▂▂▂▂▂▂▃▂▂▃</td><td style="text-align:end;color:#b23b32;">-24</td><td style="text-align:end;">0.4 ח׳</td><td style="text-align:end;font-family:Archivo;">64,200</td></tr>
+          <tr class="urgent"><td>34 1160 7712</td><td>דיסק בלם אחורי</td><td><span class="badge urgent">לקוח ממתין</span></td><td style="text-align:center;">▁▂▁▂▁▂▁▂▁▂▁</td><td style="text-align:end;color:#b23b32;">-12</td><td style="text-align:end;">0.0</td><td style="text-align:end;font-family:Archivo;">51,800</td></tr>
+          <tr class="warning"><td>63 2170 4418</td><td>פנס ראשי ימין</td><td><span class="badge warning">מכירות אבודות</span></td><td style="text-align:center;">▄▃▄▁▃▄▃█▃▃▃</td><td style="text-align:end;">0</td><td style="text-align:end;">1.2 ח׳</td><td style="text-align:end;font-family:Archivo;">42,900</td></tr>
+          <tr class="normal"><td>11 4270 9903</td><td>משאבת מים</td><td><span class="badge urgent">פער כיסוי</span></td><td style="text-align:center;">▂▃▂▃▂▃▂▂▃▂▃</td><td style="text-align:end;">6</td><td style="text-align:end;">0.7 ח׳</td><td style="text-align:end;font-family:Archivo;">38,400</td></tr>
+          <tr class="normal"><td>17 1180 2265</td><td>מצנן מנוע</td><td><span class="badge warning">מניעת חוסר</span></td><td style="text-align:center;">▂▂▂▂▂▂▂▂▂▂▂</td><td style="text-align:end;">0</td><td style="text-align:end;">0.9 ח׳</td><td style="text-align:end;font-family:Archivo;">31,600</td></tr>
+          <tr class="normal"><td>64 1190 0221</td><td>מסנן אוויר מנוע</td><td><span class="badge">עודף מלאי</span></td><td style="text-align:center;">▁▁▁▁▁▂▂▂▂▂▂</td><td style="text-align:end;">0</td><td style="text-align:end;">14.2 ח׳</td><td style="text-align:end;font-family:Archivo;">18,900</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="aside">
+      <div class="aside-header">
+        <div>51 8410 3300</div>
+        <div style="font-size:14px;color:#8d97a3;margin-top:2px;">רפידות בלם קדמי</div>
+      </div>
+      <div class="aside-action">
+        <div>ההחלטה</div>
+        <div>לפתוח הזמנת רכש</div>
+        <div style="font-family:Archivo;">24 יח׳</div>
+        <div style="font-size:14px;color:#8d97a3;margin-top:4px;">₪ 64,200 בסיכון</div>
+        <button><button class="btn-primary">פתיחת רכש</button><button class="btn-secondary">סמן כטופל</button></button>
+      </div>
+      <div class="aside-body">
+        <div>צריכה · 11 חודשים</div>
+        <div class="chart">
+          <div class="bar" style="height:60%;"></div>
+          <div class="bar" style="height:48%;"></div>
+          <div class="bar" style="height:55%;"></div>
+          <div class="bar drop" style="height:12%;"></div>
+          <div class="bar" style="height:51%;"></div>
+          <div class="bar" style="height:58%;"></div>
+          <div class="bar" style="height:44%;"></div>
+          <div class="bar" style="height:88%;"></div>
+          <div class="bar" style="height:53%;"></div>
+          <div class="bar" style="height:47%;"></div>
+          <div class="bar" style="height:60%;"></div>
         </div>
       </div>
     </div>
-  </sc-if>
-
-  <sc-if value="{{ isLoaded }}" hint-placeholder-val="{{ true }}">
-    <div style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;">
-
-      <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;border-bottom:2px solid #262c34;background:#161a1f;flex:0 0 auto;">
-        <div style="background:#b23b32;color:#fdf2f0;padding:18px 22px;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:13px;font-weight:700;">בוער עכשיו · לקוח ממתין ללא רכש</div>
-          <div style="display:flex;align-items:baseline;gap:14px;margin-top:4px;">
-            <div style="font-family:Archivo,sans-serif;font-size:52px;font-weight:800;line-height:1;">14</div>
-            <div style="font-size:16px;font-weight:700;">₪ 312,400 בסיכון</div>
-          </div>
-          <div style="font-size:13px;margin-top:6px;opacity:.75;">הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה</div>
-        </div>
-        <div style="padding:18px;border-inline-start:1px solid #262c34;">
-          <div style="font-size:13px;color:#8d97a3;font-weight:500;">מניעת חוסר</div>
-          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">38</div>
-          <div style="font-size:13px;color:#c9974a;">₪ 184,100</div>
-        </div>
-        <div style="padding:18px;border-inline-start:1px solid #262c34;">
-          <div style="font-size:13px;color:#8d97a3;font-weight:500;">מכירות אבודות</div>
-          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">9</div>
-          <div style="font-size:13px;color:#c9974a;">₪ 96,700</div>
-        </div>
-        <div style="padding:18px;border-inline-start:1px solid #262c34;">
-          <div style="font-size:13px;color:#8d97a3;font-weight:500;">עודף מלאי</div>
-          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">61</div>
-          <div style="font-size:13px;color:#8d97a3;">₪ 421,300</div>
-        </div>
-        <div style="padding:18px;border-inline-start:1px solid #262c34;">
-          <div style="font-size:13px;color:#8d97a3;font-weight:500;">עדכון פרמטרים</div>
-          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">27</div>
-          <div style="font-size:13px;color:#8d97a3;">איכות נתונים</div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:220px minmax(0,1fr) 360px;flex:1 1 auto;min-height:0;">
-
-        <aside style="border-inline-end:2px solid #262c34;padding:18px 16px;background:#0f1216;overflow:auto;">
-          <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;">סינון</div>
-          <input placeholder="מק״ט, תיאור, ספק" style="width:100%;margin-top:10px;font-family:inherit;font-size:14px;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;outline:none;" style-focus="border-color:#7aa7d4">
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
-            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">מותג · הכול</button>
-            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">ספק · הכול</button>
-            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">קבוצת ABC · הכול</button>
-          </div>
-          <div style="border-top:2px solid #262c34;margin-top:18px;padding-top:14px;">
-            <div style="font-size:13px;font-weight:600;color:#8d97a3;">מסננים פעילים</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#7aa7d4;color:#0f1216;unicode-bidi:isolate;">קבוצת A ✕</span>
-              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#232932;color:#b8c1cc;">רק משימות ✕</span>
-            </div>
-          </div>
-          <div style="border-top:2px solid #262c34;margin-top:18px;padding-top:14px;font-size:13px;color:#6f7885;line-height:1.5;">
-            פריסה קבועה. ההתאמה האישית הוסרה — מסך אחד שעובד לכולם.
-          </div>
-        </aside>
-
-        <main style="display:flex;flex-direction:column;min-width:0;background:#161a1f;">
-          <div style="display:flex;flex-wrap:nowrap;overflow-x:auto;border-bottom:2px solid #262c34;">
-            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6">
-              <button onClick="{{ t.pick }}" style="{{ t.style }}">
-                <div style="display:flex;align-items:baseline;gap:8px;">
-                  <div style="font-size:13px;font-weight:600;white-space:nowrap;">{{ t.label }}</div>
-                  <div style="font-family:Archivo,sans-serif;font-size:22px;font-weight:800;line-height:1;">{{ t.count }}</div>
-                </div>
-                <div style="font-size:12px;color:#8d97a3;white-space:nowrap;margin-top:2px;">{{ t.money }}</div>
-              </button>
-            </sc-for>
-          </div>
-
-          <div style="display:flex;align-items:baseline;gap:12px;padding:12px 18px;border-bottom:1px solid #262c34;">
-            <div style="font-size:16px;font-weight:700;">{{ listTitle }}</div>
-            <div style="font-size:13px;color:#8d97a3;">{{ listSub }}</div>
-            <div style="margin-inline-start:auto;font-size:13px;color:#6f7885;">מיון: סיכון בשקלים ↓</div>
-          </div>
-
-          <div style="flex:1 1 auto;overflow:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:14px;">
-              <thead>
-                <tr style="background:#12161a;">
-                  <th style="text-align:start;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מק״ט</th>
-                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">תיאור</th>
-                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מצב</th>
-                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">11 חודשים</th>
-                  <th style="text-align:end;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">חסר</th>
-                  <th style="text-align:end;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">כיסוי</th>
-                  <th style="text-align:end;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">סיכון ₪</th>
-                </tr>
-              </thead>
-              <tbody>
-                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
-                  <tr onClick="{{ r.pick }}" style="{{ r.rowStyle }}" style-hover="background:#1d222a">
-                    <td dir="ltr" style="{{ r.pnStyle }}">{{ r.pn }}</td>
-                    <td style="padding:12px 10px;color:#b8c1cc;border-bottom:1px solid #202630;">{{ r.desc }}</td>
-                    <td style="padding:12px 10px;border-bottom:1px solid #202630;"><span style="{{ r.catStyle }}">{{ r.cat }}</span></td>
-                    <td style="padding:10px;border-bottom:1px solid #202630;">
-                      <div style="display:flex;align-items:flex-end;gap:2px;height:26px;width:96px;direction:ltr;">
-                        <sc-for list="{{ r.spark }}" as="b" hint-placeholder-count="11">
-                          <div style="{{ b.style }}"></div>
-                        </sc-for>
-                      </div>
-                    </td>
-                    <td style="{{ r.missStyle }}">{{ r.miss }}</td>
-                    <td style="padding:12px 10px;text-align:end;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#8d97a3;border-bottom:1px solid #202630;">{{ r.cov }}</td>
-                    <td style="padding:12px 18px;text-align:end;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-weight:700;border-bottom:1px solid #202630;">{{ r.risk }}</td>
-                  </tr>
-                </sc-for>
-              </tbody>
-            </table>
-          </div>
-
-          <div style="border-top:2px solid #262c34;flex:0 0 auto;background:#12161a;">
-            <div style="display:flex;align-items:baseline;gap:12px;padding:10px 18px;">
-              <div style="font-size:16px;font-weight:700;">תנועות אחרונות</div>
-              <div style="font-size:13px;color:#6f7885;">גיל התנועה — פס יחסי, 0 עד 180 יום</div>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:14px;">
-              <thead>
-                <tr>
-                  <th style="text-align:start;padding:8px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מק״ט</th>
-                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מכירה אחרונה</th>
-                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">גיל</th>
-                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">כניסה אחרונה</th>
-                  <th style="text-align:start;padding:8px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">גיל</th>
-                </tr>
-              </thead>
-              <tbody>
-                <sc-for list="{{ moves }}" as="m" hint-placeholder-count="3">
-                  <tr>
-                    <td dir="ltr" style="padding:10px 18px;font-family:Archivo,sans-serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;unicode-bidi:isolate;text-align:right;border-bottom:1px solid #202630;">{{ m.pn }}</td>
-                    <td style="padding:10px;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#b8c1cc;border-bottom:1px solid #202630;">{{ m.saleDate }}</td>
-                    <td style="padding:10px;border-bottom:1px solid #202630;">
-                      <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="width:120px;height:6px;background:#232932;"><div style="{{ m.saleBar }}"></div></div>
-                        <span style="font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:#8d97a3;">{{ m.saleAge }}</span>
-                      </div>
-                    </td>
-                    <td style="padding:10px;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#b8c1cc;border-bottom:1px solid #202630;">{{ m.entDate }}</td>
-                    <td style="padding:10px 18px;border-bottom:1px solid #202630;">
-                      <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="width:120px;height:6px;background:#232932;"><div style="{{ m.entBar }}"></div></div>
-                        <span style="font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:#8d97a3;">{{ m.entAge }}</span>
-                      </div>
-                    </td>
-                  </tr>
-                </sc-for>
-              </tbody>
-            </table>
-          </div>
-        </main>
-
-        <aside style="border-inline-start:2px solid #262c34;background:#161a1f;display:flex;flex-direction:column;min-height:0;">
-          <div style="padding:16px 18px;border-bottom:2px solid #262c34;">
-            <div dir="ltr" style="font-family:Archivo,sans-serif;font-size:17px;font-weight:800;unicode-bidi:isolate;text-align:right;">{{ sel.pn }}</div>
-            <div style="font-size:14px;color:#b8c1cc;margin-top:2px;">{{ sel.desc }}</div>
-            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#232932;color:#b8c1cc;">{{ sel.brand }}</span>
-              <span style="font-size:12px;font-weight:600;padding:3px 9px;border:1px solid #333b45;color:#8d97a3;unicode-bidi:isolate;">קבוצת {{ sel.abc }}</span>
-              <span style="font-size:12px;font-weight:600;padding:3px 9px;border:1px solid #333b45;color:#8d97a3;">{{ sel.supplier }}</span>
-            </div>
-          </div>
-
-          <div style="padding:18px;border-bottom:2px solid #262c34;background:#1d222a;border-inline-start:4px solid #7aa7d4;">
-            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#7aa7d4;">ההחלטה</div>
-            <div style="font-size:20px;font-weight:700;margin-top:8px;line-height:1.3;">{{ sel.action }}</div>
-            <div style="font-family:Archivo,sans-serif;font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:#7aa7d4;">{{ sel.qty }}</div>
-            <div style="font-size:14px;color:#8d97a3;margin-top:4px;">{{ sel.actionSub }}</div>
-            <div style="display:flex;gap:8px;margin-top:14px;">
-              <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 16px;cursor:pointer;" style-hover="background:#93bce0">פתיחת רכש</button>
-              <button style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #333b45;color:#b8c1cc;padding:10px 16px;cursor:pointer;" style-hover="border-color:#495260;color:#e7ebf0">סמן כטופל</button>
-            </div>
-          </div>
-
-          <div style="padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0;">
-            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;">צריכה — 11 חודשים</div>
-            <div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:4px;direction:ltr;margin-top:12px;">
-              <div style="{{ sel.medLineStyle }}"></div>
-              <sc-for list="{{ sel.bars }}" as="b" hint-placeholder-count="11">
-                <div style="{{ b.style }}"></div>
-              </sc-for>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#6f7885;margin-top:8px;">
-              <span>{{ sel.chartNote }}</span>
-              <span>קו = חציון {{ sel.median }}</span>
-            </div>
-
-            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;margin-top:20px;">למה</div>
-            <sc-for list="{{ sel.why }}" as="w" hint-placeholder-count="3">
-              <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #202630;font-size:14px;line-height:1.5;color:#b8c1cc;">
-                <div style="{{ w.barStyle }}"></div>
-                <div>{{ w.text }}</div>
-              </div>
-            </sc-for>
-
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#262c34;border:1px solid #262c34;margin-top:16px;">
-              <div style="background:#1d222a;padding:10px;">
-                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.free }}</div>
-                <div style="font-size:12px;color:#6f7885;">מלאי פנוי</div>
-              </div>
-              <div style="background:#1d222a;padding:10px;">
-                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.po }}</div>
-                <div style="font-size:12px;color:#6f7885;">רכש פתוח</div>
-              </div>
-              <div style="background:#1d222a;padding:10px;">
-                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.cust }}</div>
-                <div style="font-size:12px;color:#6f7885;">הזמנות לקוח</div>
-              </div>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;font-size:13px;color:#8d97a3;margin-top:14px;">
-              <span>ROP {{ sel.rop }} → {{ sel.ropNew }}</span>
-              <span>SS {{ sel.ss }} → {{ sel.ssNew }}</span>
-            </div>
-            <a href="#" style="display:inline-block;margin-top:12px;font-size:14px;font-weight:600;">מאחורי החישוב ↗</a>
-          </div>
-        </aside>
-
-      </div>
-    </div>
-  </sc-if>
-</div>
-
-</x-dc>
-
+  </div>
 </body>
 </html>
