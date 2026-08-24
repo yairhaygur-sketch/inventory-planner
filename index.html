@@ -380,6 +380,106 @@ body.dark .msg.info{background:var(--blueL)}body.dark .msg.idea{background:var(-
 body.dark .msg.ok{background:var(--grnL)}
 body.dark .snone,body.dark .fclear{border-color:var(--line)}
 body.dark .sres mark{background:#5c4a12;color:#fff}
+
+/* ============ Stage B-C — פריסה קבועה לפי design/stage-bc-full-screen.dc.html ============ */
+:root{--panel0:#f2f4f8;--soft:#5a6472}
+body.dark{--panel0:#12161a;--soft:#b8c1cc}
+.dash{padding:0;gap:0;grid-template-columns:220px minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr) auto;background:var(--bg);overflow:hidden}
+.widget{border:0;border-radius:0;box-shadow:none;min-height:0}
+.whead{display:none}
+.wkpi{grid-column:1 / -1;grid-row:1;min-height:0;background:var(--panel)}
+.wfilters{grid-column:1;grid-row:2 / span 2;border-inline-end:2px solid var(--line);background:var(--bg)}
+.wqueue{grid-column:2;grid-row:2;background:var(--panel)}
+.wmoves{grid-column:2;grid-row:3;border-top:2px solid var(--line);background:var(--panel0);max-height:34vh}
+.wdetail{grid-column:3;grid-row:2 / span 2;border-inline-start:2px solid var(--line);background:var(--panel)}
+.wfilters .whead{display:flex;background:transparent;padding:16px 16px 0;border:0}
+.wfilters .wt{font-family:var(--num);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);font-weight:700}
+/* מדדים */
+.kpis{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;gap:0;border:0;border-bottom:2px solid var(--line);padding:0}
+.kpi{border:0;border-inline-start:1px solid var(--line);padding:18px;display:flex;flex-direction:column;justify-content:center;gap:0;background:var(--panel)}
+.kpi:first-child{border-inline-start:0}
+.kpi .l{font-size:13px;color:var(--dim);font-weight:500}
+.kpi .v{font-family:var(--num);font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;color:var(--ink)}
+.kpi .mny{font-size:13px;color:var(--dim)}
+.kpi .mny.warn{color:var(--org)}
+#kpis .kpi.burn{background:var(--red);color:var(--redInk);padding:18px 22px}
+#kpis .kpi.burn .l{font-size:13px;font-weight:700;color:var(--redInk)}
+#kpis .kpi.burn .row{display:flex;align-items:baseline;gap:14px;margin-top:4px}
+#kpis .kpi.burn .v{font-size:52px;color:var(--redInk);margin:0}
+#kpis .kpi.burn .mny{font-size:16px;font-weight:700;color:var(--redInk)}
+#kpis .kpi.burn .note{font-size:13px;margin-top:6px;opacity:.75;color:var(--redInk)}
+/* טאבים */
+.qbody{padding:0}
+.tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:0;margin:0;border:0;border-bottom:2px solid var(--line)}
+.tab{flex:1 1 0;min-width:132px;padding:10px 14px 12px;border:0;border-top:4px solid var(--c,var(--neutral));border-inline-end:1px solid var(--line);background:transparent}
+.tab:hover{transform:none;box-shadow:none;background:var(--panel2)}
+.tab.sel{background:var(--panel2);box-shadow:none}
+.tab .t{font-size:13px;font-weight:600;color:var(--ink)}
+.tab .nrow{display:flex;align-items:baseline;gap:8px}
+.tab .n{font-family:var(--num);font-size:22px;font-weight:800;line-height:1;color:var(--ink);margin:0}
+.tab .tsum{font-size:12px;color:var(--dim);white-space:nowrap}
+.tab .m{font-size:12px;color:var(--dim);margin-top:2px}
+.qpanel{margin:0;border:0}
+.phd{padding:12px 18px;border-bottom:1px solid var(--line);gap:12px;align-items:baseline}
+.phd .title{font-size:16px;font-weight:700}
+.phd .sub,.phd #phdSub{font-size:13px;color:var(--dim)}
+/* טבלה */
+.rows table{font-size:14px}
+thead th{background:var(--panel0)}
+th .thc{padding:10px}
+td{padding:12px 10px;border-bottom:1px solid var(--line2)}
+td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-family:var(--num);font-weight:700;font-size:15px;
+ font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:right}
+tr.sev3 td.pnc{border-inline-start-color:var(--red)}
+tr.sev2 td.pnc{border-inline-start-color:var(--org)}
+tr.sev1 td.pnc,tr.sev0 td.pnc{border-inline-start-color:var(--neutral)}
+td.num{text-align:end;font-family:var(--num);font-variant-numeric:tabular-nums}
+td.dsc{color:var(--soft)}td.dim{color:var(--dim)}td.strong{font-weight:700}
+tbody tr.sel{background:#212832}
+body:not(.dark) tbody tr.sel{background:var(--accL)}
+.spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;width:96px;direction:ltr}
+.spark .sb{flex:1 1 0;min-width:2px;background:var(--bar);display:block}
+.spark .sb.d{background:var(--red)}
+.spark .sb.s{background:var(--acc)}
+td.miss .neg{color:var(--red);font-weight:700}
+td.miss .warnq{color:var(--org);font-weight:700}
+td.miss .posq{color:var(--dim)}
+/* כרטיס פריט */
+.wdetail .detail{overflow:hidden}
+.ohead{padding:16px 18px;border-bottom:2px solid var(--line)}
+.ohead .opn{font-family:var(--num);font-size:17px;font-weight:800;direction:ltr;unicode-bidi:isolate;text-align:right;color:var(--ink)}
+.ohead h2{font-size:14px;color:var(--soft);font-weight:400;margin:2px 0 0}
+.dcs{padding:18px;border-bottom:2px solid var(--line);background:var(--panel2);border-inline-start:4px solid var(--acc);flex:0 0 auto}
+.dcl{font-family:var(--num);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--acc)}
+.dca{font-size:20px;font-weight:700;margin-top:8px;line-height:1.3}
+.dcq{font-family:var(--num);font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:var(--acc)}
+.dcs2{font-size:14px;color:var(--dim);margin-top:4px}
+.dcb{display:flex;gap:8px;margin-top:14px}
+.bpri{font-family:inherit;font-size:14px;font-weight:700;background:var(--acc);border:0;color:var(--bg);padding:10px 16px;cursor:pointer}
+.bpri:hover{background:var(--accD)}
+.bsec{font-family:inherit;font-size:14px;background:transparent;border:1px solid var(--line);color:var(--soft);padding:10px 16px;cursor:pointer}
+.bsec:hover{border-color:var(--neutral);color:var(--ink)}
+.opad{padding:16px 18px;grid-template-columns:1fr}
+/* תנועות */
+.wmoves .qbody{padding:0}
+.wmoves .tabs{border-bottom:1px solid var(--line)}
+.wmoves .phd{padding:10px 18px}
+.tab{min-width:118px}
+.wmoves .tabs{border-bottom:1px solid var(--line)}
+.wmoves .tab{min-width:104px;padding:7px 10px 8px;border-top-width:3px}
+.wmoves .tab .n{font-size:16px}
+.wmoves .tab .m{display:none}
+.wmoves td,.wmoves th .thc{padding:8px 10px}
+.wmoves .pager{padding:6px 12px}
+@media(max-width:1180px){
+ .dash{grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto minmax(320px,1fr) auto auto}
+ .wfilters{grid-column:1;grid-row:2 / span 3}.wqueue{grid-column:2;grid-row:2}
+ .wdetail{grid-column:2;grid-row:3;border-inline-start:0;border-top:2px solid var(--line)}
+ .wmoves{grid-column:2;grid-row:4}
+ .kpis{grid-template-columns:1.7fr 1fr 1fr;border-bottom-width:2px}
+}
+@media(max-width:760px){.dash{display:flex;flex-direction:column;overflow:auto}.kpis{grid-template-columns:1fr}
+ .widget{width:100%}.wfilters,.wdetail{border:0;border-top:2px solid var(--line)}.wmoves{max-height:none}}
 </style>
 </head>
 <body>
@@ -888,29 +988,44 @@ function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].
 function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess;
  const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+QF[k].length,0);
  const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;
- const revList=decisionList('rev'),capList=decisionList('cap'),fixList=decisionList('fix');
- const revC=cut80(revList,'rev'),capC=cut80(capList,'cap');
- const K=[['הכנסה בסיכון',moneyShort(revC.total),'📉',false,`${revList.length} פריטים · 80% ב-${revC.n}`,'rev'],
-  ['הון כלוא',moneyShort(capC.total),'🧊',false,`${capList.length} פריטים · 80% ב-${capC.n}`,'cap'],
-  ['לקוחות ממתינים',waiting.length,'⛔',true],['המלצות MRP',fixList.length,'≋',fixList.length>0],
-  ['פער כיסוי',im.length,'⚠️',im.length>0],
-  ['מניעת חוסר',pr.length,'▲',false],['הון לשחרור',ex.length,'↓',false],['כלל המק״טים',QF.all.length,'□',false]];
- document.getElementById('kpis').innerHTML=K.map(([l,v,ic,urgent,sub,mny])=>
-  `<div class="kpi${urgent&&v>0?' urgent':''}${mny?' mny '+mny:''}"><div class="ic">${ic}</div><div class="txt"><div class="l">${l}</div><div class="v">${typeof v==='number'?v.toLocaleString('he-IL'):v}</div>${sub?`<div class="sub">${sub}</div>`:''}</div></div>`).join('');
+ const fixList=decisionList('fix');
+ const sum=a=>a.reduce((t,r)=>t+(r.risk||0),0);
+ const lost=QF.all.filter(r=>r.lostPast>0);
+ const K=[
+  {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:money(sum(waiting)),
+   note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
+  {l:'מניעת חוסר',n:pr.length,m:money(sum(pr)),cls:'warn'},
+  {l:'מכירות אבודות',n:lost.length,m:money(lost.reduce((t,r)=>t+r.lostPast,0)),cls:'warn'},
+  {l:'הון לשחרור',n:ex.length,m:money(sum(ex)),cls:''},
+  {l:'עדכון פרמטרים',n:fixList.length,m:'איכות נתונים',cls:''}];
+ document.getElementById('kpis').innerHTML=K.map(k=>k.cls==='burn'
+  ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m} בסיכון</div></div><div class="note">${k.note}</div></div>`
+  :`<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div></div>`).join('');
  document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
 function tiles(){document.getElementById('tabs').innerHTML=DEF.map(([k,t,s,c])=>{
  const a=k==='today'?decisionList(track):(k==='all'?QF.all:QF[k]);
+ const sum=a.reduce((x,r)=>x+(k==='today'&&TRACKKEY[track]?(r[TRACKKEY[track]]||0):(r.risk||0)),0);
  let mn=s;
- if(k==='today'){const c=cut80(a,track);mn=track==='fix'?'ניתן לעדכן במרוכז':`${c.n} פריטים = 80%`}else
+ if(k==='today'){const c=cut80(a,track);mn=track==='fix'?'ניתן לעדכן במרוכז':`80% ב-${c.n} פריטים`}else
  if(k==='marked'){const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;mn=handled?`${handled} טופלו`:`מסומנים`}
  else if(k==='passive')mn='רקע';else if(k==='all')mn=`${QF.ok.length} ללא ממצא`;
- return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}"><div class="t">${t}</div><div class="n">${a.length}</div><div class="m">${mn}</div></div>`}).join('');
+ const mny=sum>0?`<div class="tsum">${moneyShort(sum)}</div>`:'';
+ return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span>${mny}</div><div class="m">${mn}</div></div>`}).join('');
  document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{cur=e.dataset.k;render()})}
-const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['model','דגם','t'],['pattern','דפוס','t'],['cat','סטטוס','t'],
- ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['rop','ROP','n'],['ss','SS','n'],
- ['cov','כיסוי','n'],['trend','מגמה','n'],['risk','סיכון','n']];
+const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
+ ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','סיכון ₪','n']];
+function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
+ const drop=new Set(r.A.drops.map(d=>d.i)),spike=new Set(r.A.spikes.map(x=>x.i));
+ return '<span class="spark" title="צריכה 11 חודשים — מהישן לחדש">'+m.map((v,i)=>{const idx=i+1;
+  const h=Math.max(12,Math.round(Math.max(0,v)/mx*100));
+  const cls=drop.has(idx)?' d':spike.has(idx)?' s':'';
+  return `<i class="sb${cls}" style="height:${h}%"></i>`}).reverse().join('')+'</span>'}
+function missCell(r){if(r.miss>0)return `<span class="neg">-${r.miss}</span>`;
+ if(r.orderQty>0)return `<span class="warnq">${r.orderQty}</span>`;
+ if(r.excessQty>0)return `<span class="posq">+${r.excessQty}</span>`;return '0'}
 const COLLABEL={};COLS.forEach(([k,l])=>COLLABEL[k]=l);
 const COLACC={pn:r=>r.pn,desc:r=>r.desc,model:r=>r.model,pattern:r=>r.A.pattern,cat:r=>r.cat,
+ spark:r=>r.d12,miss:r=>r.miss||r.orderQty||0,
  free:r=>r.free,cust:r=>r.cust,po:r=>r.po,rop:r=>r.rop,ss:r=>r.ss,
  cov:r=>r.cov==null?Infinity:r.cov,trend:r=>r.A.trend.pct,risk:r=>r.risk||0,sev:r=>r.sev};
 function cmp(a,b,key){const fa=COLACC[key];
@@ -996,22 +1111,20 @@ function render(){DL_CACHE={};tiles();kpis();
  const arrow=col=>sortCol===col?(sortDir==='asc'?'▲':'▼'):'';
  const th=(col,label)=>{const active=sortCol===col;const filt=!!colFilters[col];
    return `<th class="srt${active?' act':''}${filt?' filt':''}" data-col="${col}"><div class="thc">${label}<span>${arrow(col)}</span><span class="fdot"></span></div></th>`};
- document.querySelector('#tbl thead').innerHTML=`<tr><th style="width:20px"></th>${COLS.filter(c=>c[0]!=='cat'||cur==='all').map(c=>th(c[0],c[1])).join('')}</tr>`;
+ document.querySelector('#tbl thead').innerHTML=`<tr>${COLS.map(c=>th(c[0],c[1])).join('')}</tr>`;
  const view=rows.slice(0,500);
  document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>{
-  const c=rowColor(r);
-  const p=r.A.trend.pct;
-  const tr=p>=30&&p<900?`<span class="neg">▲ ${p}%</span>`:p<=-30?`<span class="pos">▼ ${Math.abs(p)}%</span>`:'—';
-  const isDone=r.mark&&r.mark.t==='handled';
-  const mb=r.mark?`<span class="markbadge${isDone?' done':''}">${r.cat}</span>`:'';
-  const doneBtn=r.mark?'':`<button class="dn" data-done="${r.pn}">✓ טופל</button>`;
-  const catcell=cur==='all'?`<td><span class="badge" style="background:${r.sev===3?'var(--redL)':'var(--neutralL)'};color:${r.sev===3?'var(--red)':'var(--ink)'}">${r.cat}</span></td>`:'';
-  return `<tr data-i="${i}"><td><span class="dot" style="background:${c}"></span></td>
-  <td><span class="obj">${r.pn}</span>${copyBtn(r.pn)}${doneBtn}${mb}</td><td>${r.desc.slice(0,24)}</td><td>${r.model.slice(0,15)}</td>
-  <td>${r.A.pattern}</td>${catcell}
-  <td>${r.free}</td><td>${r.cust}</td><td>${r.po}</td><td>${r.rop}</td><td>${r.ss}</td>
-  <td>${r.cov==null?'—':r.cov.toFixed(1)}</td><td>${tr}</td><td>${r.risk?money(r.risk):'—'}</td></tr>`}).join('')
-  ||`<tr><td colspan="14" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
+  const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(r.pn)}">✓ טופל</button>`;
+  return `<tr data-i="${i}" class="sev${r.sev}">
+  <td class="pnc"><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td>
+  <td class="dsc">${esc(r.desc.slice(0,30))}</td>
+  <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
+  <td>${sparkline(r)}</td>
+  <td class="num miss">${missCell(r)}</td>
+  <td class="num">${r.free}</td><td class="num">${r.cust}</td><td class="num">${r.po}</td>
+  <td class="num dim">${r.covA==null?'—':r.covA.toFixed(1)+' ח׳'}</td>
+  <td class="num strong">${r.risk?money(r.risk):'—'}</td></tr>`}).join('')
+  ||`<tr><td colspan="10" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
  document.querySelectorAll('#tbl thead th.srt').forEach(h=>h.onclick=e=>{e.stopPropagation();openColPop(h,h.dataset.col)});
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
@@ -1182,17 +1295,39 @@ function movePanel(r){if(r.sales==null&&r.entries==null)return '';
  return `<div class="sec"><h3>תנועה אחרונה ${sd?'<span class="sdbadge">אותו יום ✓</span>':''}</h3>
   <div class="mvrow"><div class="mvcard sale"><div class="lbl">🟢 מכירה אחרונה · CF</div><div class="dt">${movText(r.sales)}</div>${saleQt}</div>
    <div class="mvcard ent"><div class="lbl">🔵 כניסה למלאי · CG</div><div class="dt">${movText(r.entries)}</div>${entQt}</div></div></div>`}
+function decisionQty(r){
+ if(r.orderQty>0)return r.orderQty+' יח׳';
+ if(r.miss>0)return r.miss+' יח׳';
+ if(r.excessQty>0)return r.excessQty+' יח׳';
+ if(!r.isPDItem&&r.sugROP!==r.rop)return 'ROP '+r.rop+' → '+r.sugROP;
+ if(!r.isPDItem&&r.sugSS!==r.ss)return 'SS '+r.ss+' → '+r.sugSS;
+ return '—'}
+function decisionBlock(r){
+ const act=(r.act||[])[0]||'אין פעולה נדרשת';
+ const sub=r.expRev>0?`${money(r.expRev)} הכנסה בסיכון`
+  :r.expCap>0?`${money(r.expCap)} הון כלוא`
+  :r.lostPast>0?`${money(r.lostPast)} מכירות שאבדו בעבר`:'ללא חשיפה כספית';
+ const done=r.mark&&r.mark.t==='handled';
+ return `<div class="dcs">
+  <div class="dcl">ההחלטה</div>
+  <div class="dca">${esc(act)}</div>
+  <div class="dcq">${esc(decisionQty(r))}</div>
+  <div class="dcs2">${sub}</div>
+  <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
+   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div></div>`}
 function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
  const notes=[];
  if(A.spikes.length)notes.push(A.spikes.map(s=>`פיק ב${LABELS[s.i-1].name}: ${s.q} — פי ${s.x}`).join(' · '));
  if(A.drops.length)notes.push('<span style="color:var(--purple);font-weight:700">'+A.drops.map(s=>`צניחה ב${LABELS[s.i-1].name}: ${s.q} — חשד אזילה`).join(' · ')+'</span>');
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
- <div class="ohead"><h2>${r.desc}</h2><div class="opn">${r.pn}${copyBtn(r.pn)}${r.mark?`<span class="markbadge${isDone?' done':''}">${r.cat}</span>`:''}</div>
-  <div class="tags"><span class="tag p">${A.pattern}</span><span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>${r.isAcc?'<span class="tag b">אביזר</span>':''}
-  <span class="tag b">${r.brand}</span><span class="tag b">${r.model}</span><span class="tag">${r.mkt1}</span>
-  <span class="tag">${r.hier3}</span><span class="tag">${r.mrp}</span><span class="tag">ABC ${r.abc||'—'}</span>
-  <span class="tag">רמת שרות ${r.srv}</span><span class="tag">${r.supplier.slice(0,22)}</span></div></div>
+ <div class="ohead"><div class="opn">${esc(r.pn)}${copyBtn(r.pn)}</div><h2>${esc(r.desc)}</h2>
+  <div class="tags"><span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
+  <span class="tag">${esc(r.supplier.slice(0,20))}</span><span class="tag p">${A.pattern}</span>
+  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>
+  ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
+  <span class="tag">${esc(r.mrp)}</span>${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
+ ${decisionBlock(r)}
  <div class="opad">
   <div class="col">
    <div class="sec"><h3>למה הפריט ברשימה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
@@ -1225,6 +1360,13 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
   </div>
  </div>`;
  barChart(document.getElementById('c1'),r);projChart(document.getElementById('c2'),r);
+ const dm=document.querySelector('#detail [data-dmark]');
+ if(dm)dm.onclick=()=>{setMark(r.pn,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
+ const dc=document.querySelector('#detail [data-dcopy]');
+ if(dc)dc.onclick=()=>{const t=dc.dataset.dcopy;
+   if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
+   else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';
+     document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}document.body.removeChild(ta)}};
  document.querySelectorAll('#detail .marks button').forEach(b=>b.onclick=()=>{
   const note=document.getElementById('mknote').value;setMark(r.pn,b.dataset.t,note);
   const nr=(ALL.find(x=>x.pn===r.pn));if(nr){classify([nr]);detail(nr)}});
@@ -1364,7 +1506,8 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   colFilters={};apply()};
  rd.readAsArrayBuffer(file)};
 applyDark(DARKON);
-applyLayout();wireDrag();wireResize();
+LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));applyLayout();
+['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
 </script>
 </body>
 </html>
