@@ -490,6 +490,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rate=d12<=3?0:clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
     const rawRate=d12<=3?0:d6/6;
     const cov=rate>0?Math.max(0,free)/rate:null;
+    const avail=Math.max(0,free)+Math.max(0,po);
+    const covA=rate>0?avail/rate:null;
     const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),accRaw=m.acc>=0?CLEAN(r[m.acc]):'';
     const isAcc=/אביזר/.test(mkt1)||/אביזר/.test(mkt2)||/אביזר/.test(accRaw);
     const srv=NUM(r[m.srv])||50,price=NUM(r[m.price]),sell=NUM(r[m.sell]);
@@ -516,7 +518,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך',planner:CLEAN(r[m.planner])||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:TXT(r,m.hier3)||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,sell,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,sell,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -544,8 +546,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
       it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null].filter(Boolean);
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
-  if(it.cust>0&&it.po>0&&it.free<=0){it.expRev=it.cust*(it.sell||it.price);it.sev=2;it.cat='מעקב אספקה';
-    it.why=[['warn',`מכוסה כמותית (לקוח ${it.cust} / רכש ${it.po}) אך מלאי בפועל אפס`],['info','אין תאריך אספקה בדוח']];
+  if(it.cust>0&&it.po>0&&it.free<=0){const un=Math.max(0,it.cust-it.po);
+    it.expRev=un*(it.sell||it.price);it.miss=un;it.sev=un>0?2:1;it.cat='מעקב אספקה';
+    it.why=[['warn',`מכוסה כמותית (לקוח ${it.cust} / רכש ${it.po}) אך מלאי בפועל אפס`],
+      un>0?['err',`${un} יח׳ עדיין לא מכוסות גם אחרי הרכש הפתוח`]:['info','ההזמנה מכוסה במלואה ברכש — משימת מעקב, לא חשיפה כספית'],
+      ['info','אין תאריך אספקה בדוח — אם הרכש יתעכב, הפריט יחזור לרשימת החוסרים']];
     it.act=['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];Q.follow.push(it);continue}
   if(isPD(it.mrp)){it.cat='רקע';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
     const pdEligible=it.d12>3&&it.price<=2000&&it.warranty<=0;
@@ -571,8 +576,15 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   if(it.isAcc&&it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`אביזר עם כיסוי ${it.cov.toFixed(1)} חודשים`],['info',`עודף כ-${it.excessQty} יח׳ · ${money(it.risk)}`]];
     it.act=['קידום מכירות מול השיווק','לא לשנות ROP/SS לפני החלטה שיווקית'];Q.excess.push(it);continue}
-  if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&A.active>=3){it.cat='מניעת חוסר';
-    it.why=[['err',`כיסוי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} חודשים`]];
+  if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&A.active>=3){
+    if(it.po>0&&it.covA!==null&&it.covA>=it.ltM){it.cat='מעקב אספקה';it.sev=1;it.expRev=0;
+      it.why=[['info',`כיסוי ממלאי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} — אבל ${it.po} יח׳ כבר בדרך`],
+        ['ok',`עם הרכש הפתוח הכיסוי ${it.covA.toFixed(1)} חודשים — אין צורך ברכש יזום נוסף`],
+        ['warn','אין ETA בדוח — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
+      it.act=['לוודא מול הספק שהרכש אכן בדרך','לבקש ETA','לא לפתוח רכש נוסף בשלב זה'];
+      Q.follow.push(it);continue}
+    it.cat='מניעת חוסר';
+    it.why=[['err',`כיסוי ${it.covA.toFixed(1)} חודשים${it.po>0?` (כולל ${it.po} יח׳ בדרך)`:''} מול זמן אספקה ${it.ltM.toFixed(1)} חודשים`]];
     if(it.rop<it.sugROP)it.why.push(['warn',`נקודת הזמנה ${it.rop} נמוכה מהנדרש ${it.sugROP}`]);
     if(it.ss<it.sugSS)it.why.push(['warn',`מלאי ביטחון ${it.ss} נמוך מהנדרש ${it.sugSS}`]);
     if(A.trend.pct>=30&&A.trend.pct<900)it.why.push(['warn',`מגמת עלייה: 5 חודשים אחרונים ${A.trend.rec} יח׳ מול ${A.trend.pre} — עלייה של ${A.trend.pct}%`]);
@@ -581,7 +593,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=[it.orderQty>0?`לפתוח רכש יזום ל-${it.orderQty} יח׳`:'לבחון מועד הזמנה קרוב',
       it.ss<it.sugSS?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון תקין',
       it.rop<it.sugROP?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה תקינה'];
-    it.expRev=Math.max(0,it.rate*(it.ltM-it.cov))*(it.sell||it.price);it.sev=2;Q.prevent.push(it);continue}
+    it.expRev=Math.max(0,it.rate*(it.ltM-it.covA))*(it.sell||it.price);it.sev=2;Q.prevent.push(it);continue}
   if(it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים — עודף של כ-${it.excessQty} יח׳ מעל 12 חודשי כיסוי`],['info',`שווי העודף ${money(it.risk)}`]];
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
@@ -625,7 +637,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','ירידה מתמשכת לפני שנוצר עודף — זה הרגע הנכון להקטין פרמטרים, לא אחרי שהמחסן מלא']];
     it.act=[`לשקול הקטנת נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
     it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;Q.excess.push(it);continue}
-  if(A.spikes.length&&it.rate>0&&it.cov!==null&&it.cov<6&&A.active>=3){it.expRev=Math.max(0,A.spikes[0].q-Math.max(0,it.free))*(it.sell||it.price);it.sev=2;it.cat='מניעת חוסר';
+  if(A.spikes.length&&it.rate>0&&it.cov!==null&&it.cov<6&&A.active>=3){it.expRev=Math.max(0,A.spikes[0].q-it.avail)*(it.sell||it.price);it.sev=2;it.cat='מניעת חוסר';
     it.why=[['warn',`פיק ב${LABELS[A.spikes[0].i-1].name}: ${A.spikes[0].q} יח׳ — פי ${A.spikes[0].x} מהחציון ${A.med}`],
             ['err',`כיסוי נוכחי ${it.cov.toFixed(1)} חודשים — אם הפיק חוזר צפוי חוסר`]];
     it.act=['לבדוק אם הפיק חד-פעמי או תחילת מגמה',`אם מגמה: מלאי ביטחון ל-${it.sugSS}, נקודת הזמנה ל-${it.sugROP}`];
@@ -859,7 +871,7 @@ function renderDecisions(rows){
    <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
    <td><span class="stake ${track}">${money(r[k])}</span></td><td><span class="cum">${pct}%</span></td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
-   <td>${r.cov==null?'—':r.cov.toFixed(1)}</td></tr>`);
+   <td${r.po>0?` title="כולל ${r.po} יח׳ בדרך"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
   if(above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${money(c.cut)} מתוך ${money(c.total)} — כל ${rows.length-c.n} הנותרים יחד שווים ${money(c.total-c.cut)}</td></tr>`)});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||'<tr><td colspan="8" class="empty">אין החלטות במסלול הזה</td></tr>';
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
