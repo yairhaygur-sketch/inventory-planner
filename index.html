@@ -266,17 +266,66 @@ body{background:#f5f6f8}
 .wmoves .qbody{padding:7px 9px 0}.wmoves .tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1180px){.dash{grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto minmax(500px,1fr) minmax(420px,.8fr) minmax(280px,.5fr)}.wdetail{grid-column:1 / -1;grid-row:3}.wmoves{grid-row:4}.kpis{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:760px){.dash{display:flex;padding:7px}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.whead .wsp{display:none}}
-/* ============ מנוע החלטות (v0.13) ============ */
+/* ============ חיפוש חלפים (v0.13) ============ */
+.dash{grid-template-rows:auto auto minmax(510px,1fr) minmax(290px,.5fr)}
 .wkpi{min-height:52px}
-.kpi.mny .v{font-size:19px}
-.kpi.mny.rev .v{color:var(--red)}.kpi.mny.cap .v{color:var(--blue)}
-.kpi.mny .sub{font-size:9.5px;color:var(--dim);margin-top:1px}
+.wsearch{grid-column:1 / -1;grid-row:2;min-height:51px;overflow:visible}
+.wfilters{grid-column:1;grid-row:3}
+.wqueue{grid-column:2;grid-row:3}
+.wdetail{grid-column:3;grid-row:3}
+.wmoves{grid-column:1 / -1;grid-row:4}
+.wsearch .whead{display:none}
+.wsearch .wbody{overflow:visible}
+.sbody{position:relative;padding:8px 9px;display:flex;align-items:center;gap:7px;flex:1}
+.sbox{flex:1 1 auto;position:relative;display:flex;align-items:center;min-width:170px}
+.sbox .mag{position:absolute;inset-inline-start:11px;font-size:14px;color:var(--dim);pointer-events:none;line-height:1}
+.sinput{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 12px;padding-inline-start:30px;padding-inline-end:30px;font-size:13px;font-family:inherit;outline:none;background:#fafbfd;color:var(--ink)}
+.sinput:focus{border-color:var(--acc);background:var(--panel);box-shadow:0 0 0 3px var(--accL)}
+.sbox .sx{position:absolute;inset-inline-end:7px;border:none;background:none;color:var(--dim);cursor:pointer;font-size:12px;padding:2px 5px;border-radius:6px;font-family:inherit;display:none}
+.sbox.has .sx{display:block}
+.sbox .sx:hover{color:var(--red);background:var(--redL)}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex:0 0 auto;background:#fafbfd}
 .seg button{border:none;background:none;font-family:inherit;font-size:11.5px;padding:6px 10px;cursor:pointer;color:var(--dim);border-inline-start:1px solid var(--line2);white-space:nowrap}
 .seg button:first-child{border-inline-start:none}
 .seg button:hover{color:var(--accD);background:var(--accL)}
 .seg button.on{background:var(--acc);color:#fff;font-weight:700}
-body.dark .seg{background:#232833}
+.seg .sgl{font-size:10.5px;color:var(--dim);padding:6px 8px;background:#f2f4f8;border-inline-end:1px solid var(--line2);display:flex;align-items:center;font-weight:700}
+.scount{font-size:11px;color:var(--dim);font-weight:700;white-space:nowrap;cursor:pointer;padding:4px 2px}
+.scount:hover{color:var(--acc)}
+.sxls{border:1px solid var(--line);background:#fff;color:var(--acc);border-radius:7px;font-size:11px;padding:5px 9px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.sxls:hover{background:var(--accL);border-color:var(--accBorder)}
+.spanel{display:none;position:absolute;top:calc(100% - 2px);inset-inline-start:9px;inset-inline-end:9px;z-index:95;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadowH);padding:8px 9px 7px;flex-direction:column;gap:7px}
+.spanel.open{display:flex}
+.sfacets{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dim);flex:0 0 auto}
+.sfacets .lbl{font-weight:700}
+.sfacets .sep{color:var(--line)}
+.fchip{border:1px solid var(--line);background:#fff;color:var(--dim);border-radius:20px;padding:3px 10px;font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.fchip:hover{border-color:var(--accBorder);color:var(--accD);background:var(--accL)}
+.fchip.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.sspacer{margin-inline-start:auto;display:flex;align-items:center;gap:7px}
+.sres{border:1px solid var(--line2);border-radius:7px;overflow:auto;max-height:min(46vh,380px)}
+.sres th .thc{cursor:default;padding:7px 8px}
+.sres td{padding:6px 8px}
+.sres tbody tr.act{background:var(--accL);box-shadow:inset 3px 0 0 var(--acc)}
+.sres mark{background:#fde68a;color:inherit;border-radius:3px;padding:0 1px}
+body.dark .sres mark{background:#7c6318;color:#fff}
+.avb{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid transparent;white-space:nowrap}
+.avb.in{background:var(--grnL);color:var(--grn);border-color:#bbf7d0}
+.avb.short{background:var(--orgL);color:#c2740c;border-color:#fed7aa}
+.avb.way{background:var(--blueL);color:#1e40af;border-color:#bfdbfe}
+.avb.out{background:var(--redL);color:var(--red);border-color:#fecaca}
+body.dark .avb.in{border-color:#1f5133}body.dark .avb.short{border-color:#6b4a15}
+body.dark .avb.way{border-color:#2b3a63;color:#93b4f5}body.dark .avb.out{border-color:#5f2529}
+.shint{font-size:11px;color:var(--dim);display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:18px}
+.shint .lbl{font-weight:700}
+.rq{border:1px dashed var(--line);background:#fff;border-radius:20px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--accD);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rq:hover{border-style:solid;border-color:var(--acc);background:var(--accL)}
+.snone{width:100%;padding:14px 10px;text-align:center;color:var(--dim);font-size:12.5px;border:1px dashed var(--line);border-radius:7px;line-height:1.9}
+.snone b{color:var(--ink)}
+.sgw{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:7px}
+.kpi.mny .v{font-size:19px}
+.kpi.mny.rev .v{color:var(--red)}.kpi.mny.cap .v{color:var(--blue)}
+.kpi.mny .sub{font-size:9.5px;color:var(--dim);margin-top:1px}
 .phd .seg{margin-inline-start:auto}
 .phd .seg button{padding:5px 9px;font-size:11px}
 tr.cutrow td{background:linear-gradient(90deg,var(--redL),transparent);border-top:2px dashed var(--red);border-bottom:1px solid var(--line2);
@@ -290,9 +339,25 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 .stake{font-weight:800;white-space:nowrap}
 .stake.rev{color:var(--red)}.stake.cap{color:var(--blue)}
 .cum{font-size:10.5px;color:var(--dim)}
+.fzb{display:inline-block;color:var(--purple);font-weight:800;margin-inline-end:4px;cursor:help}
+.sres td.sact{white-space:nowrap}
+.qbtn{background:#fff;border:1px solid var(--accBorder);color:var(--accD);border-radius:6px;font-size:10px;font-weight:700;padding:2px 8px;cursor:pointer;margin-inline-start:4px;font-family:inherit}
+.qbtn:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+body.dark .qbtn{background:#232833}
 .sug{color:var(--acc);font-weight:700;font-size:10.5px;margin-inline-start:3px}
-@media(max-width:1180px){.wkpi{min-height:104px}}
-@media(max-width:760px){.dash{flex-direction:column}.wkpi{min-height:0;flex:0 0 auto}}
+.salt{background:var(--purpleL);border:1px solid #ddd6fe;color:var(--purple);border-radius:20px;padding:2px 9px;font-size:10.5px;font-weight:700}
+body.dark .salt{border-color:#3b2f63}
+.kbd{font-family:inherit;font-size:10px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--dim);background:#fff}
+body.dark .sinput,body.dark .seg,body.dark .fchip,body.dark .sxls,body.dark .rq,body.dark .kbd,body.dark .seg .sgl{background:#232833}
+body.dark .snone,body.dark .spanel{border-color:var(--line)}
+@media(max-width:1180px){
+  .dash{grid-template-rows:auto auto minmax(500px,1fr) minmax(420px,.8fr) minmax(280px,.5fr)}
+  .wkpi{min-height:104px}
+  .wsearch{grid-column:1 / -1;grid-row:2}
+  .wfilters{grid-column:1;grid-row:3}.wqueue{grid-column:2;grid-row:3}
+  .wdetail{grid-column:1 / -1;grid-row:4}.wmoves{grid-column:1 / -1;grid-row:5}
+}
+@media(max-width:760px){.dash{flex-direction:column}.wkpi,.wsearch{min-height:0;flex:0 0 auto}.wsearch{height:auto}.sbody{flex-wrap:wrap}.sbox{min-width:100%}.sres{max-height:60vh}}
 </style>
 </head>
 <body>
@@ -318,6 +383,22 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     <div class="whead"><span class="hnd">⠿</span><span class="wt">מדדים</span><span class="wsp"><span class="wx" data-hide="kpis" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="kpis" id="kpis"></div></div>
     <div class="rz" data-rz="kpis" title="שינוי גודל"></div>
+  </section>
+  <section class="widget wsearch" id="w_search" data-w="search">
+    <div class="whead"><span class="hnd">⠿</span><span class="wt">חיפוש חלפים</span><span class="wsp"><span class="wx" data-hide="search" title="הסתר">✕</span></span></div>
+    <div class="wbody"><div class="sbody">
+      <div class="sbox" id="sbox"><span class="mag">⌕</span>
+        <input class="sinput" id="sq" placeholder="חיפוש חלף — מק״ט, תיאור, דגם, מותג או ספק…" autocomplete="off" spellcheck="false">
+        <button class="sx" id="sclear" title="נקה חיפוש">✕</button></div>
+      <div class="seg" id="sscope"></div>
+      <span class="scount" id="scount" title="הצג תוצאות"></span>
+      <button class="sxls" id="sxls">⭳ ייצוא תוצאות</button>
+      <div class="spanel" id="spanel">
+        <div class="sfacets" id="sfacets"></div>
+        <div class="sres" id="sres" style="display:none"><table id="stbl"><thead></thead><tbody></tbody></table></div>
+        <div class="shint" id="shint"></div>
+      </div>
+    </div></div>
   </section>
   <section class="widget wfilters" id="w_filters" data-w="filters">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
@@ -369,7 +450,6 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 const CLEAN=s=>String(s==null?'':s).replace(/[\u200e\u200f\u202a-\u202e]/g,'').trim();
 const NUM=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
 const money=n=>'₪'+Math.round(n).toLocaleString('he-IL');
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const moneyShort=n=>{n=Math.round(n||0);
  if(n>=1e6)return '₪'+(n/1e6).toFixed(n>=1e7?0:1)+'M';
  if(n>=1e4)return '₪'+Math.round(n/1e3)+'K';
@@ -598,13 +678,13 @@ let MARKS={};
 try{MARKS=JSON.parse(localStorage.getItem(MK_KEY)||'{}')}catch(_){MARKS={}}
 function saveMarks(){try{localStorage.setItem(MK_KEY,JSON.stringify(MARKS))}catch(_){}}
 function setMark(pn,t,note){if(!t){delete MARKS[pn]}else{MARKS[pn]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
-const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט'],['moves','תנועות אחרונות']];
+const WIDGETS=[['kpis','מדדים'],['search','חיפוש חלפים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט'],['moves','תנועות אחרונות']];
 const LAY_KEY='planner_layout_v1';
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail','moves'],hidden:[],sizes:{}};
+const DEFAULT_LAYOUT={order:['kpis','search','filters','queue','detail','moves'],hidden:[],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
-const SZLIM={kpis:{minW:0,minH:90,maxH:360},filters:{minW:180,minH:220,maxH:1200},
+const SZLIM={kpis:{minW:0,minH:90,maxH:360},search:{minW:0,minH:51,maxH:51},filters:{minW:180,minH:220,maxH:1200},
  queue:{minW:360,minH:260,maxH:1400},detail:{minW:300,minH:260,maxH:1400},moves:{minW:360,minH:260,maxH:1400}};
 function clampSize(id,w,h){const L=SZLIM[id]||{minW:180,minH:200,maxH:1200};
  const out={};
@@ -679,9 +759,6 @@ FDEF.forEach(([k])=>SEL[k]=new Set());
 const TRACKS=[['rev','הכנסה בסיכון'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
 const TRACKKEY={rev:'expRev',cap:'expCap'};
 let track='rev';
-function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
- const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
- return `background:${bg};color:${fg}`}
 let DL_CACHE={};
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
@@ -727,6 +804,7 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
  document.querySelectorAll('#chips .chip span').forEach(s=>s.onclick=()=>{
    if(s.dataset.cf){delete colFilters[s.dataset.cf]}else{SEL[s.dataset.k].delete(s.dataset.v)}apply()});}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
+ if(fl.length!==ALL.length)classify(ALL);
  QF=classify(fl);QF.all=fl;
  buildSideFilters();chips();render()}
 function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess;
@@ -825,7 +903,7 @@ function render(){DL_CACHE={};tiles();kpis();
  const rows=currentRows();
  document.getElementById('lt').textContent=DEF.find(d=>d[0]===cur)[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
- if(cur==='today'){renderTrack();renderDecisions(rows);renderMoves();return}
+ if(cur==='today'){renderTrack();renderDecisions(rows);renderMoves();renderSearch();return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
  document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
  const arrow=col=>sortCol===col?(sortDir==='asc'?'▲':'▼'):'';
@@ -854,7 +932,7 @@ function render(){DL_CACHE={};tiles();kpis();
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length}`;
  document.getElementById('pgR').textContent=`${QF.all.length} מק״טים בקובץ`;
- wireCopy();renderMoves()}
+ wireCopy();renderMoves();renderSearch()}
 /* ============ אריח תנועות אחרונות (v0.12) ============ */
 let movTab='sales';
 const MOVDEF=[['sales','מכירות אחרונות','var(--acc)'],['entries','כניסות אחרונות','var(--blue)'],['stuck','כניסות ללא מכירה','var(--org)']];
@@ -1195,8 +1273,240 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('updated').textContent=`${ALL.length} מק״טים · ${tasks} משימות${detected?' · '+new Date(detected).toLocaleDateString('he-IL'):''}`;
   colFilters={};apply()};
  rd.readAsArrayBuffer(file)};
+/* ============ אריח חיפוש חלפים (v0.13) ============ */
+const SRCH_KEY='planner_recent_search_v1', SLIMIT=300;
+const SCOPES=[['all','הכל'],['pn','מק״ט'],['desc','תיאור'],['model','דגם'],['supplier','ספק']];
+const SSORTS=[['rel','רלוונטיות'],['risk','סיכון'],['free','מלאי'],['cov','כיסוי']];
+const SAVAIL=[['any','הכל'],['in','במלאי'],['out','אזל']];
+let sQuery='',sScope='all',sSort='rel',sAvail='any',sCust=false,sTask=false,sScoped=false;
+let sRows=[],sIdx=-1,sTimer=null,sOpen=false,sToks=[],sFuzzy=new Set(),sAlt=null;
+const FUZZ_MIN=5,FUZZ_MAX=40;
+const KBD_EN="qwertyuiopasdfghjkl;zxcvbnm,./",KBD_HE="/'קראטוןםפשדגכעיחלךףזסבהנמצתץ.";
+let RECENT=[];try{const a=JSON.parse(localStorage.getItem(SRCH_KEY)||'[]');if(Array.isArray(a))RECENT=a.slice(0,8)}catch(_){}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sNorm=s=>String(s==null?'':s).toLowerCase().replace(/[״׳"'`]/g,'').trim();
+const sKey=s=>sNorm(s).replace(/[\s\-_.\/\\]/g,'');
+const sPlural=n=>n===1?'תוצאה אחת':`${n.toLocaleString('he-IL')} תוצאות`;
+function sIndex(r){if(r._sx)return r._sx;
+ const words=[...new Set(sNorm([r.desc,r.model,r.supplier,r.brand].join(' ')).split(/[\s,\/()\-]+/).filter(w=>w.length>=2))].slice(0,24);
+ r._sx={pn:sNorm(r.pn),pnk:sKey(r.pn),desc:sNorm(r.desc),model:sNorm(r.model),supplier:sNorm(r.supplier),
+  rest:sNorm([r.brand,r.mkt1,r.hier3,r.grp,r.mrp,r.abc,r.planner,r.origin].join(' ')),words};
+ return r._sx}
+function tokScore(x,t){const tk=sKey(t);let s=0;
+ if(sScope==='all'||sScope==='pn'){
+  if(x.pn===t||x.pnk===tk)s=1000;
+  else if(tk&&x.pnk.startsWith(tk))s=700;
+  else if(tk&&x.pnk.includes(tk))s=460}
+ if(s<320&&(sScope==='all'||sScope==='desc')){
+  if(x.desc.startsWith(t))s=Math.max(s,320);else if(x.desc.includes(t))s=Math.max(s,240)}
+ if(s<180&&(sScope==='all'||sScope==='model')&&x.model.includes(t))s=Math.max(s,180);
+ if(s<160&&(sScope==='all'||sScope==='supplier')&&x.supplier.includes(t))s=Math.max(s,160);
+ if(s<90&&sScope==='all'&&x.rest.includes(t))s=Math.max(s,90);
+ return s}
+function sPassFacets(r){
+ if(sAvail==='in'&&!(r.free>0))return false;
+ if(sAvail==='out'&&r.free>0)return false;
+ if(sCust&&!(r.cust>0))return false;
+ if(sTask&&!(r.sev>0))return false;
+ return true}
+function sBase(){return (sScoped&&QF&&QF.all)?QF.all:ALL}
+function dlDist(a,b,max){const la=a.length,lb=b.length;
+ if(Math.abs(la-lb)>max)return max+1;
+ let prev2=null,prev=new Array(lb+1);
+ for(let j=0;j<=lb;j++)prev[j]=j;
+ for(let i=1;i<=la;i++){const cur=new Array(lb+1);cur[0]=i;let best=i;
+  for(let j=1;j<=lb;j++){const cost=a[i-1]===b[j-1]?0:1;
+   let v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+   if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])v=Math.min(v,prev2[j-2]+1);
+   cur[j]=v;if(v<best)best=v}
+  if(best>max)return max+1;
+  prev2=prev;prev=cur}
+ return prev[lb]}
+const fuzzMax=t=>t.length>=7?2:t.length>=4?1:0;
+function fuzzyScore(x,toks){let tot=0;
+ for(const t of toks){const max=fuzzMax(t);
+  if(!max){const st=tokScore(x,t);if(!st)return 0;tot+=st*.6;continue}
+  const tk=sKey(t);let best=0;
+  if(x.pnk&&(sScope==='all'||sScope==='pn')){const d=dlDist(tk,x.pnk,max);if(d<=max)best=420-d*80}
+  if(best<340&&sScope!=='pn')for(const w of x.words){if(Math.abs(w.length-t.length)>max)continue;
+   const d=dlDist(t,w,max);if(d<=max){if(300-d*80>best)best=300-d*80;if(d===0)break}}
+  if(!best)return 0;tot+=best}
+ return tot/toks.length}
+function layoutSwap(q){const s=String(q||'');
+ const hasEn=/[a-z]/i.test(s),hasHe=/[\u05D0-\u05EA]/.test(s),out=[];
+ const toHe=t=>[...t.toLowerCase()].map(ch=>{const i=/[a-z]/.test(ch)?KBD_EN.indexOf(ch):-1;return i>=0?KBD_HE[i]:ch}).join('');
+ const toEn=t=>[...t].map(ch=>{const i=/[\u05D0-\u05EA]/.test(ch)?KBD_HE.indexOf(ch):-1;return i>=0?KBD_EN[i]:ch}).join('');
+ if(hasEn){const v=toHe(s).trim();if(v&&v!==s)out.push(v)}
+ if(hasHe){const v=toEn(s).trim();if(v&&v!==s)out.push(v)}
+ return out}
+function sSortHits(hits){const by={risk:r=>-(r.risk||0),free:r=>-r.free,cov:r=>r.cov==null?Infinity:r.cov};
+ if(sSort==='rel')hits.sort((a,b)=>(b[0]-a[0])||((b[1].sev||0)-(a[1].sev||0))||((b[1].risk||0)-(a[1].risk||0)));
+ else hits.sort((a,b)=>(by[sSort](a[1])-by[sSort](b[1]))||(b[0]-a[0]));
+ return hits}
+function phraseBoost(x,ph){if(!ph)return 0;
+ if(x.supplier===ph||x.model===ph||x.desc===ph||x.pn===ph)return 420;
+ if(x.desc.startsWith(ph)||x.supplier.startsWith(ph))return 300;
+ if(x.desc.includes(ph)||x.supplier.includes(ph)||x.model.includes(ph)||x.pn.includes(ph))return 220;
+ return 0}
+function strictHits(toks,base){const hits=[],ph=toks.length>1?toks.join(' '):null;
+ for(const r of base){if(!sPassFacets(r))continue;
+  const x=sIndex(r);let tot=0,ok=true;
+  for(const t of toks){const s=tokScore(x,t);if(!s){ok=false;break}tot+=s}
+  if(ok)hits.push([tot/toks.length+phraseBoost(x,ph)+(r.sev||0)*4,r])}
+ return hits}
+function runSearch(){sIdx=-1;sFuzzy=new Set();sAlt=null;
+ const q=sNorm(sQuery);let toks=q?q.split(/\s+/).filter(Boolean):[];
+ sToks=toks;
+ if(!toks.length){sRows=[];return}
+ const base=sBase();
+ let hits=strictHits(toks,base);
+ if(!hits.length)for(const cand of layoutSwap(sQuery)){const alt=sNorm(cand);
+  if(!alt||alt===q)continue;
+  const at=alt.split(/\s+/).filter(Boolean),h2=strictHits(at,base);
+  if(h2.length){hits=h2;toks=at;sToks=at;sAlt=alt;break}}
+ if(hits.length<FUZZ_MIN&&toks.some(t=>fuzzMax(t))){
+  const have=new Set(hits.map(h=>h[1])),fz=[];
+  for(const r of base){if(have.has(r)||!sPassFacets(r))continue;
+   const sc=fuzzyScore(sIndex(r),toks);if(sc)fz.push([sc,r])}
+  const take=sSortHits(fz).slice(0,hits.length?Math.max(0,12-hits.length):FUZZ_MAX);
+  take.forEach(h=>sFuzzy.add(h[1]));
+  sRows=sSortHits(hits).map(h=>h[1]).concat(take.map(h=>h[1]));return}
+ sRows=sSortHits(hits).map(h=>h[1])}
+function saleCell(r,today){if(!(r.sales&&r.sales.date))return '<span class="agebadge age-x">—</span>';
+ const d=daysBetween(today,r.sales.date),c=d<=30?'age-g':d<=90?'age-y':'age-r';
+ return `<span class="agebadge ${c}" title="מכירה אחרונה ${fmtDate(r.sales.date)}">${d} ימ׳</span>`}
+function sendToQueue(pn){const qi=document.getElementById('q');if(qi)qi.value=pn;
+ colFilters.__q={search:pn};cur='all';
+ if(LAYOUT.hidden.includes('queue'))showWidget('queue');
+ closePanel();render();toast(`${pn} — סונן בתור העבודה`)}
+function hl(text,toks){let out=esc(text);
+ if(!toks.length)return out;
+ const pat=toks.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).filter(Boolean).sort((a,b)=>b.length-a.length).join('|');
+ if(!pat)return out;
+ try{out=out.replace(new RegExp('('+pat+')','gi'),'<mark>$1</mark>')}catch(_){}
+ return out}
+function availBadge(r){
+ if(r.free>0)return (r.cov!=null&&r.ltM>0&&r.cov<r.ltM)?'<span class="avb short">כיסוי קצר</span>':'<span class="avb in">במלאי</span>';
+ if(r.po>0)return '<span class="avb way">בדרך</span>';
+ return '<span class="avb out">אזל</span>'}
+function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
+ const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
+ return `background:${bg};color:${fg}`}
+function suggest(q){const qk=sKey(q);if(qk.length<3)return [];
+ const frag=qk.slice(0,Math.min(5,qk.length-1)),dfrag=sNorm(q).slice(0,4),out=[];
+ for(const r of ALL){const x=sIndex(r);
+  if(x.pnk.includes(frag)||(dfrag.length>=3&&x.desc.includes(dfrag))){out.push(r);if(out.length>=5)break}}
+ return out}
+function pushRecent(q){q=CLEAN(q);if(!q||q.length<2)return;
+ RECENT=[q,...RECENT.filter(x=>x!==q)].slice(0,8);
+ try{localStorage.setItem(SRCH_KEY,JSON.stringify(RECENT))}catch(_){}}
+function openPanel(){sOpen=true;document.getElementById('spanel').classList.add('open');renderSearch()}
+function closePanel(){sOpen=false;const p=document.getElementById('spanel');if(p)p.classList.remove('open')}
+function setSearch(q){sQuery=q;const el=document.getElementById('sq');if(el)el.value=q;
+ document.getElementById('sbox').classList.toggle('has',!!CLEAN(q));
+ runSearch();renderSearchRows();updateCount()}
+function focusSearch(){if(LAYOUT.hidden.includes('search'))showWidget('search');
+ const el=document.getElementById('sq');if(el){el.focus();el.select()}openPanel()}
+function openSearchResult(r){if(!r)return;pushRecent(sQuery);
+ if(LAYOUT.hidden.includes('detail'))showWidget('detail');
+ const i=sRows.indexOf(r);if(i>=0)sIdx=i;
+ closePanel();detail(r);updateCount()}
+function markActiveRow(){document.querySelectorAll('#stbl tbody tr').forEach((t,i)=>t.classList.toggle('act',i===sIdx))}
+function updateCount(){const c=document.getElementById('scount');if(!c)return;
+ c.textContent=CLEAN(sQuery)?sPlural(sRows.length):(ALL.length?`${ALL.length.toLocaleString('he-IL')} מק״טים`:'')}
+function renderSearch(){const sc=document.getElementById('sscope');if(!sc)return;
+ sc.innerHTML='<span class="sgl">שדה</span>'+SCOPES.map(([k,l])=>`<button data-sc="${k}" class="${k===sScope?'on':''}">${l}</button>`).join('');
+ sc.querySelectorAll('button').forEach(b=>b.onclick=()=>{sScope=b.dataset.sc;runSearch();openPanel()});
+ updateCount();
+ if(!sOpen)return;
+ document.getElementById('sfacets').innerHTML='<span class="lbl">זמינות</span>'+
+  SAVAIL.map(([k,l])=>`<button class="fchip${k===sAvail?' on':''}" data-av="${k}">${l}</button>`).join('')+
+  '<span class="sep">|</span>'+
+  `<button class="fchip${sCust?' on':''}" data-tg="cust">עם הזמנת לקוח</button>`+
+  `<button class="fchip${sTask?' on':''}" data-tg="task">דורש טיפול</button>`+
+  `<button class="fchip${sScoped?' on':''}" data-tg="scoped" title="חפש רק בתוך הפילטרים הפעילים של הדשבורד">כפוף לפילטרים</button>`+
+  `<span class="sspacer"><span class="lbl">מיון</span><div class="seg" id="ssort">`+
+  SSORTS.map(([k,l])=>`<button data-so="${k}" class="${k===sSort?'on':''}">${l}</button>`).join('')+`</div></span>`;
+ document.querySelectorAll('#sfacets [data-av]').forEach(b=>b.onclick=()=>{sAvail=b.dataset.av;runSearch();renderSearch()});
+ document.querySelectorAll('#sfacets [data-tg]').forEach(b=>b.onclick=()=>{const k=b.dataset.tg;
+  if(k==='cust')sCust=!sCust;else if(k==='task')sTask=!sTask;else sScoped=!sScoped;
+  runSearch();renderSearch()});
+ document.querySelectorAll('#ssort button').forEach(b=>b.onclick=()=>{sSort=b.dataset.so;runSearch();renderSearch()});
+ renderSearchRows()}
+function renderSearchRows(){const box=document.getElementById('sres'),hint=document.getElementById('shint');if(!box||!sOpen)return;
+ const toks=sToks;
+ const tip='<span class="kbd">Ctrl</span>+<span class="kbd">K</span> חיפוש · <span class="kbd">↑↓</span> ניווט · <span class="kbd">Enter</span> פתיחת כרטיס';
+ const hide=()=>{box.style.display='none';document.querySelector('#stbl tbody').innerHTML=''};
+ updateCount();
+ if(!ALL.length){hide();hint.innerHTML='<span>העלה דוח ZMRP כדי לחפש בקטלוג החלפים.</span>';return}
+ if(!toks.length){hide();
+  hint.innerHTML=(RECENT.length?'<span class="lbl">חיפושים אחרונים:</span>'+RECENT.map(q=>`<button class="rq" data-q="${esc(q)}">${esc(q)}</button>`).join('')+'<button class="rq" data-rqclr="1">נקה היסטוריה</button>'
+   :`<span>חיפוש בכל ${sBase().length.toLocaleString('he-IL')} המק״טים שבקובץ — מק״ט, תיאור, דגם, מותג או ספק.</span>`)+`<span class="sspacer">${tip}</span>`;
+  wireSearchChips();return}
+ if(!sRows.length){hide();const sg=suggest(sQuery);
+  hint.innerHTML=`<div class="snone">לא נמצאו תוצאות עבור <b>${esc(sQuery)}</b>`+
+   (sg.length?'<div class="sgw"><span>אולי התכוונת:</span>'+sg.map(r=>`<button class="rq" data-q="${esc(r.pn)}">${esc(r.pn)} · ${esc(r.desc.slice(0,20))}</button>`).join('')+'</div>'
+    :`<div class="sgw"><span>נסה מק״ט חלקי, מילה מהתיאור או שם ספק${(sAvail!=='any'||sCust||sTask||sScoped)?' — או בטל את מסנני החיפוש':''}.</span></div>`)+'</div>';
+  wireSearchChips();return}
+ box.style.display='';
+ const today=new Date();today.setHours(0,0,0,0);
+ document.querySelector('#stbl thead').innerHTML='<tr><th style="width:16px"></th>'+
+  ['מק״ט','תיאור','דגם','ספק','זמינות','מלאי','לקוח','רכש','כיסוי','ROP','ABC','מכירה','סטטוס','']
+   .map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>';
+ const view=sRows.slice(0,SLIMIT);
+ document.querySelector('#stbl tbody').innerHTML=view.map((r,i)=>
+  `<tr data-si="${i}"${i===sIdx?' class="act"':''}><td><span class="dot" style="background:${rowColor(r)}"></span></td>
+   <td>${sFuzzy.has(r)?'<span class="fzb" title="התאמה מקורבת — ייתכן שנפלה שגיאת כתיב בחיפוש">≈</span>':''}<span class="obj">${hl(r.pn,toks)}</span>${copyBtn(r.pn)}</td>
+   <td>${hl(r.desc.slice(0,34),toks)}</td><td>${hl(r.model.slice(0,16),toks)}</td><td>${hl(r.supplier.slice(0,16),toks)}</td>
+   <td>${availBadge(r)}</td><td>${r.free}</td><td>${r.cust}</td><td>${r.po}</td>
+   <td>${r.cov==null?'—':r.cov.toFixed(1)}</td>
+   <td>${r.rop}${(!r.isPDItem&&r.sugROP!==r.rop)?`<span class="sug" title="מוצע ${r.sugROP}">→${r.sugROP}</span>`:''}</td>
+   <td>${esc(r.abc||'—')}</td><td>${saleCell(r,today)}</td>
+   <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
+   <td class="sact">${r.mark?'':`<button class="dn" data-done="${esc(r.pn)}">✓ טופל</button>`}<button class="qbtn" data-toq="${esc(r.pn)}" title="סנן את המק״ט בתור העבודה">בתור</button></td></tr>`).join('');
+ document.querySelectorAll('#stbl tbody tr').forEach(tr=>tr.onclick=()=>openSearchResult(view[+tr.dataset.si]));
+ document.querySelectorAll('#stbl [data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+  const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
+ document.querySelectorAll('#stbl [data-toq]').forEach(b=>b.onclick=e=>{e.stopPropagation();sendToQueue(b.dataset.toq)});
+ const nf=view.filter(r=>sFuzzy.has(r)).length;
+ hint.innerHTML=(sAlt?`<span class="salt">מוצגות תוצאות עבור <b>${esc(sAlt)}</b> · תוקנה פריסת המקלדת</span>`:'')+
+  (nf?`<span class="salt">כולל ${nf} התאמות מקורבות ≈</span>`:'')+
+  `<span>מוצג 1-${view.length} מתוך ${sRows.length.toLocaleString('he-IL')}${sRows.length>SLIMIT?' — צמצם את החיפוש כדי לראות את השאר':''} · לחיצה על שורה פותחת את כרטיס הפריט</span><span class="sspacer">${tip}</span>`;
+ wireCopy(document.getElementById('stbl'))}
+function wireSearchChips(){document.querySelectorAll('#shint .rq').forEach(b=>b.onclick=()=>{
+ if(b.dataset.rqclr){RECENT=[];try{localStorage.removeItem(SRCH_KEY)}catch(_){}renderSearchRows();return}
+ setSearch(b.dataset.q);document.getElementById('sq').focus()})}
+function exportSearch(){if(!sRows.length){toast('אין תוצאות לייצוא');return}
+ const ws=XLSX.utils.aoa_to_sheet(exportRows(sRows));
+ ws['!cols']=XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'חיפוש חלפים');
+ XLSX.writeFile(wb,`Parts_Search_${new Date().toISOString().slice(0,10)}.xlsx`);
+ toast(`יוצאו ${sRows.length} תוצאות ✓`)}
+function wireSearch(){const el=document.getElementById('sq');if(!el)return;
+ el.oninput=e=>{sQuery=e.target.value;
+  document.getElementById('sbox').classList.toggle('has',!!CLEAN(sQuery));
+  if(!sOpen)openPanel();
+  clearTimeout(sTimer);sTimer=setTimeout(()=>{runSearch();renderSearchRows()},70)};
+ el.onfocus=()=>{if(!sOpen)openPanel()};
+ el.onkeydown=e=>{
+  if(e.key==='Escape'){if(CLEAN(sQuery))setSearch('');else{closePanel();el.blur()}return}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){const n=Math.min(sRows.length,SLIMIT);if(!n)return;e.preventDefault();
+   if(!sOpen)openPanel();
+   sIdx=e.key==='ArrowDown'?(sIdx+1>=n?0:sIdx+1):(sIdx-1<0?n-1:sIdx-1);
+   markActiveRow();const tr=document.querySelector('#stbl tbody tr.act');if(tr)tr.scrollIntoView({block:'nearest'});return}
+  if(e.key==='Enter'){e.preventDefault();if(!sRows.length)return;openSearchResult(sRows[sIdx<0?0:sIdx])}};
+ document.getElementById('sclear').onclick=()=>{setSearch('');el.focus();openPanel()};
+ document.getElementById('sxls').onclick=()=>exportSearch();
+ document.getElementById('scount').onclick=()=>focusSearch();
+ document.getElementById('spanel').onclick=e=>e.stopPropagation();
+ document.addEventListener('click',e=>{if(sOpen&&!e.target.closest('#w_search'))closePanel()});
+ document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();focusSearch();return}
+  if(e.key==='Escape'&&sOpen&&document.activeElement!==el){closePanel();return}
+  const a=document.activeElement,typing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable);
+  if(e.key==='/'&&!typing){e.preventDefault();focusSearch()}})}
 applyDark(DARKON);
-applyLayout();wireDrag();wireResize();
+applyLayout();wireDrag();wireResize();wireSearch();renderSearch();
 </script>
 </body>
 </html>
