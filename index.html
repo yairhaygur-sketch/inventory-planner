@@ -528,7 +528,7 @@ function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return is
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
 const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל'};
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
- for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expRev=0;it.expCap=0;it.paramFix=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
+ for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expRev=0;it.expCap=0;it.lostPast=0;it.paramFix=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[it.pn];
   if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.expRev=0;it.expCap=0;
@@ -569,10 +569,14 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','LT=0 מאפס את ביקוש-בזמן-האספקה ואת מרכיב הביטחון — הזן זמן אספקה אמיתי ואז יחושבו נכון']];
     it.act=['להזין זמן אספקה בשדה "אספ.מתוכנ."','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
   if(A.drops.length&&it.d12>20){const d=A.drops[0];
-    it.sev=2;it.cat='מכירות אבודות';it.expRev=Math.max(0,A.med-d.q)*(it.sell||it.price);
+    it.sev=2;it.cat='מכירות אבודות';
+    it.lostPast=Math.max(0,A.med-d.q)*(it.sell||it.price);
+    it.expRev=(it.covA!==null&&it.covA<it.ltM)?Math.max(0,it.rate*(it.ltM-it.covA))*(it.sell||it.price):0;
     it.why=[['err',`צניחה חריגה ב${LABELS[d.i-1].name}: ${d.q} יח׳ בלבד מול חציון ${A.med} — כשהחודשים סביבו תקינים`],
             ['idea','זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה'],
-            ['warn',`אובדן משוער: ${A.med-d.q} יח׳ · ${money((A.med-d.q)*(it.sell||it.price))}`]];
+            ['warn',`אובדן משוער בעבר: ${A.med-d.q} יח׳ · ${money(it.lostPast)}`],
+            it.expRev>0?['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]
+              :['info','היום הפריט מכוסה — האובדן הוא מהעבר ולכן אינו נספר בדירוג ההחלטות של היום']];
     it.act=['לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך',
       `הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`,
       `להעלות מלאי ביטחון ל-${it.sugSS} כדי למנוע הישנות`];
@@ -884,6 +888,9 @@ function renderDecisions(rows){
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
+ if(track==='rev'){const lp=(QF&&QF.all?QF.all:[]).filter(r=>r.lostPast>0);
+  if(lp.length){const lv=lp.reduce((t,r)=>t+r.lostPast,0);
+   extra=` · בנוסף ${money(lv)} מכירות שאבדו ב-${lp.length.toLocaleString('he-IL')} פריטים — לבדיקה, לא לפעולה מיידית`}}
  if(track==='cap'){const yg=(QF&&QF.all?QF.all:[]).filter(r=>r.ageTier==='young'&&r.stock>0);
   if(yg.length){const yv=yg.reduce((t,r)=>t+r.price*r.stock,0);
    extra=` · בנוסף ${money(yv)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
@@ -1196,7 +1203,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
- ['הכנסה בסיכון (₪)',r=>r.expRev||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['הכנסה בסיכון (₪)',r=>r.expRev||0],['מכירות שאבדו בעבר (₪)',r=>Math.round(r.lostPast||0)],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
