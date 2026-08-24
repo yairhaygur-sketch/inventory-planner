@@ -373,7 +373,7 @@ const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור �
  po:['הז. רכש'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
  blockedCust:['הזמנות לקוח חסומות','כמות בהז.פ חסומה','כמות הזמנה חסומה','חסום למשלוח'],
- grpTxt:['תיאור קבוצת חומרים'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"]};
+ grpTxt:['תיאור קבוצת חומרים','תיא.קבוצ.חומרים','תיאור קבוצת חומר 2'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"]};
 const MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
 const CRITICAL={pn:'מק״ט',free:'מלאי פנוי',lt:'זמן אספקה',cust:'הזמנות לקוח'};
 let DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
@@ -384,8 +384,8 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   const SEC=nm=>{const a=n.indexOf(nm);if(a<0)return -1;const b=n.indexOf(nm,a+1);return b>=0?b:a+1};
   m.model=SEC('היררכייה2');m.hierBrand=SEC('היררכייה1');m.hier3=SEC('היררכייה3');
   m.acc=n.indexOf('אביזרים');
-  const fSales=F(['מכירות','מכירות אחרונות','תאריך מכירה']);m.sales=fSales>=0?fSales:colToIdx('CF');
-  const fEnt=F(['כניסות','כניסות אחרונות','כניסה למלאי','תאריך כניסה']);m.entries=fEnt>=0?fEnt:colToIdx('CG');
+  const fSales=F(["תאר' מכירה",'מכירות','מכירות אחרונות','תאריך מכירה']);m.sales=fSales>=0?fSales:colToIdx('CF');
+  const fEnt=F(["תאר' כניסה",'כניסות','כניסות אחרונות','כניסה למלאי','תאריך כניסה']);m.entries=fEnt>=0?fEnt:colToIdx('CG');
   DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
   if(m.pn<0){DIAG.hardStop='עמודת "מק״ט מוביל" לא נמצאה בכותרות — הקובץ אינו ZMRP תקין או שהכותרת זזה.';return m}
   DIAG.moves={salesCol:idxToCol(m.sales),entriesCol:idxToCol(m.entries),
