@@ -504,7 +504,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
     const entAge=AGE(entries&&entries.date),saleAge=AGE(sales&&sales.date);
     const noCons3y=has3y?(cons3y===0&&d12===0):(d12===0);
-    const dead3y=noCons3y&&entAge!=null&&entAge>=DEAD_DAYS;
+    /* העמודות השנתיות מכסות ~32 חודשים בלבד; תאריך המכירה האחרונה סוגר את הפער */
+    const dead3y=noCons3y&&entAge!=null&&entAge>=DEAD_DAYS&&(saleAge==null||saleAge>=DEAD_DAYS);
     const young=noCons3y&&!dead3y;
     const covStock=free>0?free:Math.max(0,NUM(r[m.stock])||NUM(r[m.wh]));
     const cov3y=rate3y>0?covStock/rate3y:null;
