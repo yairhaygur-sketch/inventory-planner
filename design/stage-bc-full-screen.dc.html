@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:#0f1216;direction:rtl;}
+body{font-family:"Rubik",Archivo,sans-serif;color:#e7ebf0;}
+a{color:#7aa7d4;text-decoration:none;}
+a:hover{color:#93bce0;text-decoration:underline;}
+::selection{background:#7aa7d4;color:#0f1216;}
+input::placeholder{color:#6f7885;}
+</style>
+</helmet>
+
+<div dir="rtl" style="font-family:'Rubik',Archivo,sans-serif;background:#0f1216;color:#e7ebf0;min-height:940px;height:100vh;min-width:1400px;display:flex;flex-direction:column;">
+
+  <header style="display:flex;align-items:center;gap:20px;padding:0 24px;height:60px;border-bottom:2px solid #262c34;background:#161a1f;flex:0 0 auto;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;background:#7aa7d4;color:#0f1216;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;">מ</div>
+      <div style="font-size:15px;font-weight:700;">מרכז עבודה יומי</div>
+    </div>
+    <div style="width:1px;height:26px;background:#262c34;"></div>
+    <div style="font-size:14px;color:#8d97a3;">{{ headerLine }}</div>
+    <div style="margin-inline-start:auto;display:flex;align-items:center;gap:8px;">
+      <button onClick="{{ toggleState }}" style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#8d97a3;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260;color:#e7ebf0">{{ toggleLabel }}</button>
+      <button style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260">ייצוא</button>
+      <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:1px solid #7aa7d4;color:#0f1216;padding:8px 20px;cursor:pointer;white-space:nowrap;" style-hover="background:#93bce0;border-color:#93bce0">טעינת דוח</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;padding:48px;">
+      <div style="width:min(760px,100%);">
+        <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#7aa7d4;">מצב פתיחה</div>
+        <h1 style="font-size:40px;font-weight:700;margin:12px 0 0;line-height:1.1;">להתחיל את היום — טען את דוח ZMRP</h1>
+        <p style="font-size:16px;line-height:1.6;color:#8d97a3;max-width:56ch;margin:14px 0 0;">אחרי הטעינה המערכת תסווג את כל הפריטים לפי דחיפות, תחשב סיכון בשקלים ותפתח את תור העבודה על הקטגוריה הבוערת ביותר.</p>
+        <div style="border:2px dashed #333b45;background:#161a1f;padding:38px 28px;margin-top:24px;display:flex;align-items:center;gap:24px;">
+          <div style="flex:1 1 auto;">
+            <div style="font-size:20px;font-weight:700;">גרירת קובץ לכאן</div>
+            <div style="font-size:14px;color:#8d97a3;margin-top:4px;">xlsx · הכותרות נקראות אוטומטית</div>
+          </div>
+          <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 18px;cursor:pointer;" style-hover="background:#93bce0">בחירת קובץ</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;border-top:2px solid #262c34;margin-top:24px;padding-top:16px;">
+          <div style="font-size:14px;color:#8d97a3;">אחרון: <b style="color:#e7ebf0;">ZMRP_2608.xlsx</b> · אתמול 08:12 · חודש בסיס יולי 2026</div>
+          <button onClick="{{ toggleState }}" style="margin-inline-start:auto;font-family:inherit;font-size:14px;background:transparent;border:1px solid #262c34;color:#e7ebf0;padding:8px 16px;cursor:pointer;white-space:nowrap;" style-hover="border-color:#495260">טעינה מחדש</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLoaded }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;">
+
+      <div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr 1fr;border-bottom:2px solid #262c34;background:#161a1f;flex:0 0 auto;">
+        <div style="background:#b23b32;color:#fdf2f0;padding:18px 22px;display:flex;flex-direction:column;justify-content:center;">
+          <div style="font-size:13px;font-weight:700;">בוער עכשיו · לקוח ממתין ללא רכש</div>
+          <div style="display:flex;align-items:baseline;gap:14px;margin-top:4px;">
+            <div style="font-family:Archivo,sans-serif;font-size:52px;font-weight:800;line-height:1;">14</div>
+            <div style="font-size:16px;font-weight:700;">₪ 312,400 בסיכון</div>
+          </div>
+          <div style="font-size:13px;margin-top:6px;opacity:.75;">הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה</div>
+        </div>
+        <div style="padding:18px;border-inline-start:1px solid #262c34;">
+          <div style="font-size:13px;color:#8d97a3;font-weight:500;">מניעת חוסר</div>
+          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">38</div>
+          <div style="font-size:13px;color:#c9974a;">₪ 184,100</div>
+        </div>
+        <div style="padding:18px;border-inline-start:1px solid #262c34;">
+          <div style="font-size:13px;color:#8d97a3;font-weight:500;">מכירות אבודות</div>
+          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">9</div>
+          <div style="font-size:13px;color:#c9974a;">₪ 96,700</div>
+        </div>
+        <div style="padding:18px;border-inline-start:1px solid #262c34;">
+          <div style="font-size:13px;color:#8d97a3;font-weight:500;">עודף מלאי</div>
+          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">61</div>
+          <div style="font-size:13px;color:#8d97a3;">₪ 421,300</div>
+        </div>
+        <div style="padding:18px;border-inline-start:1px solid #262c34;">
+          <div style="font-size:13px;color:#8d97a3;font-weight:500;">עדכון פרמטרים</div>
+          <div style="font-family:Archivo,sans-serif;font-size:32px;font-weight:800;line-height:1.1;margin-top:2px;">27</div>
+          <div style="font-size:13px;color:#8d97a3;">איכות נתונים</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:220px minmax(0,1fr) 360px;flex:1 1 auto;min-height:0;">
+
+        <aside style="border-inline-end:2px solid #262c34;padding:18px 16px;background:#0f1216;overflow:auto;">
+          <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;">סינון</div>
+          <input placeholder="מק״ט, תיאור, ספק" style="width:100%;margin-top:10px;font-family:inherit;font-size:14px;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;outline:none;" style-focus="border-color:#7aa7d4">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">מותג · הכול</button>
+            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">ספק · הכול</button>
+            <button style="font-family:inherit;font-size:14px;text-align:start;background:#161a1f;border:1px solid #262c34;color:#e7ebf0;padding:9px 11px;cursor:pointer;" style-hover="border-color:#495260">קבוצת ABC · הכול</button>
+          </div>
+          <div style="border-top:2px solid #262c34;margin-top:18px;padding-top:14px;">
+            <div style="font-size:13px;font-weight:600;color:#8d97a3;">מסננים פעילים</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#7aa7d4;color:#0f1216;unicode-bidi:isolate;">קבוצת A ✕</span>
+              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#232932;color:#b8c1cc;">רק משימות ✕</span>
+            </div>
+          </div>
+          <div style="border-top:2px solid #262c34;margin-top:18px;padding-top:14px;font-size:13px;color:#6f7885;line-height:1.5;">
+            פריסה קבועה. ההתאמה האישית הוסרה — מסך אחד שעובד לכולם.
+          </div>
+        </aside>
+
+        <main style="display:flex;flex-direction:column;min-width:0;background:#161a1f;">
+          <div style="display:flex;flex-wrap:nowrap;overflow-x:auto;border-bottom:2px solid #262c34;">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6">
+              <button onClick="{{ t.pick }}" style="{{ t.style }}">
+                <div style="display:flex;align-items:baseline;gap:8px;">
+                  <div style="font-size:13px;font-weight:600;white-space:nowrap;">{{ t.label }}</div>
+                  <div style="font-family:Archivo,sans-serif;font-size:22px;font-weight:800;line-height:1;">{{ t.count }}</div>
+                </div>
+                <div style="font-size:12px;color:#8d97a3;white-space:nowrap;margin-top:2px;">{{ t.money }}</div>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:12px;padding:12px 18px;border-bottom:1px solid #262c34;">
+            <div style="font-size:16px;font-weight:700;">{{ listTitle }}</div>
+            <div style="font-size:13px;color:#8d97a3;">{{ listSub }}</div>
+            <div style="margin-inline-start:auto;font-size:13px;color:#6f7885;">מיון: סיכון בשקלים ↓</div>
+          </div>
+
+          <div style="flex:1 1 auto;overflow:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <thead>
+                <tr style="background:#12161a;">
+                  <th style="text-align:start;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מק״ט</th>
+                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">תיאור</th>
+                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מצב</th>
+                  <th style="text-align:start;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">11 חודשים</th>
+                  <th style="text-align:end;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">חסר</th>
+                  <th style="text-align:end;padding:10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">כיסוי</th>
+                  <th style="text-align:end;padding:10px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">סיכון ₪</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                  <tr onClick="{{ r.pick }}" style="{{ r.rowStyle }}" style-hover="background:#1d222a">
+                    <td dir="ltr" style="{{ r.pnStyle }}">{{ r.pn }}</td>
+                    <td style="padding:12px 10px;color:#b8c1cc;border-bottom:1px solid #202630;">{{ r.desc }}</td>
+                    <td style="padding:12px 10px;border-bottom:1px solid #202630;"><span style="{{ r.catStyle }}">{{ r.cat }}</span></td>
+                    <td style="padding:10px;border-bottom:1px solid #202630;">
+                      <div style="display:flex;align-items:flex-end;gap:2px;height:26px;width:96px;direction:ltr;">
+                        <sc-for list="{{ r.spark }}" as="b" hint-placeholder-count="11">
+                          <div style="{{ b.style }}"></div>
+                        </sc-for>
+                      </div>
+                    </td>
+                    <td style="{{ r.missStyle }}">{{ r.miss }}</td>
+                    <td style="padding:12px 10px;text-align:end;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#8d97a3;border-bottom:1px solid #202630;">{{ r.cov }}</td>
+                    <td style="padding:12px 18px;text-align:end;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-weight:700;border-bottom:1px solid #202630;">{{ r.risk }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="border-top:2px solid #262c34;flex:0 0 auto;background:#12161a;">
+            <div style="display:flex;align-items:baseline;gap:12px;padding:10px 18px;">
+              <div style="font-size:16px;font-weight:700;">תנועות אחרונות</div>
+              <div style="font-size:13px;color:#6f7885;">גיל התנועה — פס יחסי, 0 עד 180 יום</div>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <thead>
+                <tr>
+                  <th style="text-align:start;padding:8px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מק״ט</th>
+                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">מכירה אחרונה</th>
+                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">גיל</th>
+                  <th style="text-align:start;padding:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">כניסה אחרונה</th>
+                  <th style="text-align:start;padding:8px 18px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6f7885;font-weight:600;border-bottom:1px solid #262c34;">גיל</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ moves }}" as="m" hint-placeholder-count="3">
+                  <tr>
+                    <td dir="ltr" style="padding:10px 18px;font-family:Archivo,sans-serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;unicode-bidi:isolate;text-align:right;border-bottom:1px solid #202630;">{{ m.pn }}</td>
+                    <td style="padding:10px;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#b8c1cc;border-bottom:1px solid #202630;">{{ m.saleDate }}</td>
+                    <td style="padding:10px;border-bottom:1px solid #202630;">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:120px;height:6px;background:#232932;"><div style="{{ m.saleBar }}"></div></div>
+                        <span style="font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:#8d97a3;">{{ m.saleAge }}</span>
+                      </div>
+                    </td>
+                    <td style="padding:10px;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;color:#b8c1cc;border-bottom:1px solid #202630;">{{ m.entDate }}</td>
+                    <td style="padding:10px 18px;border-bottom:1px solid #202630;">
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="width:120px;height:6px;background:#232932;"><div style="{{ m.entBar }}"></div></div>
+                        <span style="font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-size:13px;color:#8d97a3;">{{ m.entAge }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </main>
+
+        <aside style="border-inline-start:2px solid #262c34;background:#161a1f;display:flex;flex-direction:column;min-height:0;">
+          <div style="padding:16px 18px;border-bottom:2px solid #262c34;">
+            <div dir="ltr" style="font-family:Archivo,sans-serif;font-size:17px;font-weight:800;unicode-bidi:isolate;text-align:right;">{{ sel.pn }}</div>
+            <div style="font-size:14px;color:#b8c1cc;margin-top:2px;">{{ sel.desc }}</div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              <span style="font-size:12px;font-weight:600;padding:3px 9px;background:#232932;color:#b8c1cc;">{{ sel.brand }}</span>
+              <span style="font-size:12px;font-weight:600;padding:3px 9px;border:1px solid #333b45;color:#8d97a3;unicode-bidi:isolate;">קבוצת {{ sel.abc }}</span>
+              <span style="font-size:12px;font-weight:600;padding:3px 9px;border:1px solid #333b45;color:#8d97a3;">{{ sel.supplier }}</span>
+            </div>
+          </div>
+
+          <div style="padding:18px;border-bottom:2px solid #262c34;background:#1d222a;border-inline-start:4px solid #7aa7d4;">
+            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#7aa7d4;">ההחלטה</div>
+            <div style="font-size:20px;font-weight:700;margin-top:8px;line-height:1.3;">{{ sel.action }}</div>
+            <div style="font-family:Archivo,sans-serif;font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:#7aa7d4;">{{ sel.qty }}</div>
+            <div style="font-size:14px;color:#8d97a3;margin-top:4px;">{{ sel.actionSub }}</div>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+              <button style="font-family:inherit;font-size:14px;font-weight:700;background:#7aa7d4;border:0;color:#0f1216;padding:10px 16px;cursor:pointer;" style-hover="background:#93bce0">פתיחת רכש</button>
+              <button style="font-family:inherit;font-size:14px;background:transparent;border:1px solid #333b45;color:#b8c1cc;padding:10px 16px;cursor:pointer;" style-hover="border-color:#495260;color:#e7ebf0">סמן כטופל</button>
+            </div>
+          </div>
+
+          <div style="padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0;">
+            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;">צריכה — 11 חודשים</div>
+            <div style="position:relative;height:120px;display:flex;align-items:flex-end;gap:4px;direction:ltr;margin-top:12px;">
+              <div style="{{ sel.medLineStyle }}"></div>
+              <sc-for list="{{ sel.bars }}" as="b" hint-placeholder-count="11">
+                <div style="{{ b.style }}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#6f7885;margin-top:8px;">
+              <span>{{ sel.chartNote }}</span>
+              <span>קו = חציון {{ sel.median }}</span>
+            </div>
+
+            <div style="font-family:Archivo,sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#6f7885;margin-top:20px;">למה</div>
+            <sc-for list="{{ sel.why }}" as="w" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #202630;font-size:14px;line-height:1.5;color:#b8c1cc;">
+                <div style="{{ w.barStyle }}"></div>
+                <div>{{ w.text }}</div>
+              </div>
+            </sc-for>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#262c34;border:1px solid #262c34;margin-top:16px;">
+              <div style="background:#1d222a;padding:10px;">
+                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.free }}</div>
+                <div style="font-size:12px;color:#6f7885;">מלאי פנוי</div>
+              </div>
+              <div style="background:#1d222a;padding:10px;">
+                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.po }}</div>
+                <div style="font-size:12px;color:#6f7885;">רכש פתוח</div>
+              </div>
+              <div style="background:#1d222a;padding:10px;">
+                <div style="font-family:Archivo,sans-serif;font-size:20px;font-weight:800;">{{ sel.cust }}</div>
+                <div style="font-size:12px;color:#6f7885;">הזמנות לקוח</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#8d97a3;margin-top:14px;">
+              <span>ROP {{ sel.rop }} → {{ sel.ropNew }}</span>
+              <span>SS {{ sel.ss }} → {{ sel.ssNew }}</span>
+            </div>
+            <a href="#" style="display:inline-block;margin-top:12px;font-size:14px;font-weight:600;">מאחורי החישוב ↗</a>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:980}}">
+const ROWS = [
+  {pn:'51 8410 3300', desc:'רפידות בלם קדמי', cat:'לקוח ממתין', sev:3, miss:24, cov:'0.4', risk:64200, brand:'לינק אנד קו', abc:'A', supplier:'ZT חלפים',
+   months:[18,22,19,24,21,17,20,23,19,22,20], drop:-1, spike:-1},
+  {pn:'34 1160 7712', desc:'דיסק בלם אחורי', cat:'לקוח ממתין', sev:3, miss:12, cov:'0.0', risk:51800, brand:'ZT', abc:'A', supplier:'מובילי דרום',
+   months:[9,11,8,12,10,9,11,10,8,12,9], drop:-1, spike:-1},
+  {pn:'11 4270 9903', desc:'משאבת מים', cat:'פער כיסוי', sev:3, miss:6, cov:'0.7', risk:38400, brand:'לינק אנד קו', abc:'B', supplier:'ZT חלפים',
+   months:[6,7,5,8,6,7,6,5,7,6,8], drop:-1, spike:-1},
+  {pn:'63 2170 4418', desc:'פנס ראשי ימין', cat:'מכירות אבודות', sev:2, miss:0, cov:'1.2', risk:42900, brand:'ZT', abc:'A', supplier:'אור רכב',
+   months:[31,28,33,4,30,34,27,52,29,31,30], drop:3, spike:7},
+  {pn:'17 1180 2265', desc:'מצנן מנוע', cat:'מניעת חוסר', sev:2, miss:0, cov:'0.9', risk:31600, brand:'לינק אנד קו', abc:'B', supplier:'ZT חלפים',
+   months:[14,16,13,17,15,12,14,13,11,12,10], drop:-1, spike:-1},
+  {pn:'64 1190 0221', desc:'מסנן אוויר מנוע', cat:'עודף מלאי', sev:1, miss:0, cov:'14.2', risk:18900, brand:'ZT', abc:'C', supplier:'פילטר פלוס',
+   months:[4,5,3,4,6,5,9,11,10,12,11], drop:-1, spike:-1},
+  {pn:'32 1060 8890', desc:'זרוע היגוי', cat:'מעקב אספקה', sev:2, miss:0, cov:'0.0', risk:27300, brand:'לינק אנד קו', abc:'B', supplier:'מובילי דרום',
+   months:[7,8,6,9,7,8,7,6,8,7,9], drop:-1, spike:-1},
+  {pn:'12 3110 5504', desc:'מצת איריום', cat:'מניעת חוסר', sev:2, miss:0, cov:'0.6', risk:22100, brand:'ZT', abc:'A', supplier:'ניצוץ בע״מ',
+   months:[42,38,45,40,44,39,36,41,35,38,34], drop:-1, spike:-1},
+  {pn:'07 1290 3346', desc:'אטם ראש מנוע', cat:'עדכון פרמטרים', sev:1, miss:0, cov:'—', risk:14700, brand:'לינק אנד קו', abc:'C', supplier:'ZT חלפים',
+   months:[0,0,0,0,0,0,0,0,0,0,0], drop:-1, spike:-1},
+  {pn:'82 2200 1178', desc:'מגב שמשה קדמית', cat:'עודף מלאי', sev:1, miss:0, cov:'19.8', risk:12400, brand:'ZT', abc:'C', supplier:'אור רכב',
+   months:[3,4,2,3,5,4,3,4,2,3,4], drop:-1, spike:-1},
+  {pn:'33 5260 7031', desc:'בולם זעזועים אחורי', cat:'מכירות אבודות', sev:2, miss:0, cov:'1.8', risk:29800, brand:'לינק אנד קו', abc:'A', supplier:'מובילי דרום',
+   months:[21,19,23,20,3,22,24,20,21,19,22], drop:4, spike:-1},
+  {pn:'11 6180 4492', desc:'רצועת טיימינג', cat:'מניעת חוסר', sev:2, miss:0, cov:'1.1', risk:19500, brand:'ZT', abc:'B', supplier:'ZT חלפים',
+   months:[12,14,11,13,12,15,13,12,14,11,13], drop:-1, spike:-1}
+];
+
+const MOVES = [
+  {pn:'51 8410 3300', saleDate:'21.08.2026', saleAge:12,  entDate:'02.07.2026', entAge:52},
+  {pn:'63 2170 4418', saleDate:'14.06.2026', saleAge:70,  entDate:'11.05.2026', entAge:104},
+  {pn:'64 1190 0221', saleDate:'03.02.2026', saleAge:201, entDate:'19.01.2026', entAge:216}
+];
+
+const C = { alert:'#b23b32', warn:'#c9974a', accent:'#7aa7d4', bar:'#495260', dim:'#8d97a3' };
+
+const PRIMARY = ['לקוח ממתין','פער כיסוי','מניעת חוסר','מכירות אבודות'];
+const TABS = [
+  {key:'all', label:'הכול', sev:3},
+  {key:'לקוח ממתין', label:'לקוח ממתין', sev:3},
+  {key:'פער כיסוי', label:'פער כיסוי', sev:3},
+  {key:'מניעת חוסר', label:'מניעת חוסר', sev:2},
+  {key:'מכירות אבודות', label:'מכירות אבודות', sev:2},
+  {key:'other', label:'עוד', sev:1}
+];
+
+const SEV_COLOR = {3:C.alert, 2:C.warn, 1:C.bar};
+const shekel = n => '₪ ' + n.toLocaleString('he-IL');
+const median = a => { const s = [...a].sort((x, y) => x - y); const h = s.length >> 1;
+  return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+
+class Component extends DCLogic {
+  state = { tab: 'all', selPn: '63 2170 4418', loaded: true };
+
+  renderVals() {
+    const tab = this.state.tab;
+    const inTab = r => tab === 'all' || (tab === 'other' ? PRIMARY.indexOf(r.cat) < 0 : r.cat === tab);
+    const rows = ROWS.filter(inTab).sort((a, b) => b.risk - a.risk);
+
+    const tabs = TABS.map(t => {
+      const set = t.key === 'all' ? ROWS
+        : t.key === 'other' ? ROWS.filter(r => PRIMARY.indexOf(r.cat) < 0)
+        : ROWS.filter(r => r.cat === t.key);
+      const on = tab === t.key;
+      return {
+        label: t.label, count: set.length,
+        money: shekel(set.reduce((s, r) => s + r.risk, 0)),
+        pick: () => this.setState({ tab: t.key }),
+        style: ['font-family:inherit;text-align:start;cursor:pointer;flex:1 1 0;min-width:132px;padding:10px 14px 12px',
+          'border:0;border-top:4px solid ' + SEV_COLOR[t.sev],
+          'border-inline-end:1px solid #262c34',
+          'background:' + (on ? '#1d222a' : 'transparent'),
+          'color:#e7ebf0'].join(';')
+      };
+    });
+
+    const sel = ROWS.find(r => r.pn === this.state.selPn) || ROWS[0];
+
+    return {
+      isEmpty: !this.state.loaded,
+      isLoaded: this.state.loaded,
+      toggleState: () => this.setState(s => ({ loaded: !s.loaded })),
+      toggleLabel: this.state.loaded ? 'הצג מצב פתיחה' : 'הצג מסך טעון',
+      headerLine: this.state.loaded
+        ? 'ZMRP_2608.xlsx · חודש בסיס יולי 2026 · נטען היום 07:41'
+        : 'תכנון מלאי חלפים · אין קובץ טעון',
+      tabs,
+      rows: rows.map(r => this.row(r)),
+      moves: MOVES.map(m => ({
+        pn: m.pn, saleDate: m.saleDate, entDate: m.entDate,
+        saleAge: m.saleAge + ' ימים', entAge: m.entAge + ' ימים',
+        saleBar: this.ageBar(m.saleAge), entBar: this.ageBar(m.entAge)
+      })),
+      listTitle: tab === 'all' ? 'כל המשימות' : tab === 'other' ? 'קטגוריות נוספות' : tab,
+      listSub: rows.length + ' פריטים · ' + shekel(rows.reduce((s, r) => s + r.risk, 0)) + ' בסיכון',
+      sel: this.detail(sel)
+    };
+  }
+
+  ageBar(days) {
+    const w = Math.min(100, Math.round(days / 180 * 100));
+    const c = days > 90 ? C.alert : days > 30 ? C.warn : C.accent;
+    return 'height:6px;width:' + w + '%;background:' + c;
+  }
+
+  spark(r) {
+    const peak = Math.max(...r.months, 1);
+    return r.months.map((v, i) => {
+      const c = i === r.drop ? C.alert : i === r.spike ? C.accent : C.bar;
+      return { style: 'flex:1 1 0;min-width:2px;background:' + c + ';height:' + Math.max(8, Math.round(v / peak * 100)) + '%' };
+    });
+  }
+
+  row(r) {
+    const on = r.pn === this.state.selPn;
+    return {
+      pn: r.pn, desc: r.desc, cat: r.cat,
+      miss: r.miss > 0 ? '-' + r.miss : '0',
+      cov: r.cov === '—' ? '—' : r.cov + ' ח׳',
+      risk: r.risk.toLocaleString('he-IL'),
+      spark: this.spark(r),
+      pick: () => this.setState({ selPn: r.pn }),
+      rowStyle: 'cursor:pointer;background:' + (on ? '#212832' : 'transparent'),
+      pnStyle: 'padding:12px 18px;border-bottom:1px solid #202630;border-inline-start:4px solid ' + SEV_COLOR[r.sev] +
+        ';font-family:Archivo,sans-serif;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:right',
+      catStyle: 'font-size:12px;font-weight:600;padding:2px 8px;white-space:nowrap;' +
+        (r.sev === 3 ? 'background:' + C.alert + ';color:#fdf2f0'
+         : r.sev === 2 ? 'background:#2b2519;color:' + C.warn
+                       : 'background:#232932;color:#8d97a3'),
+      missStyle: 'padding:12px 10px;text-align:end;font-family:Archivo,sans-serif;font-variant-numeric:tabular-nums;font-weight:700;border-bottom:1px solid #202630;' +
+        (r.miss > 0 ? 'color:' + C.alert : 'color:#6f7885')
+    };
+  }
+
+  detail(r) {
+    const bar = lvl => 'flex:0 0 auto;width:4px;background:' +
+      (lvl === 'stop' ? C.alert : lvl === 'note' ? C.warn : C.bar);
+    const pos = r.months.filter(v => v > 0);
+    const med = pos.length ? median(pos) : 0;
+    const peak = Math.max(...r.months, 1);
+    const bars = r.months.map((v, i) => {
+      const c = i === r.drop ? C.alert : i === r.spike ? C.accent : C.bar;
+      return { style: 'flex:1 1 0;background:' + c + ';height:' + Math.max(3, Math.round(v / peak * 100)) + '%' };
+    });
+    const why = r.drop >= 0
+      ? [{ lvl:'stop', text:'צניחה חריגה: ' + r.months[r.drop] + ' יח׳ מול חציון ' + med + ' — החודשים סביבה תקינים' },
+         { lvl:'note', text:'אובדן משוער ' + (med - r.months[r.drop]) + ' יח׳ · ' + shekel(r.risk) },
+         { lvl:'ctx',  text:'הקצב האמיתי גבוה מהמדווח — ROP מחושב על הקצב המנוקה' }]
+      : r.miss > 0
+      ? [{ lvl:'stop', text:'הזמנת לקוח ' + (r.miss + 4) + ' יח׳ מול מלאי פנוי 0 — אין רכש פתוח' },
+         { lvl:'note', text:'זמן אספקה 45 יום · כיסוי נוכחי ' + r.cov + ' חודשים' },
+         { lvl:'ctx',  text:'4 יח׳ חסומות למשלוח לא נכללו בחישוב' }]
+      : [{ lvl:'stop', text:'כיסוי ' + r.cov + ' חודשים מול זמן אספקה 1.5 חודשים' },
+         { lvl:'note', text:'נקודת הזמנה נמוכה מהנדרש' },
+         { lvl:'ctx',  text:'מגמת עלייה של 34% בחמישה החודשים האחרונים' }];
+    return {
+      pn: r.pn, desc: r.desc, brand: r.brand, abc: r.abc, supplier: r.supplier,
+      action: r.drop >= 0 ? 'להעלות מלאי ביטחון' : r.miss > 0 ? 'לפתוח הזמנת רכש' : 'להעלות נקודת הזמנה',
+      qty: r.miss > 0 ? r.miss + ' יח׳' : '38 יח׳',
+      actionSub: shekel(r.risk) + ' בסיכון אם לא ייסגר עד סוף השבוע',
+      bars, median: med,
+      medLineStyle: 'position:absolute;inset-inline:0;bottom:' + Math.round(med / peak * 100) +
+        '%;height:1px;background:#e7ebf0;opacity:.4',
+      chartNote: r.drop >= 0 ? 'אדום = חודש הצניחה · כחול = פיק שנוטרל' : 'אפור = צריכה חודשית',
+      why: why.map(w => ({ text: w.text, barStyle: bar(w.lvl) })),
+      free: 0, po: r.miss > 0 ? 0 : 12, cust: r.miss > 0 ? r.miss + 4 : 6,
+      rop: 18, ropNew: 56, ss: 6, ssNew: 24
+    };
+  }
+}
+
+</script>
+</body>
+</html>
