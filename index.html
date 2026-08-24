@@ -448,7 +448,11 @@ function analyze(m){
   const spikes=[],drops=[];
   if(med>0){pos.forEach((v,i)=>{
       if(v>=3&&v/med>=2.0)spikes.push({i:i+1,q:v,x:+(v/med).toFixed(1)});
-      const prev=pos[i+1]!=null?pos[i+1]:med, next=pos[i-1]!=null?pos[i-1]:med;
+      /* חשד אזילה נבדק רק על ביקוש סדיר (8+ חודשים פעילים), ורק כששני החודשים
+         השכנים באמת קיימים בחלון — בלי להמציא שכן לחודש הקיצוני */
+      if(active<8)return;
+      if(i===0||i===pos.length-1)return;
+      const prev=pos[i+1], next=pos[i-1];
       if(med>=5&&v/med<=0.3&&prev/med>=0.6&&next/med>=0.6)drops.push({i:i+1,q:v,x:+(v/med).toFixed(2)});});}
   const rec=pos.slice(0,5).reduce((a,b)=>a+b,0), pre=pos.slice(6,11).reduce((a,b)=>a+b,0);
   const pct=pre>0?Math.round((rec/pre-1)*100):(rec>0?999:0);
@@ -1027,7 +1031,7 @@ function barChart(cv,r){const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*
  if(r.A.med>0){const my=base-(r.A.med/max)*(H-padTop-padBot);
    ctx.strokeStyle='rgba(233,167,0,.75)';ctx.setLineDash([7,6]);ctx.lineWidth=2;
    ctx.beginPath();ctx.moveTo(padX,my);ctx.lineTo(W-padX,my);ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='#e9a700';ctx.font='700 15px Arial';ctx.textAlign='left';ctx.fillText('חציון '+r.A.med,padX+4,my-6)}
+   ctx.fillStyle='#e9a700';ctx.font='700 15px Arial';ctx.textAlign='left';ctx.fillText('חציון '+r.A.med+(r.A.active<11?' (חו׳ עם מכירה)':''),padX+4,my-6)}
  d.forEach((v,i)=>{const isCur=hasCur&&i===d.length-1;const mi=isCur?-1:(11-i);
    const w=Math.min(bw*.5,26),cx=padX+i*bw+bw/2,x=cx-w/2,y=yOf(v);
    const col=isCur?'#64748b':(v<0?'#6b7280':spike.has(mi)?'#ff5b5b':drop.has(mi)?'#a78bfa':'#38bdf8');
@@ -1166,7 +1170,7 @@ function explain(r){const A=r.A;
   <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , ssMin${lump>0?' , רצפת-פיק':''} )</div><table>${ssRows}</table></div>
   <div class="calc"><div class="ch">נקודת הזמנה (ROP)<span class="res">${r.sugROP}</span></div><div class="formula">ROP = ⌈ (קצב × LT) + SS ⌉</div><table>${ropRows}</table></div>${guard}
   <div class="calc"><div class="ch">בסיס הנתונים</div><table>
-    <tr><td>חודשים פעילים</td><td>${active}/11</td></tr><tr><td>חציון צריכה</td><td>${med}</td></tr><tr><td>צריכה 11 חו׳</td><td>${r.d12}</td></tr>
+    <tr><td>חודשים פעילים</td><td>${active}/11</td></tr><tr><td>חציון צריכה (חודשים עם מכירה)</td><td>${med}</td></tr><tr><td>צריכה 11 חו׳</td><td>${r.d12}</td></tr>
     <tr><td>פיק היסטורי</td><td>${A.peak}</td></tr>
     <tr><td>סדרת צריכה</td><td style="direction:ltr">${r.months.join(' · ')}</td></tr>
     ${r.curMonth!=null?`<tr><td>חודש נוכחי (חלקי — מוחרג)</td><td>${r.curMonth}</td></tr>`:''}${mvRow}
