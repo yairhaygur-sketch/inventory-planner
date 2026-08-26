@@ -481,6 +481,116 @@ td.miss .posq{color:var(--dim)}
 }
 @media(max-width:760px){.dash{display:flex;flex-direction:column;overflow:auto}.kpis{grid-template-columns:1fr}
  .widget{width:100%}.wfilters,.wdetail{border:0;border-top:2px solid var(--line)}.wmoves{max-height:none}}
+
+/* ============ תקציב גובה — הרשימה מקבלת את המסך ============ */
+/* מדוד ב-1512x860: תור העבודה קיבל 178px (3 שורות מתוך 124). היעד: ~555px. */
+.dash{grid-template-columns:220px minmax(0,1fr) 380px;grid-template-rows:auto minmax(0,1fr)}
+.wfilters{grid-column:1;grid-row:2}
+.wqueue{grid-column:2;grid-row:2}
+.wdetail{grid-column:3;grid-row:2}
+#movesPanel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#movesPanel .wbody,#movesPanel .qbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+
+/* מדדים: 135px → ~76px. המספרים נשארים גדולים, האוויר סביבם לא. */
+.kpi{padding:8px 14px}
+.kpi .l{font-size:11.5px}
+.kpi .v{font-size:22px;margin-top:0}
+.kpi .mny{font-size:11.5px}
+#kpis .kpi.burn{padding:8px 16px}
+#kpis .kpi.burn .l{font-size:12px}
+#kpis .kpi.burn .row{gap:12px;margin-top:1px}
+#kpis .kpi.burn .v{font-size:32px}
+#kpis .kpi.burn .mny{font-size:13px}
+#kpis .kpi.burn .note{font-size:11px;margin-top:1px}
+
+/* טאבים: 81px → ~48px. שורת ההסבר עברה ל-title. */
+.tabs{overflow-x:auto;scrollbar-width:thin}
+.tab{min-width:104px;padding:5px 11px 6px;border-top-width:3px}
+.tab .t{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .n{font-size:17px}
+.tab .tsum{font-size:11px}
+.tab .m{display:none}
+.wmoves .tab,#movesPanel .tab{min-width:98px}
+
+/* כותרת פאנל ופוטר */
+.phd{padding:6px 14px;gap:10px}
+.phd .title{font-size:13.5px}
+.phd .sub,.phd #phdSub{font-size:11px}
+.pager{padding:4px 12px;font-size:11px}
+
+/* שורות: 45px → ~30px. פי 6 שורות באותו מסך. */
+.rows table{font-size:12.5px}
+th .thc{padding:6px 9px;font-size:11px}
+td{padding:5px 9px}
+td.pnc{padding:5px 14px;font-size:13px}
+.cp,.dn{font-size:9.5px;padding:1px 6px;margin-inline-start:4px}
+.badge{font-size:10px;padding:1px 8px}
+.spark{height:18px;width:82px}
+.agebadge{font-size:9.5px;padding:1px 5px}
+#movesPanel td,#movesPanel th .thc{padding:5px 9px}
+
+/* כרטיס הפריט: 1066px תוכן בחלון 328px. מכווץ ומקפל את הצלילה. */
+.opad{padding:10px 14px;gap:9px}
+.sec h3{font-size:10.5px;margin-bottom:4px;padding-bottom:3px}
+.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
+.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
+.acts li::before{width:16px;height:16px;font-size:9.5px}
+.kv{grid-template-columns:repeat(4,1fr);border-radius:7px}
+.kv .box{padding:4px 7px}
+.kv .box b{font-size:12px}
+.kv .box span{font-size:9px}
+.mvrow{gap:6px;margin-top:4px}
+.mvcard{padding:5px 9px;border-radius:7px}
+.mvcard .dt{font-size:13px}
+.fixbox{padding:6px;border-radius:7px}
+.fixbox .new{font-size:19px}
+.dcs{padding:12px 16px}
+.dca{font-size:17px;margin-top:6px}
+.dcq{font-size:30px}
+.dcs2{font-size:12.5px}
+.dcb{margin-top:10px}
+.bpri,.bsec{font-size:12.5px;padding:7px 13px}
+.ohead{padding:10px 16px}
+.ohead .opn{font-size:15px}
+.ohead h2{font-size:12.5px}
+
+/* חלקים מתקפלים — צלילה לפי דרישה במקום גלילה תמידית */
+.dsec{border:1px solid var(--line2);border-radius:7px;background:var(--panel2)}
+.dsec>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:10.5px;font-weight:700;
+ color:var(--dim);display:flex;align-items:center;gap:6px;user-select:none}
+.dsec>summary::-webkit-details-marker{display:none}
+.dsec>summary::before{content:'▸';font-size:10px;transition:transform .12s}
+.dsec[open]>summary::before{transform:rotate(-90deg)}
+.dsec>summary:hover{color:var(--ink)}
+.dsec>*:not(summary){margin:0 10px 9px}
+.dsec canvas{width:100%}
+
+/* מקרא קיצורי המקלדת */
+.kbd{display:flex;gap:5px;align-items:center;font-size:10px;color:var(--dim);white-space:nowrap}
+.kbd b{font-family:var(--num);font-weight:700;border:1px solid var(--line);border-radius:4px;
+ padding:0 4px;color:var(--soft);background:var(--panel2)}
+
+/* מסך גדול — הגובה הנוסף הולך לשורות, לא לאוויר */
+@media(min-height:1000px){
+ .kpi{padding:12px 16px}#kpis .kpi.burn .v{font-size:40px}
+ .tab{padding:7px 12px 8px}.tab .n{font-size:19px}
+ td{padding:7px 9px}td.pnc{padding:7px 14px}
+}
+/* חלון צר: מצמצמים את העמודות הצדדיות ומשאירים לרשימה את מלוא הגובה.
+   ערימה אנכית חוצה את מספר השורות הנראות, ולכן היא רק המוצא האחרון. */
+@media(max-width:1180px){
+ .dash{grid-template-columns:184px minmax(0,1fr) 316px}
+ .kpis{grid-template-columns:1.7fr 1fr 1fr}
+ .tab{min-width:94px;padding:5px 8px 6px}
+ .kv{grid-template-columns:repeat(3,1fr)}
+ .kbd{display:none}
+}
+@media(max-width:900px){
+ .dash{grid-template-columns:minmax(0,1fr) 300px;grid-template-rows:auto minmax(0,1fr)}
+ .wfilters{display:none}
+ .wqueue{grid-column:1;grid-row:2}
+ .wdetail{grid-column:2;grid-row:2}
+}
 </style>
 </head>
 <body>
@@ -525,7 +635,8 @@ td.miss .posq{color:var(--dim)}
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
-          <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span></div>
+          <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
+          <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -866,9 +977,9 @@ function saveMarks(){try{localStorage.setItem(MK_KEY,JSON.stringify(MARKS))}catc
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
 function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;if(!t){delete MARKS[key];if(it)delete MARKS[it.pn]}else{MARKS[key]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
-const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט'],['moves','תנועות אחרונות']];
+const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
 const LAY_KEY='planner_layout_v1';
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail','moves'],hidden:[],sizes:{}};
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:[],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -969,7 +1080,8 @@ const DEF=[['today','החלטות היום','מדורג בכסף','var(--red)'],
  ['excess','הון לשחרור','עודף · מת · איטי','var(--gray)'],
  ['marked','מסומנים · טופל','קמפיין · טיפול · טופל','var(--grn)'],
  ['passive','רקע / קטלוג','PD · לא פעיל · מלאי מת','var(--dim)'],
- ['all','כל הפריטים','כל מה שבסינון','var(--gray)']];
+ ['all','כל הפריטים','כל מה שבסינון','var(--gray)'],
+ ['moves','תנועות אחרונות','CF · CG · נכנס ולא נמכר','var(--blue)']];
 function optionsFor(key){const b=ALL.filter(it=>FDEF.every(([k])=>k===key||!SEL[k].size||SEL[k].has(it[k])));
   const c={};b.forEach(it=>c[it[key]]=(c[it[key]]||0)+1);return Object.entries(c).sort((a,b)=>b[1]-a[1])}
 function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDEF.map(([k,l])=>
@@ -1014,15 +1126,20 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
   ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m} בסיכון</div></div><div class="note">${k.note}</div></div>`
   :`<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div></div>`).join('');
  document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
-function tiles(){document.getElementById('tabs').innerHTML=DEF.map(([k,t,s,c])=>{
- const a=k==='today'?decisionList(track):(k==='all'?QF.all:QF[k]);
- const sum=a.reduce((x,r)=>x+(k==='today'&&TRACKKEY[track]?(r[TRACKKEY[track]]||0):(r.risk||0)),0);
+function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
+ document.getElementById('tabs').innerHTML=DEF.map(([k,t,s,c])=>{
+ const a=k==='today'?decisionList(track):k==='all'?QF.all:k==='moves'?movList(movTab,movBase):QF[k];
+ /* טאב ריק לא גוזל רוחב — חוץ מהקבועים ומזה שנבחר כרגע */
+ if(!a.length&&k!=='today'&&k!=='all'&&k!==cur)return '';
+ const sum=k==='moves'?0:a.reduce((x,r)=>x+(k==='today'&&TRACKKEY[track]?(r[TRACKKEY[track]]||0):(r.risk||0)),0);
  let mn=s;
  if(k==='today'){const c=cut80(a,track);mn=track==='fix'?'ניתן לעדכן במרוכז':`80% ב-${c.n} פריטים`}else
  if(k==='marked'){const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;mn=handled?`${handled} טופלו`:`מסומנים`}
  else if(k==='passive')mn='רקע';else if(k==='all')mn=`${QF.ok.length} ללא ממצא`;
+ else if(k==='moves')mn=MOVDEF.find(d=>d[0]===movTab)[1];
  const mny=sum>0?`<div class="tsum">${moneyShort(sum)}</div>`:'';
- return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span>${mny}</div><div class="m">${mn}</div></div>`}).join('');
+ /* שורת ההסבר עברה ל-title — היא עלתה 27px גובה בכל טאב */
+ return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}" title="${esc(t+' — '+mn)}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span>${mny}</div><div class="m">${mn}</div></div>`}).join('');
  document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{cur=e.dataset.k;render()})}
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
  ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','סיכון ₪','n']];
@@ -1114,10 +1231,12 @@ function renderDecisions(rows){
   :(track==='rev'?'מכירה שעלולה ללכת לאיבוד אם לא נטפל — ממוין לפי ₪':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};tiles();kpis();
+ if(cur==='moves'){showMovesPanel(true);renderMoves();return}
+ showMovesPanel(false);
  const rows=currentRows();
  document.getElementById('lt').textContent=DEF.find(d=>d[0]===cur)[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
- if(cur==='today'){renderTrack();renderDecisions(rows);renderMoves();return}
+ if(cur==='today'){renderTrack();renderDecisions(rows);return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
  document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
  const arrow=col=>sortCol===col?(sortDir==='asc'?'▲':'▼'):'';
@@ -1144,7 +1263,7 @@ function render(){DL_CACHE={};tiles();kpis();
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length}`;
  document.getElementById('pgR').textContent=`${QF.all.length} מק״טים בקובץ`;
- wireCopy();renderMoves()}
+ wireCopy()}
 /* ============ אריח תנועות אחרונות (v0.12) ============ */
 let movTab='sales';
 const MOVDEF=[['sales','מכירות אחרונות','var(--acc)'],['entries','כניסות אחרונות','var(--blue)'],['stuck','כניסות ללא מכירה','var(--org)']];
@@ -1166,7 +1285,8 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  const today=new Date();today.setHours(0,0,0,0);
  const rows=movList(movTab,base),view=rows.slice(0,500),isStuck=movTab==='stuck';
  document.getElementById('movlt').textContent=MOVDEF.find(d=>d[0]===movTab)[1]+' ('+rows.length.toLocaleString('he-IL')+')';
- document.getElementById('movsub').textContent=`${cS.toLocaleString('he-IL')} מכירות · ${cE.toLocaleString('he-IL')} כניסות · ${cK.toLocaleString('he-IL')} תקוע`;
+ const msub=document.getElementById('movsub');
+ if(msub)msub.textContent=`${cS.toLocaleString('he-IL')} מכירות · ${cE.toLocaleString('he-IL')} כניסות · ${cK.toLocaleString('he-IL')} תקוע`;
  const dateHdr=(movTab==='sales')?'תאריך מכירה':'תאריך כניסה';
  const midHdr=isStuck?'מכירה אחרונה':'Δ כניסה→מכירה';
  document.querySelector('#movtbl thead').innerHTML=`<tr><th style="width:16px"></th>
@@ -1188,7 +1308,8 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
     <td>${r.free}</td><td>${r.abc||'—'}</td><td>${r.mrp}</td></tr>`}).join('')
   ||`<tr><td colspan="10" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`;
  document.querySelectorAll('#movtbl tbody tr').forEach(tr=>{const idx=+tr.dataset.mi;if(isNaN(idx))return;
-   tr.onclick=()=>{const r=view[idx];if(r)detail(r)}});
+   tr.onclick=()=>{document.querySelectorAll('#movtbl tbody tr').forEach(x=>x.classList.remove('sel'));
+     tr.classList.add('sel');const r=view[idx];if(r)detail(r)}});
  document.getElementById('movpg').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length.toLocaleString('he-IL')}`;
  wireCopy(document.getElementById('movtbl'))}
 function closeColPop(){document.getElementById('colpop').classList.remove('open')}
@@ -1291,7 +1412,7 @@ function delta(c,n){return n>c?`<div class="dlt up">▲ להעלות ב-${n-c}</
 const PATDESC={'חלק':'ביקוש סדיר וצפוי','תנודתי':'סדיר בתדירות, משתנה בכמות',
  'ספורדי':'מפוזר עם חודשים ריקים — ממוצע מטעה','גושי':'נדיר באשכולות — עדיף לפי הזמנה','ללא ביקוש':'אין תנועה ב-11 חודשים'};
 function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:'';
- return `<div class="sec"><h3>סימון והחרגה</h3>
+ return `<details class="dsec"${r.mark?' open':''}><summary>סימון והחרגה${r.mark?` · ${esc(r.cat)}`:''}</summary>
   <div class="marks">
    <button data-t="handled" class="dn2 ${t==='handled'?'on':''}">✓ טופל</button>
    <button data-t="campaign" class="${t==='campaign'?'on':''}">קמפיין</button>
@@ -1299,7 +1420,7 @@ function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:
    <button data-t="ignore" class="${t==='ignore'?'on':''}">התעלם</button>
    <button data-t="" class="clr">בטל סימון</button></div>
   <input class="marknote" id="mknote" placeholder="הערה (קמפיין קיץ · ממתין לאישור מנהל)" value="${(note||'').replace(/"/g,'&quot;')}">
-  <div class="legend">${t==='handled'?'הפריט טופל והוסר מהרשימה. "בטל סימון" יחזיר אותו.':'מסומן = מוחרג מהתרעות עד הסרה.'} נשמר מקומית, שורד רענון.${r.mark?` · סומן ${new Date(r.mark.ts).toLocaleDateString('he-IL')}`:''}</div></div>`}
+  <div class="legend">${t==='handled'?'הפריט טופל והוסר מהרשימה. "בטל סימון" יחזיר אותו.':'מסומן = מוחרג מהתרעות עד הסרה.'} נשמר מקומית, שורד רענון.${r.mark?` · סומן ${new Date(r.mark.ts).toLocaleDateString('he-IL')}`:''}</div></details>`}
 function movePanel(r){if(r.sales==null&&r.entries==null)return '';
  const sd=(r.sales&&r.sales.date&&r.entries&&r.entries.date&&sameDay(r.sales.date,r.entries.date));
  const saleQt=r.sales&&r.sales.num!=null?`<div class="qt">${r.sales.num} יח׳</div>`:'';
@@ -1366,13 +1487,17 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
     <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}</div></div>
-   <div class="sec"><h3>צריכה חודשית</h3><canvas id="c1"></canvas>
-    <div class="legend"><span style="color:#ff5b5b">●</span> פיק · <span style="color:#a78bfa">●</span> חשד אזילה · <span style="color:#e9a700">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}${notes.length?'<br>'+notes.join(' · '):''}</div></div>
-   <div class="sec"><h3>תחזית מלאי — 12 שבועות</h3><canvas id="c2"></canvas>
-    <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח, משום שאין ETA בדוח. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></div>
+   <details class="dsec" data-chart="c1"><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
+    <div class="legend"><span style="color:#ff5b5b">●</span> פיק · <span style="color:#a78bfa">●</span> חשד אזילה · <span style="color:#e9a700">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}${notes.length?'<br>'+notes.join(' · '):''}</div></details>
+   <details class="dsec" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
+    <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח, משום שאין ETA בדוח. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
  </div>`;
- barChart(document.getElementById('c1'),r);projChart(document.getElementById('c2'),r);
+ /* קנבס בתוך details סגור הוא ברוחב 0 — מציירים רק כשנפתח */
+ document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
+  const draw=()=>{if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
+    (d.dataset.chart==='c1'?barChart:projChart)(cv,r)};
+  d.addEventListener('toggle',draw);draw()});
  const dm=document.querySelector('#detail [data-dmark]');
  if(dm)dm.onclick=()=>{setMark(r,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dc=document.querySelector('#detail [data-dcopy]');
@@ -1523,6 +1648,64 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   colFilters={};apply()}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
+/* ============ תנועות אחרונות — מטאב-קבוע לטאב בתור העבודה ============ */
+/* הרצועה התחתונה גזלה 292px קבועים מתוך 860 — יותר מתור העבודה עצמו. */
+function showMovesPanel(on){
+ const qp=document.querySelector('#w_queue .qpanel'),mp=document.getElementById('movesPanel');
+ if(qp)qp.style.display=on?'none':'';
+ if(mp)mp.style.display=on?'':'none'}
+(function relocateMoves(){
+ const mv=document.getElementById('w_moves'),qb=document.querySelector('#w_queue .qbody');
+ if(!mv||!qb)return;
+ const body=mv.querySelector('.wbody');if(!body)return;
+ const holder=document.createElement('div');
+ holder.id='movesPanel';holder.style.display='none';
+ holder.appendChild(body);qb.appendChild(holder);mv.remove()})();
+
+/* ============ ניווט מקלדת — לעבור על התור בלי עכבר ============ */
+function navRows(){return [...document.querySelectorAll(
+  cur==='moves'?'#movtbl tbody tr[data-mi]':'#tbl tbody tr[data-i]')]}
+function selIndex(rows){return rows.findIndex(r=>r.classList.contains('sel'))}
+function pickRow(tr){if(!tr)return;tr.click();tr.scrollIntoView({block:'nearest'})}
+function moveSel(d){const rows=navRows();if(!rows.length)return;
+ const i=selIndex(rows);
+ pickRow(rows[i<0?(d>0?0:rows.length-1):Math.min(rows.length-1,Math.max(0,i+d))])}
+function pageSel(d){const rows=navRows();if(!rows.length)return;
+ const box=document.querySelector(cur==='moves'?'#movesPanel .rows':'#w_queue .rows');
+ const step=Math.max(1,Math.floor((box?box.clientHeight:200)/(rows[0].offsetHeight||30))-1);
+ const i=selIndex(rows);
+ pickRow(rows[Math.min(rows.length-1,Math.max(0,(i<0?0:i)+d*step))])}
+function markSelHandled(){const rows=navRows();const i=selIndex(rows);if(i<0)return false;
+ const b=rows[i].querySelector('[data-done]');if(!b)return false;
+ b.click();                                  /* setMark → apply → render */
+ const after=navRows();                      /* הרשימה התכווצה — הבא תפס את המקום */
+ if(after.length)pickRow(after[Math.min(i,after.length-1)]);
+ return true}
+function tabStep(d){const tabs=[...document.querySelectorAll('#tabs .tab')];if(!tabs.length)return;
+ const i=tabs.findIndex(t=>t.classList.contains('sel'));if(i<0)return;
+ const n=tabs[Math.min(tabs.length-1,Math.max(0,i+d))];
+ if(n&&n!==tabs[i]){n.click();const first=navRows()[0];if(first)pickRow(first)}}
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ const t=e.target,tag=(t.tagName||'').toLowerCase();
+ const typing=tag==='input'||tag==='textarea'||tag==='select'||t.isContentEditable;
+ if(e.key==='Escape'){
+  if(typing){t.blur();return}
+  document.querySelectorAll('.ddpanel,.menu').forEach(x=>x.classList.remove('open'));
+  closeColPop();document.getElementById('modalwrap').classList.remove('open');return}
+ if(typing)return;
+ const K=e.key;
+ if(K==='/'){e.preventDefault();const q=document.getElementById('q');if(q){q.focus();q.select()}return}
+ if(K==='ArrowDown'||K==='j'){e.preventDefault();moveSel(1);return}
+ if(K==='ArrowUp'||K==='k'){e.preventDefault();moveSel(-1);return}
+ if(K==='PageDown'){e.preventDefault();pageSel(1);return}
+ if(K==='PageUp'){e.preventDefault();pageSel(-1);return}
+ if(K==='Enter'||K===' '){e.preventDefault();
+  if(!markSelHandled()&&!navRows().some(r=>r.classList.contains('sel')))pickRow(navRows()[0]);return}
+ /* RTL: חץ שמאל = הטאב הבא ברצועה */
+ if(K==='ArrowLeft'){e.preventDefault();tabStep(1);return}
+ if(K==='ArrowRight'){e.preventDefault();tabStep(-1);return}});
+
 applyDark(DARKON);
 LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));applyLayout();
 ['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
