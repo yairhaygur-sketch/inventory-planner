@@ -481,6 +481,63 @@ td.miss .posq{color:var(--dim)}
 }
 @media(max-width:760px){.dash{display:flex;flex-direction:column;overflow:auto}.kpis{grid-template-columns:1fr}
  .widget{width:100%}.wfilters,.wdetail{border:0;border-top:2px solid var(--line)}.wmoves{max-height:none}}
+/* ============ מנוע חיפוש — שכבת עיצוב (v0.13) ============ */
+.qwrap{position:relative}
+.qwrap>label.tl{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.qkbd{font-family:var(--num);font-size:9.5px;font-weight:700;color:var(--dimmer);border:1px solid var(--line);
+ padding:0 5px;line-height:15px;background:var(--panel2);letter-spacing:.06em}
+.qbox{display:flex;align-items:center;border:1px solid var(--line);background:var(--panel2);
+ transition:border-color .12s,box-shadow .12s}
+.qbox:focus-within{border-color:var(--acc);box-shadow:inset 0 -2px 0 var(--acc)}
+.qbox .qico{flex:0 0 auto;padding-inline-start:8px;font-size:15px;color:var(--dimmer);line-height:1}
+.qbox:focus-within .qico{color:var(--acc)}
+.qbox input.qsearch{border:0;background:transparent;padding:8px 7px;font-size:12.5px;min-width:0;flex:1 1 auto;
+ color:var(--ink)}
+.qbox input.qsearch:focus{background:transparent;border:0}
+.qclr{flex:0 0 auto;border:0;background:transparent;color:var(--dimmer);cursor:pointer;font-family:inherit;
+ font-size:12px;padding:0 8px;line-height:1;visibility:hidden}
+.qclr:hover{color:var(--red)}
+.qbox.has .qclr{visibility:visible}
+.qstat{font-size:11px;margin-top:6px;color:var(--dim);line-height:1.5;min-height:17px}
+.qstat b{font-family:var(--num);color:var(--ink);font-weight:700}
+.qstat.none{color:var(--org)}
+/* חלונית תוצאות מרחפת */
+.qsug{position:fixed;z-index:80;display:none;background:var(--panel);border:1px solid var(--line);
+ box-shadow:var(--shadowH);overflow:auto;border-radius:0}
+.qsug.open{display:block}
+.qsug .sgh{position:sticky;top:0;z-index:1;background:var(--bg);border-bottom:1px solid var(--line);
+ padding:7px 12px;font-family:var(--num);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+ color:var(--dimmer);font-weight:700;display:flex;justify-content:space-between;gap:10px}
+.qsug .sgall{padding:8px 12px;border-bottom:1px solid var(--line);background:var(--accL);color:var(--acc);
+ font-size:11.5px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.qsug .sgall:hover{background:var(--acc);color:var(--bg)}
+.qsug .sgi{padding:9px 12px;border-bottom:1px solid var(--line2);border-inline-start:3px solid var(--neutral);
+ cursor:pointer}
+.qsug .sgi.s3{border-inline-start-color:var(--red)}
+.qsug .sgi.s2{border-inline-start-color:var(--org)}
+.qsug .sgi:hover,.qsug .sgi.on{background:var(--panel2)}
+.qsug .sgi.on{box-shadow:inset 0 0 0 1px var(--accBorder)}
+.qsug .r1{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.qsug .p{font-family:var(--num);font-weight:800;font-size:13.5px;direction:ltr;unicode-bidi:isolate;
+ white-space:nowrap;color:var(--ink)}
+.qsug .m{font-family:var(--num);font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap}
+.qsug .d{font-size:12px;color:var(--soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qsug .c{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:5px;font-size:10.5px;color:var(--dimmer)}
+.qsug .c i{font-style:normal;border:1px solid var(--line);padding:1px 6px;white-space:nowrap}
+.qsug .sgf{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);
+ padding:7px 12px;font-size:10px;color:var(--dimmer);line-height:1.7}
+.qsug .sgf b{font-family:var(--num);color:var(--acc);font-weight:700}
+.qsug .sgn{padding:16px 12px;font-size:12px;color:var(--dim);text-align:center}
+.qsug .rc{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;cursor:pointer;
+ border-bottom:1px solid var(--line2);color:var(--dim)}
+.qsug .rc:hover,.qsug .rc.on{background:var(--panel2);color:var(--ink)}
+.qsug .rc b{font-weight:600}
+/* הדגשת התאמות */
+mark{background:var(--accL);color:var(--acc);padding:0 1px;font-weight:700;border-radius:0}
+body.dark mark{background:#24384c;color:#a8cdec}
+td .obj mark,.qsug .p mark{background:transparent;color:var(--acc);text-decoration:underline;text-underline-offset:3px;padding:0}
+/* נגישות מקלדת */
+button:focus-visible,input:focus-visible,label.btn:focus-visible,.tab:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 </style>
 </head>
 <body>
@@ -510,7 +567,15 @@ td.miss .posq{color:var(--dim)}
   <section class="widget wfilters" id="w_filters" data-w="filters">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="fbody">
-      <div class="fgroup"><label class="tl">חיפוש מהיר</label><input class="qsearch" id="q" placeholder="מק״ט, תיאור, ספק…"></div>
+      <div class="fgroup qwrap" id="qwrap">
+        <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
+        <div class="qbox" id="qbox">
+          <span class="qico">⌕</span>
+          <input class="qsearch" id="q" placeholder="מק״ט · תיאור · ספק…" autocomplete="off" spellcheck="false">
+          <button class="qclr" id="qclr" type="button" title="נקה חיפוש (Esc)">✕</button>
+        </div>
+        <div class="qstat" id="qstat"></div>
+      </div>
       <div id="sidefilters"></div>
       <div class="toggle" id="onlyTasks"><span class="sw"></span><span>הצג רק משימות</span></div>
       <div class="chips" id="chips"></div>
@@ -551,6 +616,7 @@ td.miss .posq{color:var(--dim)}
   </section>
 </div>
 <div class="colpop" id="colpop"></div>
+<div class="qsug" id="qsug"></div>
 <div class="modalwrap" id="modalwrap"><div class="modal"><div class="mhd"><b id="mtitle">מאחורי החישוב</b><span class="x" id="mclose">✕</span></div><div class="mbody" id="mbody"></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -995,7 +1061,7 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
  document.querySelectorAll('#chips .chip span').forEach(s=>s.onclick=()=>{
    if(s.dataset.cf){delete colFilters[s.dataset.cf]}else{SEL[s.dataset.k].delete(s.dataset.v)}apply()});}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
- QF=classify(fl);QF.all=fl;
+ QF=classify(fl);QF.all=fl;SIDXV++;
  buildSideFilters();chips();render()}
 function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess,capList=decisionList('cap');
  const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+QF[k].length,0);
@@ -1047,8 +1113,175 @@ function cmp(a,b,key){const fa=COLACC[key];
  return (va||0)-(vb||0)}
 function sortRowsBy(arr){return [...arr].sort((a,b)=>{let r=cmp(a,b,sortCol);
   if(r===0)r=(b.sev-a.sev)||((b.risk||0)-(a.risk||0));return sortDir==='asc'?r:-r})}
-function passColFilters(r){const q=colFilters.__q&&colFilters.__q.search;
- if(q){const s=q.toLowerCase();if(!(String(r.pn).toLowerCase().includes(s)||String(r.desc).toLowerCase().includes(s)||String(r.supplier).toLowerCase().includes(s)))return false}
+/* ============ מנוע חיפוש (v0.13) ============
+   נורמליזציה עברית · אסימונים מרובים · קידומות שדה · החרגה · ביטוי מדויק ·
+   דירוג רלוונטיות · הדגשת התאמות · חלונית תוצאות גלובלית.
+   הכול בזיכרון הדפדפן — שום שאילתה לא יוצאת החוצה. */
+const SFIN={'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ'};
+const SDROP="'\"`׳״‘’“”-–—_/\\.,()[]{}#*+";
+/* מחזיר מחרוזת מנורמלת + מיפוי לכל תו למיקומו במקור (לצורך הדגשה מדויקת) */
+function normMap(s,dropSpace){s=String(s==null?'':s);const out=[],map=[];
+ for(let i=0;i<s.length;i++){let ch=s[i];const cc=s.charCodeAt(i);
+  if(cc>=0x0591&&cc<=0x05c7)continue;                 /* ניקוד וטעמים */
+  if(cc===0x200e||cc===0x200f||(cc>=0x202a&&cc<=0x202e))continue;
+  if(/\s/.test(ch)){if(dropSpace)continue;
+    if(!out.length||out[out.length-1]===' ')continue;ch=' '}
+  else{if(SDROP.indexOf(ch)>=0)continue;
+    if(SFIN[ch])ch=SFIN[ch];
+    ch=ch.toLowerCase()}
+  out.push(ch);map.push(i)}
+ while(out.length&&out[out.length-1]===' '){out.pop();map.pop()}
+ return {n:out.join(''),map}}
+function norm(s,d){return normMap(s,d).n}
+/* קידומות שדה — עברית ואנגלית */
+const SFIELDS={};
+[[['מקט','מק"ט','מק״ט','pn','part','sku'],'pn'],
+ [['תיאור','שם','desc','name'],'desc'],
+ [['ספק','supplier','vendor'],'supplier'],
+ [['מותג','brand'],'brand'],
+ [['דגם','model'],'model'],
+ [['מעתד','planner'],'planner'],
+ [['שיווק','קבוצתשיווק','mkt'],'mkt1'],
+ [['קבוצה','קבוצתחומרים','group','grp'],'grp'],
+ [['מצב','סטטוס','cat','status'],'cat'],
+ [['גיל','age'],'age'],
+ [['abc'],'abc'],
+ [['mrp','סוגmrp'],'mrp']].forEach(([keys,f])=>keys.forEach(k=>{SFIELDS[norm(k,true)]=f}));
+/* אינדקס חיפוש לכל פריט. השדות הסטטיים נבנים פעם אחת; "מצב" מתרענן בכל סיווג */
+let SIDXV=0;
+function sidx(r){let f=r._sx;
+ if(!f){f={pn:norm(r.pn),pnc:norm(r.pn,true),desc:norm(r.desc),supplier:norm(r.supplier),
+   brand:norm(r.brand),model:norm(r.model),planner:norm(r.planner),mkt1:norm(r.mkt1),
+   grp:norm(r.grp),abc:norm(r.abc),mrp:norm(r.mrp),age:norm(ageLabel(r.ageTier)),_cv:-1};
+  r._sx=f}
+ if(f._cv!==SIDXV){f.cat=norm(r.cat||'');f._cv=SIDXV}
+ return f}
+function parseQ(raw){const s=CLEAN(raw);if(!s)return null;
+ const re=/(-?)(?:([^\s:"]+):)?(?:"([^"]*)"|(\S+))/g,toks=[];let m;
+ while((m=re.exec(s))){
+  const val=(m[3]!=null?m[3]:m[4])||'';if(!val)continue;
+  const v=norm(val);if(!v)continue;
+  const fld=m[2]?(SFIELDS[norm(m[2],true)]||null):null;
+  toks.push({neg:m[1]==='-',fld,v,vc:norm(val,true)})}
+ if(!toks.length)return null;
+ return {raw:s,toks,pos:toks.filter(t=>!t.neg)}}
+/* משקל לפי איפה נמצאה ההתאמה: שדה שלם > תחילת שדה > תחילת מילה > באמצע */
+function sHit(hay,v,w){if(!hay||!v)return 0;
+ const i=hay.indexOf(v);if(i<0)return 0;
+ if(hay.length===v.length)return w*4;
+ if(i===0)return w*2.2;
+ if(hay[i-1]===' ')return w*1.6;
+ return w}
+const SW={pn:100,desc:34,model:22,supplier:18,brand:16,cat:14,mkt1:10,grp:10,age:9,planner:8,abc:6,mrp:6};
+function scoreRow(r,Qy){const f=sidx(r);let total=0;
+ for(const t of Qy.toks){let best;
+  if(t.fld){best=t.fld==='pn'?Math.max(sHit(f.pnc,t.vc,SW.pn),sHit(f.pn,t.v,SW.pn))
+                            :sHit(f[t.fld],t.v,SW[t.fld]||10)}
+  else{best=sHit(f.pnc,t.vc,SW.pn);
+   for(const k in SW){if(k==='pn')continue;const h=sHit(f[k],t.v,SW[k]);if(h>best)best=h}}
+  if(t.neg){if(best)return 0;continue}
+  if(!best)return 0;
+  total+=best}
+ return total+1+(r.sev||0)*2+Math.min(8,(r.risk||0)/50000)}
+/* עוטף ב-<mark> את מה שהתאים, על הטקסט המקורי */
+function hlMark(str,Qy){const s=String(str==null?'':str);
+ if(!Qy||!Qy.pos.length)return esc(s);
+ const maps=[normMap(s,false),normMap(s,true)],ranges=[];
+ for(const t of Qy.pos){
+  for(let mi=0;mi<maps.length;mi++){const nm=maps[mi],v=mi?t.vc:t.v;
+   if(!v)continue;let i=nm.n.indexOf(v),g=0,hit=false;
+   while(i>=0&&g++<60){ranges.push([nm.map[i],nm.map[i+v.length-1]+1]);hit=true;i=nm.n.indexOf(v,i+v.length)}
+   if(hit)break}}
+ if(!ranges.length)return esc(s);
+ ranges.sort((a,b)=>a[0]-b[0]);
+ const mg=[];for(const rg of ranges){const l=mg[mg.length-1];
+  if(l&&rg[0]<=l[1])l[1]=Math.max(l[1],rg[1]);else mg.push([rg[0],rg[1]])}
+ let out='',p=0;
+ for(const [a,b] of mg){out+=esc(s.slice(p,a))+'<mark>'+esc(s.slice(a,b))+'</mark>';p=b}
+ return out+esc(s.slice(p))}
+/* חיפוש גלובלי בכל המק״טים שבסינון הצד — לא מוגבל לטאב הפעיל */
+function searchAll(Qy,limit){const base=(QF&&QF.all)?QF.all:[],hits=[];
+ for(const r of base){const sc=scoreRow(r,Qy);if(sc)hits.push([sc,r])}
+ hits.sort((a,b)=>b[0]-a[0]||(b[1].sev-a[1].sev)||((b[1].risk||0)-(a[1].risk||0)));
+ return {n:hits.length,rows:hits.slice(0,limit||8).map(x=>x[1])}}
+/* ---- חיפושים אחרונים ---- */
+const RQ_KEY='planner_recent_q_v1';
+let RECENTQ=[];try{RECENTQ=JSON.parse(localStorage.getItem(RQ_KEY)||'[]')||[]}catch(_){RECENTQ=[]}
+function pushRecent(q){q=CLEAN(q);if(q.length<2)return;
+ RECENTQ=[q,...RECENTQ.filter(x=>x!==q)].slice(0,6);
+ try{localStorage.setItem(RQ_KEY,JSON.stringify(RECENTQ))}catch(_){}}
+/* ---- חלונית התוצאות ---- */
+let SQ=null,SUGROWS=[],SUGI=-1,QSHOWN=0,QTOT=0;
+const qEl=id=>document.getElementById(id);
+function closeSug(){qEl('qsug').classList.remove('open');SUGI=-1}
+function posSug(){const b=qEl('qbox').getBoundingClientRect(),p=qEl('qsug');
+ const w=Math.max(280,Math.min(420,window.innerWidth-16));
+ let left=b.right-w;
+ if(left+w>window.innerWidth-8)left=window.innerWidth-8-w;
+ if(left<8)left=8;
+ p.style.width=w+'px';p.style.left=left+'px';p.style.top=(b.bottom+4)+'px';
+ p.style.maxHeight=Math.max(160,window.innerHeight-b.bottom-20)+'px'}
+const SUGFOOT='<div class="sgf">קידומות: <b>ספק:</b> <b>מותג:</b> <b>דגם:</b> <b>מצב:</b> <b>גיל:</b> · <b>-</b> להחרגה · <b>"…"</b> ביטוי מדויק<br><b>↑↓</b> ניווט · <b>↵</b> פתיחת כרטיס · <b>Esc</b> ניקוי · <b>/</b> מיקוד</div>';
+function renderSug(){const p=qEl('qsug');
+ if(!QF){closeSug();return}
+ SUGROWS=[];SUGI=-1;
+ if(!SQ){
+  if(!RECENTQ.length){closeSug();return}
+  p.innerHTML='<div class="sgh"><span>חיפושים אחרונים</span><span>Esc לסגירה</span></div>'
+   +RECENTQ.map((q,i)=>`<div class="rc" data-r="${i}">⟲ <b>${esc(q)}</b></div>`).join('')+SUGFOOT;
+  p.querySelectorAll('.rc').forEach(el=>el.onclick=()=>setQuery(RECENTQ[+el.dataset.r],true));
+  posSug();p.classList.add('open');return}
+ const res=searchAll(SQ,8);SUGROWS=res.rows;
+ const f=n=>n.toLocaleString('he-IL');
+ const jump=(res.n>QSHOWN&&cur!=='all')
+  ?`<div class="sgall" id="sgall"><span>▤ הצג את כל ${f(res.n)} התוצאות ברשימה</span><span>${QSHOWN?f(QSHOWN)+' בטאב הזה':'0 בטאב הזה'}</span></div>`:'';
+ if(!res.n){
+  p.innerHTML=`<div class="sgh"><span>תוצאות</span><span>0</span></div>`
+   +`<div class="sgn">לא נמצאו תוצאות עבור «${esc(SQ.raw)}»</div>`+SUGFOOT}
+ else{
+  p.innerHTML=`<div class="sgh"><span>הפריטים המתאימים ביותר</span><span>${f(res.n)} תוצאות</span></div>`+jump
+   +res.rows.map((r,i)=>`<div class="sgi s${r.sev}" data-i="${i}">
+     <div class="r1"><span class="p">${hlMark(r.pn,SQ)}</span><span class="m">${r.risk?moneyShort(r.risk):''}</span></div>
+     <div class="d">${hlMark(r.desc,SQ)}</div>
+     <div class="c"><i>${esc(r.cat||'—')}</i><i>${esc(ageLabel(r.ageTier))}</i><i>פנוי ${r.free}</i>${r.po>0?`<i>בדרך ${r.po}</i>`:''}<i>${hlMark(r.supplier,SQ)}</i></div>
+    </div>`).join('')
+   +(res.n>res.rows.length?`<div class="sgf">מוצגות ${res.rows.length} מתוך ${res.n.toLocaleString('he-IL')} — הרשימה בטבלה מסוננת לפי אותו חיפוש</div>`:SUGFOOT);
+  p.querySelectorAll('.sgi').forEach(el=>el.onclick=()=>openSug(SUGROWS[+el.dataset.i]));
+  const ja=qEl('sgall');if(ja)ja.onclick=showAllResults}
+ posSug();p.classList.add('open')}
+function markSug(){const p=qEl('qsug'),items=p.querySelectorAll('.sgi,.rc');
+ items.forEach((el,i)=>el.classList.toggle('on',i===SUGI));
+ if(SUGI>=0&&items[SUGI])items[SUGI].scrollIntoView({block:'nearest'})}
+function openSug(r){if(!r)return;
+ pushRecent(SQ?SQ.raw:'');closeSug();
+ detail(r);
+ let found=false;
+ document.querySelectorAll('#tbl tbody tr').forEach(tr=>{const o=tr.querySelector('.obj');
+  if(o&&CLEAN(o.textContent)===r.pn){tr.classList.add('sel');tr.scrollIntoView({block:'nearest'});found=true}
+  else tr.classList.remove('sel')});
+ if(!found)toast(r.pn+' — הכרטיס נפתח (הפריט אינו ברשימה המוצגת)')}
+/* שורת המצב מתחת לתיבה */
+function showAllResults(){cur='all';onlyTasks=false;
+ const t=qEl('onlyTasks');if(t)t.classList.remove('on');
+ render();renderSug()}
+function updateQStat(shown){QSHOWN=shown;const el=qEl('qstat');if(!el)return;
+ if(!SQ||!QF){el.className='qstat';el.innerHTML='';return}
+ const tot=searchAll(SQ,1).n,f=n=>n.toLocaleString('he-IL');QTOT=tot;
+ if(shown>0)el.className='qstat',el.innerHTML=`<b>${f(shown)}</b> ברשימה הזו · <b>${f(tot)}</b> בכל המק״טים`;
+ else if(tot>0)el.className='qstat none',el.innerHTML=`אין תוצאות ברשימה הזו · <b>${f(tot)}</b> נמצאו בטאבים אחרים`;
+ else el.className='qstat none',el.innerHTML=`לא נמצאו תוצאות עבור «${esc(SQ.raw)}»`}
+function applyQuery(){const inp=qEl('q'),v=CLEAN(inp.value);
+ qEl('qbox').classList.toggle('has',!!v);
+ SQ=parseQ(v);
+ if(SQ)colFilters.__q={search:v};else delete colFilters.__q;
+ if(QF)render();
+ renderSug()}
+function setQuery(v,focus){qEl('q').value=v==null?'':v;applyQuery();
+ if(focus)qEl('q').focus()}
+function clearQuery(){setQuery('');closeSug()}
+function focusQ(){const i=qEl('q');i.focus();i.select();renderSug()}
+function passColFilters(r){
+ if(SQ&&!scoreRow(r,SQ))return false;
  for(const c in colFilters){if(c==='__q')continue;const f=colFilters[c],val=COLACC[c](r);
    if(f.search){if(!String(val).toLowerCase().includes(f.search.toLowerCase()))return false}
    if(f.values&&f.values.size){if(!f.values.has(String(val)))return false}
@@ -1080,7 +1313,7 @@ function renderDecisions(rows){
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   if(track==='fix'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${esc(r.desc.slice(0,30))}</td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
     <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake rev">חסר</span>'}</td>
@@ -1089,7 +1322,7 @@ function renderDecisions(rows){
   acc+=r[k];
   const pct=c.total?Math.round(acc/c.total*100):0,above=i<c.n;
   body.push(`<tr data-i="${i}"${above?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>
-   <td><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${esc(r.desc.slice(0,30))}</td>
+   <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
    <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
    <td><span class="stake ${track}">${track==='rev'&&r.revUnpriced?'שווי לא ידוע':money(r[k])}</span></td><td><span class="cum">${pct}%</span></td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
@@ -1115,6 +1348,7 @@ function renderDecisions(rows){
  wireCopy()}
 function render(){DL_CACHE={};tiles();kpis();
  const rows=currentRows();
+ updateQStat(rows.length);
  document.getElementById('lt').textContent=DEF.find(d=>d[0]===cur)[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
  if(cur==='today'){renderTrack();renderDecisions(rows);renderMoves();return}
@@ -1128,8 +1362,8 @@ function render(){DL_CACHE={};tiles();kpis();
  document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   return `<tr data-i="${i}" class="sev${r.sev}">
-  <td class="pnc"><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td>
-  <td class="dsc">${esc(r.desc.slice(0,30))}</td>
+  <td class="pnc"><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td>
+  <td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}</td>
   <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
   <td>${sparkline(r)}</td>
   <td class="num miss">${missCell(r)}</td>
@@ -1429,12 +1663,35 @@ function explain(r){const A=r.A;
 document.getElementById('mclose').onclick=()=>document.getElementById('modalwrap').classList.remove('open');
 document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')document.getElementById('modalwrap').classList.remove('open')};
 document.getElementById('onlyTasks').onclick=function(){onlyTasks=!onlyTasks;this.classList.toggle('on',onlyTasks);render()};
-document.getElementById('fclr').onclick=()=>{FDEF.forEach(([k])=>SEL[k].clear());colFilters={};apply()};
+document.getElementById('fclr').onclick=()=>{FDEF.forEach(([k])=>SEL[k].clear());colFilters={};
+ SQ=null;qEl('q').value='';qEl('qbox').classList.remove('has');closeSug();apply()};
 document.getElementById('rd').onchange=e=>{const v=e.target.value;if(!v)return;const[y,mo]=v.split('-').map(Number);
  ANCHOR=new Date(y,mo-1,1);rebuildLabels();if(QF&&ALL_RAW){ALL=build(ALL_RAW.rows,ALL_RAW.hdr);apply()}};
-document.getElementById('q').oninput=e=>{const v=CLEAN(e.target.value);if(!QF)return;
- if(!v){delete colFilters.__q;render();return}
- colFilters.__q={search:v};render()};
+/* ---- חיווט תיבת החיפוש ---- */
+let QT=null;
+qEl('q').oninput=()=>{clearTimeout(QT);QT=setTimeout(applyQuery,140)};
+qEl('q').onfocus=()=>renderSug();
+qEl('qclr').onclick=e=>{e.preventDefault();e.stopPropagation();clearQuery();qEl('q').focus()};
+qEl('q').onkeydown=e=>{
+ const open=qEl('qsug').classList.contains('open');
+ const n=qEl('qsug').querySelectorAll('.sgi,.rc').length;
+ if(e.key==='Escape'){e.preventDefault();
+  if(open&&CLEAN(qEl('q').value)){closeSug();return}
+  clearQuery();qEl('q').blur();return}
+ if((e.key==='ArrowDown'||e.key==='ArrowUp')&&open&&n){e.preventDefault();
+  SUGI=e.key==='ArrowDown'?(SUGI+1)%n:(SUGI-1+n)%n;markSug();return}
+ if(e.key==='Enter'){e.preventDefault();clearTimeout(QT);
+  if(!SQ&&RECENTQ.length&&SUGI>=0){setQuery(RECENTQ[SUGI],true);return}
+  if(SUGROWS.length){openSug(SUGROWS[SUGI>=0?SUGI:0]);return}
+  pushRecent(qEl('q').value);closeSug()}};
+document.addEventListener('mousedown',e=>{const t=e.target;
+ if(t&&t.closest&&(t.closest('#qwrap')||t.closest('#qsug')))return;closeSug()});
+window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug()});
+document.addEventListener('keydown',e=>{const t=e.target,tg=t&&t.tagName;
+ const typing=tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||(t&&t.isContentEditable);
+ if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();focusQ();return}
+ if(e.key==='/'&&!typing){e.preventDefault();focusQ();return}
+ if(e.key==='Escape'&&!typing)closeSug()});
 document.getElementById('wmBtn').onclick=e=>{e.stopPropagation();document.getElementById('wMenu').classList.toggle('open')};
 document.getElementById('saveView').onclick=()=>saveLayout(true);
 document.getElementById('resetView').onclick=()=>resetLayout();
