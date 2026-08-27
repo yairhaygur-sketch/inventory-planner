@@ -38,6 +38,14 @@ This document is the single source of truth for ZMRP field mapping.
 | DC | מלאי פנוי | Available Stock |
 | CH | הז. רכש | Open Purchase Orders |
 
+# Questions
+
+The following mappings require business validation before implementation.
+
+| Column | Field | Status |
+|----------|----------|----------|
+| ? | TBD | Pending |
+
 # Planning Parameters
 
 | Column | Field | Purpose |
