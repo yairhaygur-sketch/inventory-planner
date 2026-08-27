@@ -44,7 +44,7 @@ The following mappings require business validation before implementation.
 
 | Column | Field | Status |
 |----------|----------|----------|
-| ? | TBD | Pending |
+| BI | רמת שרות | Verify against current ZMRP export |
 
 # Planning Parameters
 
