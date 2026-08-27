@@ -38,3 +38,12 @@ This document is the single source of truth for ZMRP field mapping.
 | DC | מלאי פנוי | Available Stock |
 | CH | הז. רכש | Open Purchase Orders |
 
+# Planning Parameters
+
+| Column | Field | Purpose |
+|----------|----------|----------|
+| BI | רמת שרות | Service Level |
+| BJ | מלאי בטחון | Current Safety Stock |
+| BK | נק.הז.מחדש | Current Reorder Point |
+| BL | אספ.מתוכנ. | Lead Time |
+| BN | מל.בט.מינ. | Minimum Safety Stock |
