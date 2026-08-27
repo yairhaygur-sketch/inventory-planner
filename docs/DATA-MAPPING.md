@@ -55,3 +55,11 @@ The following mappings require business validation before implementation.
 | BK | נק.הז.מחדש | Current Reorder Point |
 | BL | אספ.מתוכנ. | Lead Time |
 | BN | מל.בט.מינ. | Minimum Safety Stock |
+
+# Demand History
+
+| Column | Field | Purpose |
+|----------|----------|----------|
+| CL | צר.השנה | Current Year Demand |
+| CM | צר.שנה-1 | Previous Year Demand |
+| CN | צר.שנה-2 | Two Years Ago Demand |
