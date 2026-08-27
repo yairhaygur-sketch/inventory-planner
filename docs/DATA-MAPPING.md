@@ -63,3 +63,9 @@ The following mappings require business validation before implementation.
 | CL | צר.השנה | Current Year Demand |
 | CM | צר.שנה-1 | Previous Year Demand |
 | CN | צר.שנה-2 | Two Years Ago Demand |
+
+# Monthly Consumption Pattern
+
+| Columns | Purpose |
+|----------|----------|
+| CO-CZ | Last 12 Months Consumption History |
