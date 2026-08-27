@@ -4,6 +4,18 @@ Version: 1.0
 Status: Draft
 Owner: Yair Gur
 
+# Purpose
+
+This document defines how Inventory Planner maps ZMRP fields into business logic.
+
+Relationship to other documents:
+
+- BUSINESS-DECISIONS.md explains WHY a field is used.
+- DATA-MAPPING.md explains WHERE a field comes from.
+- DECISION-RULES.md explains HOW the field is used.
+
+This document is the single source of truth for ZMRP field mapping.
+
 ## Financial Fields
 
 | Column | Field | Purpose |
