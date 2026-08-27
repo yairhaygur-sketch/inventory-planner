@@ -75,3 +75,23 @@ The following mappings require business validation before implementation.
 | Column | Field | Purpose |
 |----------|----------|----------|
 | DA | כמות בהז.פ | Open Customer Orders |
+
+# Document Status
+
+## Completed
+
+- Financial Fields
+- Inventory Fields
+- Planning Parameters
+- Demand History
+- Monthly Consumption Pattern
+- Customer Demand
+
+## Pending Validation
+
+- Service Level (BI)
+- Additional ZMRP fields not yet documented
+
+## Next Step
+
+Compare all documented fields against the current ZMRP export and verify field names and business meaning.
