@@ -69,3 +69,9 @@ The following mappings require business validation before implementation.
 | Columns | Purpose |
 |----------|----------|
 | CO-CZ | Last 12 Months Consumption History |
+
+# Customer Demand
+
+| Column | Field | Purpose |
+|----------|----------|----------|
+| DA | כמות בהז.פ | Open Customer Orders |
