@@ -55,6 +55,32 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מלאי מת/איטי עדיין מסווגים',prot.dead>0||prot.slow>0,`מת ${prot.dead} · איטי ${prot.slow}`);
  ok('הון כלוא מחושב לפי BZ',prot.exc>0&&prot.capUsesPrice,prot.exc+' פריטים');
 
+ // ── מיפוי מאומת מול המסמך העסקי (ZMRP_COLUMNS) ──
+ const map=await p.evaluate(()=>{
+  const smp=ALL.slice(0,600);
+  return {
+   noAccCol:   !/n\.indexOf\('אביזרים'\)/.test(document.documentElement.innerHTML),
+   accFromU:   smp.some(r=>r.isAcc),
+   transfer:   smp.some(r=>r.transfer>0),
+   availSum:   smp.every(r=>r.avail===Math.max(0,r.free)+Math.max(0,r.po)+(r.transfer||0)),
+   matType:    [...new Set(smp.map(r=>r.matType))].sort().join(','),
+   diag:       DIAG.warn.join(' | '),
+   zTable:     [90,93,95,96,97,98,99].map(v=>{
+     const it=smp.find(r=>r.srv===v&&!r.srvMissing); return it?v+'→'+it.z:v+'→—'}).join(' '),
+   zMono:      (()=>{const seen={};smp.forEach(r=>{if(!r.srvMissing)seen[r.srv]=r.z});
+     const ks=Object.keys(seen).map(Number).sort((a,b)=>a-b);
+     return ks.every((k,i)=>i===0||seen[k]>=seen[ks[i-1]])})()}});
+ ok('אביזר מזוהה מהיררכייה3 (U)',map.accFromU);
+ ok('החיפוש המת אחרי עמודת "אביזרים" הוסר',map.noAccCol);
+ ok('מלאי בהעברה (CK) נקרא',map.transfer);
+ ok('זמין = פנוי + רכש + בהעברה',map.availSum);
+ ok('סוג חומר ממופה ליבוא/מקומי',/יבוא/.test(map.matType)&&/רכש מקומי/.test(map.matType),map.matType);
+ ok('אין אזהרת DIAG על עמודה חסרה',!/לא נמצאה/.test(map.diag),map.diag.slice(0,70)||'(נקי)');
+ ok('Z מונוטוני ברמות השרות שבקובץ',map.zMono,map.zTable);
+ ok('Z ברמת שרות 98 גבוה מ-95',(()=>{const m={};map.zTable.split(' ').forEach(x=>{const[a,b]=x.split('→');m[a]=+b});
+   return !m['98']||!m['95']||m['98']>m['95']})(),map.zTable);
+
+
  // מעבר בין המסלולים
  for(const t of ['short','cap','fix']){
   await p.evaluate(k=>{track=k;render()},t);await p.waitForTimeout(350);

@@ -1,7 +1,7 @@
 # DATA-MAPPING.md
 
 Version: 1.0
-Status: Draft
+Status: Verified against the production ZMRP export (114 columns, 2026-08-29)
 Owner: Yair Gur
 
 # Purpose
@@ -38,13 +38,27 @@ This document is the single source of truth for ZMRP field mapping.
 | DC | מלאי פנוי | Available Stock |
 | CH | הז. רכש | Open Purchase Orders |
 
-# Questions
+# Verification
 
-The following mappings require business validation before implementation.
+All mappings below were checked character-by-character against the production
+ZMRP export column list. 30 of 34 code lookups match the export header
+directly; 2 resolve through a documented alternate name; 2 refer to columns
+the export does not contain.
 
 | Column | Field | Status |
 |----------|----------|----------|
-| BI | רמת שרות | Verify against current ZMRP export |
+| BI | רמת שרות | **Verified.** Present in the export. |
+| U | היררכייה3 | **Verified.** Accessories are identified by this description; the export has no separate "אביזרים" column. |
+| CK | בהעברה | **Verified.** Now counted toward availability alongside open purchase orders. |
+| I | סוג חומר | **Verified.** Z001 = import, Z004 = local. Filter and display only — no effect on any calculation. |
+
+## Columns the export does not contain
+
+| Field | Consequence |
+|----------|----------|
+| הזמנות לקוח חסומות | Blocked customer orders are not excluded from coverage. |
+| תיאור קבוצת חומרים | Resolved through `תיא.קבוצ.חומרים` (L). |
+| ETA · MOQ | Not computed. |
 
 # Planning Parameters
 

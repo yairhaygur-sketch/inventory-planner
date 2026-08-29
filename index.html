@@ -673,7 +673,34 @@ const moneyShort=n=>{n=Math.round(n||0);
  if(n>=1e6)return '₪'+(n/1e6).toFixed(n>=1e7?0:1)+'M';
  if(n>=1e4)return '₪'+Math.round(n/1e3)+'K';
  return '₪'+n.toLocaleString('he-IL')};
-const Z={50:0,80:.84,90:1.28,95:1.65,99:2.33};
+/* Z לפי רמת שרות — הופכי ההתפלגות הנורמלית (Acklam).
+   הטבלה הקודמת החזיקה חמישה ערכים בלבד והחזירה 1.28 לכל השאר, ולכן רמת
+   שרות 98% ייצרה פחות מלאי ביטחון מ-95%. התוצאה מעוגלת לשתי ספרות ולכן
+   זהה בדיוק לטבלה הישנה ב-50/80/90/95/99, ומונוטונית בכל ערך אחר. */
+function normInv(p){
+ const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,
+          1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+ const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,
+          6.680131188771972e+01,-1.328068155288572e+01];
+ const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,
+          -2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+ const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+ const pl=0.02425;
+ let q,r;
+ if(p<pl){q=Math.sqrt(-2*Math.log(p));
+  return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+ if(p<=1-pl){q=p-0.5;r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+ q=Math.sqrt(-2*Math.log(1-p));
+ return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+/* חמשת הערכים ההיסטוריים מוצמדים כפי שהיו, כדי שאף פריט שרמת השרות שלו
+   מוגדרת בטבלה הישנה לא ישנה התנהגות. השאר מחושב. */
+const Z_LEGACY={50:0,80:.84,90:1.28,95:1.65,99:2.33};
+function zFor(srv){const v=+srv||0;
+ if(Z_LEGACY[v]!==undefined)return Z_LEGACY[v];
+ const p=v/100;
+ if(!(p>0.5))return 0;                    /* רמת שרות עד 50% — ללא מרכיב ביטחון */
+ return Math.round(normInv(Math.min(p,0.9999))*100)/100}
 /* מדיניות גיל מלאי: מלאי מת = 3 שנים ללא צריכה מתאריך הכניסה האחרון */
 const DEAD_DAYS=1095, SLOW_MONTHS=24;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
@@ -707,12 +734,15 @@ function curMonthLabel(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getM
 const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור חומר2','תיאור חומר'],status:['סטטוס חומר'],statusTxt:['תיאור'],
  mrp:['סוג MRP'],abc:['ABC'],srv:['רמת שרות'],ss:['מלאי בטחון'],rop:['נק.הז.מחדש'],lt:['אספ.מתוכנ.'],ltAdd:['זמ.עב.קבלת'],
  ssMin:['מל.בט.מינ.'],price:['מחיר FOB','מח.ממצ.ניד'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
- po:['הז. רכש'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
+ po:['הז. רכש'],transfer:['בהעברה'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],
+ matType:['סוג חומר'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
  blockedCust:['הזמנות לקוח חסומות','כמות בהז.פ חסומה','כמות הזמנה חסומה','חסום למשלוח'],
  grpTxt:['תיאור קבוצת חומרים','תיא.קבוצ.חומרים','תיאור קבוצת חומר 2'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"],
  y0:['צר.השנה'],y1:['צר.שנה-1'],y2:['צר.שנה-2']};
 const MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
+/* סוג חומר (I) — תצוגה וסינון בלבד. אינו משפיע על אף חישוב. */
+const MATTYPE={'Z001':'יבוא','Z004':'רכש מקומי'};
 const CRITICAL={pn:'מק״ט',free:'מלאי פנוי',lt:'זמן אספקה',cust:'הזמנות לקוח'};
 let DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
 function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){const i=n.indexOf(x);if(i>=0)return i}return -1};
@@ -721,7 +751,6 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   m.curMonth=n.indexOf('צר.החודש');
   const SEC=nm=>{const a=n.indexOf(nm);if(a<0)return -1;const b=n.indexOf(nm,a+1);return b>=0?b:a+1};
   m.model=SEC('היררכייה2');m.hierBrand=SEC('היררכייה1');m.hier3=SEC('היררכייה3');
-  m.acc=n.indexOf('אביזרים');
   const fSales=F(["תאר' מכירה",'מכירות','מכירות אחרונות','תאריך מכירה']);m.sales=fSales>=0?fSales:colToIdx('CF');
   const fEnt=F(["תאר' כניסה",'כניסות','כניסות אחרונות','כניסה למלאי','תאריך כניסה']);m.entries=fEnt>=0?fEnt:colToIdx('CG');
   DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
@@ -734,6 +763,7 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   if(m.price>=0&&n.indexOf('מחיר FOB')<0)
     DIAG.warn.push('עמודת "מחיר FOB" (BZ) לא נמצאה — החישוב הכספי נופל ל-"מח.ממצ.ניד". BZ הוא מקור האמת המאושר.');
   if(m.currency<0)DIAG.warn.push('עמודת "מטבע FOB" (BE) לא נמצאה — המטבע לא יוצג.');
+  if(m.transfer<0)DIAG.warn.push('עמודת "בהעברה" (CK) לא נמצאה — מלאי בהעברה לא ייכלל בכיסוי.');
   const annualFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
   if(annualFound<3)DIAG.warn.push(`נמצאו ${annualFound}/3 עמודות צריכה שנתית — מדיניות 3 השנים מושבתת והסיווג נופל לחלון 11 חודשים.`);
   const monthsFound=m.months.filter(i=>i>=0).length;
@@ -799,16 +829,21 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rate=d12<=3?0:clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
     const rawRate=d12<=3?0:d6/6;
     const cov=rate>0?Math.max(0,free)/rate:null;
-    const avail=Math.max(0,free)+Math.max(0,po);
+    /* מלאי בהעברה כבר בבעלותנו ובדרך למחסן — קרוב יותר לזמין מהזמנת רכש פתוחה */
+    const transfer=m.transfer>=0?Math.max(0,NUM(r[m.transfer])):0;
+    const avail=Math.max(0,free)+Math.max(0,po)+transfer;
     const covA=rate>0?avail/rate:null;
-    const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),accRaw=m.acc>=0?CLEAN(r[m.acc]):'';
-    const isAcc=/אביזר/.test(mkt1)||/אביזר/.test(mkt2)||/אביזר/.test(accRaw);
+    const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),hier3=TXT(r,m.hier3);
+    /* אביזר מזוהה מתיאור היררכייה3 (U); הדוח אינו כולל עמודת "אביזרים" נפרדת */
+    const isAcc=/אביזר/.test(hier3)||/אביזר/.test(mkt1)||/אביזר/.test(mkt2);
     const srvRaw=m.srv>=0?NUM(r[m.srv]):0,srvMissing=m.srv<0||srvRaw<=0;
     const srv=srvMissing?50:srvRaw,price=NUM(r[m.price]);
     const priceMissing=m.price<0||price<=0;
     const currency=m.currency>=0?CLEAN(r[m.currency]):'';
+    const mtRaw=m.matType>=0?CLEAN(r[m.matType]):'';
+    const matType=MATTYPE[mtRaw]||(mtRaw||'ללא');
     const mrp=CLEAN(r[m.mrp]);
-    const z=srvMissing?0:(Z[srv]!==undefined?Z[srv]:1.28),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
+    const z=srvMissing?0:zFor(srv),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
     const lumpFloor=(!isPDItem&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
     const ssStat=(rate>0&&!isPDItem)?Math.ceil(z*sdLT):0;
@@ -829,9 +864,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
       abc:CLEAN(r[m.abc]),brand:CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך',planner:CLEAN(r[m.planner])||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
-      mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:TXT(r,m.hier3)||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
+      mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,priceMissing,srvMissing,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,priceMissing,srvMissing,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -1057,7 +1092,7 @@ let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==
 function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
-const FDEF=[['brand','מותג'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
+const FDEF=[['brand','מותג'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
 let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
@@ -1227,7 +1262,7 @@ function renderDecisions(rows){
    <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
    <td>${c4}</td><td>${c5}</td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
-   <td${r.po>0?` title="כולל ${r.po} יח׳ בדרך"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
+   <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
   if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${money(c.cut)} מתוך ${money(c.total)} — כל ${rows.length-c.n} הנותרים יחד שווים ${money(c.total-c.cut)}</td></tr>`)});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||'<tr><td colspan="8" class="empty">אין החלטות במסלול הזה</td></tr>';
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
@@ -1475,7 +1510,7 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
   <span class="tag">${esc(r.supplier.slice(0,20))}</span><span class="tag p">${A.pattern}</span>
   <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>
   ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
-  <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
+  <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
  ${decisionBlock(r)}
  <div class="opad">
   <div class="col">
@@ -1485,6 +1520,7 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
    <div class="sec"><h3>נתוני מקור</h3><div class="kv">
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
+    <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
     <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
@@ -1585,7 +1621,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
- ['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
