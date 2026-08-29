@@ -35,12 +35,19 @@ for(let i=0;i<900;i++){
   months=MON.map(()=>I(3,25)); y0=I(80,300);y1=I(80,300);y2=I(70,280);
   free=I(30,200);cust=I(0,10);po=I(0,20);stock=free+I(0,40);saleAgo=I(1,20);entAgo=I(10,90);
  }
+ /* לפי הדוח האמיתי (7,566 מק״טים): 23% הם PD — נרכשים לפי דרישה ואינם
+    מנוהלים במלאי שוטף — ומצומדים לרמת שרות 50. השאר על 80 או 95.
+    רמות השרות בדוח הן 50/80/95 בלבד. סוג MRP שאינו PD אינו נבדק בשום
+    מקום בקוד מלבד isPD(), ולכן הערך המדויק אינו משנה. */
+ const isPD=Math.random()<.23;
+ const mrpType=isPD?'PD':'ND';
+ const srvLevel=isPD?50:(Math.random()<.5?80:95);
  const price=Math.random()<.19?'':+R(20,3200).toFixed(2);
  const sell='USD';   /* מטבע FOB — שדה עצמאי, קיים גם כשאין מחיר */
  const br=BR[I(0,BR.length-1)],md=MODEL[I(0,MODEL.length-1)],gp=GRP[I(0,GRP.length-1)];
  const pn=`${I(10,99)}${String.fromCharCode(65+I(0,25))}${I(100000,999999)}`;
  rows.push([pn,`חלק ${gp} ${md} דגם ${i}`,`Part ${gp} ${i}`,SUP[I(0,SUP.length-1)],
-  ['01','04','14','01','01'][I(0,4)],'פעיל',['VB','VB','PD','V1'][I(0,3)],AB[I(0,2)],[90,93,95,96,97,98,99][I(0,6)],I(0,20),I(0,40),
+  ['01','04','14','01','01'][I(0,4)],'פעיל',mrpType,AB[I(0,2)],srvLevel,I(0,20),I(0,40),
   I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),I(0,5),cust,['Z001','Z004'][I(0,1)],
   gp,br,'מתכנן א׳','12 חודשים',md,gp,
   '100',br,'200',md,'300',Math.random()<.15?'אביזרים':gp,

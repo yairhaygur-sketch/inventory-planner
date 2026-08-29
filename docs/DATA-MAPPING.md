@@ -51,6 +51,14 @@ the export does not contain.
 | U | היררכייה3 | **Verified.** Accessories are identified by this description; the export has no separate "אביזרים" column. |
 | CK | בהעברה | **Verified.** Now counted toward availability alongside open purchase orders. |
 | I | סוג חומר | **Verified.** Z001 = import, Z004 = local. Filter and display only — no effect on any calculation. |
+| AG | סוג MRP | **Verified.** `PD` marks items bought to order and not held in running stock — 1,749 of 7,566 (23%). `isPD()` suppresses their safety-stock and reorder-point recommendations. |
+
+## Observed value ranges (production export, 7,566 items)
+
+| Column | Values | Consequence |
+|----------|----------|----------|
+| BI רמת שרות | 50 · 80 · 95 only — no blanks | All three are pinned legacy Z values, so the `zFor()` fix changes nothing on today's data. It is insurance: a service level set to 97 or 98 in SAP would previously have received 90%-level protection. |
+| AG סוג MRP | `PD` on every item at service level 50 | The two markers agree; on-demand items are consistently flagged. |
 
 ## Columns the export does not contain
 

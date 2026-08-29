@@ -51,6 +51,21 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   return {withSS,withROP,cov,dead,slow,exc,
     capUsesPrice:smp.filter(r=>r.expCap>0).every(r=>r.price>0)}});
  ok('SS/ROP עדיין מחושבים',prot.withSS>0&&prot.withROP>0,`SS ${prot.withSS} · ROP ${prot.withROP}`);
+
+ // ── פריטי PD: נרכשים לפי דרישה, ולכן אפס המלצות מלאי ──
+ const pd=await p.evaluate(()=>{
+  const smp=ALL.slice(0,900);
+  const pds=smp.filter(r=>r.isPDItem), rest=smp.filter(r=>!r.isPDItem);
+  return {n:pds.length,tot:smp.length,
+   noSS:  pds.every(r=>r.sugSS===0),
+   noROP: pds.every(r=>r.sugROP===0),
+   srv50: pds.every(r=>r.srv===50),
+   restHasSS: rest.some(r=>r.sugSS>0)}});
+ ok('פריטי PD מזוהים',pd.n>0,`${pd.n}/${pd.tot} (${Math.round(pd.n/pd.tot*100)}%)`);
+ ok('פריט PD אינו מקבל המלצת מלאי ביטחון',pd.noSS);
+ ok('פריט PD אינו מקבל המלצת נקודת הזמנה',pd.noROP);
+ ok('PD מצומד לרמת שרות 50',pd.srv50);
+ ok('פריטים שאינם PD כן מקבלים המלצות',pd.restHasSS);
  ok('כיסוי עדיין מחושב',prot.cov>0,prot.cov+' פריטים');
  ok('מלאי מת/איטי עדיין מסווגים',prot.dead>0||prot.slow>0,`מת ${prot.dead} · איטי ${prot.slow}`);
  ok('הון כלוא מחושב לפי BZ',prot.exc>0&&prot.capUsesPrice,prot.exc+' פריטים');
@@ -64,21 +79,27 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    transfer:   smp.some(r=>r.transfer>0),
    availSum:   smp.every(r=>r.avail===Math.max(0,r.free)+Math.max(0,r.po)+(r.transfer||0)),
    matType:    [...new Set(smp.map(r=>r.matType))].sort().join(','),
-   diag:       DIAG.warn.join(' | '),
-   zTable:     [90,93,95,96,97,98,99].map(v=>{
-     const it=smp.find(r=>r.srv===v&&!r.srvMissing); return it?v+'→'+it.z:v+'→—'}).join(' '),
-   zMono:      (()=>{const seen={};smp.forEach(r=>{if(!r.srvMissing)seen[r.srv]=r.z});
-     const ks=Object.keys(seen).map(Number).sort((a,b)=>a-b);
-     return ks.every((k,i)=>i===0||seen[k]>=seen[ks[i-1]])})()}});
+   diag:       DIAG.warn.join(' | ')}});
  ok('אביזר מזוהה מהיררכייה3 (U)',map.accFromU);
  ok('החיפוש המת אחרי עמודת "אביזרים" הוסר',map.noAccCol);
  ok('מלאי בהעברה (CK) נקרא',map.transfer);
  ok('זמין = פנוי + רכש + בהעברה',map.availSum);
  ok('סוג חומר ממופה ליבוא/מקומי',/יבוא/.test(map.matType)&&/רכש מקומי/.test(map.matType),map.matType);
  ok('אין אזהרת DIAG על עמודה חסרה',!/לא נמצאה/.test(map.diag),map.diag.slice(0,70)||'(נקי)');
- ok('Z מונוטוני ברמות השרות שבקובץ',map.zMono,map.zTable);
- ok('Z ברמת שרות 98 גבוה מ-95',(()=>{const m={};map.zTable.split(' ').forEach(x=>{const[a,b]=x.split('→');m[a]=+b});
-   return !m['98']||!m['95']||m['98']>m['95']})(),map.zTable);
+ // ── Z: נבדק ישירות על הפונקציה, לא דרך הדוח. הדוח מכיל 50/80/95 בלבד,
+ //    ובדיקה שנשענת עליו הייתה עוברת בריק על כל שאר הטווח. ──
+ const zt=await p.evaluate(()=>{
+  const legacy={50:0,80:0.84,90:1.28,95:1.65,99:2.33};
+  const drift=Object.keys(legacy).filter(k=>zFor(+k)!==legacy[k]);
+  const grid=[];for(let v=50;v<=99.9;v=Math.round((v+0.1)*10)/10)grid.push([v,zFor(v)]);
+  const nonMono=grid.filter(([v,z],i)=>i>0&&z<grid[i-1][1]-1e-9).map(([v])=>v);
+  const spot=[93,96,97,98].map(v=>v+'→'+zFor(v)).join(' ');
+  return {drift,nonMono,spot,z95:zFor(95),z98:zFor(98),z50:zFor(50)}});
+ ok('Z זהה לטבלה ההיסטורית ב-50/80/90/95/99',zt.drift.length===0,zt.drift.join(',')||'אפס סטיות');
+ ok('Z מונוטוני על כל הטווח 50→99.9',zt.nonMono.length===0,zt.nonMono.slice(0,3).join(',')||'500 נקודות');
+ ok('Z ב-98 גבוה מ-95 (הבאג המקורי)',zt.z98>zt.z95,`95→${zt.z95} · 98→${zt.z98}`);
+ ok('רמות ביניים מקבלות ערך אמיתי ולא 1.28',zt.spot.split(' ').every(x=>+x.split('→')[1]!==1.28),zt.spot);
+ ok('רמת שרות 50 נותנת Z=0',zt.z50===0);
 
 
  // מעבר בין המסלולים
