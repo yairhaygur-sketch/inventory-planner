@@ -9,7 +9,7 @@ const D=n=>{const d=new Date(Date.now()-n*864e5);return `${String(d.getDate()).p
 // months[0] = חודש-1 (הקרוב ביותר)
 const mk=(pn,o)=>{const m=o.months;const y=m.reduce((a,b)=>a+b,0);
  return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק','01','פעיל',o.mrp||'ND','A',o.srv||95,
-  o.ss||0,o.rop||0,o.lt||30,2,0,100,'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
+  o.ss||0,o.rop||0,o.lt||30,2,0,100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
   'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
   o.y0!=null?o.y0:y, o.y1!=null?o.y1:y, o.y2!=null?o.y2:y, 0, ...m, D(o.saleAgo||10), D(o.entAgo||60)]};
 
@@ -29,6 +29,10 @@ const rows=[
  // COVERED · מלאי גדול, בלי הזמנות לקוח — כמו הדוח האמיתי שבו אין חוסרים
  mk('COVERED-1',{months:[8,8,8,8,8,8,8,8,8,8,8],free:900,cust:0,rop:5,ss:2}),
  mk('COVERED-2',{months:[6,6,6,6,6,6,6,6,6,6,6],free:800,cust:0,rop:5,ss:2}),
+ // מטבעות — עודף מלאי זהה בשלושה מטבעות שונים
+ mk('CUR-USD',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD'}),
+ mk('CUR-EUR',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'EUR'}),
+ mk('CUR-ILS',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'ILS'}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -46,7 +50,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,rop:r.rop,
      act:(r.act||[])[0]||'',trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),low:g('LOW-DEMAND'),
-          dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY')}});
+          dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
+          cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
  // A · חודש אזילה אינו יוצר מלאי ביטחון יש מאין
  ok('ביקוש שטוח → סטיית תקן 0',o.clean.sd===0&&o.clean.sugSS===0);
@@ -67,6 +72,18 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('ומוצעת לו פעולת איפוס',/איפוס/.test(o.low.act),o.low.act);
  // D · כיוון ההמלצה נגזר מהמספרים
  ok('ROP מוצע גבוה → "העלאת"',/העלאת/.test(o.dec.act),o.dec.act);
+ // מטבע — BZ נקוב במטבע של BE, ואסור להציג אותו כשקלים או לחבר מטבעות
+ const cur=await p.evaluate(()=>{
+  const cap=ALL.filter(r=>r.expCap>0);
+  const one=ALL.find(r=>r.pn==='CUR-USD');
+  return {itemCell:(()=>{const i=ALL.indexOf(one);return i<0?'':(one.currency||'')})(),
+   mix:moneyMix(cap,r=>r.expCap),
+   usdTxt:money(one.expCap,one.currency),
+   ilsTxt:money(one.expCap,'ILS'),
+   symbols:[...new Set(cap.map(r=>curSym(r.currency)))].sort().join('')}});
+ ok('פריט דולרי מוצג ב-$ ולא ב-₪',/^\$/.test(cur.usdTxt),`${cur.usdTxt} (היה ${cur.ilsTxt})`);
+ ok('סכום מפוצל לפי מטבע ולא מחובר',cur.mix.split(' · ').length>1,cur.mix);
+ ok('כל המטבעות בקטלוג מיוצגים',cur.symbols.length>1,cur.symbols);
  // המסך הראשי לא נשאר ריק כשאין חוסרים
  const scr=await p.evaluate(()=>({track,shortN:decisionList('short').length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
