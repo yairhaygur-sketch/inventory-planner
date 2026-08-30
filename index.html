@@ -565,6 +565,30 @@ td.pnc{padding:5px 14px;font-size:13px}
 .dsec>*:not(summary){margin:0 10px 9px}
 .dsec canvas{width:100%}
 
+/* סימון קבוצתי */
+.bulkwrap{position:relative;margin-inline-start:auto}
+.bulkbtn{font-family:inherit;font-size:11.5px;font-weight:700;background:var(--panel2);
+ border:1px solid var(--line);color:var(--soft);padding:4px 10px;border-radius:3px;cursor:pointer;white-space:nowrap}
+.bulkbtn:hover{border-color:var(--acc);color:var(--acc)}
+.bulkmenu{display:none;position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:120;
+ min-width:270px;background:var(--panel);border:1px solid var(--line);border-radius:4px;
+ box-shadow:0 8px 26px rgba(0,0,0,.28);padding:6px}
+.bulkmenu.open{display:block}
+.bulkmenu .bh{font-size:11px;color:var(--dim);padding:7px 9px 8px;border-bottom:1px solid var(--line2);
+ margin-bottom:5px;line-height:1.5}
+.bulkmenu .bh b{color:var(--ink)}
+.bulkmenu button{display:block;width:100%;text-align:start;font-family:inherit;font-size:12.5px;
+ background:transparent;border:0;color:var(--ink);padding:7px 9px;border-radius:3px;cursor:pointer}
+.bulkmenu button:hover{background:var(--panel2);color:var(--acc)}
+.bulkmenu button.clr{border-top:1px solid var(--line2);margin-top:4px;padding-top:8px;color:var(--dim)}
+.bulkmenu button.clr:hover{color:var(--red)}
+.toast.hasact{padding-inline-end:10px}
+.toast .tundo{font-family:inherit;font-size:12px;font-weight:700;background:transparent;
+ border:1px solid currentColor;color:inherit;padding:2px 10px;border-radius:3px;cursor:pointer;
+ margin-inline-start:10px;pointer-events:auto}
+.toast .tundo:hover{background:var(--panel);color:var(--ink)}
+.toast.show{pointer-events:auto}
+
 /* מקרא קיצורי המקלדת */
 .kbd{display:flex;gap:5px;align-items:center;font-size:10px;color:var(--dim);white-space:nowrap}
 .kbd b{font-family:var(--num);font-weight:700;border:1px solid var(--line);border-radius:4px;
@@ -636,7 +660,8 @@ td.pnc{padding:5px 14px;font-size:13px}
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
-          <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span></div>
+          <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
+          <span class="bulkwrap" id="bulk"></span></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -1073,6 +1098,24 @@ try{MARKS=JSON.parse(localStorage.getItem(MK_KEY)||'{}')}catch(_){MARKS={}}
 function saveMarks(){try{localStorage.setItem(MK_KEY,JSON.stringify(MARKS))}catch(_){}}
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
+/* סימון קבוצתי — פעולה על הרשימה המסוננת כולה.
+   פריט PD שנרכש לקמפיין אינו ממצא, וסימון פריט-אחר-פריט על מאות
+   פריטים אינו מעשי. כל פעולה שומרת מצב קודם וניתנת לביטול. */
+let BULK_UNDO=null;
+function setMarks(items,t,note){
+ if(!items||!items.length)return 0;
+ const prev={};
+ for(const it of items){const k=markKey(it);
+  prev[k]=MARKS[k]?{...MARKS[k]}:null;
+  if(!t)delete MARKS[k];else MARKS[k]={t,note:note||'',ts:Date.now()}}
+ BULK_UNDO={prev,n:items.length};
+ saveMarks();apply();return items.length}
+function undoBulk(){
+ if(!BULK_UNDO)return;
+ for(const k in BULK_UNDO.prev){const v=BULK_UNDO.prev[k];
+  if(v==null)delete MARKS[k];else MARKS[k]=v}
+ const n=BULK_UNDO.n;BULK_UNDO=null;
+ saveMarks();apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
 function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;if(!t){delete MARKS[key];if(it)delete MARKS[it.pn]}else{MARKS[key]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
 const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
 const LAY_KEY='planner_layout_v1';
@@ -1142,7 +1185,12 @@ function wireDrag(){
   });
   document.querySelectorAll('.wx').forEach(x=>x.onclick=e=>{e.stopPropagation();hideWidget(x.dataset.hide)});
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1600)}
+function toast(msg,act){const t=document.getElementById('toast');
+ t.innerHTML=esc(msg)+(act?` <button class="tundo">${esc(act.label)}</button>`:'');
+ if(act){const b=t.querySelector('.tundo');b.onclick=()=>{t.classList.remove('show');act.run()}}
+ t.classList.toggle('hasact',!!act);
+ t.classList.add('show');clearTimeout(t._t);
+ t._t=setTimeout(()=>t.classList.remove('show'),act?9000:1600)}
 const DARK_KEY='planner_dark_v1';
 let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
 function applyDark(on){document.body.classList.toggle('dark',on);
@@ -1202,7 +1250,7 @@ function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDE
   p.querySelector('.s').oninput=ev=>{const q=ev.target.value;p.querySelectorAll('label').forEach(l=>l.style.display=l.textContent.includes(q)?'':'none')};
   p.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{cb.checked?SEL[k].add(cb.value):SEL[k].delete(cb.value);apply()});
   p.onclick=ev=>ev.stopPropagation()});}
-document.addEventListener('click',()=>{document.querySelectorAll('.ddpanel,.menu').forEach(p=>p.classList.remove('open'));closeColPop()});
+document.addEventListener('click',()=>{document.querySelectorAll('.ddpanel,.menu,.bulkmenu').forEach(p=>p.classList.remove('open'));closeColPop()});
 function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
   `<div class="chip"><b>${l}:</b>${v}<span data-k="${k}" data-v="${String(v).replace(/"/g,'&quot;')}">✕</span></div>`)));
  Object.keys(colFilters).forEach(c=>{if(c==='__q')return;const f=colFilters[c];const lbl=COLLABEL[c]||c;
@@ -1289,6 +1337,29 @@ function currentRows(){if(cur==='today')return decisionList(track);
  base=base.filter(passColFilters);
  return sortRowsBy(base)}
 function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?'var(--red)':r.sev===2?'var(--acc)':r.sev===1?'#9aa1b1':'#c5cad6'}
+const BULKMARKS=[['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
+function renderBulk(rows){
+ const el=document.getElementById('bulk');if(!el)return;
+ const n=rows?rows.length:0;
+ if(!n||cur==='moves'){el.innerHTML='';return}
+ const active=FDEF.filter(([k])=>SEL[k].size).map(([,l])=>l)
+   .concat(Object.keys(colFilters).filter(c=>c!=='__q').map(c=>COLLABEL[c]||c));
+ el.innerHTML=`<button class="bulkbtn" id="bulkBtn">⚑ סמן ${n.toLocaleString('he-IL')} פריטים</button>
+  <div class="bulkmenu" id="bulkMenu">
+   <div class="bh">מסמן את <b>${n.toLocaleString('he-IL')}</b> הפריטים שברשימה כרגע${
+     active.length?` · סינון פעיל: ${esc(active.join(' · '))}`:' · <b>ללא סינון</b>'}</div>
+   ${BULKMARKS.map(([k,l])=>`<button data-bm="${k}">${l}</button>`).join('')}
+   <button data-bm="" class="clr">בטל סימון לכולם</button></div>`;
+ const btn=el.querySelector('#bulkBtn'), menu=el.querySelector('#bulkMenu');
+ btn.onclick=e=>{e.stopPropagation();menu.classList.toggle('open')};
+ menu.onclick=e=>e.stopPropagation();
+ menu.querySelectorAll('button[data-bm]').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.bm, lbl=t?(MARK_LABEL[t]||t):'ללא סימון';
+  /* רשימה גדולה — אישור מפורש לפני פעולה על מאות פריטים */
+  if(n>200&&!confirm(`לסמן ${n.toLocaleString('he-IL')} פריטים כ"${lbl}"?\n\nניתן לבטל מיד אחרי.`))return;
+  menu.classList.remove('open');
+  const done=setMarks(rows.slice(),t,'');
+  toast(`${done.toLocaleString('he-IL')} פריטים · ${lbl}`,{label:'בטל',run:undoBulk})});}
 function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.style.display='';
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
@@ -1355,6 +1426,7 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();
  const rows=currentRows();
  document.getElementById('lt').textContent=DEF.find(d=>d[0]===cur)[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
+ renderBulk(rows);
  if(cur==='today'){renderTrack();renderDecisions(rows);return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
  document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
