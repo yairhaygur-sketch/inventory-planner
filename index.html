@@ -565,6 +565,14 @@ td.pnc{padding:5px 14px;font-size:13px}
 .dsec>*:not(summary){margin:0 10px 9px}
 .dsec canvas{width:100%}
 
+/* שום טקסט בטאב לא חורג מגבולותיו — גלישה כאן דורסת את הטאב השכן */
+.tab{overflow:hidden}
+.tab .t,.tab .tsum,.tab .m{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .nrow{min-width:0;overflow:hidden}
+.tab .tsum{display:block;width:100%;font-size:10.5px;line-height:1.3;margin-top:1px;
+ color:var(--dim);font-variant-numeric:tabular-nums}
+.tab .tsum .more{opacity:.6;font-size:9.5px}
+
 /* שורת הכותרת — חמישה רכיבים בשורה אחת. בלי הכללים האלה המשפט המסביר
    נדחס לעמודה של מילה בשורה, והשורה מתנפחת מ-37px ל-139px. */
 .phd{flex-wrap:nowrap;overflow:hidden;min-height:0}
@@ -732,9 +740,14 @@ function sumBy(list,val){const by={};
  for(const r of list){const v=val(r)||0;if(!v)continue;const k=String(r.currency||'').trim().toUpperCase()||'—';
   by[k]=(by[k]||0)+v}
  return Object.entries(by).sort((a,b)=>b[1]-a[1])}
-const moneyMix=(list,val,short)=>{const e=sumBy(list,val);
- if(!e.length)return (short?moneyShort:money)(0,'ILS');
- return e.map(([c,v])=>(short?moneyShort:money)(v,c)).join(' · ')};
+const moneyMix=(list,val,short,max)=>{const e=sumBy(list,val);
+ const f=short?moneyShort:money;
+ if(!e.length)return f(0,'ILS');
+ /* בטאב צר אין מקום לשלושה מטבעות — המחרוזת גולשת ודורסת את השכן.
+    מוצג הדומיננטי ומונה לשאר; הפירוט המלא ב-title. */
+ if(max&&e.length>max)return e.slice(0,max).map(([c,v])=>f(v,c)).join(' · ')
+   +`<span class="more">+${e.length-max}</span>`;
+ return e.map(([c,v])=>f(v,c)).join(' · ')};
 /* Z לפי רמת שרות — הופכי ההתפלגות הנורמלית (Acklam).
    הטבלה הקודמת החזיקה חמישה ערכים בלבד והחזירה 1.28 לכל השאר, ולכן רמת
    שרות 98% ייצרה פחות מלאי ביטחון מ-95%. התוצאה מעוגלת לשתי ספרות ולכן
@@ -1259,7 +1272,7 @@ const DEF=[['today','החלטות היום','מדורג בכסף','var(--red)'],
  ['marked','מסומנים · טופל','קמפיין · טיפול · טופל','var(--grn)'],
  ['passive','רקע / קטלוג','PD · לא פעיל · מלאי מת','var(--dim)'],
  ['all','כל הפריטים','כל מה שבסינון','var(--gray)'],
- ['moves','תנועות אחרונות','CF · CG · נכנס ולא נמכר','var(--blue)']];
+ ['moves','תנועות','CF · CG · נכנס ולא נמכר','var(--blue)']];
 function optionsFor(key){const b=ALL.filter(it=>FDEF.every(([k])=>k===key||!SEL[k].size||SEL[k].has(it[k])));
   const c={};b.forEach(it=>c[it[key]]=(c[it[key]]||0)+1);return Object.entries(c).sort((a,b)=>b[1]-a[1])}
 function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDEF.map(([k,l])=>
@@ -1319,9 +1332,10 @@ function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  if(k==='marked'){const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;mn=handled?`${handled} טופלו`:`מסומנים`}
  else if(k==='passive')mn='רקע';else if(k==='all')mn=`${QF.ok.length} ללא ממצא`;
  else if(k==='moves')mn=MOVDEF.find(d=>d[0]===movTab)[1];
- const mny=sum>0?`<div class="tsum">${moneyMix(a,val,true)}</div>`:'';
+ const mny=sum>0?`<div class="tsum">${moneyMix(a,val,true,1)}</div>`:'';
+ const mnyFull=sum>0?moneyMix(a,val,false):'';
  /* שורת ההסבר עברה ל-title — היא עלתה 27px גובה בכל טאב */
- return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}" title="${esc(t+' — '+mn)}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span>${mny}</div><div class="m">${mn}</div></div>`}).join('');
+ return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}" title="${esc(t+' — '+mn+(mnyFull?'\n'+mnyFull:''))}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span></div>${mny}<div class="m">${mn}</div></div>`}).join('');
  document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{cur=e.dataset.k;render()})}
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
  ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא ₪','n']];
