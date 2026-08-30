@@ -704,7 +704,9 @@ function zFor(srv){const v=+srv||0;
 /* מדיניות גיל מלאי: מלאי מת = 3 שנים ללא צריכה מתאריך הכניסה האחרון */
 const DEAD_DAYS=1095, SLOW_MONTHS=24;
 /* ספי זיהוי אזילה — חודש "נמוך" מול החציון, ומה נחשב שכן בריא */
-const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5, DROP_MIN_ACTIVE=8;
+const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5;
+/* אזילה מזוהה רק על פריט בעל ביקוש סדיר מחוץ לאזילה עצמה */
+const DROP_MIN_ACTIVE=6, DROP_REGULAR=0.8;
 /* פרמטרים ב-SAP שגדולים מכל מה שנמכר בשלוש שנים — סף לדגל */
 const LOW_PARAM_FLOOR=3;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
@@ -800,8 +802,11 @@ function analyze(m){
       if(later>=0&&earlier<pos.length&&okm(pos[later])&&okm(pos[earlier]))runs.push({from:i,to:j,len:j-i+1});
       i=j+1}}
   const runMonths=runs.reduce((t,r)=>t+r.len,0);
-  /* הסף על ביקוש סדיר נמדד לפני האזילה — אחרת אזילה ארוכה מבטלת את זיהויה */
-  if(active+runMonths>=DROP_MIN_ACTIVE)
+  /* הפריט חייב להיות סדיר *מחוץ* לרצף האזילה. מדידת active+runMonths
+     מכשירה פריט ספורדי — 3 חודשי מכירה ו-6 חודשי אפס נראים כמו אזילה של
+     חצי שנה, כי החציון מחושב על חודשי המכירה בלבד. */
+  const outside=pos.length-runMonths;
+  if(active>=DROP_MIN_ACTIVE&&active>=outside*DROP_REGULAR)
     for(const r of runs)for(let k=r.from;k<=r.to;k++)
       drops.push({i:k+1,q:pos[k],x:+(pos[k]/med).toFixed(2),len:r.len,from:r.from+1,to:r.to+1});
   /* חודש שבו לא היה מלאי אינו עדות לתנודתיות ואינו ירידה בביקוש — פשוט לא

@@ -23,6 +23,9 @@ const rows=[
  mk('LOW-DEMAND',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80}),
  // D · ביקוש בירידה חדה שבה ה-ROP המוצע דווקא גבוה מהקיים
  mk('DECLINE',{months:[2,2,3,2,3,20,25,22,24,23,25],free:40,rop:1,ss:0,lt:120}),
+ // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
+ mk('SPORADIC',{months:[0,0,10,0,0,0,0,10,0,0,10],free:200}),
+ mk('EDGE-ONLY',{months:[5,0,0,0,0,0,0,0,0,0,6],free:200}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -39,7 +42,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,rop:r.rop,
      act:(r.act||[])[0]||'',trend:r.A.trend.pct}};
-  return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),low:g('LOW-DEMAND'),dec:g('DECLINE')}});
+  return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),low:g('LOW-DEMAND'),
+          dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY')}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
  // A · חודש אזילה אינו יוצר מלאי ביטחון יש מאין
  ok('ביקוש שטוח → סטיית תקן 0',o.clean.sd===0&&o.clean.sugSS===0);
@@ -50,6 +54,11 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('רצף אזילה מסווג כחשד אזילה',o.run.cat==='חשד אזילה',o.run.cat);
  ok('רצף אזילה אינו מוצג כירידה בביקוש',o.run.trend===0,`מגמה ${o.run.trend}% (לפני: -40%)`);
  ok('ההודעה מציינת את אורך הרצף',/3 החודשים/.test(o.run.act),o.run.act);
+ // B2 · פריט ספורדי אינו אזילה — חודשי אפס הם היעדר ביקוש, לא חוסר מלאי
+ ok('פריט ספורדי (3 מתוך 11) אינו מסווג אזילה',o.spor.drops===0,
+    `drops=${o.spor.drops} · ${o.spor.cat}`);
+ ok('פריט בשני קצוות בלבד אינו מסווג אזילה',o.edge.drops===0,
+    `drops=${o.edge.drops} · ${o.edge.cat}`);
  // C · ביקוש זעום עם פרמטרים גבוהים ב-SAP
  ok('פריט 2 יח׳/שנה עם ROP=200 אינו "תקין"',o.low.cat!=='תקין',o.low.cat);
  ok('ומוצעת לו פעולת איפוס',/איפוס/.test(o.low.act),o.low.act);
