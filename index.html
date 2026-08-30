@@ -293,7 +293,7 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  color:var(--dim);font-size:10.5px;font-weight:800}
 .rank.hi{background:var(--redL);color:var(--red)}
 .stake{font-weight:800;white-space:nowrap}
-.stake.rev{color:var(--red)}.stake.cap{color:var(--blue)}
+.stake.short{color:var(--red)}.stake.cap{color:var(--blue)}.stake.qty{color:var(--red);font-variant-numeric:tabular-nums}
 .cum{font-size:10.5px;color:var(--dim)}
 .sug{color:var(--acc);font-weight:700;font-size:10.5px;margin-inline-start:3px}
 @media(max-width:1180px){.wkpi{min-height:104px}}
@@ -372,7 +372,7 @@ td{border-bottom:1px solid var(--line2)}
 .msg.warn{background:var(--orgL);border-inline-start:3px solid var(--org)}
 .badge{border-radius:0;font-weight:600}
 .dot{border-radius:0;width:4px;height:22px;vertical-align:middle}
-.stake.rev{color:var(--red)}.stake.cap{color:var(--blue)}
+.stake.short{color:var(--red)}.stake.cap{color:var(--blue)}.stake.qty{color:var(--red);font-variant-numeric:tabular-nums}
 .cutrow td{background:var(--redL);border-top:2px solid var(--red)}
 body.dark .diag.warn{background:#2a2210;border-bottom-color:#6b5313;color:#d8b45e}
 body.dark .cantknow .ck{background:var(--blueL);border-color:#2b3a4d;color:#9ec2e6}
@@ -673,9 +673,40 @@ const moneyShort=n=>{n=Math.round(n||0);
  if(n>=1e6)return '₪'+(n/1e6).toFixed(n>=1e7?0:1)+'M';
  if(n>=1e4)return '₪'+Math.round(n/1e3)+'K';
  return '₪'+n.toLocaleString('he-IL')};
-const Z={50:0,80:.84,90:1.28,95:1.65,99:2.33};
+/* Z לפי רמת שרות — הופכי ההתפלגות הנורמלית (Acklam).
+   הטבלה הקודמת החזיקה חמישה ערכים בלבד והחזירה 1.28 לכל השאר, ולכן רמת
+   שרות 98% ייצרה פחות מלאי ביטחון מ-95%. התוצאה מעוגלת לשתי ספרות ולכן
+   זהה בדיוק לטבלה הישנה ב-50/80/90/95/99, ומונוטונית בכל ערך אחר. */
+function normInv(p){
+ const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,
+          1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+ const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,
+          6.680131188771972e+01,-1.328068155288572e+01];
+ const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,
+          -2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+ const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+ const pl=0.02425;
+ let q,r;
+ if(p<pl){q=Math.sqrt(-2*Math.log(p));
+  return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+ if(p<=1-pl){q=p-0.5;r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+ q=Math.sqrt(-2*Math.log(1-p));
+ return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)}
+/* חמשת הערכים ההיסטוריים מוצמדים כפי שהיו, כדי שאף פריט שרמת השרות שלו
+   מוגדרת בטבלה הישנה לא ישנה התנהגות. השאר מחושב. */
+const Z_LEGACY={50:0,80:.84,90:1.28,95:1.65,99:2.33};
+function zFor(srv){const v=+srv||0;
+ if(Z_LEGACY[v]!==undefined)return Z_LEGACY[v];
+ const p=v/100;
+ if(!(p>0.5))return 0;                    /* רמת שרות עד 50% — ללא מרכיב ביטחון */
+ return Math.round(normInv(Math.min(p,0.9999))*100)/100}
 /* מדיניות גיל מלאי: מלאי מת = 3 שנים ללא צריכה מתאריך הכניסה האחרון */
 const DEAD_DAYS=1095, SLOW_MONTHS=24;
+/* ספי זיהוי אזילה — חודש "נמוך" מול החציון, ומה נחשב שכן בריא */
+const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5, DROP_MIN_ACTIVE=8;
+/* פרמטרים ב-SAP שגדולים מכל מה שנמכר בשלוש שנים — סף לדגל */
+const LOW_PARAM_FLOOR=3;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -706,13 +737,16 @@ function curMonthLabel(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getM
   return {name:HEB[d.getMonth()],short:HEB[d.getMonth()].slice(0,3),yy:String(d.getFullYear()).slice(2)}}
 const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור חומר2','תיאור חומר'],status:['סטטוס חומר'],statusTxt:['תיאור'],
  mrp:['סוג MRP'],abc:['ABC'],srv:['רמת שרות'],ss:['מלאי בטחון'],rop:['נק.הז.מחדש'],lt:['אספ.מתוכנ.'],ltAdd:['זמ.עב.קבלת'],
- ssMin:['מל.בט.מינ.'],price:['מח.ממצ.ניד'],sell:['מחיר מכירה'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
- po:['הז. רכש'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
+ ssMin:['מל.בט.מינ.'],price:['מחיר FOB','מח.ממצ.ניד'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
+ po:['הז. רכש'],transfer:['בהעברה'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],
+ matType:['סוג חומר'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
  blockedCust:['הזמנות לקוח חסומות','כמות בהז.פ חסומה','כמות הזמנה חסומה','חסום למשלוח'],
  grpTxt:['תיאור קבוצת חומרים','תיא.קבוצ.חומרים','תיאור קבוצת חומר 2'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"],
  y0:['צר.השנה'],y1:['צר.שנה-1'],y2:['צר.שנה-2']};
 const MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
+/* סוג חומר (I) — תצוגה וסינון בלבד. אינו משפיע על אף חישוב. */
+const MATTYPE={'Z001':'יבוא','Z004':'רכש מקומי'};
 const CRITICAL={pn:'מק״ט',free:'מלאי פנוי',lt:'זמן אספקה',cust:'הזמנות לקוח'};
 let DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
 function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){const i=n.indexOf(x);if(i>=0)return i}return -1};
@@ -721,7 +755,6 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   m.curMonth=n.indexOf('צר.החודש');
   const SEC=nm=>{const a=n.indexOf(nm);if(a<0)return -1;const b=n.indexOf(nm,a+1);return b>=0?b:a+1};
   m.model=SEC('היררכייה2');m.hierBrand=SEC('היררכייה1');m.hier3=SEC('היררכייה3');
-  m.acc=n.indexOf('אביזרים');
   const fSales=F(["תאר' מכירה",'מכירות','מכירות אחרונות','תאריך מכירה']);m.sales=fSales>=0?fSales:colToIdx('CF');
   const fEnt=F(["תאר' כניסה",'כניסות','כניסות אחרונות','כניסה למלאי','תאריך כניסה']);m.entries=fEnt>=0?fEnt:colToIdx('CG');
   DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
@@ -729,6 +762,12 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   DIAG.moves={salesCol:idxToCol(m.sales),entriesCol:idxToCol(m.entries),
     salesHdr:CLEAN(n[m.sales]!=null?n[m.sales]:''),entriesHdr:CLEAN(n[m.entries]!=null?n[m.entries]:''),
     salesByName:fSales>=0,entriesByName:fEnt>=0};
+  /* BZ ("מחיר FOB") הוא מקור האמת הפיננסי היחיד. אם הוא חסר, החישוב נופל
+     ל-"מח.ממצ.ניד" הישן — וזה חייב להיאמר, לא לקרות בשקט. */
+  if(m.price>=0&&n.indexOf('מחיר FOB')<0)
+    DIAG.warn.push('עמודת "מחיר FOB" (BZ) לא נמצאה — החישוב הכספי נופל ל-"מח.ממצ.ניד". BZ הוא מקור האמת המאושר.');
+  if(m.currency<0)DIAG.warn.push('עמודת "מטבע FOB" (BE) לא נמצאה — המטבע לא יוצג.');
+  if(m.transfer<0)DIAG.warn.push('עמודת "בהעברה" (CK) לא נמצאה — מלאי בהעברה לא ייכלל בכיסוי.');
   const annualFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
   if(annualFound<3)DIAG.warn.push(`נמצאו ${annualFound}/3 עמודות צריכה שנתית — מדיניות 3 השנים מושבתת והסיווג נופל לחלון 11 חודשים.`);
   const monthsFound=m.months.filter(i=>i>=0).length;
@@ -745,15 +784,32 @@ function analyze(m){
   const avg=pos.reduce((a,b)=>a+b,0)/11;
   const active=pos.filter(v=>v>0).length;
   const spikes=[],drops=[];
-  if(med>0){pos.forEach((v,i)=>{
-      if(v>=3&&v/med>=2.0)spikes.push({i:i+1,q:v,x:+(v/med).toFixed(1)});
-      /* חשד אזילה נבדק רק על ביקוש סדיר (8+ חודשים פעילים), ורק כששני החודשים
-         השכנים באמת קיימים בחלון — בלי להמציא שכן לחודש הקיצוני */
-      if(active<8)return;
-      if(i===0||i===pos.length-1)return;
-      const prev=pos[i+1], next=pos[i-1];
-      if(med>=5&&v/med<=0.3&&prev/med>=0.6&&next/med>=0.6)drops.push({i:i+1,q:v,x:+(v/med).toFixed(2)});});}
-  const rec=pos.slice(0,5).reduce((a,b)=>a+b,0), pre=pos.slice(6,11).reduce((a,b)=>a+b,0);
+  if(med>0)pos.forEach((v,i)=>{if(v>=3&&v/med>=2.0)spikes.push({i:i+1,q:v,x:+(v/med).toFixed(1)})});
+  /* חשד אזילה — רצף חודשים נמוכים שגובל משני צדדיו בחודשים בריאים.
+     הכלל הקודם בדק חודש בודד בלבד, ולכן אזילה של 3-4 חודשים — הבעיה
+     הגדולה יותר — נותרה בלתי נראית, והמגמה סיווגה אותה כירידה בביקוש.
+     pos[0] הוא החודש הקרוב ביותר, ולכן השכן המוקדם הוא j+1 והמאוחר i-1. */
+  const runs=[];
+  if(med>=DROP_MIN_MED){
+    const low=v=>v/med<=DROP_LOW, okm=v=>v/med>=DROP_OK;
+    let i=0;
+    while(i<pos.length){
+      if(!low(pos[i])){i++;continue}
+      let j=i;while(j+1<pos.length&&low(pos[j+1]))j++;
+      const earlier=j+1, later=i-1;
+      if(later>=0&&earlier<pos.length&&okm(pos[later])&&okm(pos[earlier]))runs.push({from:i,to:j,len:j-i+1});
+      i=j+1}}
+  const runMonths=runs.reduce((t,r)=>t+r.len,0);
+  /* הסף על ביקוש סדיר נמדד לפני האזילה — אחרת אזילה ארוכה מבטלת את זיהויה */
+  if(active+runMonths>=DROP_MIN_ACTIVE)
+    for(const r of runs)for(let k=r.from;k<=r.to;k++)
+      drops.push({i:k+1,q:pos[k],x:+(pos[k]/med).toFixed(2),len:r.len,from:r.from+1,to:r.to+1});
+  /* חודש שבו לא היה מלאי אינו עדות לתנודתיות ואינו ירידה בביקוש — פשוט לא
+     היה מה למכור. הוא מתוקן לחציון לפני סטיית התקן והמגמה. פיקים נשארים:
+     פיק הוא ביקוש אמיתי, וכיסוי שלו הוא בדיוק תפקיד מלאי הביטחון. */
+  const dropSet=new Set(drops.map(d=>d.i-1));
+  const fix=pos.map((v,k)=>dropSet.has(k)?med:v);
+  const rec=fix.slice(0,5).reduce((a,b)=>a+b,0), pre=fix.slice(6,11).reduce((a,b)=>a+b,0);
   const pct=pre>0?Math.round((rec/pre-1)*100):(rec>0?999:0);
   const adi=active?11/active:99;
   const act=pos.filter(v=>v>0), mu=act.length?act.reduce((a,b)=>a+b,0)/act.length:0;
@@ -761,7 +817,7 @@ function analyze(m){
   const cv2=mu>0?varr/(mu*mu):0;
   let pattern='ללא ביקוש';
   if(active>0)pattern=adi<1.32?(cv2<0.49?'חלק':'תנודתי'):(cv2<0.49?'ספורדי':'גושי');
-  const muAll=pos.reduce((a,b)=>a+b,0)/11, varAll=pos.reduce((a,b)=>a+(b-muAll)**2,0)/10;
+  const muAll=fix.reduce((a,b)=>a+b,0)/11, varAll=fix.reduce((a,b)=>a+(b-muAll)**2,0)/10;
   const sd=Math.sqrt(varAll), peak=Math.max(...pos,0);
   return {med,avg,active,spikes,drops,trend:{rec,pre,pct},adi:+adi.toFixed(2),cv2:+cv2.toFixed(2),pattern,sd,peak,mu};}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
@@ -794,15 +850,21 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rate=d12<=3?0:clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
     const rawRate=d12<=3?0:d6/6;
     const cov=rate>0?Math.max(0,free)/rate:null;
-    const avail=Math.max(0,free)+Math.max(0,po);
+    /* מלאי בהעברה כבר בבעלותנו ובדרך למחסן — קרוב יותר לזמין מהזמנת רכש פתוחה */
+    const transfer=m.transfer>=0?Math.max(0,NUM(r[m.transfer])):0;
+    const avail=Math.max(0,free)+Math.max(0,po)+transfer;
     const covA=rate>0?avail/rate:null;
-    const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),accRaw=m.acc>=0?CLEAN(r[m.acc]):'';
-    const isAcc=/אביזר/.test(mkt1)||/אביזר/.test(mkt2)||/אביזר/.test(accRaw);
+    const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),hier3=TXT(r,m.hier3);
+    /* אביזר מזוהה מתיאור היררכייה3 (U); הדוח אינו כולל עמודת "אביזרים" נפרדת */
+    const isAcc=/אביזר/.test(hier3)||/אביזר/.test(mkt1)||/אביזר/.test(mkt2);
     const srvRaw=m.srv>=0?NUM(r[m.srv]):0,srvMissing=m.srv<0||srvRaw<=0;
-    const srv=srvMissing?50:srvRaw,price=NUM(r[m.price]),sell=NUM(r[m.sell]);
-    const priceMissing=m.price<0||price<=0,sellMissing=m.sell<0||sell<=0;
+    const srv=srvMissing?50:srvRaw,price=NUM(r[m.price]);
+    const priceMissing=m.price<0||price<=0;
+    const currency=m.currency>=0?CLEAN(r[m.currency]):'';
+    const mtRaw=m.matType>=0?CLEAN(r[m.matType]):'';
+    const matType=MATTYPE[mtRaw]||(mtRaw||'ללא');
     const mrp=CLEAN(r[m.mrp]);
-    const z=srvMissing?0:(Z[srv]!==undefined?Z[srv]:1.28),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
+    const z=srvMissing?0:zFor(srv),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
     const lumpFloor=(!isPDItem&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
     const ssStat=(rate>0&&!isPDItem)?Math.ceil(z*sdLT):0;
@@ -823,18 +885,18 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
       abc:CLEAN(r[m.abc]),brand:CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך',planner:CLEAN(r[m.planner])||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
-      mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:TXT(r,m.hier3)||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
+      mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,sell,priceMissing,sellMissing,srvMissing,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,priceMissing,srvMissing,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
 const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל'};
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
- for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expRev=0;it.expCap=0;it.lostPast=0;it.paramFix=false;it.revUnpriced=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
+ for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
-    it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.expRev=0;it.expCap=0;
+    it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
     it.why=[['idea',isDone?`סומן כטופל${mk.note?' — '+mk.note:''}`:`סומן ידנית: ${lbl}${mk.note?' — '+mk.note:''}`],
       ['info',isDone?'הפריט טופל והוסר מהרשימה עד להסרת הסימון':'פריט מסומן מוחרג מהתרעות מחסור/עודף עד להסרת הסימון']];
     it.act=[isDone?'הפריט טופל — הוסר מתור העבודה':'לא נדרשת פעולת מלאי אוטומטית',
@@ -848,13 +910,13 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[it.stock>0?['info',`סטטוס 14 — מכירה עד גמר המלאי · מלאי ${it.stock} יח׳`]:['info','סטטוס 14 — גמר מלאי, אין מלאי']];
     it.act=[it.stock>0?'ללא רכש נוסף · מעקב חיסול':'—'];Q.passive.push(it);continue}
   const gap=it.cust-(Math.max(0,it.free)+Math.max(0,it.po));
-  if(it.cust>0&&gap>0){it.miss=gap;const unitRev=it.sell||it.price;it.expRev=gap*unitRev;it.revUnpriced=unitRev<=0;it.sev=3;
+  if(it.cust>0&&gap>0){it.miss=gap;it.sev=3;
     const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין – אין רכש':'פער כיסוי להזמנת לקוח';
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
-      it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null,it.revUnpriced?['warn','מחיר מכירה ועלות חסרים — החשיפה הכספית אינה ידועה']:null].filter(Boolean);
+      it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null,it.priceMissing?['warn','מחיר FOB חסר — לא ניתן לכמת את ההון הנדרש לכיסוי']:null].filter(Boolean);
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
   if(it.cust>0&&it.po>0&&it.free<=0){const un=Math.max(0,it.cust-it.po);
-    const unitRev=it.sell||it.price;it.expRev=un*unitRev;it.revUnpriced=un>0&&unitRev<=0;it.miss=un;it.sev=un>0?2:1;it.cat='מעקב אספקה';
+    it.miss=un;it.sev=un>0?2:1;it.cat='מעקב אספקה';
     it.why=[['warn',`מכוסה כמותית (לקוח ${it.cust} / רכש ${it.po}) אך מלאי בפועל אפס`],
       un>0?['err',`${un} יח׳ עדיין לא מכוסות גם אחרי הרכש הפתוח`]:['info','ההזמנה מכוסה במלואה ברכש — משימת מעקב, לא חשיפה כספית'],
       ['info','אין תאריך אספקה בדוח — אם הרכש יתעכב, הפריט יחזור לרשימת החוסרים']];
@@ -875,15 +937,16 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','LT=0 מאפס את ביקוש-בזמן-האספקה ואת מרכיב הביטחון — הזן זמן אספקה אמיתי ואז יחושבו נכון']];
     it.act=['להזין זמן אספקה בשדה "אספ.מתוכנ."','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
   if(A.drops.length&&it.d12>20){const d=A.drops[0];
-    it.sev=2;it.cat='מכירות אבודות';
-    it.lostPast=Math.max(0,A.med-d.q)*(it.sell||it.price);
-    {const qtyRisk=(it.covA!==null&&it.covA<it.ltM)?Math.max(0,it.rate*(it.ltM-it.covA)):0,unitRev=it.sell||it.price;it.expRev=qtyRisk*unitRev;it.revUnpriced=qtyRisk>0&&unitRev<=0;}
-    it.why=[['err',`צניחה חריגה ב${LABELS[d.i-1].name}: ${d.q} יח׳ בלבד מול חציון ${A.med} — כשהחודשים סביבו תקינים`],
+    it.sev=2;it.cat='חשד אזילה';
+    it.miss=Math.round((it.covA!==null&&it.covA<it.ltM)?Math.max(0,it.rate*(it.ltM-it.covA)):0);
+    const span=(d.len>1)?`${LABELS[d.to-1].name}–${LABELS[d.from-1].name} (${d.len} חודשים)`:LABELS[d.i-1].name;
+    const gapQ=A.drops.filter(x=>x.from===d.from).reduce((t,x)=>t+Math.max(0,A.med-x.q),0);
+    it.why=[['err',`צניחה חריגה ב${span}: מול חציון ${A.med} — כשהחודשים משני הצדדים תקינים`],
             ['idea','זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה'],
-            ['warn',`אובדן משוער בעבר: ${A.med-d.q} יח׳ · ${money(it.lostPast)}`],
-            it.expRev>0?['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]
-              :['info','היום הפריט מכוסה — האובדן הוא מהעבר ולכן אינו נספר בדירוג ההחלטות של היום']];
-    it.act=['לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך',
+            ['warn',`פער משוער: ${gapQ} יח׳ מתחת לחציון${d.len>1?` על פני ${d.len} חודשים`:''}`],
+            it.miss>0?['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]
+              :['info','היום הפריט מכוסה — האזילה הייתה בעבר ולכן אינה נספרת בדירוג ההחלטות של היום']];
+    it.act=[d.len>1?`לוודא ש-${d.len} החודשים האלה אכן היו חוסר ולא סגירת מוסך`:'לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך',
       `הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`,
       `להעלות מלאי ביטחון ל-${it.sugSS} כדי למנוע הישנות`];
     Q.prevent.push(it);continue}
@@ -891,7 +954,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['warn',`אביזר עם כיסוי ${it.cov.toFixed(1)} חודשים`],['info',`עודף כ-${it.excessQty} יח׳ · ${money(it.expCap)}`]];
     it.act=['קידום מכירות מול השיווק','לא לשנות ROP/SS לפני החלטה שיווקית'];Q.excess.push(it);continue}
   if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&A.active>=3){
-    if(it.po>0&&it.covA!==null&&it.covA>=it.ltM){it.cat='מעקב אספקה';it.sev=1;it.expRev=0;
+    if(it.po>0&&it.covA!==null&&it.covA>=it.ltM){it.cat='מעקב אספקה';it.sev=1;it.miss=0;
       it.why=[['info',`כיסוי ממלאי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} — אבל ${it.po} יח׳ כבר בדרך`],
         ['ok',`עם הרכש הפתוח הכיסוי ${it.covA.toFixed(1)} חודשים — אין צורך ברכש יזום נוסף`],
         ['warn','אין ETA בדוח — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
@@ -907,7 +970,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=[it.orderQty>0?`לפתוח רכש יזום ל-${it.orderQty} יח׳ (השלמה ל-ROP המוצע)`:'לבחון מועד הזמנה קרוב',
       it.ss<it.sugSS?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון תקין',
       it.rop<it.sugROP?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה תקינה'];
-    {const qtyRisk=Math.max(0,it.rate*(it.ltM-it.covA)),unitRev=it.sell||it.price;it.expRev=qtyRisk*unitRev;it.revUnpriced=qtyRisk>0&&unitRev<=0;}it.sev=2;Q.prevent.push(it);continue}
+    it.miss=Math.round(Math.max(0,it.rate*(it.ltM-it.covA)));it.sev=2;Q.prevent.push(it);continue}
   if(it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים — עודף של כ-${it.excessQty} יח׳ מעל 12 חודשי כיסוי`],['info',`שווי העודף ${money(it.expCap)}`]];
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
@@ -949,11 +1012,15 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   if(A.trend.pct<=-50&&A.trend.pct>-900&&it.d12>=12){it.sev=1;it.cat='ירידה בביקוש';
     it.why=[['warn',`הביקוש ירד ב-${Math.abs(A.trend.pct)}%: ${A.trend.rec} יח׳ ב-5 החודשים האחרונים מול ${A.trend.pre} קודם`],
             ['idea','ירידה מתמשכת לפני שנוצר עודף — זה הרגע הנכון להקטין פרמטרים, לא אחרי שהמחסן מלא']];
-    it.act=[`לשקול הקטנת נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
+    /* הכיוון נגזר מהמספרים. ביקוש יורד לא תמיד אומר ROP נמוך יותר — אם ה-ROP
+       הקיים נמוך מדי מלכתחילה, ההמלצה היא להעלות. */
+    it.act=[it.sugROP===it.rop?'נקודת ההזמנה תקינה'
+            :`לשקול ${it.sugROP<it.rop?'הקטנת':'העלאת'} נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,
+      'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
     it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;Q.excess.push(it);continue}
   /* פיק היסטורי מעניין רק אם הזמין היום (מלאי + רכש בדרך) לא מכסה חזרה שלו */
   if(A.spikes.length&&it.rate>0&&it.covA!==null&&it.covA<6&&A.active>=3&&it.avail<A.spikes[0].q){
-    {const qtyRisk=A.spikes[0].q-it.avail,unitRev=it.sell||it.price;it.expRev=qtyRisk*unitRev;it.revUnpriced=qtyRisk>0&&unitRev<=0;}it.sev=2;it.cat='מניעת חוסר';
+    it.miss=A.spikes[0].q-it.avail;it.sev=2;it.cat='מניעת חוסר';
     it.why=[['warn',`פיק ב${LABELS[A.spikes[0].i-1].name}: ${A.spikes[0].q} יח׳ — פי ${A.spikes[0].x} מהחציון ${A.med}`],
             ['err',`זמין היום ${it.avail} יח׳${it.po>0?` (כולל ${it.po} בדרך)`:''} — חסרות ${A.spikes[0].q-it.avail} יח׳ אם הפיק חוזר`]];
     it.act=['לבדוק אם הפיק חד-פעמי או תחילת מגמה',`אם מגמה: מלאי ביטחון ל-${it.sugSS}, נקודת הזמנה ל-${it.sugROP}`];
@@ -966,9 +1033,21 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=[it.rop!==it.sugROP?`לעדכן נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה תקינה',
             it.ss!==it.sugSS?`לעדכן מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון תקין'];
     it.paramFix=true;Q.quality.push(it);continue}
+  /* ביקוש זעום עם פרמטרים גבוהים ב-SAP: rate מאופס לכל פריט עם d12<=3,
+     וזה חסם את כל שלבי הפרמטרים — פריט עם 2 יח׳ בשנה ו-ROP=200 דווח תקין.
+     הסף אינו שרירותי: פרמטר שגדול מכל מה שנמכר בשלוש שנים אינו סביר. */
+  {const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
+   if(it.rate<=0&&!it.isPDItem&&(it.rop>bar||it.ss>bar)){
+    it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
+            ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר']];
+    it.act=[`לשקול איפוס נקודת הזמנה (${it.rop}) ומלאי ביטחון (${it.ss})`,
+            'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
+    Q.quality.push(it);continue}}
   it.why=[['ok','לא זוהתה בעיה — הפריט תקין ביחס לביקוש, לכיסוי ולפרמטרים']];it.act=['אין פעולה נדרשת'];Q.ok.push(it)}
- for(const it of items){it.expRev=Math.max(0,Math.round(it.expRev||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
-  it.risk=it.expRev+it.expCap;it.stakeKind=it.expRev>=it.expCap?'rev':'cap'}
+ /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
+ for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
+  it.risk=it.expCap}
  return Q}
 const MK_KEY='planner_marks_v1';
 let MARKS={};
@@ -1051,13 +1130,14 @@ let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==
 function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
-const FDEF=[['brand','מותג'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
+const FDEF=[['brand','מותג'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
 let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
-const TRACKS=[['rev','הכנסה בסיכון'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
-const TRACKKEY={rev:'expRev',cap:'expCap'};
-let track='rev';
+const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
+const TRACKS=[['short','חוסרים לטיפול'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+const TRACKKEY={cap:'expCap'};
+let track='short';
 function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
  const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
  return `background:${bg};color:${fg}`}
@@ -1065,7 +1145,8 @@ let DL_CACHE={};
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  const out=tr==='fix'?base.filter(r=>r.paramFix).sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
-  :base.filter(r=>r[TRACKKEY[tr]]>0||(tr==='rev'&&r.revUnpriced)).sort((a,b)=>(b[TRACKKEY[tr]]||0)-(a[TRACKKEY[tr]]||0));
+  :tr==='short'?base.filter(r=>r.miss>0).sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
+  :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>(b[TRACKKEY[tr]]||0)-(a[TRACKKEY[tr]]||0));
  return DL_CACHE[tr]=out}
 function cut80(list,tr){const k=TRACKKEY[tr];if(!k)return {n:list.length,total:0,cut:0};
  const total=list.reduce((s,r)=>s+r[k],0);let acc=0,n=0;
@@ -1113,17 +1194,16 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
  const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+QF[k].length,0);
  const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;
  const fixList=decisionList('fix');
- const sum=a=>a.reduce((t,r)=>t+(r.risk||0),0);
- const lost=QF.all.filter(r=>r.lostPast>0);
+ const units=a=>a.reduce((t,r)=>t+(r.miss||0),0);
+ const uTxt=a=>`${units(a).toLocaleString('he-IL')} יח׳ חסרות`;
  const K=[
-  {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:money(sum(waiting)),
+  {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:uTxt(waiting),
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
-  {l:'מניעת חוסר',n:pr.length,m:money(sum(pr)),cls:'warn'},
-  {l:'מכירות אבודות',n:lost.length,m:money(lost.reduce((t,r)=>t+r.lostPast,0)),cls:'warn'},
+  {l:'מניעת חוסר',n:pr.length,m:uTxt(pr),cls:'warn'},
   {l:'הון לשחרור',n:capList.length,m:money(capList.reduce((t,r)=>t+(r.expCap||0),0)),cls:''},
   {l:'עדכון פרמטרים',n:fixList.length,m:'איכות נתונים',cls:''}];
  document.getElementById('kpis').innerHTML=K.map(k=>k.cls==='burn'
-  ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m} בסיכון</div></div><div class="note">${k.note}</div></div>`
+  ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div></div>`
   :`<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div></div>`).join('');
  document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
 function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
@@ -1132,8 +1212,12 @@ function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  /* טאב ריק לא גוזל רוחב — חוץ מהקבועים ומזה שנבחר כרגע */
  if(!a.length&&k!=='today'&&k!=='all'&&k!==cur)return '';
  const sum=k==='moves'?0:a.reduce((x,r)=>x+(k==='today'&&TRACKKEY[track]?(r[TRACKKEY[track]]||0):(r.risk||0)),0);
+ /* טאבי החוסרים מציגים יחידות; כסף רק במסלול ההון הכלוא */
  let mn=s;
- if(k==='today'){const c=cut80(a,track);mn=track==='fix'?'ניתן לעדכן במרוכז':`80% ב-${c.n} פריטים`}else
+ if(k==='today'){const c=cut80(a,track);
+   mn=track==='fix'?'ניתן לעדכן במרוכז'
+     :track==='short'?`${a.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
+     :`80% ב-${c.n} פריטים`}else
  if(k==='marked'){const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;mn=handled?`${handled} טופלו`:`מסומנים`}
  else if(k==='passive')mn='רקע';else if(k==='all')mn=`${QF.ok.length} ללא ממצא`;
  else if(k==='moves')mn=MOVDEF.find(d=>d[0]===movTab)[1];
@@ -1142,7 +1226,7 @@ function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}" title="${esc(t+' — '+mn)}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span>${mny}</div><div class="m">${mn}</div></div>`}).join('');
  document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{cur=e.dataset.k;render()})}
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
- ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','סיכון ₪','n']];
+ ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא ₪','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
  const drop=new Set(r.A.drops.map(d=>d.i)),spike=new Set(r.A.spikes.map(x=>x.i));
  return '<span class="spark" title="צריכה 11 חודשים — מהישן לחדש">'+m.map((v,i)=>{const idx=i+1;
@@ -1185,7 +1269,8 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;render()})}
 function decisionHead(){const cols=track==='fix'
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
-  :['מק״ט','תיאור','סוג ההחלטה',(track==='rev'?'הכנסה בסיכון':'הון כלוא'),'% מצטבר','פעולה מומלצת','כיסוי'];
+  :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
+  :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 function renderDecisions(rows){
  document.querySelector('#tbl thead').innerHTML=decisionHead();
@@ -1200,18 +1285,23 @@ function renderDecisions(rows){
     <td><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${esc(r.desc.slice(0,30))}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
-    <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake rev">חסר</span>'}</td>
+    <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
     <td class="act1">${esc((r.act||[])[0]||'')}</td><td></td></tr>`);
    return}
-  acc+=r[k];
-  const pct=c.total?Math.round(acc/c.total*100):0,above=i<c.n;
-  body.push(`<tr data-i="${i}"${above?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>
+  const money8=!!k;                                  /* מסלול כספי? רק אז יש דירוג ב-₪ */
+  if(k)acc+=r[k]||0;
+  const pct=(k&&c.total)?Math.round(acc/c.total*100):0,above=k?i<c.n:false;
+  const c4=k?`<span class="stake ${track}">${money(r[k])}</span>`
+            :`<span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span>`;
+  const c5=k?`<span class="cum">${pct}%</span>`
+            :`<span class="badge" style="${sCatStyle(r)}">${SEVLBL[r.sev]||'—'}</span>`;
+  body.push(`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>
    <td><span class="obj">${esc(r.pn)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${esc(r.desc.slice(0,30))}</td>
    <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
-   <td><span class="stake ${track}">${track==='rev'&&r.revUnpriced?'שווי לא ידוע':money(r[k])}</span></td><td><span class="cum">${pct}%</span></td>
+   <td>${c4}</td><td>${c5}</td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
-   <td${r.po>0?` title="כולל ${r.po} יח׳ בדרך"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
-  if(above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${money(c.cut)} מתוך ${money(c.total)} — כל ${rows.length-c.n} הנותרים יחד שווים ${money(c.total-c.cut)}</td></tr>`)});
+   <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
+  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${money(c.cut)} מתוך ${money(c.total)} — כל ${rows.length-c.n} הנותרים יחד שווים ${money(c.total-c.cut)}</td></tr>`)});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||'<tr><td colspan="8" class="empty">אין החלטות במסלול הזה</td></tr>';
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
@@ -1219,16 +1309,15 @@ function renderDecisions(rows){
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
- if(track==='rev'){const lp=(QF&&QF.all?QF.all:[]).filter(r=>r.lostPast>0);
-  if(lp.length){const lv=lp.reduce((t,r)=>t+r.lostPast,0);
-   extra=` · בנוסף ${money(lv)} מכירות שאבדו ב-${lp.length.toLocaleString('he-IL')} פריטים — לבדיקה, לא לפעולה מיידית`}}
  if(track==='cap'){const yg=(QF&&QF.all?QF.all:[]).filter(r=>r.ageTier==='young'&&r.stock>0);
   if(yg.length){const yv=yg.reduce((t,r)=>t+r.price*r.stock,0);
    extra=` · בנוסף ${money(yv)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
- document.getElementById('pgR').textContent=track==='fix'?'ניתן לעדכן במרוכז ב-SAP':`סה״כ ${money(c.total)}${extra}`;
+ document.getElementById('pgR').textContent=track==='fix'?'ניתן לעדכן במרוכז ב-SAP'
+   :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
+   :`סה״כ ${money(c.total)}${extra}`;
  document.getElementById('phdSub').textContent=track==='fix'
   ?'פעולות תפעוליות ללא חשיפה כספית ישירה — יישור פרמטרים מול המומלץ'
-  :(track==='rev'?'מכירה שעלולה ללכת לאיבוד אם לא נטפל — ממוין לפי ₪':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
+  :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};tiles();kpis();
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
@@ -1437,10 +1526,9 @@ function decisionQty(r){
  return '—'}
 function decisionBlock(r){
  const act=(r.act||[])[0]||'אין פעולה נדרשת';
- const sub=r.expRev>0?`${money(r.expRev)} הכנסה בסיכון`
+ const sub=r.miss>0?`${r.miss.toLocaleString('he-IL')} יח׳ חסרות`
   :r.expCap>0?`${money(r.expCap)} הון כלוא`
-  :r.revUnpriced?'חשיפה כמותית · מחיר חסר'
-  :r.lostPast>0?`${money(r.lostPast)} מכירות שאבדו בעבר`:'ללא חשיפה כספית';
+  :'ללא חשיפה';
  const done=r.mark&&r.mark.t==='handled';
  return `<div class="dcs">
   <div class="dcl">ההחלטה</div>
@@ -1460,7 +1548,7 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
   <span class="tag">${esc(r.supplier.slice(0,20))}</span><span class="tag p">${A.pattern}</span>
   <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>
   ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
-  <span class="tag">${esc(r.mrp)}</span>${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
+  <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
  ${decisionBlock(r)}
  <div class="opad">
   <div class="col">
@@ -1470,15 +1558,16 @@ function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',o
    <div class="sec"><h3>נתוני מקור</h3><div class="kv">
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
+    <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
     <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
     <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
     <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
     <div class="box"><b>${money(r.price*Math.max(0,r.stock))}</b><span>שווי מלאי</span></div>
-    <div class="box"><b style="color:${r.expRev?'var(--red)':'var(--dim)'}">${r.expRev?money(r.expRev):'—'}</b><span>הכנסה בסיכון</span></div>
+    <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
     <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap):'—'}</b><span>הון כלוא</span></div></div>
-    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.revUnpriced?'<span class="ck">⚠ חשיפה ללא מחיר</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
+    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   </div>
   <div class="col">
    <div class="sec"><h3 style="display:flex;justify-content:space-between;align-items:center">תיקון פרמטרים<button class="explain" id="explainBtn">🔍 מאחורי החישוב</button></h3><div class="fix">
@@ -1565,12 +1654,12 @@ document.getElementById('saveView').onclick=()=>saveLayout(true);
 document.getElementById('resetView').onclick=()=>resetLayout();
 document.getElementById('darkToggle').onclick=()=>{DARKON=!DARKON;try{localStorage.setItem(DARK_KEY,DARKON?'1':'0')}catch(_){}applyDark(DARKON)};
 const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
- ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר מכירה חסר',r=>r.sellMissing?'כן':''],['מחיר עלות חסר',r=>r.priceMissing?'כן':''],['חשיפה ללא מחיר',r=>r.revUnpriced?'כן':''],
+ ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
  ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.blockedCust],['רכש פתוח',r=>r.po],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
- ['הכנסה בסיכון (₪)',r=>r.expRev||0],['מכירות שאבדו בעבר (₪)',r=>Math.round(r.lostPast||0)],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
@@ -1634,9 +1723,9 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
   const futureDates=ALL.filter(x=>x.entFuture||x.saleFuture).length;
-  const missingPrices=ALL.filter(x=>x.priceMissing||x.sellMissing).length;
+  const missingPrices=ALL.filter(x=>x.priceMissing).length;
   if(futureDates)DIAG.warn.push(`${futureDates} פריטים כוללים תאריך תנועה עתידי — התאריך הוחרג מחישובי גיל מלאי.`);
-  if(missingPrices)DIAG.warn.push(`${missingPrices} פריטים ללא מחיר מכירה או עלות מלאים — חשיפות כספיות עשויות להיות חסרות.`);
+  if(missingPrices)DIAG.warn.push(`${missingPrices} פריטים ללא מחיר FOB — ההון הכלוא והחוסר אינם מכומתים עבורם.`);
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
