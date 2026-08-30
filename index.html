@@ -565,6 +565,14 @@ td.pnc{padding:5px 14px;font-size:13px}
 .dsec>*:not(summary){margin:0 10px 9px}
 .dsec canvas{width:100%}
 
+/* שורת הכותרת — חמישה רכיבים בשורה אחת. בלי הכללים האלה המשפט המסביר
+   נדחס לעמודה של מילה בשורה, והשורה מתנפחת מ-37px ל-139px. */
+.phd{flex-wrap:nowrap;overflow:hidden;min-height:0}
+.phd>span:first-child,.phd .seg{flex:0 0 auto;white-space:nowrap}
+.phd .title,.phd .sub#lc{white-space:nowrap}
+.phd #phdSub{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phd .kbd,.phd .bulkwrap{flex:0 0 auto}
+
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
 .bulkbtn{font-family:inherit;font-size:11.5px;font-weight:700;background:var(--panel2);
@@ -602,6 +610,22 @@ td.pnc{padding:5px 14px;font-size:13px}
 }
 /* חלון צר: מצמצמים את העמודות הצדדיות ומשאירים לרשימה את מלוא הגובה.
    ערימה אנכית חוצה את מספר השורות הנראות, ולכן היא רק המוצא האחרון. */
+/* מתחת ל-1400 הטבלה נחנקת בין שתי העמודות הצדדיות. הרמזים בכותרת
+   מתפנים ראשונים — הם עזר, לא נתון. */
+@media(max-width:1650px){ .phd .kbd{display:none} }
+/* רצועת הטאבים גולשת — סימון ויזואלי שיש עוד, ולא קצה חתוך בשקט */
+.tabs{position:relative;scroll-behavior:smooth}
+.wqueue .qbody{position:relative}
+.wqueue .qbody::before{content:'';position:absolute;top:0;inset-inline-start:0;width:26px;height:52px;
+ z-index:3;pointer-events:none;opacity:0;transition:opacity .15s;
+ background:linear-gradient(to var(--fadeDir,left),var(--panel),transparent)}
+.wqueue .qbody.tabsover::before{opacity:1}
+@media(max-width:1600px){ .tab{min-width:90px;padding:5px 8px 6px} .tab .t{font-size:11px} }
+@media(max-width:1400px){
+ .dash{grid-template-columns:200px minmax(0,1fr) 340px}
+ .tab{min-width:84px;padding:5px 7px 6px}
+ .phd #phdSub{display:none}
+}
 @media(max-width:1180px){
  .dash{grid-template-columns:184px minmax(0,1fr) 316px}
  .kpis{grid-template-columns:1.7fr 1fr 1fr}
@@ -1196,7 +1220,7 @@ let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==
 function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
-const FDEF=[['brand','מותג'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
+const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
 let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
@@ -1338,6 +1362,9 @@ function currentRows(){if(cur==='today')return decisionList(track);
  return sortRowsBy(base)}
 function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?'var(--red)':r.sev===2?'var(--acc)':r.sev===1?'#9aa1b1':'#c5cad6'}
 const BULKMARKS=[['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
+function markTabsOverflow(){const t=document.getElementById('tabs');if(!t)return;
+ const q=t.closest('.qbody');if(!q)return;
+ q.classList.toggle('tabsover',t.scrollWidth-t.clientWidth>4)}
 function renderBulk(rows){
  const el=document.getElementById('bulk');if(!el)return;
  const n=rows?rows.length:0;
@@ -1420,7 +1447,7 @@ function renderDecisions(rows){
   ?'פעולות תפעוליות ללא חשיפה כספית ישירה — יישור פרמטרים מול המומלץ'
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
-function render(){DL_CACHE={};autoTrack();tiles();kpis();
+function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
  const rows=currentRows();

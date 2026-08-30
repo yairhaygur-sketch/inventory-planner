@@ -63,6 +63,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto',d0.ovf);
  ok('כרטיס הפריט: פחות גלילה מהבסיס',d0.sh<950,'תוכן '+d0.sh+'px בחלון '+d0.h+'px (בסיס: 1066/328)');
 
+ // שורת הכותרת לא נשברת, והפילטרים קיימים — נבדק בשלושה רוחבי מסך
+ for(const w of [1920,1512,1280]){
+  await p.setViewportSize({width:w,height:860});await p.waitForTimeout(350);
+  const h=await p.evaluate(()=>{const e=document.querySelector('#w_queue .phd');
+   return {h:Math.round(e.getBoundingClientRect().height),ov:Math.round(e.scrollWidth-e.clientWidth)}});
+  ok(`שורת הכותרת בשורה אחת ב-${w}px`,h.h<=48&&h.ov<=1,`גובה ${h.h}px · גלישה ${h.ov}px`);
+ }
+ await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(350);
+ const f=await p.evaluate(()=>({keys:FDEF.map(x=>x[0]),
+   labels:[...document.querySelectorAll('#sidefilters .tl')].map(e=>e.textContent),
+   modelOpts:optionsFor('model').length}));
+ ok('פילטר "דגם" קיים בסרגל',f.keys.includes('model')&&f.labels.includes('דגם'),f.labels.join(' · '));
+ ok('ולפילטר הדגם יש ערכים אמיתיים',f.modelOpts>1,f.modelOpts+' דגמים');
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
  await b.close();console.log(out.join('\n'));
