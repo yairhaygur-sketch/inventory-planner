@@ -26,6 +26,9 @@ const rows=[
  // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
  mk('SPORADIC',{months:[0,0,10,0,0,0,0,10,0,0,10],free:200}),
  mk('EDGE-ONLY',{months:[5,0,0,0,0,0,0,0,0,0,6],free:200}),
+ // COVERED · מלאי גדול, בלי הזמנות לקוח — כמו הדוח האמיתי שבו אין חוסרים
+ mk('COVERED-1',{months:[8,8,8,8,8,8,8,8,8,8,8],free:900,cust:0,rop:5,ss:2}),
+ mk('COVERED-2',{months:[6,6,6,6,6,6,6,6,6,6,6],free:800,cust:0,rop:5,ss:2}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -64,6 +67,13 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('ומוצעת לו פעולת איפוס',/איפוס/.test(o.low.act),o.low.act);
  // D · כיוון ההמלצה נגזר מהמספרים
  ok('ROP מוצע גבוה → "העלאת"',/העלאת/.test(o.dec.act),o.dec.act);
+ // המסך הראשי לא נשאר ריק כשאין חוסרים
+ const scr=await p.evaluate(()=>({track,shortN:decisionList('short').length,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   empty:(document.querySelector('#tbl tbody .empty')||{}).textContent||''}));
+ ok('כשאין חוסרים — המסך עובר למסלול שיש בו עבודה',
+    scr.shortN===0?(scr.track!=='short'&&scr.rows>0):true,
+    `מסלול=${scr.track} · חוסרים=${scr.shortN} · שורות=${scr.rows}`);
  if(errs.length)ok('אין שגיאות JS',false,errs.join(' | '));else ok('אין שגיאות JS',true);
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

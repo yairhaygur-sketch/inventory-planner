@@ -1142,7 +1142,14 @@ FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
 const TRACKS=[['short','חוסרים לטיפול'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
 const TRACKKEY={cap:'expCap'};
-let track='short';
+let track='short', trackPicked=false;
+/* "החלטות היום" הוא המסך הראשי. אם מסלול החוסרים ריק — ויכול להיות ריק
+   לגמרי כשאין הזמנות לקוח ללא כיסוי — לא מציגים רשימה ריקה אלא עוברים
+   למסלול שיש בו עבודה. ברגע שהמשתמש בוחר מסלול ידנית, הבחירה שלו קובעת. */
+function autoTrack(){
+ if(trackPicked)return;
+ if(decisionList(track).length)return;
+ for(const [k] of TRACKS){if(k!==track&&decisionList(k).length){track=k;return}}}
 function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
  const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
  return `background:${bg};color:${fg}`}
@@ -1271,7 +1278,7 @@ function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?
 function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.style.display='';
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
- t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;render()})}
+ t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
 function decisionHead(){const cols=track==='fix'
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
   :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
@@ -1307,7 +1314,11 @@ function renderDecisions(rows){
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
    <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
   if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${money(c.cut)} מתוך ${money(c.total)} — כל ${rows.length-c.n} הנותרים יחד שווים ${money(c.total-c.cut)}</td></tr>`)});
- document.querySelector('#tbl tbody').innerHTML=body.join('')||'<tr><td colspan="8" class="empty">אין החלטות במסלול הזה</td></tr>';
+ document.querySelector('#tbl tbody').innerHTML=body.join('')||
+   `<tr><td colspan="8" class="empty">${track==='short'
+     ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
+     :track==='cap'?'אין הון כלוא במסלול הזה.'
+     :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
@@ -1324,7 +1335,7 @@ function renderDecisions(rows){
   ?'פעולות תפעוליות ללא חשיפה כספית ישירה — יישור פרמטרים מול המומלץ'
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
-function render(){DL_CACHE={};tiles();kpis();
+function render(){DL_CACHE={};autoTrack();tiles();kpis();
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
  const rows=currentRows();
