@@ -258,7 +258,8 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 }
 /* מרכז עבודה יומי — פריסה תפעולית צפופה */
 body{background:#f5f6f8}
-.top{height:56px;gap:12px;padding:0 16px}.brand .mk{width:30px;height:30px;border-radius:7px}.brand .nm b{font-size:13px}.titleblock{gap:0}.top .ttl{font-size:14px}
+.top{height:56px;gap:12px;padding:0 16px}
+.bld{font-family:var(--num);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--dimmer);border:1px solid var(--line);padding:0 4px;margin-inline-start:6px;white-space:nowrap;cursor:help}.brand .mk{width:30px;height:30px;border-radius:7px}.brand .nm b{font-size:13px}.titleblock{gap:0}.top .ttl{font-size:14px}
 .dash{padding:8px 12px 12px;gap:8px;grid-template-columns:230px minmax(520px,1fr) 360px;grid-template-rows:auto minmax(510px,1fr) minmax(290px,.5fr)}
 .widget{border-radius:8px;border-color:#d9dee7;box-shadow:0 1px 1px rgba(16,24,40,.03)}
 .whead{padding:8px 11px;background:#fff;border-bottom:1px solid #e9edf2;cursor:default}.whead .hnd,.whead .wx,.rz{display:none!important}.whead .wt{font-size:12px;letter-spacing:.1px}.whead .wsub{font-size:10px}
@@ -708,7 +709,7 @@ td.pnc{padding:5px 14px;font-size:13px}
 </head>
 <body>
 <div class="top">
-  <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו</span></div></div>
+  <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
   <div class="lc">
     <div class="menuwrap"><button class="btn" id="wmBtn">⧉ וידג'טים ▾</button><div class="menu" id="wMenu"></div></div>
@@ -2208,6 +2209,14 @@ document.addEventListener('keydown',e=>{
  if(K==='ArrowLeft'){e.preventDefault();tabStep(1);return}
  if(K==='ArrowRight'){e.preventDefault();tabStep(-1);return}});
 
+/* חותמת גרסה — מאיזה קובץ הדפדפן באמת מגיש.
+   document.lastModified הוא ה-Last-Modified שהשרת החזיר, כלומר מתי הקובץ
+   שבידי הדפדפן פורסם. אין שלב בנייה ואין מה לזכור לעדכן: אם החותמת ישנה
+   מהמיזוג — הדפדפן מגיש עותק שמור, ורענון קשיח יפתור. */
+(function(){const d=new Date(document.lastModified);const el=document.getElementById('bld');
+ if(!el||isNaN(d))return;
+ const p2=n=>String(n).padStart(2,'0');
+ el.textContent=`${p2(d.getDate())}.${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`})();
 applyDark(DARKON);
 LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));applyLayout();
 ['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
