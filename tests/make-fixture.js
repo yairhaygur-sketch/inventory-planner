@@ -9,12 +9,18 @@ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','ש
 const BR=['ZT','LINK&CO'],SUP=['אלפא רכיבים','בטא ייבוא','גמא חלפים','דלתא מוטורס'],
  GRP=['מנוע','חשמל','מרכב','בלמים','מתלים','פנים'],AB=['A','B','C'],
  MODEL=['ZT T5','ZT X7','LINK 01','LINK 03','ZT E-Van'];
-const R=(a,b)=>a+Math.random()*(b-a), I=(a,b)=>Math.round(R(a,b));
+/* מחולל מספרים אקראי זרוע. בלי זרע קבוע הדוח הסינתטי נולד מחדש בכל הרצה,
+   ובדיקה יכולה לעבור בהגרלה אחת וליפול באחרת בלי שהקוד השתנה. SEED=1
+   נותן דוח זהה בכל הרצה; אפשר להריץ הגרלה אחרת עם FIXTURE_SEED=n. */
+let _s=(+process.env.FIXTURE_SEED||1)>>>0;
+const rnd=()=>{_s=(_s+0x6D2B79F5)>>>0;let t=_s;t=Math.imul(t^t>>>15,t|1);
+ t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296};
+const R=(a,b)=>a+rnd()*(b-a), I=(a,b)=>Math.round(R(a,b));
 const dstr=d=>{const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')}.${String(x.getMonth()+1).padStart(2,'0')}.${x.getFullYear()}`};
 const now=Date.now(),DAY=864e5;
 const rows=[];
 for(let i=0;i<900;i++){
- const kind=Math.random();
+ const kind=rnd();
  let months,y0,y1,y2,free,cust,po,stock,saleAgo,entAgo;
  if(kind<.25){ // בוער: לקוח ממתין ללא כיסוי
   months=MON.map(()=>I(0,14)); y0=I(40,120);y1=I(40,120);y2=I(30,110);
@@ -29,7 +35,7 @@ for(let i=0;i<900;i++){
   months=MON.map(()=>0); y0=0;y1=0;y2=0;
   free=I(10,300);cust=0;po=0;stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
  }else if(kind<.9){ // איטי
-  months=MON.map(()=>Math.random()<.25?I(1,3):0); y0=I(1,6);y1=I(1,8);y2=I(1,8);
+  months=MON.map(()=>rnd()<.25?I(1,3):0); y0=I(1,6);y1=I(1,8);y2=I(1,8);
   free=I(80,400);cust=0;po=I(0,2);stock=free;saleAgo=I(200,900);entAgo=I(300,1000);
  }else{ // פעיל רגיל
   months=MON.map(()=>I(3,25)); y0=I(80,300);y1=I(80,300);y2=I(70,280);
@@ -39,10 +45,10 @@ for(let i=0;i<900;i++){
     מנוהלים במלאי שוטף — ומצומדים לרמת שרות 50. השאר על 80 או 95.
     רמות השרות בדוח הן 50/80/95 בלבד. סוג MRP שאינו PD אינו נבדק בשום
     מקום בקוד מלבד isPD(), ולכן הערך המדויק אינו משנה. */
- const isPD=Math.random()<.23;
+ const isPD=rnd()<.23;
  const mrpType=isPD?'PD':'ND';
- const srvLevel=isPD?50:(Math.random()<.5?80:95);
- const price=Math.random()<.19?'':+R(20,3200).toFixed(2);
+ const srvLevel=isPD?50:(rnd()<.5?80:95);
+ const price=rnd()<.19?'':+R(20,3200).toFixed(2);
  /* שלושה מטבעות, כמו בייצוא האמיתי — USD, EUR ו-ILS */
  const sell=['USD','USD','USD','EUR','ILS'][I(0,4)];
  const br=BR[I(0,BR.length-1)],md=MODEL[I(0,MODEL.length-1)],gp=GRP[I(0,GRP.length-1)];
@@ -51,7 +57,7 @@ for(let i=0;i<900;i++){
   ['01','04','14','01','01'][I(0,4)],'פעיל',mrpType,AB[I(0,2)],srvLevel,I(0,20),I(0,40),
   I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),I(0,5),cust,['Z001','Z004'][I(0,1)],
   gp,br,'מתכנן א׳','12 חודשים',md,gp,
-  '100',br,'200',md,'300',Math.random()<.15?'אביזרים':gp,
+  '100',br,'200',md,'300',rnd()<.15?'אביזרים':gp,
   y0,y1,y2,I(0,10),...months,
   dstr(now-saleAgo*DAY),dstr(now-entAgo*DAY)]);
 }
