@@ -446,6 +446,7 @@ body:not(.dark) tbody tr.sel{background:var(--accL)}
 td.miss .neg{color:var(--red);font-weight:700}
 td.miss .warnq{color:var(--org);font-weight:700}
 td.miss .posq{color:var(--dim)}
+#tbl td .posq{color:var(--dim)}
 /* כרטיס פריט */
 .wdetail .detail{overflow:hidden}
 .ohead{padding:16px 18px;border-bottom:2px solid var(--line)}
@@ -851,6 +852,11 @@ const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5;
 const DROP_MIN_ACTIVE=6, DROP_REGULAR=0.8;
 /* פרמטרים ב-SAP שגדולים מכל מה שנמכר בשלוש שנים — סף לדגל */
 const LOW_PARAM_FLOOR=3;
+/* "אוזל החודש" — צריכה ברבעון האחרון מול המלאי שיכסה את החודש הקרוב.
+   שאלה אחרת מ"מניעת חוסר": שם הקצב הוא של 11 חודשים והאופק הוא זמן
+   האספקה. כאן הקצב הוא של 3 חודשים בלבד והאופק הוא חודש אחד — כדי
+   לתפוס פריט שהתעורר לאחרונה ושהממוצע השנתי מסתיר. */
+const M1_MIN3=10;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -975,6 +981,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const sales=m.sales>=0?movCell(r[m.sales]):null;
     const entries=m.entries>=0?movCell(r[m.entries]):null;
     const d12=months.reduce((a,b)=>a+Math.max(0,b),0),d6=months.slice(0,6).reduce((a,b)=>a+Math.max(0,b),0);
+    const c3=months.slice(0,3).reduce((a,b)=>a+Math.max(0,b),0),r3=c3/3;
     const y3=[m.y0,m.y1,m.y2].map(i=>i>=0?Math.max(0,NUM(r[i])):0);
     const cons3y=y3[0]+y3[1]+y3[2];
     const annualColsFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
@@ -1034,7 +1041,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך',planner:CLEAN(r[m.planner])||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,priceMissing,srvMissing,d12,d6,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -1323,7 +1330,7 @@ let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTa
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
-const TRACKS=[['short','חוסרים לטיפול'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+const TRACKS=[['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
 /* "החלטות היום" הוא המסך הראשי. אם מסלול החוסרים ריק — ויכול להיות ריק
@@ -1337,9 +1344,17 @@ function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.
  const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
  return `background:${bg};color:${fg}`}
 let DL_CACHE={};
+/* אוזל החודש: צריכה משמעותית ברבעון, ומלאי פנוי שלא יחזיק חודש.
+   רק ZM. פריטי PD נרכשים לפי הזמנה ואינם מנוהלים במלאי, ולכן "לא יכסה
+   את החודש" חסר משמעות עבורם.
+   הרכש הפתוח אינו נספר ואינו משפיע על הדירוג: אין ETA בדוח, ומשלוח
+   בלי תאריך אינו כיסוי. הוא מוצג כעמודת מידע בלבד. */
+function m1Rows(base){return base.filter(r=>!r.isPDItem&&r.c3>=M1_MIN3&&r.free<r.r3)
+ .sort((a,b)=>(b.r3-b.free)-(a.r3-a.free))}
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  const out=tr==='fix'?base.filter(r=>r.paramFix).sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
+  :tr==='m1'?m1Rows(base)
   :tr==='short'?base.filter(r=>r.miss>0).sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
   :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>(b[TRACKKEY[tr]]||0)-(a[TRACKKEY[tr]]||0));
  return DL_CACHE[tr]=out}
@@ -1659,6 +1674,7 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
 function decisionHead(){const cols=track==='fix'
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
   :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
+  :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 function renderDecisions(rows){
@@ -1669,6 +1685,15 @@ function renderDecisions(rows){
  let acc=0;
  view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
+  if(track==='m1'){const gap=Math.ceil(r.r3-r.free),dry=r.free<=0;
+   body.push(`<tr data-i="${i}" class="sev${dry?3:2}"><td><span class="rank${dry?' hi':''}">${i+1}</span></td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td>
+    <td>${hlMark(r.desc.slice(0,22),SQ)}</td>
+    <td class="num">${r.c3}</td><td class="num">${r.r3.toFixed(1)}</td>
+    <td class="num">${dry?'<span class="stake short">0</span>':r.free}</td>
+    <td class="num miss"><b>${gap}</b></td>
+    <td class="num">${r.po>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td></tr>`);
+   return}
   if(track==='fix'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
@@ -1694,6 +1719,7 @@ function renderDecisions(rows){
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
    `<tr><td colspan="8" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
+     :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
@@ -1705,11 +1731,14 @@ function renderDecisions(rows){
  if(track==='cap'){const yg=(QF&&QF.all?QF.all:[]).filter(r=>r.ageTier==='young'&&r.stock>0);
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
+ const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
  document.getElementById('pgR').textContent=track==='fix'?'ניתן לעדכן במרוכז ב-SAP'
+   :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
  document.getElementById('phdSub').textContent=track==='fix'
   ?'פעולות תפעוליות ללא חשיפה כספית ישירה — יישור פרמטרים מול המומלץ'
+  :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();

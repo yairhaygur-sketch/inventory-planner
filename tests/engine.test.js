@@ -36,7 +36,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('sellMissing הוסר',st.noSellMiss);
  ok('BE (מטבע FOB) נקרא ונשמר',st.hasCurrency);
  ok('BZ (מחיר FOB) הוא מקור המחיר',st.priceIsBZ>0,st.priceIsBZ+' פריטים עם מחיר');
- ok('מסלולים: short/cap/fix',st.tracks==='short,cap,fix',st.tracks);
+ ok('מסלולים: short/m1/cap/fix',st.tracks==='short,m1,cap,fix',st.tracks);
  ok('ברירת מחדל = short',st.trackDefault==='short');
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
  ok('אזהרת DIAG על FOB בלבד',!/מחיר מכירה/.test(st.diag),st.diag.slice(0,90)||'(אין אזהרות)');
@@ -99,11 +99,28 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('Z מונוטוני על כל הטווח 50→99.9',zt.nonMono.length===0,zt.nonMono.slice(0,3).join(',')||'500 נקודות');
  ok('Z ב-98 גבוה מ-95 (הבאג המקורי)',zt.z98>zt.z95,`95→${zt.z95} · 98→${zt.z98}`);
  ok('רמות ביניים מקבלות ערך אמיתי ולא 1.28',zt.spot.split(' ').every(x=>+x.split('→')[1]!==1.28),zt.spot);
- ok('רמת שרות 50 נותנת Z=0',zt.z50===0);
+ ok('רמת שרות 50 נותנת Z=0',zt.z50===0); 
+ // מסלול "אוזל החודש" — צריכה ברבעון מול חודש קדימה, ZM בלבד
+ const m1=await p.evaluate(()=>{const L=decisionList('m1');
+  const c3ok=L.every(r=>r.c3>=M1_MIN3), zm=L.every(r=>!r.isPDItem), sh=L.every(r=>r.free<r.r3);
+  const sorted=L.every((r,i)=>i===0||Math.ceil(L[i-1].r3-L[i-1].free)>=Math.ceil(r.r3-r.free));
+  /* פריט שהרכש הפתוח מכסה חייב להישאר ברשימה — אין ETA, ולכן הרכש אינו כיסוי */
+  const withPO=L.filter(r=>r.po>0&&r.avail>=r.r3).length;
+  /* פריט PD שעונה על שאר התנאים ובכל זאת אינו ברשימה */
+  const pdSkipped=ALL.filter(r=>r.isPDItem&&r.c3>=M1_MIN3&&r.free<r.r3).length;
+  const c3=ALL.filter(r=>r.c3>0).length;
+  return {n:L.length,c3ok,zm,sh,sorted,withPO,pdSkipped,c3}});
+ ok('צריכת 3 חודשים מחושבת',m1.c3>0,m1.c3+' פריטים עם צריכה ברבעון');
+ ok('מסלול "אוזל החודש" — כל פריט מעל סף הצריכה',m1.c3ok,m1.n+' פריטים');
+ ok('ורק ZM — פריטי PD מוחרגים',m1.zm&&m1.pdSkipped>0,m1.pdSkipped+' פריטי PD עומדים בתנאים ולא נכללו');
+ ok('כל פריט: מלאי פנוי קטן מהצריכה החודשית',m1.sh);
+ ok('רכש פתוח אינו מוציא פריט מהרשימה (אין ETA)',m1.withPO>0,m1.withPO+' פריטים עם רכש שמכסה — ונשארו');
+ ok('ממוין לפי הכמות החסרה לחודש',m1.sorted);
+
 
 
  // מעבר בין המסלולים
- for(const t of ['short','cap','fix']){
+ for(const t of ['short','m1','cap','fix']){
   await p.evaluate(k=>{track=k;render()},t);await p.waitForTimeout(350);
   const n=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
   ok('מסלול '+t+' מרנדר',n>0,n+' שורות');
