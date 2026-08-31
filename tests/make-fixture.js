@@ -43,7 +43,8 @@ for(let i=0;i<900;i++){
  const mrpType=isPD?'PD':'ND';
  const srvLevel=isPD?50:(Math.random()<.5?80:95);
  const price=Math.random()<.19?'':+R(20,3200).toFixed(2);
- const sell='USD';   /* מטבע FOB — שדה עצמאי, קיים גם כשאין מחיר */
+ /* שלושה מטבעות, כמו בייצוא האמיתי — USD, EUR ו-ILS */
+ const sell=['USD','USD','USD','EUR','ILS'][I(0,4)];
  const br=BR[I(0,BR.length-1)],md=MODEL[I(0,MODEL.length-1)],gp=GRP[I(0,GRP.length-1)];
  const pn=`${I(10,99)}${String.fromCharCode(65+I(0,25))}${I(100000,999999)}`;
  rows.push([pn,`חלק ${gp} ${md} דגם ${i}`,`Part ${gp} ${i}`,SUP[I(0,SUP.length-1)],

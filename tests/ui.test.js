@@ -74,6 +74,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const f=await p.evaluate(()=>({keys:FDEF.map(x=>x[0]),
    labels:[...document.querySelectorAll('#sidefilters .tl')].map(e=>e.textContent),
    modelOpts:optionsFor('model').length}));
+ // שום טקסט בטאב לא חורג מגבולותיו — גלישה כאן דורסת את הטאב השכן.
+ // נכשל כשפיצול המטבעות הכניס "$39M · €11M · ₪8.8M" לטאב של 90px.
+ for(const w of [1920,1512,1280]){
+  await p.setViewportSize({width:w,height:860});await p.waitForTimeout(300);
+  const sp=await p.evaluate(()=>{const out=[];
+   document.querySelectorAll('#tabs .tab').forEach(t=>{const tb=t.getBoundingClientRect();
+    t.querySelectorAll('*').forEach(c=>{const cb=c.getBoundingClientRect();
+     if(cb.width>0&&(cb.right>tb.right+1||cb.left<tb.left-1))
+       out.push(((t.querySelector('.t')||{}).textContent||'')+'/'+c.className)})});
+   return out});
+  ok(`אין דריסת טקסט בטאבים ב-${w}px`,sp.length===0,sp.slice(0,2).join(' · ')||'נקי');
+ }
+ await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(300);
  ok('פילטר "דגם" קיים בסרגל',f.keys.includes('model')&&f.labels.includes('דגם'),f.labels.join(' · '));
  ok('ולפילטר הדגם יש ערכים אמיתיים',f.modelOpts>1,f.modelOpts+' דגמים');
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
