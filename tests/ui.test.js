@@ -89,6 +89,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(300);
  ok('פילטר "דגם" קיים בסרגל',f.keys.includes('model')&&f.labels.includes('דגם'),f.labels.join(' · '));
  ok('ולפילטר הדגם יש ערכים אמיתיים',f.modelOpts>1,f.modelOpts+' דגמים');
+ // חותמת הגרסה — הדרך היחידה לדעת איזו גרסה הדפדפן מגיש
+ const bld=await p.evaluate(()=>{const e=document.getElementById('bld');
+   const b=e.getBoundingClientRect(),hd=document.querySelector('.top').getBoundingClientRect();
+   return {txt:e.textContent,over:b.right>hd.right+1||b.left<hd.left-1,h:hd.height}});
+ ok('חותמת גרסה מוצגת בכותרת',/^\d{2}\.\d{2} \d{2}:\d{2}$/.test(bld.txt),bld.txt);
+ ok('החותמת אינה חורגת משורת הכותרת',!bld.over&&bld.h<=60,`גובה ${bld.h}`);
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
  await b.close();console.log(out.join('\n'));
