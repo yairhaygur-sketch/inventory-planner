@@ -1016,20 +1016,38 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['err',`זמן אספקה חסר/0 — לא ניתן לחשב ROP/SS · יש ביקוש ${it.rate.toFixed(1)} יח׳/חודש`],
             ['idea','LT=0 מאפס את ביקוש-בזמן-האספקה ואת מרכיב הביטחון — הזן זמן אספקה אמיתי ואז יחושבו נכון']];
     it.act=['להזין זמן אספקה בשדה "אספ.מתוכנ."','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
+  /* אזילה בעבר אינה חוסר היום. פריט שאזל באפריל ויש בו כעת 80 יח׳ ל-4 חודשים
+     אינו שייך ל"מניעת חוסר" — אין מה למנוע. מה שנשאר ממנו הוא לקח פרמטרי:
+     הקצב האמיתי גבוה מהמדווח, ולכן ROP/SS צריכים לעלות. אימות מול המוסך הוא
+     בדיקה נלווית ולעולם לא ההחלטה הראשונה. */
   if(A.drops.length&&it.d12>20){const d=A.drops[0];
-    it.sev=2;it.cat='חשד אזילה';
-    it.miss=Math.round((it.covA!==null&&it.covA<it.ltM)?Math.max(0,it.rate*(it.ltM-it.covA)):0);
-    const span=(d.len>1)?`${LABELS[d.to-1].name}–${LABELS[d.from-1].name} (${d.len} חודשים)`:LABELS[d.i-1].name;
+    const exposed=it.covA!==null&&it.covA<it.ltM;
+    const span=(d.len>1)?`${LABELS[d.to-1].name}\u2013${LABELS[d.from-1].name} (${d.len} חודשים)`:LABELS[d.i-1].name;
     const gapQ=A.drops.filter(x=>x.from===d.from).reduce((t,x)=>t+Math.max(0,A.med-x.q),0);
+    const verify=d.len>1?`לוודא ש-${d.len} החודשים האלה אכן היו חוסר ולא סגירת מוסך`:'לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך';
+    const rateNote=`הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`;
+    const ssGap=it.ss<it.sugSS, ropGap=it.rop<it.sugROP;
     it.why=[['err',`צניחה חריגה ב${span}: מול חציון ${A.med} — כשהחודשים משני הצדדים תקינים`],
             ['idea','זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה'],
-            ['warn',`פער משוער: ${gapQ} יח׳ מתחת לחציון${d.len>1?` על פני ${d.len} חודשים`:''}`],
-            it.miss>0?['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]
-              :['info','היום הפריט מכוסה — האזילה הייתה בעבר ולכן אינה נספרת בדירוג ההחלטות של היום']];
-    it.act=[d.len>1?`לוודא ש-${d.len} החודשים האלה אכן היו חוסר ולא סגירת מוסך`:'לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך',
-      `הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`,
-      `להעלות מלאי ביטחון ל-${it.sugSS} כדי למנוע הישנות`];
-    Q.prevent.push(it);continue}
+            ['warn',`פער משוער: ${gapQ} יח׳ מתחת לחציון${d.len>1?` על פני ${d.len} חודשים`:''}`]];
+    if(exposed){it.miss=Math.max(1,Math.round(it.rate*(it.ltM-it.covA)));
+      it.sev=2;it.cat='חשד אזילה';
+      it.why.push(['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]);
+      it.act=[`להשלים ${it.miss} יח׳ כדי לכסות את זמן האספקה`,
+        ssGap?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS} כדי למנוע הישנות`:rateNote,verify];
+      Q.prevent.push(it);continue}
+    it.miss=0;
+    it.why.push(['ok',`היום הפריט מכוסה — ${it.covA===null?'ללא ביקוש שוטף':`כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`}. האזילה בעבר, ואין חוסר למנוע היום`]);
+    if(ssGap||ropGap){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+      it.why.push(['warn',`הלקח מהאזילה — ${ropGap?`נקודת הזמנה ${it.rop} מול ${it.sugROP} הנדרש`:''}${ropGap&&ssGap?' · ':''}${ssGap?`מלאי ביטחון ${it.ss} מול ${it.sugSS}`:''}`]);
+      it.act=[ropGap?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP} כדי למנוע הישנות`
+                    :`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS} כדי למנוע הישנות`,
+        (ropGap&&ssGap)?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:rateNote,verify];
+      Q.quality.push(it);continue}
+    it.sev=0;it.cat='רקע';
+    it.why.push(['ok',`הפרמטרים כבר תואמים לקצב האמיתי — נקודת הזמנה ${it.rop} · מלאי ביטחון ${it.ss}`]);
+    it.act=['אין פעולה — האזילה בעבר והפרמטרים כבר מעודכנים',verify];
+    Q.passive.push(it);continue}
   if(it.isAcc&&it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`אביזר עם כיסוי ${it.cov.toFixed(1)} חודשים`],['info',`עודף כ-${it.excessQty} יח׳ · ${money(it.expCap,it.currency)}`]];
     it.act=['קידום מכירות מול השיווק','לא לשנות ROP/SS לפני החלטה שיווקית'];Q.excess.push(it);continue}

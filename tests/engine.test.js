@@ -111,10 +111,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{track='short';render()});await p.waitForTimeout(300);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
  const dt=await p.evaluate(()=>document.getElementById('detail').innerText);
+ const dcur=await p.evaluate(()=>CURRENT_DETAIL&&CURRENT_DETAIL.currency);
  ok('כרטיס הפריט ללא "הכנסה בסיכון"',!dt.includes('הכנסה בסיכון'));
  ok('כרטיס הפריט ללא "הון נדרש לכיסוי"',!dt.includes('הון נדרש לכיסוי'));
  ok('כרטיס הפריט מציג כמות חסרה',dt.includes('כמות חסרה'));
- ok('כרטיס הפריט מציג מטבע',dt.includes('USD'));
+ ok('כרטיס הפריט מציג את המטבע של הפריט עצמו',!!dcur&&dt.includes(dcur),dcur||'ללא מטבע');
 
  // ייצוא
  await p.evaluate(()=>{window.__x=[];const o=XLSX.writeFile;XLSX.writeFile=(wb)=>{window.__x=wb};});

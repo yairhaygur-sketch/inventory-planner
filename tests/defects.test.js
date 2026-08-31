@@ -19,6 +19,8 @@ const rows=[
  mk('FLAT-STOCKOUT',{months:[10,10,10,10,10,0,10,10,10,10,10],free:60}),
  // B · אזילה של 3 חודשים רצופים באמצע, ביקוש בריא סביב
  mk('RUN-STOCKOUT',{months:[20,20,20,0,0,0,20,20,20,20,20],free:100}),
+ // B1 · אותה אזילה בדיוק, אבל הפריט חשוף גם היום — כאן זו כן מניעת חוסר
+ mk('RUN-STOCKOUT-OPEN',{months:[20,20,20,0,0,0,20,20,20,20,20],free:4,lt:90}),
  // C · ביקוש 2 יח׳/שנה, מעט מלאי, ROP ענק ב-SAP
  mk('LOW-DEMAND',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80}),
  // D · ביקוש בירידה חדה שבה ה-ROP המוצע דווקא גבוה מהקיים
@@ -47,9 +49,11 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  await p.goto('file://'+path.join(SD,'..','index.html'));
  await p.setInputFiles('#f',SD+'/defects.xlsx');await p.waitForTimeout(2200);
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+   const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,rop:r.rop,
-     act:(r.act||[])[0]||'',trend:r.A.trend.pct}};
-  return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),low:g('LOW-DEMAND'),
+     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
+  return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
+          runOpen:g('RUN-STOCKOUT-OPEN'),low:g('LOW-DEMAND'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
           cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
@@ -59,9 +63,17 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     `sd=${o.so.sd} SS=${o.so.sugSS} (לפני התיקון: 3.02 / 6)`);
  // B · רצף אזילה מזוהה ואינו נראה כירידת ביקוש
  ok('אזילה של 3 חודשים מזוהה',o.run.drops===3,`drops=${o.run.drops} (לפני: 0)`);
- ok('רצף אזילה מסווג כחשד אזילה',o.run.cat==='חשד אזילה',o.run.cat);
  ok('רצף אזילה אינו מוצג כירידה בביקוש',o.run.trend===0,`מגמה ${o.run.trend}% (לפני: -40%)`);
- ok('ההודעה מציינת את אורך הרצף',/3 החודשים/.test(o.run.act),o.run.act);
+ // B1 · אזילה בעבר מול חשיפה היום — שני מצבים שונים, שני מסלולים שונים
+ ok('אזילה בעבר + מכוסה היום → לא במניעת חוסר',o.run.q!=='prevent',
+    `מסלול ${o.run.q} · ${o.run.cat} (לפני: prevent · חשד אזילה)`);
+ ok('ומקבל את הלקח הפרמטרי כהחלטה הראשונה',/נקודת הזמנה|מלאי ביטחון|אין פעולה/.test(o.run.act),o.run.act);
+ ok('אימות מול המוסך יורד ממקום ההחלטה',!/סגירת מוסך/.test(o.run.act)&&/סגירת מוסך/.test(o.run.acts),o.run.act);
+ ok('אינו מדורג כחומרה 2',o.run.sev<2,`sev=${o.run.sev} (לפני: 2)`);
+ ok('אותה אזילה כשהפריט חשוף היום → כן חשד אזילה',
+    o.runOpen.q==='prevent'&&o.runOpen.cat==='חשד אזילה',`${o.runOpen.q} · ${o.runOpen.cat}`);
+ ok('ואז ההחלטה היא השלמת הכמות',/להשלים/.test(o.runOpen.act),o.runOpen.act);
+ ok('ההודעה מציינת את אורך הרצף',/3 החודשים/.test(o.runOpen.acts),o.runOpen.acts);
  // B2 · פריט ספורדי אינו אזילה — חודשי אפס הם היעדר ביקוש, לא חוסר מלאי
  ok('פריט ספורדי (3 מתוך 11) אינו מסווג אזילה',o.spor.drops===0,
     `drops=${o.spor.drops} · ${o.spor.cat}`);
