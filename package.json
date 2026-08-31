@@ -5,7 +5,7 @@
   "description": "מרכז עבודה יומי לתכנון מלאי חלפים — אפליקציית קובץ יחיד",
   "scripts": {
     "fixture": "node tests/make-fixture.js",
-    "test": "npm run fixture && node tests/engine.test.js && node tests/defects.test.js && node tests/bulk.test.js && node tests/ui.test.js"
+    "test": "npm run fixture && node tests/engine.test.js && node tests/defects.test.js && node tests/bulk.test.js && node tests/ui.test.js && node tests/search.test.js"
   },
   "devDependencies": {
     "playwright": "^1.49.0",
