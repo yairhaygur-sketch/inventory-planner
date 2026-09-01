@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Archivo:wght@600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #7aa7d4; } a:hover { color: #9ec2e6; }
+    .c-row { display: grid; grid-template-columns: 30px 128px 1fr 62px 58px 52px 52px 58px 92px;
+      align-items: center; gap: 10px; padding: 0 12px; height: 21px; border-bottom: 1px solid #1c2129; }
+    .c-pn { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 11.5px; direction: ltr; text-align: right; color: #e7ebf0; }
+    .c-n { font-family: 'Archivo',Arial,sans-serif; font-weight: 600; font-size: 11.5px; text-align: left; color: #b4bdc9; }
+    .c-d { font-size: 11.5px; color: #c3cad4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .c-k { font-family: 'Archivo',Arial,sans-serif; font-size: 10px; color: #5d6673; text-align: left; }
+    .c-h { font-family: 'Archivo',Arial,sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; color: #6f7885; }
+    .c-ic { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+  </style>
+</helmet>
+
+<div dir="rtl" style="width: 1440px; height: 900px; background: #0f1216; color: #e7ebf0; font-family: 'Rubik','Assistant',Arial,sans-serif; display: flex;">
+
+  <!-- מסילת אייקונים -->
+  <div style="width: 40px; flex: 0 0 auto; background: #161a1f; border-inline-end: 1px solid #262c34; display: flex; flex-direction: column; align-items: center; padding: 6px 0; gap: 3px;">
+    <div class="c-ic" style="background: #1d2836; border-inline-end: 2px solid #7aa7d4;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7aa7d4" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+    <div class="c-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6f7885" stroke-width="1.8"><path d="M3 6h18l-7 8v6l-4-2v-4z"/></svg></div>
+    <div class="c-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6f7885" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/></svg></div>
+    <div class="c-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6f7885" stroke-width="1.8"><rect x="4" y="4" width="16" height="16"/><path d="M4 10h16M10 10v10"/></svg></div>
+    <div style="flex: 1 1 auto;"></div>
+    <div class="c-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6f7885" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg></div>
+  </div>
+
+  <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;">
+
+    <!-- שורת מצב אחת -->
+    <div style="height: 28px; flex: 0 0 auto; background: #161a1f; border-bottom: 1px solid #262c34; display: flex; align-items: center; gap: 10px; padding: 0 12px;">
+      <div style="font-size: 12px; font-weight: 600;">אוזל החודש</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 12px; font-weight: 800; color: #b23b32;">37</div>
+      <div style="width: 1px; height: 14px; background: #262c34;"></div>
+      <div style="display: flex; gap: 5px; font-size: 10.5px;">
+        <span style="color: #6f7885;">חוסרים</span><span style="font-family: 'Archivo',Arial,sans-serif; font-weight: 700; color: #c3cad4;">11</span>
+        <span style="color: #6f7885; margin-inline-start: 6px;">מניעה</span><span style="font-family: 'Archivo',Arial,sans-serif; font-weight: 700; color: #c3cad4;">8</span>
+        <span style="color: #6f7885; margin-inline-start: 6px;">לקוח</span><span style="font-family: 'Archivo',Arial,sans-serif; font-weight: 700; color: #c3cad4;">3</span>
+        <span style="color: #6f7885; margin-inline-start: 6px;">פרמטרים</span><span style="font-family: 'Archivo',Arial,sans-serif; font-weight: 700; color: #c3cad4;">434</span>
+        <span style="color: #6f7885; margin-inline-start: 6px;">קטלוג</span><span style="font-family: 'Archivo',Arial,sans-serif; font-weight: 700; color: #6f7885;">7,569</span>
+      </div>
+      <div style="flex: 1 1 auto;"></div>
+      <div style="display: flex; align-items: center; gap: 6px; border: 1px solid #262c34; background: #0f1216; padding: 0 8px; height: 19px; width: 220px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5d6673" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <span style="font-size: 10.5px; color: #5d6673;">/ לחיפוש</span>
+      </div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; color: #5d6673;">31.08 08:37</div>
+    </div>
+
+    <div class="c-row" style="height: 22px; background: #161a1f; border-bottom: 1px solid #262c34;">
+      <div class="c-h">#</div><div class="c-h">מק״ט</div><div class="c-h">תיאור</div>
+      <div class="c-h" style="text-align: left;">3ח׳</div><div class="c-h" style="text-align: left;">לחודש</div>
+      <div class="c-h" style="text-align: left;">פנוי</div><div class="c-h" style="text-align: left;">חסר</div>
+      <div class="c-h" style="text-align: left;">בדרך</div><div class="c-h" style="text-align: left;">ספק</div>
+    </div>
+
+    <div style="flex: 1 1 auto; background: #12161b; overflow: hidden;">
+      <div class="c-row" style="background: #1d2836;"><div class="c-k">1</div><div class="c-pn">5511690886</div><div class="c-d">מצתים NGK</div><div class="c-n">310</div><div class="c-n">103.3</div><div class="c-n">27</div><div class="c-n" style="color: #d9564c; font-weight: 800;">77</div><div class="c-n" style="color: #5d6673;">445</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">2</div><div class="c-pn">5511801478</div><div class="c-d">מסנן שמן 08 01</div><div class="c-n">86</div><div class="c-n">28.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">29</div><div class="c-n" style="color: #5d6673;">762</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">3</div><div class="c-pn">6608044172</div><div class="c-d">מסנן אוויר 08 01</div><div class="c-n">80</div><div class="c-n">26.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">27</div><div class="c-n" style="color: #5d6673;">645</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">4</div><div class="c-pn">1200-10-00031</div><div class="c-d">תושבת גומי LCK6125H / LCK6128H</div><div class="c-n">75</div><div class="c-n">25.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">25</div><div class="c-n" style="color: #5d6673;">240</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">5</div><div class="c-pn">6608276810</div><div class="c-d">סמל אחורי לינק 02</div><div class="c-n">56</div><div class="c-n">18.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">19</div><div class="c-n" style="color: #5d6673;">80</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">6</div><div class="c-pn">6608281419</div><div class="c-d">סמל תא מטען LYNK&amp;CO</div><div class="c-n">56</div><div class="c-n">18.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">19</div><div class="c-n" style="color: #5d6673;">90</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">7</div><div class="c-pn">9836-80-00375</div><div class="c-d">מהדק TS077</div><div class="c-n">77</div><div class="c-n">25.7</div><div class="c-n">9</div><div class="c-n" style="color: #d9564c; font-weight: 800;">17</div><div class="c-n" style="color: #5d6673;">—</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">8</div><div class="c-pn">8889293965</div><div class="c-d">בורג</div><div class="c-n">49</div><div class="c-n">16.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">17</div><div class="c-n" style="color: #5d6673;">120</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">9</div><div class="c-pn">FLF14004NN</div><div class="c-d">מסנן שמן 11 ליטר</div><div class="c-n">40</div><div class="c-n">13.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">14</div><div class="c-n" style="color: #5d6673;">48</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">10</div><div class="c-pn">8889377100</div><div class="c-d">בורג</div><div class="c-n">40</div><div class="c-n">13.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">14</div><div class="c-n" style="color: #5d6673;">130</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">11</div><div class="c-pn">6608242193</div><div class="c-d">רפידות בילום אחוריות 17" שמאל+ימין</div><div class="c-n">55</div><div class="c-n">18.3</div><div class="c-n">6</div><div class="c-n" style="color: #d9564c; font-weight: 800;">13</div><div class="c-n" style="color: #5d6673;">275</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">12</div><div class="c-pn">6608239778C90</div><div class="c-d">פגוש אחורי — חלק תחתון</div><div class="c-n">33</div><div class="c-n">11.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">11</div><div class="c-n" style="color: #5d6673;">58</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">13</div><div class="c-pn">108600059601</div><div class="c-d">אטם פלג ריקון שמן</div><div class="c-n">30</div><div class="c-n">10.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">10</div><div class="c-n" style="color: #5d6673;">200</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">14</div><div class="c-pn">8888480189</div><div class="c-d">רצועת משאבת מים</div><div class="c-n">27</div><div class="c-n">9.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">9</div><div class="c-n" style="color: #5d6673;">64</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">15</div><div class="c-pn">6608497781C15</div><div class="c-d">דלת תא מטען</div><div class="c-n">23</div><div class="c-n">7.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">8</div><div class="c-n" style="color: #5d6673;">60</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">16</div><div class="c-pn">6608239773C90</div><div class="c-d">פגוש קדמי לינק 02</div><div class="c-n">22</div><div class="c-n">7.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">8</div><div class="c-n" style="color: #5d6673;">34</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">17</div><div class="c-pn">9100-90-91781</div><div class="c-d">כרית אויר עירוני</div><div class="c-n">21</div><div class="c-n">7.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">7</div><div class="c-n" style="color: #5d6673;">50</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">18</div><div class="c-pn">8889206198</div><div class="c-d">קיט רצועת מנוע + מותחן</div><div class="c-n">30</div><div class="c-n">10.0</div><div class="c-n">3</div><div class="c-n" style="color: #d9564c; font-weight: 800;">7</div><div class="c-n" style="color: #5d6673;">70</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">19</div><div class="c-pn">6608054799</div><div class="c-d">סמל קדמי לינק</div><div class="c-n">19</div><div class="c-n">6.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">7</div><div class="c-n" style="color: #5d6673;">80</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">20</div><div class="c-pn">6608235260BE6</div><div class="c-d">סמל 08 אחורי</div><div class="c-n">19</div><div class="c-n">6.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #d9564c; font-weight: 800;">7</div><div class="c-n" style="color: #5d6673;">56</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">21</div><div class="c-pn">8140-81-01332</div><div class="c-d">שסתום חימום</div><div class="c-n">44</div><div class="c-n">14.7</div><div class="c-n">9</div><div class="c-n" style="color: #c9974a; font-weight: 800;">6</div><div class="c-n" style="color: #5d6673;">60</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">22</div><div class="c-pn">2300-87-01563</div><div class="c-d">צלחת בלם קדמי</div><div class="c-n">40</div><div class="c-n">13.3</div><div class="c-n">9</div><div class="c-n" style="color: #c9974a; font-weight: 800;">5</div><div class="c-n" style="color: #5d6673;">154</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">23</div><div class="c-pn">8894765000</div><div class="c-d">ממיר מתחים DC/DC</div><div class="c-n">14</div><div class="c-n">4.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">5</div><div class="c-n" style="color: #5d6673;">18</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">24</div><div class="c-pn">L48713490106278</div><div class="c-d">מגב שמשה קידמי אוטובוס 100</div><div class="c-n">13</div><div class="c-n">4.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">5</div><div class="c-n" style="color: #5d6673;">160</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">25</div><div class="c-pn">6608124845</div><div class="c-d">גריל תחתון</div><div class="c-n">21</div><div class="c-n">7.0</div><div class="c-n">3</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">30</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">26</div><div class="c-pn">3723-30-00377</div><div class="c-d">קופסת נתיכים ATS</div><div class="c-n">12</div><div class="c-n">4.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">94</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">27</div><div class="c-pn">4016-00-02084</div><div class="c-d">נעל כבל טבעת 6.0 לקופסת נתיכים</div><div class="c-n">12</div><div class="c-n">4.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">90</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">28</div><div class="c-pn">1300-01-00885</div><div class="c-d">צינור — תיירותי</div><div class="c-n">12</div><div class="c-n">4.0</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">30</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">29</div><div class="c-pn">8891643439707</div><div class="c-d">מגן תחתון לפגוש אחורי</div><div class="c-n">11</div><div class="c-n">3.7</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">50</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">30</div><div class="c-pn">1016053913</div><div class="c-d">דיסקה</div><div class="c-n">10</div><div class="c-n">3.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">40</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+      <div class="c-row"><div class="c-k">31</div><div class="c-pn">6608343584C90</div><div class="c-d">פגוש אחורי תחתון</div><div class="c-n">10</div><div class="c-n">3.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">19</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">32</div><div class="c-pn">6608636165</div><div class="c-d">IHU לינק 02</div><div class="c-n">10</div><div class="c-n">3.3</div><div class="c-n" style="color: #d9564c;">0</div><div class="c-n" style="color: #c9974a; font-weight: 800;">4</div><div class="c-n" style="color: #5d6673;">26</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">דלתא מוטורס</div></div>
+      <div class="c-row"><div class="c-k">33</div><div class="c-pn">6608328806</div><div class="c-d">תושבת תאורת לוחית רישוי אחורית</div><div class="c-n">11</div><div class="c-n">3.7</div><div class="c-n">1</div><div class="c-n" style="color: #c9974a; font-weight: 800;">3</div><div class="c-n" style="color: #5d6673;">32</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">34</div><div class="c-pn">6608233324BE6</div><div class="c-d">סמל LIN&amp;CO אחורי</div><div class="c-n">17</div><div class="c-n">5.7</div><div class="c-n">4</div><div class="c-n" style="color: #c9974a; font-weight: 800;">2</div><div class="c-n" style="color: #5d6673;">32</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row"><div class="c-k">35</div><div class="c-pn">8888671652</div><div class="c-d">דיסק בלם קדמי 01</div><div class="c-n">16</div><div class="c-n">5.3</div><div class="c-n">4</div><div class="c-n" style="color: #c9974a; font-weight: 800;">2</div><div class="c-n" style="color: #5d6673;">56</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">אלפא רכיבים</div></div>
+      <div class="c-row"><div class="c-k">36</div><div class="c-pn">6608272147</div><div class="c-d">גוף ראשי מראה ימין</div><div class="c-n">14</div><div class="c-n">4.7</div><div class="c-n">3</div><div class="c-n" style="color: #c9974a; font-weight: 800;">2</div><div class="c-n" style="color: #5d6673;">24</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">גמא חלפים</div></div>
+      <div class="c-row" style="border-bottom: 0;"><div class="c-k">37</div><div class="c-pn">8888397355</div><div class="c-d">מסנן מזגן 01</div><div class="c-n">286</div><div class="c-n">95.3</div><div class="c-n">95</div><div class="c-n" style="color: #c9974a; font-weight: 800;">1</div><div class="c-n" style="color: #5d6673;">490</div><div class="c-n" style="text-align: right; font-family: Rubik; color: #6f7885;">בטא ייבוא</div></div>
+    </div>
+
+    <div style="height: 22px; flex: 0 0 auto; background: #161a1f; border-top: 1px solid #262c34; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font-size: 10.5px; color: #5d6673;">
+      <div>כל 37 השורות על מסך אחד · ללא גלילה · 408 יח׳ חסרות לחודש</div>
+      <div style="display: flex; gap: 12px;"><span><b style="color: #c3cad4;">↑↓</b> ניווט</span><span><b style="color: #c3cad4;">↵</b> כרטיס</span><span><b style="color: #c3cad4;">F</b> סינון</span><span><b style="color: #c3cad4;">/</b> חיפוש</span></div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

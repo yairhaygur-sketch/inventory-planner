@@ -1,0 +1,269 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Archivo:wght@600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #3f77ad; } a:hover { color: #2f5c88; }
+    .qa-row { display: grid; grid-template-columns: 34px 128px 1fr 300px 74px 118px; align-items: center;
+      gap: 12px; padding: 0 16px; height: 27px; border-bottom: 1px solid #e9edf3; }
+    .qa-pn { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12.5px; direction: ltr; text-align: right; }
+    .qa-n { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 13px; text-align: left; }
+    .qa-d { font-size: 12px; color: #1e2433; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qa-a { font-size: 11.5px; color: #6f7885; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qa-b { font-size: 10px; font-weight: 700; padding: 1px 7px; white-space: nowrap; text-align: center; }
+    .qa-k { font-family: 'Archivo',Arial,sans-serif; font-size: 11px; color: #8891a0; text-align: left; }
+  </style>
+</helmet>
+
+<div dir="rtl" style="width: 1440px; height: 900px; background: #eef1f7; color: #1e2433; font-family: 'Rubik','Assistant',Arial,sans-serif; display: flex; flex-direction: column;">
+
+  <!-- סרגל עליון — שורה אחת -->
+  <div style="height: 44px; flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #dfe4ec; display: flex; align-items: center; gap: 14px; padding: 0 16px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 22px; height: 22px; background: #1e2433; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">מ</div>
+      <div style="font-size: 13.5px; font-weight: 700;">מרכז עבודה יומי</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; color: #8891a0; border: 1px solid #dfe4ec; padding: 0 4px; line-height: 15px;">31.08 08:37</div>
+    </div>
+    <div style="flex: 1 1 auto;"></div>
+    <div style="display: flex; align-items: center; gap: 7px; border: 1px solid #dfe4ec; background: #f4f6fa; padding: 0 9px; height: 27px; width: 300px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8891a0" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="font-size: 12px; color: #8891a0;">מק״ט · תיאור · ספק · ספק:אלפא</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #6f7885;">
+      <div style="border: 1px solid #dfe4ec; padding: 5px 10px;">July 2026</div>
+      <div style="border: 1px solid #dfe4ec; padding: 5px 10px;">ייצוא</div>
+      <div style="background: #1e2433; color: #ffffff; padding: 5px 12px; font-weight: 600;">העלאת ZMRP</div>
+    </div>
+  </div>
+
+  <!-- כותרת התור -->
+  <div style="flex: 0 0 auto; background: #ffffff; border-bottom: 2px solid #1e2433; padding: 13px 16px 12px; display: flex; align-items: flex-end; gap: 16px;">
+    <div style="display: flex; align-items: baseline; gap: 9px;">
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 32px; font-weight: 800; line-height: 1;">59</div>
+      <div style="display: flex; flex-direction: column; gap: 1px;">
+        <div style="font-size: 15px; font-weight: 700;">החלטות להיום</div>
+        <div style="font-size: 11.5px; color: #6b7280;">מדורג לפי דחיפות · מתוך 7,569 פריטים</div>
+      </div>
+    </div>
+    <div style="flex: 1 1 auto;"></div>
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <div style="font-size: 11px; color: #8891a0; margin-inline-end: 4px;">סינון</div>
+      <div style="border: 1px solid #dfe4ec; background: #ffffff; padding: 4px 10px; font-size: 11.5px; color: #6f7885;">מותג</div>
+      <div style="border: 1px solid #dfe4ec; background: #ffffff; padding: 4px 10px; font-size: 11.5px; color: #6f7885;">ספק</div>
+      <div style="border: 1px solid #dfe4ec; background: #ffffff; padding: 4px 10px; font-size: 11.5px; color: #6f7885;">מעתד</div>
+      <div style="border: 1px solid #dfe4ec; background: #ffffff; padding: 4px 10px; font-size: 11.5px; color: #6f7885;">+ 6</div>
+      <div style="width: 1px; height: 20px; background: #dfe4ec; margin: 0 4px;"></div>
+      <div style="border: 1px solid #dfe4ec; background: #ffffff; padding: 4px 10px; font-size: 11.5px; color: #6f7885;">⚑ סמן 59</div>
+    </div>
+  </div>
+
+  <!-- כותרות עמודות -->
+  <div class="qa-row" style="height: 26px; background: #f4f6fa; border-bottom: 1px solid #dfe4ec; font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em; color: #8891a0;">
+    <div>#</div><div>מק״ט</div><div>תיאור</div><div>ההחלטה</div><div style="text-align: left;">חסר יח׳</div><div style="text-align: center;">מצב</div>
+  </div>
+
+  <!-- התור -->
+  <div style="flex: 1 1 auto; background: #ffffff; overflow: hidden;">
+
+    <div class="qa-row" style="background: #fbeceb; border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">1</div><div class="qa-pn">5511690886</div>
+      <div class="qa-d">מצתים NGK</div>
+      <div class="qa-a">להשלים 77 יח׳ — הקצב 103/חודש מול 27 במלאי</div>
+      <div class="qa-n" style="color: #b23b32;">77</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="background: #fbeceb; border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">2</div><div class="qa-pn">5511801478</div>
+      <div class="qa-d">מסנן שמן 08 01</div>
+      <div class="qa-a">מלאי אפס · קצב 28.7/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">29</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="background: #fbeceb; border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">3</div><div class="qa-pn">6608044172</div>
+      <div class="qa-d">מסנן אוויר 08 01</div>
+      <div class="qa-a">מלאי אפס · קצב 26.7/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">27</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">4</div><div class="qa-pn">1200-10-00031</div>
+      <div class="qa-d">תושבת גומי LCK6125H / LCK6128H</div>
+      <div class="qa-a">מלאי אפס · קצב 25.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">25</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">5</div><div class="qa-pn">6608276810</div>
+      <div class="qa-d">סמל אחורי לינק 02</div>
+      <div class="qa-a">מלאי אפס · קצב 18.7/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">19</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">6</div><div class="qa-pn">6608281419</div>
+      <div class="qa-d">סמל תא מטען LYNK&amp;CO</div>
+      <div class="qa-a">מלאי אפס · קצב 18.7/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">19</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #c9974a;">
+      <div class="qa-k">7</div><div class="qa-pn">9836-80-00375</div>
+      <div class="qa-d">מהדק TS077</div>
+      <div class="qa-a">להעלות נקודת הזמנה — הקצב גבוה מהמדווח</div>
+      <div class="qa-n" style="color: #c9974a;">17</div>
+      <div><div class="qa-b" style="background: #fdf5e9; color: #a37a2f;">עדכון פרמטרים</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">8</div><div class="qa-pn">8889293965</div>
+      <div class="qa-d">בורג</div>
+      <div class="qa-a">מלאי אפס · קצב 16.3/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">17</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">9</div><div class="qa-pn">FLF14004NN</div>
+      <div class="qa-d">מסנן שמן 11 ליטר</div>
+      <div class="qa-a">מלאי אפס · קצב 13.3/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">14</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #c9974a;">
+      <div class="qa-k">10</div><div class="qa-pn">8889377100</div>
+      <div class="qa-d">בורג</div>
+      <div class="qa-a">להעלות נקודת הזמנה — 130 יח׳ בדרך ללא ETA</div>
+      <div class="qa-n" style="color: #c9974a;">14</div>
+      <div><div class="qa-b" style="background: #fdf5e9; color: #a37a2f;">עדכון פרמטרים</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">11</div><div class="qa-pn">6608242193</div>
+      <div class="qa-d">רפידות בילום אחוריות 17" שמאל+ימין</div>
+      <div class="qa-a">6 במלאי · קצב 18.3/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">13</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">12</div><div class="qa-pn">6608239778C90</div>
+      <div class="qa-d">פגוש אחורי — חלק תחתון</div>
+      <div class="qa-a">מלאי אפס · קצב 11.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">11</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">13</div><div class="qa-pn">108600059601</div>
+      <div class="qa-d">אטם פלג ריקון שמן</div>
+      <div class="qa-a">מלאי אפס · קצב 10.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">10</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #3f77ad;">
+      <div class="qa-k">14</div><div class="qa-pn">8888397355</div>
+      <div class="qa-d">מסנן מזגן 01</div>
+      <div class="qa-a">95 במלאי מול קצב 95.3 · 490 יח׳ בדרך ללא ETA</div>
+      <div class="qa-n" style="color: #3f77ad;">1</div>
+      <div><div class="qa-b" style="background: #eaf1f8; color: #2f5c88;">מעקב אספקה</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">15</div><div class="qa-pn">8888480189</div>
+      <div class="qa-d">רצועת משאבת מים</div>
+      <div class="qa-a">מלאי אפס · קצב 9.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">9</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #c9974a;">
+      <div class="qa-k">16</div><div class="qa-pn">8140-81-01332</div>
+      <div class="qa-d">שסתום חימום</div>
+      <div class="qa-a">להעלות מלאי ביטחון — 9 במלאי מול קצב 14.7</div>
+      <div class="qa-n" style="color: #c9974a;">6</div>
+      <div><div class="qa-b" style="background: #fdf5e9; color: #a37a2f;">עדכון פרמטרים</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">17</div><div class="qa-pn">6608497781C15</div>
+      <div class="qa-d">דלת תא מטען</div>
+      <div class="qa-a">מלאי אפס · קצב 7.7/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">8</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #c9974a;">
+      <div class="qa-k">18</div><div class="qa-pn">6608239773C90</div>
+      <div class="qa-d">פגוש קדמי לינק 02</div>
+      <div class="qa-a">להעלות נקודת הזמנה — 34 יח׳ בדרך ללא ETA</div>
+      <div class="qa-n" style="color: #c9974a;">8</div>
+      <div><div class="qa-b" style="background: #fdf5e9; color: #a37a2f;">עדכון פרמטרים</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">19</div><div class="qa-pn">9100-90-91781</div>
+      <div class="qa-d">כרית אויר עירוני</div>
+      <div class="qa-a">מלאי אפס · קצב 7.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">7</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">20</div><div class="qa-pn">8889206198</div>
+      <div class="qa-d">קיט רצועת מנוע + מותחן</div>
+      <div class="qa-a">3 במלאי · קצב 10.0/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">7</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #b23b32;">
+      <div class="qa-k">21</div><div class="qa-pn">6608054799</div>
+      <div class="qa-d">סמל קדמי לינק</div>
+      <div class="qa-a">מלאי אפס · קצב 6.3/חודש</div>
+      <div class="qa-n" style="color: #b23b32;">7</div>
+      <div><div class="qa-b" style="background: #fbeceb; color: #b23b32;">אוזל החודש</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #c9974a;">
+      <div class="qa-k">22</div><div class="qa-pn">8888671652</div>
+      <div class="qa-d">דיסק בלם קדמי 01</div>
+      <div class="qa-a">להעלות מלאי ביטחון — 4 במלאי מול קצב 5.3</div>
+      <div class="qa-n" style="color: #c9974a;">5</div>
+      <div><div class="qa-b" style="background: #fdf5e9; color: #a37a2f;">עדכון פרמטרים</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #6d5aa8;">
+      <div class="qa-k">23</div><div class="qa-pn">1016053913</div>
+      <div class="qa-d">דיסקה</div>
+      <div class="qa-a">ROP 0 מול 12 הנדרש — פרמטר חסר ב-SAP</div>
+      <div class="qa-n" style="color: #6d5aa8;">12</div>
+      <div><div class="qa-b" style="background: #f0edf8; color: #6d5aa8;">המלצת MRP</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #6d5aa8;">
+      <div class="qa-k">24</div><div class="qa-pn">6608636165</div>
+      <div class="qa-d">IHU לינק 02</div>
+      <div class="qa-a">ROP 0 מול 10 הנדרש — פרמטר חסר ב-SAP</div>
+      <div class="qa-n" style="color: #6d5aa8;">10</div>
+      <div><div class="qa-b" style="background: #f0edf8; color: #6d5aa8;">המלצת MRP</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #3f77ad;">
+      <div class="qa-k">25</div><div class="qa-pn">L48713490106278</div>
+      <div class="qa-d">מגב שמשה קידמי אוטובוס 100</div>
+      <div class="qa-a">מלאי אפס · 160 יח׳ בדרך ללא ETA — לבקש ETA</div>
+      <div class="qa-n" style="color: #3f77ad;">5</div>
+      <div><div class="qa-b" style="background: #eaf1f8; color: #2f5c88;">מעקב אספקה</div></div>
+    </div>
+    <div class="qa-row" style="border-inline-start: 3px solid #3f77ad;">
+      <div class="qa-k">26</div><div class="qa-pn">3723-30-00377</div>
+      <div class="qa-d">קופסת נתיכים ATS</div>
+      <div class="qa-a">מלאי אפס · 94 יח׳ בדרך ללא ETA — לבקש ETA</div>
+      <div class="qa-n" style="color: #3f77ad;">4</div>
+      <div><div class="qa-b" style="background: #eaf1f8; color: #2f5c88;">מעקב אספקה</div></div>
+    </div>
+
+  </div>
+
+  <!-- כותרת תחתונה -->
+  <div style="height: 30px; flex: 0 0 auto; background: #ffffff; border-top: 1px solid #dfe4ec; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; color: #8891a0;">
+    <div>מוצג 1–26 מתוך 59 · <span style="color: #6f7885;">קטלוג מלא (7,569) ומלאי מת (2,736) — בתפריט הצד</span></div>
+    <div style="display: flex; gap: 14px;"><span><b style="color: #1e2433;">↑↓</b> ניווט</span><span><b style="color: #1e2433;">↵</b> כרטיס הפריט</span><span><b style="color: #1e2433;">/</b> חיפוש</span></div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>
