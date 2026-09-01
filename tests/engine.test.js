@@ -116,6 +116,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('כל פריט: מלאי פנוי קטן מהצריכה החודשית',m1.sh);
  ok('רכש פתוח אינו מוציא פריט מהרשימה (אין ETA)',m1.withPO>0,m1.withPO+' פריטים עם רכש שמכסה — ונשארו');
  ok('ממוין לפי הכמות החסרה לחודש',m1.sorted);
+ const noFollow=await p.evaluate(()=>({
+   bad:Q.follow.filter(isM1).length, follow:Q.follow.length,
+   /* מסלול m1 יכול לנחות רק בתורי היום: לקוח ממתין, פער כיסוי או מניעת חוסר */
+   todayOnly:decisionList('m1').every(r=>Q.prevent.includes(r)||Q.waiting.includes(r)||Q.immediate.includes(r)),
+   dist:Object.entries(decisionList('m1').reduce((a,r)=>{const q=Object.keys(Q).find(k=>Q[k].includes(r))||'-';a[q]=(a[q]||0)+1;return a},{})).map(([k,v])=>k+'='+v).join(' '),
+   inactive:decisionList('m1').filter(r=>/לא פעיל|גמר המלאי/.test(r.stTxt||'')).length,
+   pdSafe:Q.passive.filter(r=>r.isPDItem).length}));
+ ok('אף פריט במעקב אספקה אינו חוסר של החודש',noFollow.bad===0,`${noFollow.follow} במעקב`);
+ ok('כל פריטי «אוזל החודש» מסווגים לטיפול היום',noFollow.todayOnly,noFollow.dist);
+ ok('פריטי PD לא נשאבו לרונג החדש',noFollow.pdSafe>0,noFollow.pdSafe+' פריטי PD ברקע');
+ ok('פריט לא פעיל / גמר מלאי אינו "אוזל"',noFollow.inactive===0,noFollow.inactive+' פריטים לא פעילים במסלול');
 
 
 

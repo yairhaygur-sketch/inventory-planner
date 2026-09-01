@@ -857,6 +857,9 @@ const LOW_PARAM_FLOOR=3;
    האספקה. כאן הקצב הוא של 3 חודשים בלבד והאופק הוא חודש אחד — כדי
    לתפוס פריט שהתעורר לאחרונה ושהממוצע השנתי מסתיר. */
 const M1_MIN3=10;
+/* פריט לא פעיל (04) או גמר מלאי (14) אינו "אוזל" — הוא נגמר בכוונה. */
+const m1Active=it=>{const c=stCode(it.st);return c!==4&&c!==14&&!/לא פעיל|גמר המלאי/.test(it.stTxt||'')};
+const isM1=it=>m1Active(it)&&!it.isPDItem&&it.c3>=M1_MIN3&&it.free<it.r3;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -1069,6 +1072,33 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
       it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null,it.priceMissing?['warn','מחיר FOB חסר — לא ניתן לכמת את ההון הנדרש לכיסוי']:null].filter(Boolean);
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
+  /* מלאי שאינו מכסה את החודש הקרוב קודם לכל סיווג מעקב אספקה.
+     רכש פתוח בלי ETA אינו כיסוי, ולכן ההחלטה היא הכמות החסרה ולא שיחת
+     בירור עם הספק. הרונג יושב לפני שני הרונגים שהוציאו "מעקב אספקה":
+     זה של לקוח מכוסה-ברכש-אך-מלאי-אפס, וזה של כיסוי מול זמן האספקה.
+     פריטי PD מוחרגים בתוך isM1 — לכן המיקום לפני רונג ה-PD אינו משנה. */
+  if(isM1(it)){const gap=Math.ceil(it.r3-it.free);
+    const paramGap=it.sugROP>0&&it.rop<it.sugROP;
+    /* פריט יכול להיות גם אזילה שזוהתה וגם חוסר של החודש הקרוב. האזילה
+       אומרת שהקצב האמיתי גבוה מהמדווח, ולכן היא נשארת הסיווג — אבל
+       ההחלטה נשארת הכמות, ואימות העבר יורד לסוף. */
+    const d=(A.drops.length&&it.d12>20)?A.drops[0]:null;
+    it.sev=2;it.cat=d?'חשד אזילה':'אוזל החודש';it.miss=gap;
+    it.why=[['err',`${it.free} יח׳ במלאי מול צריכה ${it.c3} יח׳ ברבעון — ${it.r3.toFixed(1)} לחודש`],
+      d?['idea',`זוהתה אזילה ב${d.len>1?`${d.len} חודשים`:LABELS[d.i-1].name} — הקצב האמיתי גבוה מהמדווח, ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`]:null,
+      it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה`]:null,
+      it.po>0?['warn',`${it.po} יח׳ בהזמנת רכש פתוחה, אבל אין ETA בדוח — משלוח בלי תאריך אינו כיסוי ואינו נספר`]
+             :['err','אין הזמנת רכש פתוחה שתכסה את הפער'],
+      (it.srvMissing||it.ltD<=0)?['warn','רמת שירות או זמן אספקה חסרים ב-SAP — אי אפשר לחשב ROP/SS, אבל החוסר עצמו אינו תלוי בהם']:null,
+      paramGap?['idea',`נקודת ההזמנה ${it.rop} נמוכה מ-${it.sugROP} הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים`]:null
+    ].filter(Boolean);
+    it.act=[`להשלים ${gap} יח׳ כדי לכסות את החודש הקרוב`,
+      it.po>0?`לדרוש ETA ל-${it.po} היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה`:'לפתוח הזמנת רכש',
+      paramGap?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`
+              :((it.srvMissing||it.ltD<=0)?'להשלים רמת שירות וזמן אספקה ב-SAP':'נקודת ההזמנה תקינה'),
+      d?(d.len>1?`לוודא ש-${d.len} החודשים האלה אכן היו חוסר ולא סגירת מוסך`:'לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך'):null
+    ].filter(Boolean);
+    Q.prevent.push(it);continue}
   if(it.cust>0&&it.po>0&&it.free<=0){const un=Math.max(0,it.cust-it.po);
     it.miss=un;it.sev=un>0?2:1;it.cat='מעקב אספקה';
     it.why=[['warn',`מכוסה כמותית (לקוח ${it.cust} / רכש ${it.po}) אך מלאי בפועל אפס`],
@@ -1349,7 +1379,7 @@ let DL_CACHE={};
    את החודש" חסר משמעות עבורם.
    הרכש הפתוח אינו נספר ואינו משפיע על הדירוג: אין ETA בדוח, ומשלוח
    בלי תאריך אינו כיסוי. הוא מוצג כעמודת מידע בלבד. */
-function m1Rows(base){return base.filter(r=>!r.isPDItem&&r.c3>=M1_MIN3&&r.free<r.r3)
+function m1Rows(base){return base.filter(isM1)
  .sort((a,b)=>(b.r3-b.free)-(a.r3-a.free))}
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
