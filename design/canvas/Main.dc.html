@@ -11,20 +11,20 @@
   <style>
     body { margin: 0; }
     a { color: #3f77ad; } a:hover { color: #2f5c88; }
-    .b-row { display: grid; grid-template-columns: 132px 1fr 96px 66px 62px 74px 96px; align-items: center;
-      gap: 12px; padding: 0 18px; height: 27px; border-bottom: 1px solid #e9edf3; }
-    .b-pn { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12.5px; direction: ltr; text-align: right; }
-    .b-n { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12.5px; text-align: left; }
-    .b-d { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .b-h { font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em; color: #8891a0; }
-    .b-sec { display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 32px;
+    .r { display: grid; grid-template-columns: 138px 1fr 330px 76px 96px; align-items: center;
+      gap: 14px; padding: 0 18px; height: 23px; border-bottom: 1px solid #e9edf3; }
+    .pn { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12px; direction: ltr; text-align: right; }
+    .n { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12.5px; text-align: left; }
+    .d { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .a { font-size: 11.5px; color: #6f7885; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .h { font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em; color: #8891a0; }
+    .sec { display: flex; align-items: center; gap: 10px; padding: 0 18px; height: 30px;
       background: #f4f6fa; border-top: 1px solid #dfe4ec; border-bottom: 1px solid #dfe4ec; }
   </style>
 </helmet>
 
 <div dir="rtl" style="width: 1440px; height: 900px; background: #eef1f7; color: #1e2433; font-family: 'Rubik','Assistant',Arial,sans-serif; display: flex; flex-direction: column;">
 
-  <!-- סרגל עליון -->
   <div style="height: 42px; flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #dfe4ec; display: flex; align-items: center; gap: 14px; padding: 0 18px;">
     <div style="display: flex; align-items: center; gap: 8px;">
       <div style="width: 22px; height: 22px; background: #1e2433; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">מ</div>
@@ -43,17 +43,16 @@
     </div>
   </div>
 
-  <!-- שלושת המצבים -->
   <div style="flex: 0 0 auto; background: #ffffff; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 2px solid #1e2433;">
     <div style="padding: 12px 18px 11px; border-inline-start: 1px solid #dfe4ec; display: flex; align-items: center; gap: 12px; background: #eaf1f8; box-shadow: inset 0 -3px 0 #3f77ad;">
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #2f5c88;">59</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #2f5c88;">48</div>
       <div style="display: flex; flex-direction: column; gap: 2px;">
         <div style="font-size: 14px; font-weight: 700; color: #2f5c88;">היום</div>
-        <div style="font-size: 11px; color: #4d6b8a;">לפעול עכשיו — חוסרים, אזילה, לקוח ממתין</div>
+        <div style="font-size: 11px; color: #4d6b8a;">לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש</div>
       </div>
     </div>
     <div style="padding: 12px 18px 11px; border-inline-start: 1px solid #dfe4ec; display: flex; align-items: center; gap: 12px;">
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #6f7885;">617</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #6f7885;">576</div>
       <div style="display: flex; flex-direction: column; gap: 2px;">
         <div style="font-size: 14px; font-weight: 700; color: #6f7885;">החודש</div>
         <div style="font-size: 11px; color: #8891a0;">לתכנן — פרמטרים, המלצות MRP, מעקב אספקה</div>
@@ -68,87 +67,82 @@
     </div>
   </div>
 
-  <!-- שורת הקשר -->
   <div style="flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #dfe4ec; height: 33px; display: flex; align-items: center; gap: 14px; padding: 0 18px; font-size: 11.5px; color: #6f7885;">
-    <span>ארבע קבוצות · פתח קבוצה כדי לעבוד עליה ברצף</span>
+    <span>שלוש קבוצות · דחוף למעלה</span>
     <div style="flex: 1 1 auto;"></div>
     <div style="display: flex; align-items: center; gap: 6px;">
-      <span style="color: #8891a0;">סינון פעיל:</span>
-      <div style="border: 1px solid #c5d8ea; background: #eaf1f8; padding: 2px 9px; color: #2f5c88;">מותג: ZT ✕</div>
-      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">+ הוסף סינון</div>
-      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">⚑ סמן 59</div>
+      <span style="color: #8891a0;">סינון:</span>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">מותג</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">ספק</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">מעתד</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">+ 6</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">⚑ סמן 48</div>
     </div>
   </div>
 
-  <div style="flex: 1 1 auto; background: #ffffff; overflow: hidden; display: flex; flex-direction: column;">
+  <div class="r" style="height: 22px; background: #ffffff; border-bottom: 1px solid #dfe4ec;">
+    <div class="h">מק״ט</div><div class="h">תיאור</div><div class="h">ההחלטה</div>
+    <div class="h" style="text-align: left;">חסר יח׳</div><div class="h" style="text-align: left;">כיסוי</div>
+  </div>
 
-    <!-- קבוצה פתוחה -->
-    <div class="b-sec">
+  <div style="flex: 1 1 auto; background: #ffffff; overflow: hidden;">
+
+    <div class="sec">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b23b32" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
-      <div style="font-size: 13px; font-weight: 700; color: #b23b32;">אוזל החודש</div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800; color: #b23b32;">37</div>
-      <div style="font-size: 11.5px; color: #6f7885;">ZM · צריכה 10+ יח׳ ברבעון מול מלאי שלא מכסה חודש · רכש בדרך אינו נספר</div>
+      <div style="font-size: 13px; font-weight: 700; color: #b23b32;">לקוח ממתין</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800; color: #b23b32;">3</div>
+      <div style="font-size: 11.5px; color: #6f7885;">הזמנת לקוח ללא מלאי ובלי הזמנת רכש פתוחה</div>
       <div style="flex: 1 1 auto;"></div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #b23b32;">408 יח׳ חסרות · 25 במלאי אפס</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #b23b32;">9 יח׳</div>
     </div>
+    <div class="r" style="background: #fbeceb;"><div class="pn">6608552221</div><div class="d">קליפס</div><div class="a">לפתוח הזמנת רכש ל-6 יח׳</div><div class="n" style="color: #b23b32;">6</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r" style="background: #fbeceb;"><div class="pn">8894954317</div><div class="d">פס קישוט תחתון דלת קדמית ימין</div><div class="a">לפתוח הזמנת רכש ל-2 יח׳</div><div class="n" style="color: #b23b32;">2</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r" style="background: #fbeceb;"><div class="pn">6608401122</div><div class="d">מודול סוללת מתח גבוה</div><div class="a">לפתוח הזמנת רכש ל-1 יח׳</div><div class="n" style="color: #b23b32;">1</div><div class="n" style="color: #b23b32;">0</div></div>
 
-    <div class="b-row" style="height: 25px; background: #ffffff; border-bottom: 1px solid #dfe4ec;">
-      <div class="b-h">מק״ט</div><div class="b-h">תיאור</div><div class="b-h" style="text-align: left;">צריכה 3ח׳</div>
-      <div class="b-h" style="text-align: left;">לחודש</div><div class="b-h" style="text-align: left;">פנוי</div>
-      <div class="b-h" style="text-align: left;">חסר</div><div class="b-h" style="text-align: left;">בדרך</div>
-    </div>
-
-    <div class="b-row"><div class="b-pn">5511690886</div><div class="b-d">מצתים NGK</div><div class="b-n">310</div><div class="b-n">103.3</div><div class="b-n">27</div><div class="b-n" style="color: #b23b32;">77</div><div class="b-n" style="color: #8891a0;">445</div></div>
-    <div class="b-row"><div class="b-pn">5511801478</div><div class="b-d">מסנן שמן 08 01</div><div class="b-n">86</div><div class="b-n">28.7</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">29</div><div class="b-n" style="color: #8891a0;">762</div></div>
-    <div class="b-row"><div class="b-pn">6608044172</div><div class="b-d">מסנן אוויר 08 01</div><div class="b-n">80</div><div class="b-n">26.7</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">27</div><div class="b-n" style="color: #8891a0;">645</div></div>
-    <div class="b-row"><div class="b-pn">1200-10-00031</div><div class="b-d">תושבת גומי LCK6125H / LCK6128H</div><div class="b-n">75</div><div class="b-n">25.0</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">25</div><div class="b-n" style="color: #8891a0;">240</div></div>
-    <div class="b-row"><div class="b-pn">6608276810</div><div class="b-d">סמל אחורי לינק 02</div><div class="b-n">56</div><div class="b-n">18.7</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">19</div><div class="b-n" style="color: #8891a0;">80</div></div>
-    <div class="b-row"><div class="b-pn">6608281419</div><div class="b-d">סמל תא מטען LYNK&amp;CO</div><div class="b-n">56</div><div class="b-n">18.7</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">19</div><div class="b-n" style="color: #8891a0;">90</div></div>
-    <div class="b-row"><div class="b-pn">9836-80-00375</div><div class="b-d">מהדק TS077</div><div class="b-n">77</div><div class="b-n">25.7</div><div class="b-n">9</div><div class="b-n" style="color: #b23b32;">17</div><div class="b-n" style="color: #8891a0;">—</div></div>
-    <div class="b-row"><div class="b-pn">8889293965</div><div class="b-d">בורג</div><div class="b-n">49</div><div class="b-n">16.3</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">17</div><div class="b-n" style="color: #8891a0;">120</div></div>
-    <div class="b-row"><div class="b-pn">FLF14004NN</div><div class="b-d">מסנן שמן 11 ליטר</div><div class="b-n">40</div><div class="b-n">13.3</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">14</div><div class="b-n" style="color: #8891a0;">48</div></div>
-    <div class="b-row"><div class="b-pn">8889377100</div><div class="b-d">בורג</div><div class="b-n">40</div><div class="b-n">13.3</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">14</div><div class="b-n" style="color: #8891a0;">130</div></div>
-    <div class="b-row"><div class="b-pn">6608242193</div><div class="b-d">רפידות בילום אחוריות 17" שמאל+ימין</div><div class="b-n">55</div><div class="b-n">18.3</div><div class="b-n">6</div><div class="b-n" style="color: #b23b32;">13</div><div class="b-n" style="color: #8891a0;">275</div></div>
-    <div class="b-row"><div class="b-pn">6608239778C90</div><div class="b-d">פגוש אחורי — חלק תחתון</div><div class="b-n">33</div><div class="b-n">11.0</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">11</div><div class="b-n" style="color: #8891a0;">58</div></div>
-    <div class="b-row"><div class="b-pn">108600059601</div><div class="b-d">אטם פלג ריקון שמן</div><div class="b-n">30</div><div class="b-n">10.0</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">10</div><div class="b-n" style="color: #8891a0;">200</div></div>
-    <div class="b-row"><div class="b-pn">8888480189</div><div class="b-d">רצועת משאבת מים</div><div class="b-n">27</div><div class="b-n">9.0</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">9</div><div class="b-n" style="color: #8891a0;">64</div></div>
-    <div class="b-row"><div class="b-pn">6608497781C15</div><div class="b-d">דלת תא מטען</div><div class="b-n">23</div><div class="b-n">7.7</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">8</div><div class="b-n" style="color: #8891a0;">60</div></div>
-    <div class="b-row"><div class="b-pn">6608239773C90</div><div class="b-d">פגוש קדמי לינק 02</div><div class="b-n">22</div><div class="b-n">7.3</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">8</div><div class="b-n" style="color: #8891a0;">34</div></div>
-    <div class="b-row"><div class="b-pn">9100-90-91781</div><div class="b-d">כרית אויר עירוני</div><div class="b-n">21</div><div class="b-n">7.0</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">7</div><div class="b-n" style="color: #8891a0;">50</div></div>
-    <div class="b-row"><div class="b-pn">8889206198</div><div class="b-d">קיט רצועת מנוע + מותחן</div><div class="b-n">30</div><div class="b-n">10.0</div><div class="b-n">3</div><div class="b-n" style="color: #b23b32;">7</div><div class="b-n" style="color: #8891a0;">70</div></div>
-    <div class="b-row" style="color: #8891a0;"><div class="b-pn">6608054799</div><div class="b-d">סמל קדמי לינק</div><div class="b-n">19</div><div class="b-n">6.3</div><div class="b-n" style="color: #b23b32;">0</div><div class="b-n" style="color: #b23b32;">7</div><div class="b-n" style="color: #8891a0;">80</div></div>
-
-    <div style="padding: 5px 18px; font-size: 11px; color: #8891a0; border-bottom: 1px solid #e9edf3;">ועוד 18 פריטים בקבוצה</div>
-
-    <!-- קבוצות סגורות -->
-    <div class="b-sec" style="background: #ffffff;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8891a0" stroke-width="3"><path d="M15 6l-6 6 6 6"/></svg>
-      <div style="font-size: 13px; font-weight: 700;">חוסרים לטיפול</div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800;">11</div>
-      <div style="font-size: 11.5px; color: #6f7885;">ביקוש שהמלאי, הרכש והמלאי בהעברה אינם מכסים</div>
+    <div class="sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c9974a" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      <div style="font-size: 13px; font-weight: 700; color: #a37a2f;">מניעת חוסר</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800; color: #a37a2f;">8</div>
+      <div style="font-size: 11.5px; color: #6f7885;">כיסוי קצר מזמן האספקה · פיק חוזר · חשד אזילה פעיל</div>
       <div style="flex: 1 1 auto;"></div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #6f7885;">88 יח׳ חסרות</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #a37a2f;">88 יח׳</div>
     </div>
-    <div class="b-sec" style="background: #ffffff;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8891a0" stroke-width="3"><path d="M15 6l-6 6 6 6"/></svg>
-      <div style="font-size: 13px; font-weight: 700;">מניעת חוסר</div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800;">8</div>
-      <div style="font-size: 11.5px; color: #6f7885;">כיסוי קצר מזמן האספקה · פיק · חשד אזילה פעיל</div>
+    <div class="r"><div class="pn">1200-86-00359</div><div class="d">חומר בידוד אגזוז TS063</div><div class="a">לפתוח רכש יזום ל-64 יח׳ (השלמה ל-ROP המוצע)</div><div class="n" style="color: #a37a2f;">42</div><div class="n">1.4 / 4.0</div></div>
+    <div class="r"><div class="pn">6608017028</div><div class="d">צירייה אחורי שמאל לינק 02</div><div class="a">לפתוח רכש יזום ל-69 יח׳ (השלמה ל-ROP המוצע)</div><div class="n" style="color: #a37a2f;">20</div><div class="n">2.9 / 4.0</div></div>
+    <div class="r"><div class="pn">6608017027</div><div class="d">צירייה אחורי ימין לינק 02</div><div class="a">לפתוח רכש יזום ל-68 יח׳ (השלמה ל-ROP המוצע)</div><div class="n" style="color: #a37a2f;">19</div><div class="n">3.0 / 4.0</div></div>
+    <div class="r"><div class="pn">12888173NX</div><div class="d">מזרק יח מינון</div><div class="a">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div><div class="n" style="color: #a37a2f;">3</div><div class="n">1.9 / 1.0</div></div>
+    <div class="r"><div class="pn">8891481853</div><div class="d">נאבה קדמי שמאל+ימין</div><div class="a">לפתוח רכש יזום ל-5 יח׳ (השלמה ל-ROP המוצע)</div><div class="n" style="color: #a37a2f;">1</div><div class="n">2.4 / 4.0</div></div>
+    <div class="r"><div class="pn">8893340868B13</div><div class="d">פס קשת גלגל אחורי ימין</div><div class="a">לפתוח רכש יזום ל-4 יח׳ (השלמה ל-ROP המוצע)</div><div class="n" style="color: #a37a2f;">1</div><div class="n">2.4 / 4.0</div></div>
+    <div class="r"><div class="pn">12871960</div><div class="d">חיישן לחץ — מסנן חלקיקים לדוד פליטה</div><div class="a">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div><div class="n" style="color: #a37a2f;">1</div><div class="n">4.0 / 1.0</div></div>
+    <div class="r"><div class="pn">15558438</div><div class="d">מצערת אגזוז</div><div class="a">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div><div class="n" style="color: #a37a2f;">1</div><div class="n">3.0 / 1.0</div></div>
+
+    <div class="sec">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3f77ad" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      <div style="font-size: 13px; font-weight: 700; color: #2f5c88;">אוזל החודש</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800; color: #2f5c88;">37</div>
+      <div style="font-size: 11.5px; color: #6f7885;">ZM · צריכה 10+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר</div>
       <div style="flex: 1 1 auto;"></div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #2f5c88;">408 יח׳ · 25 במלאי אפס</div>
     </div>
-    <div class="b-sec" style="background: #ffffff; border-bottom: 0;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8891a0" stroke-width="3"><path d="M15 6l-6 6 6 6"/></svg>
-      <div style="font-size: 13px; font-weight: 700;">לקוח ממתין</div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 800;">3</div>
-      <div style="font-size: 11.5px; color: #6f7885;">הזמנת לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה</div>
-      <div style="flex: 1 1 auto;"></div>
-      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 11.5px; font-weight: 700; color: #6f7885;">9 יח׳</div>
-    </div>
+    <div class="r"><div class="pn">5511690886</div><div class="d">מצתים NGK</div><div class="a">קצב 103.3/חודש מול 27 במלאי · 445 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">77</div><div class="n">0.3</div></div>
+    <div class="r"><div class="pn">5511801478</div><div class="d">מסנן שמן 08 01</div><div class="a">מלאי אפס · קצב 28.7/חודש · 762 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">29</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">6608044172</div><div class="d">מסנן אוויר 08 01</div><div class="a">מלאי אפס · קצב 26.7/חודש · 645 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">27</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">1200-10-00031</div><div class="d">תושבת גומי LCK6125H / LCK6128H</div><div class="a">מלאי אפס · קצב 25.0/חודש · 240 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">25</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">6608276810</div><div class="d">סמל אחורי לינק 02</div><div class="a">מלאי אפס · קצב 18.7/חודש · 80 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">19</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">6608281419</div><div class="d">סמל תא מטען LYNK&amp;CO</div><div class="a">מלאי אפס · קצב 18.7/חודש · 90 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">19</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">9836-80-00375</div><div class="d">מהדק TS077</div><div class="a">9 במלאי מול קצב 25.7/חודש · שום דבר לא בהזמנה</div><div class="n" style="color: #2f5c88;">17</div><div class="n">0.4</div></div>
+    <div class="r"><div class="pn">8889293965</div><div class="d">בורג</div><div class="a">מלאי אפס · קצב 16.3/חודש · 120 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">17</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">FLF14004NN</div><div class="d">מסנן שמן 11 ליטר</div><div class="a">מלאי אפס · קצב 13.3/חודש · 48 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">14</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">8889377100</div><div class="d">בורג</div><div class="a">מלאי אפס · קצב 13.3/חודש · 130 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">14</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">6608242193</div><div class="d">רפידות בילום אחוריות 17" שמאל+ימין</div><div class="a">6 במלאי · קצב 18.3/חודש · 275 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">13</div><div class="n">0.3</div></div>
+    <div class="r"><div class="pn">6608239778C90</div><div class="d">פגוש אחורי — חלק תחתון</div><div class="a">מלאי אפס · קצב 11.0/חודש · 58 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">11</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r"><div class="pn">108600059601</div><div class="d">אטם פלג ריקון שמן</div><div class="a">מלאי אפס · קצב 10.0/חודש · 200 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">10</div><div class="n" style="color: #b23b32;">0</div></div>
+    <div class="r" style="border-bottom: 0;"><div class="pn">8888480189</div><div class="d">רצועת משאבת מים</div><div class="a">מלאי אפס · קצב 9.0/חודש · 64 בדרך ללא ETA</div><div class="n" style="color: #2f5c88;">9</div><div class="n" style="color: #b23b32;">0</div></div>
   </div>
 
   <div style="height: 30px; flex: 0 0 auto; background: #ffffff; border-top: 1px solid #dfe4ec; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 11px; color: #8891a0;">
-    <div>19 מתוך 59 מוצגים · 3 קבוצות סגורות</div>
-    <div style="display: flex; gap: 14px;"><span><b style="color: #1e2433;">↑↓</b> ניווט</span><span><b style="color: #1e2433;">↵</b> כרטיס הפריט (נפתח כמגירה)</span><span><b style="color: #1e2433;">/</b> חיפוש</span></div>
+    <div>25 מתוך 48 · גלילה לשאר «אוזל החודש»</div>
+    <div style="display: flex; gap: 14px;"><span><b style="color: #1e2433;">↑↓</b> ניווט</span><span><b style="color: #1e2433;">↵</b> כרטיס הפריט</span><span><b style="color: #1e2433;">Space</b> טופל</span><span><b style="color: #1e2433;">/</b> חיפוש</span></div>
   </div>
 </div>
 
