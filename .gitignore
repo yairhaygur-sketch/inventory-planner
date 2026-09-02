@@ -1,3 +1,7 @@
 node_modules/
 tests/zmrp-demo.xlsx
 tests/defects.xlsx
+
+# פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
+design/canvas/*.html
+!design/canvas/*.dc.html

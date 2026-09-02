@@ -28,6 +28,11 @@ const rows=[
  // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
  mk('SPORADIC',{months:[0,0,10,0,0,0,0,10,0,0,10],free:200}),
  mk('EDGE-ONLY',{months:[5,0,0,0,0,0,0,0,0,0,6],free:200}),
+ // ETA · רכש פתוח שמכסה את הלקוח, מלאי אפס. הרכש חסר ETA ולכן אינו כיסוי:
+ // ההחלטה חייבת להיות הכמות, לא "לבדוק Back Order אצל היצרן"
+ mk('PO-NO-ETA',{months:[20,20,20,20,20,20,20,20,20,20,20],free:0,po:500,cust:10}),
+ // אותו מבנה בדיוק, אבל הצריכה מתחת לסף — נשאר מעקב אספקה
+ mk('FOLLOW-OK',{months:[1,1,1,1,1,1,1,1,1,1,1],free:0,po:100,cust:5}),
  // COVERED · מלאי גדול, בלי הזמנות לקוח — כמו הדוח האמיתי שבו אין חוסרים
  mk('COVERED-1',{months:[8,8,8,8,8,8,8,8,8,8,8],free:900,cust:0,rop:5,ss:2}),
  mk('COVERED-2',{months:[6,6,6,6,6,6,6,6,6,6,6],free:800,cust:0,rop:5,ss:2}),
@@ -53,7 +58,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,rop:r.rop,
      act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
-          runOpen:g('RUN-STOCKOUT-OPEN'),low:g('LOW-DEMAND'),
+          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
           cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
@@ -79,6 +84,15 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     `drops=${o.spor.drops} · ${o.spor.cat}`);
  ok('פריט בשני קצוות בלבד אינו מסווג אזילה',o.edge.drops===0,
     `drops=${o.edge.drops} · ${o.edge.cat}`);
+ // E · רכש פתוח בלי ETA אינו כיסוי — ההחלטה היא הכמות, לא בירור מול הספק
+ ok('מלאי שלא מכסה חודש אינו מסווג מעקב אספקה',o.eta.q!=='follow'&&o.eta.cat!=='מעקב אספקה',
+    `${o.eta.q} · ${o.eta.cat} (לפני: follow · מעקב אספקה)`);
+ ok('וההחלטה היא הכמות החסרה',/^להשלים \d+ יח׳/.test(o.eta.act),o.eta.act);
+ ok('בירור ה-ETA יורד לפעולה נלווית',!/ETA|Back Order/.test(o.eta.act)&&/ETA/.test(o.eta.acts),o.eta.act);
+ ok('הלקוח הממתין והרכש הפתוח מוזכרים בהסבר',/500/.test(o.eta.acts)&&o.eta.sev===2,`sev=${o.eta.sev}`);
+ ok('אותו מבנה מתחת לסף הצריכה נשאר מעקב אספקה',o.fok.cat==='מעקב אספקה',
+    `${o.fok.q} · ${o.fok.cat}`);
+
  // C · ביקוש זעום עם פרמטרים גבוהים ב-SAP
  ok('פריט 2 יח׳/שנה עם ROP=200 אינו "תקין"',o.low.cat!=='תקין',o.low.cat);
  ok('ומוצעת לו פעולת איפוס',/איפוס/.test(o.low.act),o.low.act);

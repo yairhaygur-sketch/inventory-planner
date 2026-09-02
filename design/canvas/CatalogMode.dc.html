@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Archivo:wght@600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #3f77ad; } a:hover { color: #2f5c88; }
+    .r { display: grid; grid-template-columns: 138px 1fr 108px 74px 74px 96px 110px; align-items: center;
+      gap: 14px; padding: 0 18px; height: 23px; border-bottom: 1px solid #e9edf3; }
+    .pn { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12px; direction: ltr; text-align: right; }
+    .n { font-family: 'Archivo',Arial,sans-serif; font-weight: 700; font-size: 12.5px; text-align: left; }
+    .d { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .h { font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em; color: #8891a0; }
+    .tag { font-size: 10px; font-weight: 700; padding: 1px 7px; white-space: nowrap; text-align: center; }
+  </style>
+</helmet>
+
+<div dir="rtl" style="width: 1440px; height: 900px; background: #eef1f7; color: #1e2433; font-family: 'Rubik','Assistant',Arial,sans-serif; display: flex; flex-direction: column;">
+
+  <div style="height: 42px; flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #dfe4ec; display: flex; align-items: center; gap: 14px; padding: 0 18px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="width: 22px; height: 22px; background: #1e2433; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">מ</div>
+      <div style="font-size: 13.5px; font-weight: 700;">מרכז עבודה יומי</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 9.5px; font-weight: 700; color: #8891a0; border: 1px solid #dfe4ec; padding: 0 4px; line-height: 15px;">31.08 08:37</div>
+    </div>
+    <div style="flex: 1 1 auto;"></div>
+    <div style="display: flex; align-items: center; gap: 7px; border: 1px solid #3f77ad; background: #ffffff; padding: 0 9px; height: 26px; width: 340px; box-shadow: inset 0 -2px 0 #3f77ad;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3f77ad" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="font-size: 12px;">מסנן</span><span style="width: 1px; height: 13px; background: #3f77ad;"></span>
+      <span style="font-size: 11.5px; color: #8891a0;">14 תוצאות</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: #6f7885;">
+      <div style="border: 1px solid #dfe4ec; padding: 4px 10px;">July 2026</div>
+      <div style="border: 1px solid #dfe4ec; padding: 4px 10px;">ייצוא</div>
+      <div style="background: #1e2433; color: #ffffff; padding: 4px 12px; font-weight: 600;">העלאת ZMRP</div>
+    </div>
+  </div>
+
+  <div style="flex: 0 0 auto; background: #ffffff; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 2px solid #1e2433;">
+    <div style="padding: 12px 18px 11px; border-inline-start: 1px solid #dfe4ec; display: flex; align-items: center; gap: 12px;">
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #6f7885;">48</div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 14px; font-weight: 700; color: #6f7885;">היום</div>
+        <div style="font-size: 11px; color: #8891a0;">לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש</div>
+      </div>
+    </div>
+    <div style="padding: 12px 18px 11px; border-inline-start: 1px solid #dfe4ec; display: flex; align-items: center; gap: 12px;">
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1; color: #6f7885;">576</div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 14px; font-weight: 700; color: #6f7885;">החודש</div>
+        <div style="font-size: 11px; color: #8891a0;">לתכנן — פרמטרים, המלצות MRP, מעקב אספקה</div>
+      </div>
+    </div>
+    <div style="padding: 12px 18px 11px; display: flex; align-items: center; gap: 12px; background: #eef1f5; box-shadow: inset 0 -3px 0 #6f7885;">
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 30px; font-weight: 800; line-height: 1;">7,569</div>
+      <div style="display: flex; flex-direction: column; gap: 2px;">
+        <div style="font-size: 14px; font-weight: 700;">הקטלוג</div>
+        <div style="font-size: 11px; color: #6f7885;">לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #dfe4ec; padding: 10px 18px 11px; display: flex; align-items: center; gap: 16px;">
+    <div style="display: flex; align-items: baseline; gap: 8px;">
+      <div style="font-size: 12.5px; font-weight: 700;">הון כלוא</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 15px; font-weight: 800; color: #1e2433;">$1,049,124</div>
+      <div style="font-family: 'Archivo',Arial,sans-serif; font-size: 13px; font-weight: 700; color: #6f7885;">· ₪246,103 · €2,468</div>
+    </div>
+    <div style="width: 1px; height: 22px; background: #dfe4ec;"></div>
+    <div style="display: flex; gap: 16px; font-size: 11.5px; color: #6f7885;">
+      <span>מלאי מת <b style="font-family: 'Archivo',Arial,sans-serif; color: #1e2433;">2,473</b></span>
+      <span>טרם הוכיח את עצמו <b style="font-family: 'Archivo',Arial,sans-serif; color: #1e2433;">352</b></span>
+      <span>רקע / PD <b style="font-family: 'Archivo',Arial,sans-serif; color: #1e2433;">4,147</b></span>
+    </div>
+    <div style="flex: 1 1 auto;"></div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #6f7885;">
+      <span style="color: #8891a0;">סינון:</span>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">מותג</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">דגם</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">ספק</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">גיל מלאי</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">+ 5</div>
+      <div style="border: 1px solid #dfe4ec; padding: 2px 9px;">⚑ סמן</div>
+    </div>
+  </div>
+
+  <div class="r" style="height: 22px; background: #ffffff; border-bottom: 1px solid #dfe4ec;">
+    <div class="h">מק״ט</div><div class="h">תיאור</div><div class="h" style="text-align: center;">גיל מלאי</div>
+    <div class="h" style="text-align: left;">מלאי</div><div class="h" style="text-align: left;">עודף</div>
+    <div class="h" style="text-align: left;">הון כלוא</div><div class="h" style="text-align: left;">כיסוי</div>
+  </div>
+
+  <div style="flex: 1 1 auto; background: #ffffff; overflow: hidden;">
+    <div class="r"><div class="pn">6608239774C15</div><div class="d">מכסה מנוע</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">92</div><div class="n">78</div><div class="n">$34,598</div><div class="n">78.9</div></div>
+    <div class="r"><div class="pn">6608233672C15</div><div class="d">דלת קדמית שמאל</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">79</div><div class="n">67</div><div class="n">$33,682</div><div class="n">66.1</div></div>
+    <div class="r"><div class="pn">6608249355</div><div class="d">ראדר שטח מת</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">184</div><div class="n">167</div><div class="n">$29,923</div><div class="n">129.4</div></div>
+    <div class="r"><div class="pn">15579409PX</div><div class="d">מַזרֵק</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">5</div><div class="n">4</div><div class="n">₪26,229</div><div class="n">52.0</div></div>
+    <div class="r"><div class="pn">6608233671C15</div><div class="d">דלת אחורית שמאל</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">63</div><div class="n">54</div><div class="n">$26,113</div><div class="n">62.7</div></div>
+    <div class="r" style="background: #fbeceb;"><div class="pn">5594422</div><div class="d">משאבת דלק (1000-86-902)</div><div><div class="tag" style="background: #fbeceb; color: #b23b32;">מלאי מת</div></div><div class="n">1</div><div class="n">1</div><div class="n">₪24,493</div><div class="n">—</div></div>
+    <div class="r"><div class="pn">6608008316</div><div class="d">פנס אחורי כנף ימין</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">104</div><div class="n">92</div><div class="n">$20,556</div><div class="n">85.3</div></div>
+    <div class="r"><div class="pn">6608008315</div><div class="d">פנס אחורי כנף שמאל</div><div><div class="tag" style="background: #fdf5e9; color: #a37a2f;">מלאי איטי</div></div><div class="n">101</div><div class="n">90</div><div class="n">$20,109</div><div class="n">82.7</div></div>
+    <div class="r" style="border-bottom: 0; height: 46px; align-items: center;">
+      <div style="grid-column: 1 / -1; font-size: 11.5px; color: #8891a0; text-align: center; border-top: 1px dashed #dfe4ec; padding-top: 12px;">
+        ועוד 7,561 פריטים · מיון וסינון על כל עמודה · <b style="color: #1e2433;">/</b> לחיפוש בכל הקטלוג
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 30px; flex: 0 0 auto; background: #ffffff; border-top: 1px solid #dfe4ec; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; font-size: 11px; color: #8891a0;">
+    <div>ממוין לפי הון כלוא · 80% מהחשיפה מרוכזים ב-2,473 פריטי מלאי מת ואיטי</div>
+    <div style="display: flex; gap: 14px;"><span><b style="color: #1e2433;">↑↓</b> ניווט</span><span><b style="color: #1e2433;">↵</b> כרטיס הפריט</span><span><b style="color: #1e2433;">/</b> חיפוש</span></div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>
