@@ -543,10 +543,29 @@ button:focus-visible,input:focus-visible,label.btn:focus-visible,.tab:focus-visi
 
 /* ============ תקציב גובה — הרשימה מקבלת את המסך ============ */
 /* מדוד ב-1512x860: תור העבודה קיבל 178px (3 שורות מתוך 124). היעד: ~555px. */
-.dash{grid-template-columns:220px minmax(0,1fr) 380px;grid-template-rows:auto minmax(0,1fr)}
+.dash{position:relative;grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
 .wfilters{grid-column:1;grid-row:2}
 .wqueue{grid-column:2;grid-row:2}
-.wdetail{grid-column:3;grid-row:2}
+/* ============ כרטיס הפריט כמגירה ============ */
+/* הכרטיס תפס 20% מהמסך גם כשלא נבחר פריט — 11 שורות גלויות מתוך 7,569.
+   כמגירה הוא יוצא מהגריד, נפתח מעל התור רק כשיש מה להראות בו,
+   ומחזיר את הרוחב לרשימה ברגע שסוגרים. */
+.wdetail{position:absolute;inset-block:0;inset-inline-end:0;z-index:60;
+ width:min(486px,42vw);grid-column:2;grid-row:2;
+ border-inline-start:2px solid var(--line);box-shadow:var(--shadowH);
+ transform:translateX(-100%);transition:transform .16s ease;
+ display:flex;flex-direction:column;pointer-events:none}
+body.dopen .wdetail{transform:none;pointer-events:auto}
+@media(max-width:1180px){.wdetail{width:min(486px,72vw)}}
+@media(prefers-reduced-motion:reduce){.wdetail{transition:none}}
+.wdetail .rz{display:none}
+.dclose{position:absolute;inset-block-start:9px;inset-inline-start:10px;z-index:2;
+ width:26px;height:26px;border:1px solid var(--line);background:var(--panel);
+ color:var(--dim);cursor:pointer;font-family:inherit;font-size:13px;line-height:1;
+ display:flex;align-items:center;justify-content:center;padding:0}
+.dclose:hover{color:var(--red);border-color:var(--red)}
+body:not(.dopen) .dclose{display:none}
+.wdetail .ohead{padding-inline-start:46px}
 #movesPanel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 #movesPanel .wbody,#movesPanel .qbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 
@@ -689,12 +708,12 @@ td.pnc{padding:5px 14px;font-size:13px}
 .wqueue .qbody.tabsover::before{opacity:1}
 @media(max-width:1600px){ .tab{min-width:90px;padding:5px 8px 6px} .tab .t{font-size:11px} }
 @media(max-width:1400px){
- .dash{grid-template-columns:200px minmax(0,1fr) 340px}
+ .dash{grid-template-columns:200px minmax(0,1fr)}
  .tab{min-width:84px;padding:5px 7px 6px}
  .phd #phdSub{display:none}
 }
 @media(max-width:1180px){
- .dash{grid-template-columns:184px minmax(0,1fr) 316px}
+ .dash{grid-template-columns:184px minmax(0,1fr)}
  .kpis{grid-template-columns:1.7fr 1fr 1fr}
  .tab{min-width:94px;padding:5px 8px 6px}
  .kv{grid-template-columns:repeat(3,1fr)}
@@ -769,7 +788,8 @@ td.pnc{padding:5px 14px;font-size:13px}
   </section>
   <section class="widget wdetail" id="w_detail" data-w="detail">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">פרטי פריט</span><span class="wsp"><span class="wx" data-hide="detail" title="הסתר">✕</span></span></div>
-    <div class="wbody"><div class="detail" id="detail"><div class="empty">העלה קובץ ZMRP ובחר מק״ט מהרשימה</div></div></div>
+    <button class="dclose" id="dclose" type="button" title="סגירה (Esc)">✕</button>
+    <div class="wbody"><div class="detail" id="detail"><div class="empty">בחר מק״ט מהרשימה</div></div></div>
     <div class="rz" data-rz="detail" title="שינוי גודל"></div>
   </section>
   <section class="widget wmoves" id="w_moves" data-w="moves">
@@ -1295,6 +1315,8 @@ function normalizeLayout(){WIDGETS.forEach(([id])=>{if(!LAYOUT.order.includes(id
 function applyLayout(){normalizeLayout();
   LAYOUT.order.forEach((id,i)=>{const el=document.getElementById('w_'+id);if(!el)return;
     el.style.order=i;el.style.display=LAYOUT.hidden.includes(id)?'none':'';
+    if(id==='detail'){el.classList.remove('sized');el.style.flexBasis='';el.style.height='';
+      if(LAYOUT.hidden.includes('detail'))closeDetail();return}
     const sz=LAYOUT.sizes[id];
     if(sz&&(sz.w!=null||sz.h!=null)){el.classList.add('sized');
       if(sz.w!=null&&id!=='kpis')el.style.flexBasis=sz.w+'px';
@@ -1356,6 +1378,10 @@ function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
 const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
+/* המגירה נפתחת רק כשיש פריט להראות, ונסגרת ב-Esc או בכפתור */
+function openDetail(){if(!LAYOUT.hidden.includes('detail'))document.body.classList.add('dopen')}
+function closeDetail(){document.body.classList.remove('dopen');
+ document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'))}
 let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
@@ -1991,7 +2017,7 @@ function decisionBlock(r){
   <div class="dcs2">${sub}</div>
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div></div>`}
-function detail(r){CURRENT_DETAIL=r;const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
+function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
  const notes=[];
  if(A.spikes.length)notes.push(A.spikes.map(s=>`פיק ב${LABELS[s.i-1].name}: ${s.q} — פי ${s.x}`).join(' · '));
  if(A.drops.length)notes.push('<span style="color:var(--purple);font-weight:700">'+A.drops.map(s=>`צניחה ב${LABELS[s.i-1].name}: ${s.q} — חשד אזילה`).join(' · ')+'</span>');
@@ -2094,6 +2120,7 @@ function explain(r){const A=r.A;
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
    <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים (v0.11) — כדי לשקף תנודתיות אמיתית. לגושי/ספורדי נוספת רצפת-הגנת-פיק. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. חודשי אזילה הוחלפו בחציון ופיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
+document.getElementById('dclose').onclick=()=>closeDetail();
 document.getElementById('mclose').onclick=()=>document.getElementById('modalwrap').classList.remove('open');
 document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')document.getElementById('modalwrap').classList.remove('open')};
 document.getElementById('onlyTasks').onclick=function(){onlyTasks=!onlyTasks;this.classList.toggle('on',onlyTasks);render()};
@@ -2254,7 +2281,10 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'){
   if(typing){t.blur();return}
   document.querySelectorAll('.ddpanel,.menu').forEach(x=>x.classList.remove('open'));
-  closeSug();closeColPop();document.getElementById('modalwrap').classList.remove('open');return}
+  closeSug();closeColPop();
+  const mw=document.getElementById('modalwrap');
+  if(mw.classList.contains('open')){mw.classList.remove('open');return}
+  closeDetail();return}
  if(typing)return;
  const K=e.key;
  if(K==='/'){e.preventDefault();focusQ();return}
