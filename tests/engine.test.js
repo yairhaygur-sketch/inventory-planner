@@ -22,6 +22,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    hasCurrency: smp.some(r=>r.currency==='USD'),
    priceIsBZ:   smp.filter(r=>r.price>0).length,
    tracks:      TRACKS.map(t=>t[0]).join(','),
+   modes:       MODES.map(m=>m[0]).join(','),
+   modeDefault: mode,
+   modeCounts:  MODES.map(m=>m[0]+'='+modeRows(m[0]).length).join(' '),
+   tabsShown:   document.querySelectorAll('#tabs .tab').length,
+   trackStrip:  getComputedStyle(document.getElementById('track')).display,
    trackDefault:track,
    diag:        DIAG.warn.join(' | '),
    kpiLabels:   [...document.querySelectorAll('#kpis .kpi .l')].map(e=>e.textContent),
@@ -37,7 +42,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('BE (מטבע FOB) נקרא ונשמר',st.hasCurrency);
  ok('BZ (מחיר FOB) הוא מקור המחיר',st.priceIsBZ>0,st.priceIsBZ+' פריטים עם מחיר');
  ok('מסלולים: short/m1/cap/fix',st.tracks==='short,m1,cap,fix',st.tracks);
- ok('ברירת מחדל = short',st.trackDefault==='short');
+ ok('שלושה מצבים: היום/החודש/קטלוג',st.modes==='today,month,catalog',st.modes);
+ ok('ברירת מחדל = היום',st.modeDefault==='today'&&st.trackDefault==='short');
+ ok('ארבעה יעדים בסרגל במקום 11',st.tabsShown===4,st.tabsShown+' אריחים');
+ ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
+ ok('לכל מצב יש תוכן',/today=[1-9]/.test(st.modeCounts)&&/month=[1-9]/.test(st.modeCounts)&&/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
  ok('אזהרת DIAG על FOB בלבד',!/מחיר מכירה/.test(st.diag),st.diag.slice(0,90)||'(אין אזהרות)');
 
@@ -131,11 +140,24 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
 
  // מעבר בין המסלולים
- for(const t of ['short','m1','cap','fix']){
+ for(const t of ['short','m1','cap','fix','month']){
   await p.evaluate(k=>{track=k;render()},t);await p.waitForTimeout(350);
   const n=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
   ok('מסלול '+t+' מרנדר',n>0,n+' שורות');
  }
+ for(const m of ['today','month','catalog']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(350);
+  const x=await p.evaluate(()=>({n:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+    mode,cur,track,cols:document.querySelectorAll('#tbl thead th').length}));
+  ok('מצב '+m+' מרנדר',x.n>0&&x.mode===m,`${x.n} שורות · cur=${x.cur} track=${x.track} · ${x.cols} עמודות`);
+ }
+ /* כל פריט בתור עבודה חייב להיות נגיש מאחד המצבים — שום תצוגה לא אבדה */
+ const reach=await p.evaluate(()=>{const t=new Set(modeRows('today')),m=new Set(modeRows('month')),c=new Set(modeRows('catalog'));
+   const work=['waiting','immediate','follow','prevent','excess','quality'].flatMap(k=>Q[k]);
+   const lost=work.filter(r=>!t.has(r)&&!m.has(r)&&!c.has(r));
+   return {work:work.length,lost:lost.length,cats:[...new Set(lost.map(r=>r.cat))].join(',')}});
+ ok('אף פריט עבודה לא אבד במעבר למצבים',reach.lost===0,`${reach.work} פריטים · אבדו ${reach.lost} ${reach.cats}`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
  await p.evaluate(()=>{track='short';render()});await p.waitForTimeout(300);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
  const dt=await p.evaluate(()=>document.getElementById('detail').innerText);

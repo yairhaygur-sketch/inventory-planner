@@ -565,6 +565,12 @@ body.dopen .wdetail{transform:none;pointer-events:auto}
  display:flex;align-items:center;justify-content:center;padding:0}
 .dclose:hover{color:var(--red);border-color:var(--red)}
 body:not(.dopen) .dclose{display:none}
+/* בקטלוג יש עשר עמודות. ב-1180 הגרף החודשי יורד — הוא כפול לכרטיס הפריט,
+   ובלעדיו כל שאר העמודות נכנסות בלי גלילה אופקית. */
+@media(max-width:1180px){
+ body.mode-catalog #tbl thead th:nth-child(4),
+ body.mode-catalog #tbl tbody td:nth-child(4){display:none}
+}
 .wdetail .ohead{padding-inline-start:46px}
 #movesPanel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 #movesPanel .wbody,#movesPanel .qbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
@@ -1387,15 +1393,30 @@ let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
 const TRACKS=[['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+/* ============ שלושת המצבים ============
+   9 טאבים ו-4 מסלולים היו 13 יעדים לעבודה של 48 פריטים, ושניים מהיעדים
+   ריקים לגמרי. המצב הוא שכבה מעל cur ו-track הקיימים: הוא בוחר אותם,
+   ומנוע הרינדור ממשיך לעבוד בדיוק כפי שעבד. שום תצוגה לא הולכת לאיבוד —
+   עודף, רקע, מסומנים ותנועות נגישים מתוך "הקטלוג". */
+const MODES=[
+ ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--red)'],
+ ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--purple)'],
+ ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--gray)']];
+const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'}};
+let mode='today';
+function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
+ return c.cur==='today'?decisionList(c.track):(QF.all||[]).filter(passColFilters)}
+function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
+ cur=c.cur;track=c.track;trackPicked=true;closeDetail();
+ MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
+ render()}
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
 /* "החלטות היום" הוא המסך הראשי. אם מסלול החוסרים ריק — ויכול להיות ריק
    לגמרי כשאין הזמנות לקוח ללא כיסוי — לא מציגים רשימה ריקה אלא עוברים
    למסלול שיש בו עבודה. ברגע שהמשתמש בוחר מסלול ידנית, הבחירה שלו קובעת. */
-function autoTrack(){
- if(trackPicked)return;
- if(decisionList(track).length)return;
- for(const [k] of TRACKS){if(k!==track&&decisionList(k).length){track=k;return}}}
+/* המצב קובע את המסלול, ולכן אין יותר החלפה אוטומטית מאחורי הגב */
+function autoTrack(){}
 function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
  const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
  return `background:${bg};color:${fg}`}
@@ -1409,7 +1430,9 @@ function m1Rows(base){return base.filter(isM1)
  .sort((a,b)=>(b.r3-b.free)-(a.r3-a.free))}
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
- const out=tr==='fix'?base.filter(r=>r.paramFix).sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
+ /* "החודש" = תיקוני פרמטרים + מעקב אספקה — עבודת התכנון החודשית מול SAP */
+ const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&QF.follow.includes(r)))
+    .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='short'?base.filter(r=>r.miss>0).sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
   :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>(b[TRACKKEY[tr]]||0)-(a[TRACKKEY[tr]]||0));
@@ -1472,27 +1495,28 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
   ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div></div>`
   :`<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div></div>`).join('');
  document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
-function tiles(){const movBase=(QF&&QF.all?QF.all:[]).filter(passColFilters);
- document.getElementById('tabs').innerHTML=DEF.map(([k,t,s,c])=>{
- const a=k==='today'?decisionList(track):k==='all'?QF.all:k==='moves'?movList(movTab,movBase):QF[k];
- /* טאב ריק לא גוזל רוחב — חוץ מהקבועים ומזה שנבחר כרגע */
- if(!a.length&&k!=='today'&&k!=='all'&&k!==cur)return '';
- const val=r=>(k==='today'&&TRACKKEY[track])?(r[TRACKKEY[track]]||0):(r.risk||0);
- const sum=k==='moves'?0:a.reduce((x,r)=>x+val(r),0);
- /* טאבי החוסרים מציגים יחידות; כסף רק במסלול ההון הכלוא */
- let mn=s;
- if(k==='today'){const c=cut80(a,track);
-   mn=track==='fix'?'ניתן לעדכן במרוכז'
-     :track==='short'?`${a.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
-     :`80% ב-${c.n} פריטים`}else
- if(k==='marked'){const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;mn=handled?`${handled} טופלו`:`מסומנים`}
- else if(k==='passive')mn='רקע';else if(k==='all')mn=`${QF.ok.length} ללא ממצא`;
- else if(k==='moves')mn=MOVDEF.find(d=>d[0]===movTab)[1];
- const mny=sum>0?`<div class="tsum">${moneyMix(a,val,true,1)}</div>`:'';
- const mnyFull=sum>0?moneyMix(a,val,false):'';
- /* שורת ההסבר עברה ל-title — היא עלתה 27px גובה בכל טאב */
- return `<div class="tab ${k===cur?'sel':''}" style="--c:${c}" data-k="${k}" title="${esc(t+' — '+mn+(mnyFull?'\n'+mnyFull:''))}"><div class="t">${t}</div><div class="nrow"><span class="n">${a.length}</span></div>${mny}<div class="m">${mn}</div></div>`}).join('');
- document.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{cur=e.dataset.k;render()})}
+function tiles(){
+ const t=document.getElementById('tabs');
+ t.innerHTML=MODES.map(([k,name,sub,c])=>{
+  const rows=modeRows(k);
+  let mn=sub;
+  if(k==='today'){const u=rows.reduce((x,r)=>x+(r.miss||0),0);
+    mn=u?`${u.toLocaleString('he-IL')} יח׳ חסרות`:sub}
+  else if(k==='month'){const ex=rows.filter(r=>r.paramFix).length;
+    mn=ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:sub}
+  else{const cap=decisionList('cap');
+    mn=cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true,1)}`:sub}
+  return `<div class="tab mode ${k===mode?'sel':''}" style="--c:${c}" data-m="${k}"
+   title="${esc(name+' — '+sub)}"><div class="t">${name}</div>
+   <div class="nrow"><span class="n">${rows.length.toLocaleString('he-IL')}</span></div>
+   <div class="m">${mn}</div></div>`}).join('')
+  +`<div class="tab modx ${cur==='moves'?'sel':''}" style="--c:var(--blue)" data-m="moves"
+     title="תנועות — CF · CG · נכנס ולא נמכר"><div class="t">תנועות</div>
+     <div class="nrow"><span class="n">${(QF&&QF.all?QF.all:[]).length?'▤':''}</span></div>
+     <div class="m">CF · CG</div></div>`;
+ t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
+   if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
+   setMode(e.dataset.m)})}
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
  ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא ₪','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
@@ -1723,11 +1747,14 @@ function renderBulk(rows){
   menu.classList.remove('open');
   const done=setMarks(rows.slice(),t,'');
   toast(`${done.toLocaleString('he-IL')} פריטים · ${lbl}`,{label:'בטל',run:undoBulk})});}
+/* רצועת המסלולים ירדה: המצב בוחר את המסלול. הפונקציה נשארת כדי
+   שהרצועה לא תופיע כשחוזרים ממסך התנועות. */
 function renderTrack(){const t=document.getElementById('track');if(!t)return;
+ t.innerHTML='';t.style.display='none';if(1)return;
  t.style.display='';
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
-function decisionHead(){const cols=track==='fix'
+function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
   :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
@@ -1736,7 +1763,7 @@ function decisionHead(){const cols=track==='fix'
 function renderDecisions(rows){
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
- const lim=track==='fix'?300:Math.min(rows.length,Math.max(300,c.n+3));
+ const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
  const view=rows.slice(0,lim),body=[];
  let acc=0;
  view.forEach((r,i)=>{
@@ -1750,7 +1777,7 @@ function renderDecisions(rows){
     <td class="num miss"><b>${gap}</b></td>
     <td class="num">${r.po>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td></tr>`);
    return}
-  if(track==='fix'){
+  if(track==='fix'||track==='month'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
@@ -1777,6 +1804,7 @@ function renderDecisions(rows){
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='cap'?'אין הון כלוא במסלול הזה.'
+     :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
@@ -1788,12 +1816,12 @@ function renderDecisions(rows){
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
- document.getElementById('pgR').textContent=track==='fix'?'ניתן לעדכן במרוכז ב-SAP'
+ document.getElementById('pgR').textContent=(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
- document.getElementById('phdSub').textContent=track==='fix'
-  ?'פעולות תפעוליות ללא חשיפה כספית ישירה — יישור פרמטרים מול המומלץ'
+ document.getElementById('phdSub').textContent=(track==='fix'||track==='month')
+  ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
@@ -1802,7 +1830,7 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  showMovesPanel(false);
  const rows=currentRows();
  updateQStat(rows.length);
- document.getElementById('lt').textContent=DEF.find(d=>d[0]===cur)[1];
+ document.getElementById('lt').textContent=cur==='moves'?'תנועות':(MODES.find(d=>d[0]===mode)||[,''])[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
  renderBulk(rows);
  if(cur==='today'){renderTrack();renderDecisions(rows);return}
@@ -2306,6 +2334,7 @@ document.addEventListener('keydown',e=>{
  if(!el||isNaN(d))return;
  const p2=n=>String(n).padStart(2,'0');
  el.textContent=`${p2(d.getDate())}.${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`})();
+document.body.classList.add('mode-today');
 applyDark(DARKON);
 LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));applyLayout();
 ['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
