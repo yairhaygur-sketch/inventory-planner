@@ -565,6 +565,10 @@ body.dopen .wdetail{transform:none;pointer-events:auto}
  display:flex;align-items:center;justify-content:center;padding:0}
 .dclose:hover{color:var(--red);border-color:var(--red)}
 body:not(.dopen) .dclose{display:none}
+.dchip{border:1px solid var(--org);background:var(--orgL);color:#a37a2f;font-family:var(--num);
+ font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;line-height:1.4}
+.dchip:hover,.dchip.on{background:var(--org);color:var(--bg);border-color:var(--org)}
+.dchip[hidden]{display:none}
 /* כותרת קבוצה במצב "היום" */
 tr.grp td{background:var(--panel2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
  border-inline-start:3px solid var(--gc,var(--neutral));padding:0 12px;height:28px;cursor:pointer;
@@ -757,6 +761,7 @@ td.pnc{padding:5px 14px;font-size:13px}
   </div>
   <div class="sp">
     <span class="rdlbl">חודש בסיס:</span><input type="month" id="rd" title="החודש המלא האחרון בדוח">
+    <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
     <span class="updated" id="updated">לא נטען קובץ</span>
     <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
   </div>
@@ -1314,8 +1319,11 @@ function undoBulk(){
  saveMarks();apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
 function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;if(!t){delete MARKS[key];if(it)delete MARKS[it.pn]}else{MARKS[key]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
 const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
-const LAY_KEY='planner_layout_v1';
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:[],sizes:{}};
+const LAY_KEY='planner_layout_v2';
+/* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
+   ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
+   81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis'],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -2201,6 +2209,7 @@ function explain(r){const A=r.A;
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
    <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים (v0.11) — כדי לשקף תנודתיות אמיתית. לגושי/ספורדי נוספת רצפת-הגנת-פיק. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. חודשי אזילה הוחלפו בחציון ופיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
+document.getElementById('dchip').onclick=()=>toggleDiag();
 document.getElementById('dclose').onclick=()=>closeDetail();
 document.getElementById('mclose').onclick=()=>document.getElementById('modalwrap').classList.remove('open');
 document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')document.getElementById('modalwrap').classList.remove('open')};
@@ -2279,7 +2288,16 @@ function showDiag(){const el=document.getElementById('diag');
  if(DIAG.fellBack.length)parts.push('ℹ עמודות שזוהו לפי מיקום: '+DIAG.fellBack.join(', '));
  if(DIAG.moves&&(!DIAG.moves.salesByName||!DIAG.moves.entriesByName)){const mv=DIAG.moves;
    parts.push(`ℹ תנועה אחרונה לפי מיקום: מכירות ← ${mv.salesCol} ("${mv.salesHdr||'—'}") · כניסות ← ${mv.entriesCol} ("${mv.entriesHdr||'—'}").`)}
- if(parts.length){el.className='diag show warn';el.innerHTML=parts.join('<br>')}else{el.className='diag';el.innerHTML=''}}
+ /* אזהרות אינן עוצרות עבודה, והפס תפס 33px קבועים — כארבע שורות רשימה
+    לאורך כל היום. הן מתקפלות לשבב בסרגל העליון שנפתח בלחיצה.
+    שגיאות (hardStop) נשארות פס מלא — הן כן עוצרות. */
+ const chip=document.getElementById('dchip');
+ if(parts.length){el.className='diag warn';el.innerHTML=parts.join('<br>');
+   chip.hidden=false;document.getElementById('dchipN').textContent=parts.length;
+   chip.title=parts.join(' · ').replace(/<[^>]+>/g,'')}
+ else{el.className='diag';el.innerHTML='';chip.hidden=true}}
+function toggleDiag(){const el=document.getElementById('diag');
+ el.classList.toggle('show');document.getElementById('dchip').classList.toggle('on',el.classList.contains('show'))}
 let ALL_RAW=null;
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
  document.getElementById('updated').textContent='קורא קובץ...';
