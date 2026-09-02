@@ -565,6 +565,17 @@ body.dopen .wdetail{transform:none;pointer-events:auto}
  display:flex;align-items:center;justify-content:center;padding:0}
 .dclose:hover{color:var(--red);border-color:var(--red)}
 body:not(.dopen) .dclose{display:none}
+/* כותרת קבוצה במצב "היום" */
+tr.grp td{background:var(--panel2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+ border-inline-start:3px solid var(--gc,var(--neutral));padding:0 12px;height:28px;cursor:pointer;
+ white-space:nowrap;overflow:hidden}
+tr.grp:hover td{background:var(--accL)}
+tr.grp b{font-size:12.5px;color:var(--gc,var(--ink))}
+tr.grp .gcar{font-family:var(--num);font-size:12px;color:var(--gc,var(--dim));margin-inline-end:7px}
+tr.grp .gn{font-family:var(--num);font-size:12.5px;font-weight:800;color:var(--gc,var(--ink));margin-inline-start:8px}
+tr.grp .gs{font-size:11px;color:var(--dim);margin-inline-start:12px}
+tr.grp .gu{font-family:var(--num);font-size:11.5px;font-weight:700;color:var(--gc,var(--dim));float:left}
+tr.grp.coll b,tr.grp.coll .gn{opacity:.75}
 /* בקטלוג יש עשר עמודות. ב-1180 הגרף החודשי יורד — הוא כפול לכרטיס הפריט,
    ובלעדיו כל שאר העמודות נכנסות בלי גלילה אופקית. */
 @media(max-width:1180px){
@@ -1404,6 +1415,25 @@ const MODES=[
  ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--gray)']];
 const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'}};
 let mode='today';
+/* ============ קבוצות בתוך "היום" ============
+   48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
+   הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
+const TGROUP=[
+ ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי הזמנת רכש פתוחה','var(--red)'],
+ ['prevent','מניעת חוסר','כיסוי קצר מזמן האספקה · פיק חוזר · חשד אזילה','var(--org)'],
+ ['m1','אוזל החודש','צריכה ברבעון מול מלאי פנוי שלא מכסה חודש','var(--acc)']];
+/* הקיבוץ עונה על "מה אעשה", לא על "איך זה מסווג": פריט שהוא גם אזילה
+   שזוהתה וגם חוסר של החודש הקרוב מקבל את החלטת הכמות, ולכן שייך
+   ל"אוזל החודש" גם אם הסיווג שלו הוא "חשד אזילה". */
+function tGroup(r){if(!QF)return 'prevent';
+ return (QF.waiting.includes(r)||QF.immediate.includes(r))?'wait':(isM1(r)?'m1':'prevent')}
+const GC_KEY='planner_groups_v1';
+let GCOLL=new Set();try{GCOLL=new Set(JSON.parse(localStorage.getItem(GC_KEY)||'[]'))}catch(_){}
+function toggleGroup(g){GCOLL.has(g)?GCOLL.delete(g):GCOLL.add(g);
+ try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}
+ closeDetail();render()}
+function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
+ for(const r of rows)(by[tGroup(r)]||by.prevent).push(r);return by}
 function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
  return c.cur==='today'?decisionList(c.track):(QF.all||[]).filter(passColFilters)}
 function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
@@ -1764,9 +1794,31 @@ function renderDecisions(rows){
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
  const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
- const view=rows.slice(0,lim),body=[];
+ /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
+ const grouped=track==='short';
+ const GB=grouped?groupRows(rows):null;
+ const view=grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim):rows.slice(0,lim);
+ const body=[];
  let acc=0;
- view.forEach((r,i)=>{
+ if(grouped){let idx=0;
+  for(const [g,name,sub,col] of TGROUP){const list=GB[g];
+   const units=list.reduce((t,r)=>t+(r.miss||0),0),coll=GCOLL.has(g);
+   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="8" style="--gc:${col}">
+     <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
+     <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
+     <span class="gu">${units?units.toLocaleString('he-IL')+' יח׳ חסרות':(list.length?'':'אין פריטים')}</span></td></tr>`);
+   if(coll||!list.length)continue;
+   for(const r of list){if(idx>=lim)break;const i=idx++;
+    const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
+    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
+     <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
+     <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
+     <td><span class="badge" style="${sCatStyle(r)}">${SEVLBL[r.sev]||'—'}</span></td>
+     <td class="act1">${esc((r.act||[])[0]||'')}</td>
+     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`)}}
+ }
+ else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   if(track==='m1'){const gap=Math.ceil(r.r3-r.free),dry=r.free<=0;
    body.push(`<tr data-i="${i}" class="sev${dry?3:2}"><td><span class="rank${dry?' hi':''}">${i+1}</span></td>
@@ -1806,6 +1858,7 @@ function renderDecisions(rows){
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
+ document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
