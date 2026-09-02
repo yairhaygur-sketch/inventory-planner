@@ -8,6 +8,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.goto('file://'+path.join(SD,'..','index.html'));
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2500);
 
+ // 0. מצב ההתחלה — לפני שנגענו בכלום
+ const fresh=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
+   return {open:document.body.classList.contains('dopen'),onScreen:d.right>0&&d.left<innerWidth}});
+
  // 1. ניווט מקלדת ↓
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
  let pn1=await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim());
@@ -95,6 +99,31 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {txt:e.textContent,over:b.right>hd.right+1||b.left<hd.left-1,h:hd.height}});
  ok('חותמת גרסה מוצגת בכותרת',/^\d{2}\.\d{2} \d{2}:\d{2}$/.test(bld.txt),bld.txt);
  ok('החותמת אינה חורגת משורת הכותרת',!bld.over&&bld.h<=60,`גובה ${bld.h}`);
+ // מגירת כרטיס הפריט — מוסתרת עד שבוחרים, והרשימה מקבלת את הרוחב
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
+ const dr=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
+   const rows=document.querySelector('.rows'),tbl=document.getElementById('tbl');
+   return {onScreen:d.right>0&&d.left<innerWidth,open:document.body.classList.contains('dopen'),
+     rowsW:rows.clientWidth,tblW:tbl.scrollWidth,cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
+ ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
+ ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
+ ok('הגריד הוא שתי עמודות — הרשימה קיבלה את השלישית',dr.cols===2,dr.cols+' עמודות');
+ ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
+ const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
+   return {open:document.body.classList.contains('dopen'),onScreen:d.right>0&&d.left<innerWidth,
+     w:Math.round(d.width),txt:document.getElementById('detail').innerText.length,
+     rowsW:document.querySelector('.rows').clientWidth}});
+ ok('לחיצה על שורה פותחת את המגירה',dop.open&&dop.onScreen&&dop.txt>50,`רוחב ${dop.w}`);
+ ok('המגירה מרחפת ואינה מכווצת את הרשימה',dop.rowsW===dr.rowsW,`${dop.rowsW} מול ${dr.rowsW}`);
+ await p.keyboard.press('Escape');await p.waitForTimeout(300);
+ const dcl=await p.evaluate(()=>({open:document.body.classList.contains('dopen'),
+   sel:document.querySelectorAll('#tbl tbody tr.sel').length}));
+ ok('Esc סוגר את המגירה ומנקה את הבחירה',!dcl.open&&dcl.sel===0);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(250);
+ await p.click('#dclose');await p.waitForTimeout(250);
+ const dx=await p.evaluate(()=>document.body.classList.contains('dopen'));
+ ok('כפתור ה-✕ סוגר את המגירה',!dx);
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
  await b.close();console.log(out.join('\n'));
