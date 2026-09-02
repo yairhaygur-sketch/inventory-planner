@@ -38,7 +38,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('Escape יוצא מהשדה',await p.evaluate(()=>document.activeElement.id!=='q'));
 
  // 4. טאב תנועות
- await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.k==='moves')?.click());
+ await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m==='moves')?.click());
  await p.waitForTimeout(500);
  const mv=await p.evaluate(()=>({rows:document.querySelectorAll('#movtbl tbody tr').length,
    panelShown:getComputedStyle(document.getElementById('movesPanel')).display!=='none',
@@ -50,7 +50,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ניווט מקלדת עובד גם בטאב תנועות',
    await p.evaluate(()=>document.querySelectorAll('#movtbl tbody tr.sel').length===1));
  // חזרה
- await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.k==='today')?.click());
+ await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m==='today')?.click());
  await p.waitForTimeout(400);
  ok('חזרה לתור העבודה משחזרת את הרשימה',
    await p.evaluate(()=>getComputedStyle(document.querySelector('#w_queue .qpanel')).display!=='none'
@@ -124,7 +124,18 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.click('#dclose');await p.waitForTimeout(250);
  const dx=await p.evaluate(()=>document.body.classList.contains('dopen'));
  ok('כפתור ה-✕ סוגר את המגירה',!dx);
- ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
+// אין גלילה אופקית בשום מצב ובשום רוחב
+ for(const w of [1920,1512,1280,1180]){
+  await p.setViewportSize({width:w,height:820});await p.waitForTimeout(200);
+  for(const m of ['today','month','catalog']){
+   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(250);
+   const r=await p.evaluate(()=>{const rows=document.querySelector('.rows'),tbl=document.getElementById('tbl');
+     return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
+   ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
+  }}
+ await p.setViewportSize({width:1512,height:860});
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
+  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();
