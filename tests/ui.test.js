@@ -124,7 +124,39 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.click('#dclose');await p.waitForTimeout(250);
  const dx=await p.evaluate(()=>document.body.classList.contains('dopen'));
  ok('כפתור ה-✕ סוגר את המגירה',!dx);
-// אין גלילה אופקית בשום מצב ובשום רוחב
+// קבוצות בתוך "היום"
+ await p.evaluate(()=>{GCOLL.clear();setMode('today')});await p.waitForTimeout(350);
+ const g0=await p.evaluate(()=>({
+   groups:[...document.querySelectorAll('#tbl tbody tr.grp')].map(t=>t.dataset.g),
+   names:[...document.querySelectorAll('#tbl tbody tr.grp b')].map(t=>t.textContent),
+   counts:[...document.querySelectorAll('#tbl tbody tr.grp .gn')].map(t=>+t.textContent),
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
+ ok('שלוש קבוצות ב"היום"',g0.groups.join()==='wait,prevent,m1',g0.names.join(' · '));
+ ok('סכום הקבוצות = מספר הפריטים',g0.counts.reduce((a,b)=>a+b,0)===g0.rows,
+    `${g0.counts.join('+')} = ${g0.rows}`);
+ /* השורה שנלחצת חייבת להיות הפריט שנפתח בכרטיס — גם כשקבוצה מקופלת */
+ const align=async n=>p.evaluate(i=>{const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')][i];
+   if(!tr)return null;tr.click();
+   return {row:tr.querySelector('.obj').textContent.trim(),
+           card:CURRENT_DETAIL&&CURRENT_DETAIL.pn.replace(/[\u200e\u200f]/g,'').trim()}},n);
+ const a1=await align(4);await p.waitForTimeout(250);
+ ok('לחיצה על שורה פותחת את הפריט הנכון',a1&&a1.row===a1.card,a1?`${a1.row} / ${a1.card}`:'—');
+ await p.evaluate(()=>toggleGroup('m1'));await p.waitForTimeout(350);
+ const g1=await p.evaluate(()=>({coll:document.querySelectorAll('#tbl tbody tr.grp.coll').length,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   groups:document.querySelectorAll('#tbl tbody tr.grp').length,
+   saved:JSON.parse(localStorage.getItem('planner_groups_v1')||'[]').join()}));
+ ok('קיפול קבוצה מסתיר את שורותיה',g1.coll===1&&g1.rows<g0.rows&&g1.groups===3,
+    `${g1.rows} מתוך ${g0.rows} · ${g1.groups} כותרות`);
+ ok('מצב הקיפול נשמר',g1.saved==='m1',g1.saved);
+ const a2=await align(2);await p.waitForTimeout(250);
+ ok('ההתאמה שורה↔כרטיס נשמרת גם כשקבוצה מקופלת',a2&&a2.row===a2.card,a2?`${a2.row} / ${a2.card}`:'—');
+ await p.evaluate(()=>toggleGroup('m1'));await p.waitForTimeout(300);
+ const g2=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
+ ok('פתיחה מחזירה את כל השורות',g2===g0.rows,`${g2} מתוך ${g0.rows}`);
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
+
+ // אין גלילה אופקית בשום מצב ובשום רוחב
  for(const w of [1920,1512,1280,1180]){
   await p.setViewportSize({width:w,height:820});await p.waitForTimeout(200);
   for(const m of ['today','month','catalog']){
