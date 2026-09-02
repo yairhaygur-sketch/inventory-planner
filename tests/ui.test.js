@@ -156,6 +156,30 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('פתיחה מחזירה את כל השורות',g2===g0.rows,`${g2} מתוך ${g0.rows}`);
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
 
+ // תקציב הגובה — הכרום ירד, הרשימה קיבלה שורות
+ const bud=await p.evaluate(()=>{const rows=document.querySelector('.rows'),rb=rows.getBoundingClientRect();
+   return {vis:[...document.querySelectorAll('#tbl tbody tr[data-i]')]
+     .filter(tr=>{const b=tr.getBoundingClientRect();return b.top>=rb.top-1&&b.bottom<=rb.bottom+1}).length,
+    kpi:getComputedStyle(document.querySelector('.wkpi')).display!=='none',
+    diagH:Math.round(document.getElementById('diag').getBoundingClientRect().height),
+    chip:!document.getElementById('dchip').hidden,
+    listPct:Math.round(rb.height/innerHeight*100)}});
+ ok('שורת המדדים מוסתרת כברירת מחדל',!bud.kpi);
+ ok('אזהרות מקופלות לשבב ולא לפס',bud.diagH===0&&bud.chip,`פס ${bud.diagH}px · שבב ${bud.chip}`);
+ ok('הרשימה מקבלת 75%+ מהמסך',bud.listPct>=75,bud.listPct+'%');
+ ok('16+ שורות גלויות ב-1512x860',bud.vis>=16,bud.vis+' שורות (היה 11 לפני העיצוב מחדש)');
+ await p.click('#dchip');await p.waitForTimeout(300);
+ const dOpen=await p.evaluate(()=>Math.round(document.getElementById('diag').getBoundingClientRect().height));
+ ok('לחיצה על השבב פותחת את פירוט האזהרות',dOpen>0,dOpen+'px');
+ await p.click('#dchip');await p.waitForTimeout(250);
+ const dShut=await p.evaluate(()=>Math.round(document.getElementById('diag').getBoundingClientRect().height));
+ ok('לחיצה נוספת סוגרת',dShut===0);
+ /* שורת המדדים ניתנת להחזרה — ההסתרה היא ברירת מחדל, לא מחיקה */
+ await p.evaluate(()=>toggleWidget('kpis'));await p.waitForTimeout(300);
+ const back=await p.evaluate(()=>getComputedStyle(document.querySelector('.wkpi')).display!=='none');
+ ok('אפשר להחזיר את שורת המדדים מתפריט הווידג׳טים',back);
+ await p.evaluate(()=>toggleWidget('kpis'));await p.waitForTimeout(250);
+
  // אין גלילה אופקית בשום מצב ובשום רוחב
  for(const w of [1920,1512,1280,1180]){
   await p.setViewportSize({width:w,height:820});await p.waitForTimeout(200);
