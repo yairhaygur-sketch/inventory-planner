@@ -104,10 +104,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const dr=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
    const rows=document.querySelector('.rows'),tbl=document.getElementById('tbl');
    return {onScreen:d.right>0&&d.left<innerWidth,open:document.body.classList.contains('dopen'),
-     rowsW:rows.clientWidth,tblW:tbl.scrollWidth,cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
+     rowsW:rows.clientWidth,tblW:tbl.scrollWidth,
+     railW:Math.round((document.querySelector('.wfilters')||{getBoundingClientRect:()=>({width:0})}).getBoundingClientRect().width),
+     cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
  ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
  ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
- ok('הגריד הוא שתי עמודות — הרשימה קיבלה את השלישית',dr.cols===2,dr.cols+' עמודות');
+ /* מסילת הסינון מקופלת כברירת מחדל (החיפוש עבר לסרגל העליון), ולכן
+    הרשימה מקבלת את כל הרוחב: עמודת רשת אחת, לא שתיים ולא שלוש. */
+ ok('הרשימה מקבלת את כל רוחב הגריד',dr.cols===1,dr.cols+' עמודות');
+ ok('מסילת הסינון מקופלת ולא משאירה רצועה ריקה',dr.railW===0,`רוחב מסילה ${dr.railW}`);
  ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
  const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();

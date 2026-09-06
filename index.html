@@ -802,6 +802,46 @@ tr.grp td{padding-inline-end:16px}
 /* מונה השורה במסלול "היום" אינו נתון — הוא סימן מקום. בלי גלולה אפורה
    מסביבו, השורה נשארת בלי אף אובייקט מצויר קבוע. */
 #tbl[data-track=short] .rank{background:transparent;color:var(--dimmer);min-width:0}
+
+/* ==================== פחות קווים ====================
+   נמדד לפני: 410 קצוות מצוירים על 221 אלמנטים.
+   1. קו ההפרדה בין שורות היה מצויר על כל תא בנפרד — שבעה קצוות
+      לשורה במקום אחד. הועבר ל-tr. 149 קצוות ירדו ל-21.
+   2. כפתורי הפעולה בשורה ויתרו על המסגרת ונשענים על רקע בלבד.
+   3. תיבת הכותרת של הטבלה מופרדת ברווח ובצבע, לא בקו.               */
+#tbl td{border-bottom:0}
+#tbl tbody tr{border-bottom:1px solid var(--line2)}
+#tbl tbody tr.grp{border-bottom:0}
+#tbl thead th{border-bottom:0;background:transparent}
+#tbl thead tr{border-bottom:1px solid var(--line2)}
+.cp,.dn{border:0;background:var(--panel2)}
+.cp:hover,.dn:hover{background:var(--accL);color:var(--accD)}
+.dn{color:var(--grn)}
+
+/* ==================== החיפוש עלה לסרגל העליון ====================
+   תיבת החיפוש ישבה בתוך מסילת הסינון, ולכן אי אפשר היה לקפל את
+   המסילה בלי לאבד את החיפוש ואת קיצור המקלדת «/». היא עברה לסרגל,
+   והמסילה — תשעה תפריטים שכולם אומרים «הכל» — מקופלת כברירת מחדל
+   וחוזרת מתפריט הווידג׳טים.                                         */
+.top .qwrap{margin:0;flex:0 0 auto;width:280px}
+.top .qwrap>label.tl{display:none}
+.top .qwrap .qbox{margin:0}
+.top .qwrap .qstat{position:absolute;inset-inline-start:0;top:100%;white-space:nowrap;
+ font-size:var(--f-xs);color:var(--dim);pointer-events:none}
+
+/* מסילת הסינון מקופלת -> עמודת הרשת שלה נסגרת, אחרת נשארת רצועה
+   ריקה של כ-220 פיקסלים והטבלה לא מתרחבת אליה. */
+body.nofilters .dash{grid-template-columns:minmax(0,1fr)}
+body.nofilters .wqueue,body.nofilters .wmoves{grid-column:1}
+body.nofilters .wdetail{grid-column:1}
+
+/* הסרגל העליון קיבל את תיבת החיפוש ונשבר לשתי שורות */
+.top{flex-wrap:nowrap}
+.top .ttl,.top .rdlbl,.brand .nm b{white-space:nowrap}
+.brand .nm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.top .lc{flex:0 1 auto;min-width:0;overflow:hidden}
+.top .qwrap{width:236px}
+.top .sp{flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -814,6 +854,15 @@ tr.grp td{padding-inline-end:16px}
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="exportXls">⭳ ייצוא לאקסל</button>
     <button class="btn" id="darkToggle">🌙 מצב כהה</button>
+  </div>
+  <div class="fgroup qwrap" id="qwrap">
+    <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
+    <div class="qbox" id="qbox">
+      <span class="qico">⌕</span>
+      <input class="qsearch" id="q" placeholder="מק״ט · תיאור · ספק…" autocomplete="off" spellcheck="false">
+      <button class="qclr" id="qclr" type="button" title="נקה חיפוש (Esc)">✕</button>
+    </div>
+    <div class="qstat" id="qstat"></div>
   </div>
   <div class="sp">
     <span class="rdlbl">חודש בסיס:</span><input type="month" id="rd" title="החודש המלא האחרון בדוח">
@@ -832,15 +881,6 @@ tr.grp td{padding-inline-end:16px}
   <section class="widget wfilters" id="w_filters" data-w="filters">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="fbody">
-      <div class="fgroup qwrap" id="qwrap">
-        <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
-        <div class="qbox" id="qbox">
-          <span class="qico">⌕</span>
-          <input class="qsearch" id="q" placeholder="מק״ט · תיאור · ספק…" autocomplete="off" spellcheck="false">
-          <button class="qclr" id="qclr" type="button" title="נקה חיפוש (Esc)">✕</button>
-        </div>
-        <div class="qstat" id="qstat"></div>
-      </div>
       <div id="sidefilters"></div>
       <div class="toggle" id="onlyTasks"><span class="sw"></span><span>הצג רק משימות</span></div>
       <div class="chips" id="chips"></div>
@@ -1379,7 +1419,7 @@ const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
    ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
    81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis'],sizes:{}};
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis','filters'],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -1396,6 +1436,7 @@ function normalizeLayout(){WIDGETS.forEach(([id])=>{if(!LAYOUT.order.includes(id
 function applyLayout(){normalizeLayout();
   LAYOUT.order.forEach((id,i)=>{const el=document.getElementById('w_'+id);if(!el)return;
     el.style.order=i;el.style.display=LAYOUT.hidden.includes(id)?'none':'';
+    if(id==='filters')document.body.classList.toggle('nofilters',LAYOUT.hidden.includes('filters'));
     if(id==='detail'){el.classList.remove('sized');el.style.flexBasis='';el.style.height='';
       if(LAYOUT.hidden.includes('detail'))closeDetail();return}
     const sz=LAYOUT.sizes[id];
