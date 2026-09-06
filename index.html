@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מרכז עבודה יומי למעתד מלאי חלפים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Archivo:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Archivo:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -746,6 +746,38 @@ td.pnc{padding:5px 14px;font-size:13px}
  .wqueue{grid-column:1;grid-row:2}
  .wdetail{grid-column:2;grid-row:2}
 }
+
+/* ==================== סולם טיפוגרפי — חמישה גדלים ====================
+   נמדד על הדוח האמיתי ב-1512×860: מסך הרשימה השתמש ב-14 גדלי גופן
+   שונים בו-זמנית. הגדלים הצטברו בארבע שכבות CSS שדורסות זו את זו,
+   ולכן הבלוק הזה יושב אחרון בגיליון בכוונה — הוא הסמכות היחידה על
+   גודל טקסט במסך הרשימה. כרטיס הפריט והחלוניות שומרים על הסולם שלהם
+   בשלב הזה.                                                          */
+:root{--f-xs:10px;--f-sm:11.5px;--f-md:13px;--f-lg:19px;--f-xl:24px}
+
+/* xl — מוני המצב בלבד */
+.tab .n{font-size:var(--f-xl);font-weight:700;letter-spacing:-.02em}
+
+/* lg — כותרת המסך */
+.top .ttl{font-size:var(--f-lg);font-weight:700;letter-spacing:-.01em}
+
+/* md — גוף: שורות הטבלה, כותרות הקבוצות, כותרת הפאנל */
+.rows table,.rows td,td.pnc,.phd .title,.empty,
+tr.grp b,tr.grp .gn,tr.grp .gcar,.brand .mk,.qbox .qico{font-size:var(--f-md)}
+
+/* sm — משני: תיאורי קבוצה, פוטר, תוויות עזר */
+.phd .sub,.phd #phdSub,.pager,tr.grp .gs,tr.grp .gu,.updated,.bulkbtn,
+.tab .t,.top .rdlbl,.bulkmenu .bh,.bulkmenu button{font-size:var(--f-sm)}
+
+/* xs — תוויות עמודה, מונים זעירים, פעולות שורה */
+thead th,th .thc,.rank,.sug,.plannerGreeting,.cp,.dn,.badge,
+.ddbtn .car,.agebadge,.fgroup label.tl,label.tl .qkbd,.bld,
+.brand .nm span,.whead .wsub,.wfilters .whead .wt{font-size:var(--f-xs)}
+
+/* השלמות: פקדי הסרגל העליון ותיבת החיפוש ירשו גדלים משכבות קודמות */
+.btn,.btn.pri,.whead .wt,.qclr,.fclear,.dchip,.toggle,
+.dd .ddbtn,.dd .ddbtn span{font-size:var(--f-md)}
+.btn span,.fclear span,.dchip span{font-size:inherit}
 </style>
 </head>
 <body>
