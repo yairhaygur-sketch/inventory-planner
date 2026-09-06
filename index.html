@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מרכז עבודה יומי למעתד מלאי חלפים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Archivo:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Archivo:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -746,6 +746,114 @@ td.pnc{padding:5px 14px;font-size:13px}
  .wqueue{grid-column:1;grid-row:2}
  .wdetail{grid-column:2;grid-row:2}
 }
+
+/* ==================== סולם טיפוגרפי — חמישה גדלים ====================
+   נמדד על הדוח האמיתי ב-1512×860: מסך הרשימה השתמש ב-14 גדלי גופן
+   שונים בו-זמנית. הגדלים הצטברו בארבע שכבות CSS שדורסות זו את זו,
+   ולכן הבלוק הזה יושב אחרון בגיליון בכוונה — הוא הסמכות היחידה על
+   גודל טקסט במסך הרשימה. כרטיס הפריט והחלוניות שומרים על הסולם שלהם
+   בשלב הזה.                                                          */
+:root{--f-xs:10px;--f-sm:11.5px;--f-md:13px;--f-lg:19px;--f-xl:24px}
+
+/* xl — מוני המצב בלבד */
+.tab .n{font-size:var(--f-xl);font-weight:700;letter-spacing:-.02em}
+
+/* lg — כותרת המסך */
+.top .ttl{font-size:var(--f-lg);font-weight:700;letter-spacing:-.01em}
+
+/* md — גוף: שורות הטבלה, כותרות הקבוצות, כותרת הפאנל */
+.rows table,.rows td,td.pnc,.phd .title,.empty,
+tr.grp b,tr.grp .gn,tr.grp .gcar,.brand .mk,.qbox .qico{font-size:var(--f-md)}
+
+/* sm — משני: תיאורי קבוצה, פוטר, תוויות עזר */
+.phd .sub,.phd #phdSub,.pager,tr.grp .gs,tr.grp .gu,.updated,.bulkbtn,
+.tab .t,.top .rdlbl,.bulkmenu .bh,.bulkmenu button{font-size:var(--f-sm)}
+
+/* xs — תוויות עמודה, מונים זעירים, פעולות שורה */
+thead th,th .thc,.rank,.sug,.plannerGreeting,.cp,.dn,.badge,
+.ddbtn .car,.agebadge,.fgroup label.tl,label.tl .qkbd,.bld,
+.brand .nm span,.whead .wsub,.wfilters .whead .wt{font-size:var(--f-xs)}
+
+/* השלמות: פקדי הסרגל העליון ותיבת החיפוש ירשו גדלים משכבות קודמות */
+.btn,.btn.pri,.whead .wt,.qclr,.fclear,.dchip,.toggle,
+.dd .ddbtn,.dd .ddbtn span{font-size:var(--f-md)}
+.btn span,.fclear span,.dchip span{font-size:inherit}
+
+/* ==================== שקט בשורה ====================
+   נמדד לפני: חמישה שבבים בכל שורה, 240 על המסך. שני שבבי הסיווג ירדו
+   עם העמודות שלהם; שני הכפתורים נשארו אבל מופיעים רק כשהעכבר על השורה
+   או כשהיא נבחרת — ולכן הם לא נספרים כרעש קבוע. */
+.ract{display:inline-flex;gap:4px;opacity:0;pointer-events:none;transition:opacity .1s ease}
+tbody tr:hover .ract,tbody tr.sel .ract,tbody tr:focus-within .ract{opacity:1;pointer-events:auto}
+td.note{color:var(--dim)}
+td .mut{color:var(--dimmer)}
+
+/* רוחבי העמודות של "היום". אחרי שירדו שתי עמודות, הרוחב המשוחרר
+   התחלק שווה בשווה בין העמודות המספריות והשאיר את התיאור צר מדי. */
+#tbl[data-track=short] th:nth-child(1),#tbl[data-track=short] td:nth-child(1){width:38px}
+#tbl[data-track=short] th:nth-child(2),#tbl[data-track=short] td:nth-child(2){width:158px}
+#tbl[data-track=short] th:nth-child(4),#tbl[data-track=short] td:nth-child(4),
+#tbl[data-track=short] th:nth-child(5),#tbl[data-track=short] td:nth-child(5),
+#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6){width:76px}
+#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:290px}
+#tbl[data-track=short] td:nth-child(3){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* סך היחידות של הקבוצה צף שמאלה וחרג מהטבלה ב-17 פיקסלים */
+tr.grp td{padding-inline-end:16px}
+/* מונה השורה במסלול "היום" אינו נתון — הוא סימן מקום. בלי גלולה אפורה
+   מסביבו, השורה נשארת בלי אף אובייקט מצויר קבוע. */
+#tbl[data-track=short] .rank{background:transparent;color:var(--dimmer);min-width:0}
+
+/* ==================== פחות קווים ====================
+   נמדד לפני: 410 קצוות מצוירים על 221 אלמנטים.
+   1. קו ההפרדה בין שורות היה מצויר על כל תא בנפרד — שבעה קצוות
+      לשורה במקום אחד. הועבר ל-tr. 149 קצוות ירדו ל-21.
+   2. כפתורי הפעולה בשורה ויתרו על המסגרת ונשענים על רקע בלבד.
+   3. תיבת הכותרת של הטבלה מופרדת ברווח ובצבע, לא בקו.               */
+#tbl td{border-bottom:0}
+#tbl tbody tr{border-bottom:1px solid var(--line2)}
+#tbl tbody tr.grp{border-bottom:0}
+#tbl thead th{border-bottom:0;background:transparent}
+#tbl thead tr{border-bottom:1px solid var(--line2)}
+.cp,.dn{border:0;background:var(--panel2)}
+.cp:hover,.dn:hover{background:var(--accL);color:var(--accD)}
+.dn{color:var(--grn)}
+
+/* ==================== החיפוש עלה לסרגל העליון ====================
+   תיבת החיפוש ישבה בתוך מסילת הסינון, ולכן אי אפשר היה לקפל את
+   המסילה בלי לאבד את החיפוש ואת קיצור המקלדת «/». היא עברה לסרגל,
+   והמסילה — תשעה תפריטים שכולם אומרים «הכל» — מקופלת כברירת מחדל
+   וחוזרת מתפריט הווידג׳טים.                                         */
+.top .qwrap{margin:0;flex:0 0 auto;width:280px}
+.top .qwrap>label.tl{display:none}
+.top .qwrap .qbox{margin:0}
+.top .qwrap .qstat{position:absolute;inset-inline-start:0;top:100%;white-space:nowrap;
+ font-size:var(--f-xs);color:var(--dim);pointer-events:none}
+
+/* מסילת הסינון מקופלת -> עמודת הרשת שלה נסגרת, אחרת נשארת רצועה
+   ריקה של כ-220 פיקסלים והטבלה לא מתרחבת אליה. */
+body.nofilters .dash{grid-template-columns:minmax(0,1fr)}
+body.nofilters .wqueue,body.nofilters .wmoves{grid-column:1}
+body.nofilters .wdetail{grid-column:1}
+
+/* הסרגל העליון קיבל את תיבת החיפוש ונשבר לשתי שורות */
+.top{flex-wrap:nowrap}
+.top .ttl,.top .rdlbl,.brand .nm b{white-space:nowrap}
+.brand .nm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.top .lc{flex:0 1 auto;min-width:0;overflow:hidden}
+.top .qwrap{width:236px}
+.top .sp{flex:0 0 auto}
+
+/* רצועת הגרף מעל הרשימה — קיימת רק במסך "הקטלוג" */
+.ctop{flex:0 0 auto;padding:10px 14px 4px;border-bottom:1px solid var(--line2)}
+.ctop .chd{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+.ctop .chd b{font-size:var(--f-md);font-weight:700}
+.ctop .chd span{font-size:var(--f-sm);color:var(--dim)}
+.ctop svg{display:block;width:100%;height:auto;max-height:112px}
+.ctop .cax{font-family:var(--num);font-size:9px;font-weight:600;fill:var(--dimmer)}
+.ctop .clab{font-size:10px;fill:var(--dim);text-anchor:middle}
+.ctop .cval{font-family:var(--num);font-size:11px;font-weight:700;fill:var(--ink);text-anchor:middle}
+
+/* הגרף מצויר ביחידות פיקסל — ציור מחדש כשהרוחב משתנה */
 </style>
 </head>
 <body>
@@ -758,6 +866,15 @@ td.pnc{padding:5px 14px;font-size:13px}
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="exportXls">⭳ ייצוא לאקסל</button>
     <button class="btn" id="darkToggle">🌙 מצב כהה</button>
+  </div>
+  <div class="fgroup qwrap" id="qwrap">
+    <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
+    <div class="qbox" id="qbox">
+      <span class="qico">⌕</span>
+      <input class="qsearch" id="q" placeholder="מק״ט · תיאור · ספק…" autocomplete="off" spellcheck="false">
+      <button class="qclr" id="qclr" type="button" title="נקה חיפוש (Esc)">✕</button>
+    </div>
+    <div class="qstat" id="qstat"></div>
   </div>
   <div class="sp">
     <span class="rdlbl">חודש בסיס:</span><input type="month" id="rd" title="החודש המלא האחרון בדוח">
@@ -776,15 +893,6 @@ td.pnc{padding:5px 14px;font-size:13px}
   <section class="widget wfilters" id="w_filters" data-w="filters">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="fbody">
-      <div class="fgroup qwrap" id="qwrap">
-        <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
-        <div class="qbox" id="qbox">
-          <span class="qico">⌕</span>
-          <input class="qsearch" id="q" placeholder="מק״ט · תיאור · ספק…" autocomplete="off" spellcheck="false">
-          <button class="qclr" id="qclr" type="button" title="נקה חיפוש (Esc)">✕</button>
-        </div>
-        <div class="qstat" id="qstat"></div>
-      </div>
       <div id="sidefilters"></div>
       <div class="toggle" id="onlyTasks"><span class="sw"></span><span>הצג רק משימות</span></div>
       <div class="chips" id="chips"></div>
@@ -802,6 +910,7 @@ td.pnc{padding:5px 14px;font-size:13px}
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span></div>
+        <div class="ctop" id="ctop" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -1323,7 +1432,7 @@ const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
    ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
    81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis'],sizes:{}};
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis','filters'],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -1340,6 +1449,7 @@ function normalizeLayout(){WIDGETS.forEach(([id])=>{if(!LAYOUT.order.includes(id
 function applyLayout(){normalizeLayout();
   LAYOUT.order.forEach((id,i)=>{const el=document.getElementById('w_'+id);if(!el)return;
     el.style.order=i;el.style.display=LAYOUT.hidden.includes(id)?'none':'';
+    if(id==='filters')document.body.classList.toggle('nofilters',LAYOUT.hidden.includes('filters'));
     if(id==='detail'){el.classList.remove('sized');el.style.flexBasis='';el.style.height='';
       if(LAYOUT.hidden.includes('detail'))closeDetail();return}
     const sz=LAYOUT.sizes[id];
@@ -1427,9 +1537,23 @@ let mode='today';
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
    הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
 const TGROUP=[
- ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי הזמנת רכש פתוחה','var(--red)'],
- ['prevent','מניעת חוסר','כיסוי קצר מזמן האספקה · פיק חוזר · חשד אזילה','var(--org)'],
- ['m1','אוזל החודש','צריכה ברבעון מול מלאי פנוי שלא מכסה חודש','var(--acc)']];
+ ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי רכש פתוח — לפתוח הזמנת רכש בכמות החסרה','var(--red)'],
+ ['prevent','מניעת חוסר','הכיסוי קצר מזמן האספקה — לפתוח רכש יזום להשלמה לנקודת ההזמנה','var(--org)'],
+ ['m1','אוזל החודש','המלאי הפנוי לא מכסה את החודש הקרוב — להשלים את הכמות החסרה','var(--acc)']];
+/* מה שכותרת הקבוצה אומרת, השורה לא חוזרת עליו. נמדד על הדוח האמיתי:
+   עמודת "סוג ההחלטה" החזיקה 4 ערכים שונים ב-48 שורות ועמודת "חומרה"
+   שניים — וכל ערך כבר כתוב בכותרת שמעליו. שתיהן ירדו, והטקסט המשותף
+   של ההחלטה עלה לכותרת ונכתב פעם אחת. עמודת ההערה נכתבת רק לחריג:
+   פריט שההחלטה שלו שונה מברירת המחדל של הקבוצה שלו. */
+const GROUP_LEAD={
+ wait:[/^לפתוח הזמנת רכש ל-/],
+ prevent:[/^לפתוח רכש יזום ל-/],
+ m1:[/^להשלים /]};
+/* ההחלטה של הפריט תואמת את הקבוצה -> אין מה לכתוב בשורה */
+function groupNote(g,r){const a=((r.act||[])[0]||'').trim();if(!a)return '';
+ const pats=GROUP_LEAD[g]||[];
+ if(pats.some(p=>p.test(a)))return '';
+ return a.replace(/\s*\(השלמה ל-ROP המוצע\)\s*$/,'').replace(/\s*כדי לכסות את החודש הקרוב\s*$/,'').trim()}
 /* הקיבוץ עונה על "מה אעשה", לא על "איך זה מסווג": פריט שהוא גם אזילה
    שזוהתה וגם חוסר של החודש הקרוב מקבל את החלטת הכמות, ולכן שייך
    ל"אוזל החודש" גם אם הסיווג שלו הוא "חשד אזילה". */
@@ -1792,13 +1916,70 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.style.display='';
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
+/* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
+function NCOL(){return track==='short'?7:8}
+/* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
+   מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
+   העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
+   קונים בדיוק את מה שחסר, וחזרה על אותו מספר פעמיים אינה מידע. */
+function actQty(r){const a=(r.act||[])[0]||'';
+ const m=a.match(/(?:ל-|להשלים\s+)(\d[\d,]*)\s*יח׳/);
+ return m?+m[1].replace(/,/g,''):null}
 function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
-  :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
+  :track==='short'?['מק״ט','תיאור','חסר (יח׳)','<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
+
+/* ==================== צריכה חודשית — כל הקטלוג ====================
+   הגרפים היחידים באפליקציה ישבו בתוך <details> מקופל בכרטיס הפריט:
+   כדי לראות אחד מהם צריך היה לבחור פריט ואז לפתוח מגירה. זה גרף
+   ברמת המסך — נראה בלי גלילה ובלי לחיצה.
+   סדרה אחת, גוון אחד, בלי מקרא. מתויגים רק השיא והחודש האחרון.
+   הזמן זורם מימין לשמאל, כמו כיוון הקריאה.                          */
+function topChart(){
+ const el=document.getElementById('ctop');if(!el)return;
+ const show=(track==='cap')&&QF&&QF.all&&QF.all.length;
+ el.hidden=!show;
+ if(!show){el.innerHTML='';return}
+ const N=LABELS.length,sum=new Array(N).fill(0);
+ for(const x of QF.all){const m=x.months||[];
+  for(let i=0;i<N;i++)sum[i]+=Math.max(0,+m[i]||0)}
+ /* חודש בקצה החלון שאין בו נתון כלל אינו "אפס מכירות" — הוא מחוץ לדוח */
+ let last=N-1;while(last>0&&sum[last]===0)last--;
+ const d=[],labs=[];
+ for(let i=last;i>=0;i--){d.push(sum[i]);labs.push(LABELS[i])}   /* ישן -> חדש */
+ if(d.length<2){el.hidden=true;el.innerHTML='';return}
+ const max=Math.max(...d),peak=d.indexOf(max);
+ /* יחידת ה-viewBox היא פיקסל אמיתי, אחרת הטקסט נמתח עם הרוחב */
+ const W=Math.max(420,Math.round(el.clientWidth)||960);
+ const H=112,padT=16,padB=18,padE=34,base=H-padB;
+ const slot=(W-padE)/d.length,bw=Math.min(slot*0.6,46);
+ const top=niceTop(max),yOf=v=>base-(v/top)*(base-padT);
+ let g='',b='',lb='';
+ for(const t of niceTicks(top)){const y=yOf(t).toFixed(1);
+  g+=`<line x1="0" y1="${y}" x2="${W-padE+6}" y2="${y}" stroke="var(--line2)" stroke-width="1"></line>`+
+     `<text x="${W-padE+10}" y="${(+y+3).toFixed(1)}" class="cax">${t>=1000?(t/1000)+'k':t}</text>`}
+ d.forEach((v,i)=>{
+  const cx=W-padE-(i+0.5)*slot, x=(cx-bw/2).toFixed(1), y=yOf(v), h=Math.max(0,base-y).toFixed(1);
+  b+=`<rect x="${x}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h}" rx="3"`+
+     ` fill="var(--acc)" opacity="${i===peak?1:.4}"><title>${esc(labs[i].name)} ${labs[i].yy}׳ — ${v.toLocaleString('he-IL')} יח׳</title></rect>`;
+  if(i===peak||i===d.length-1)
+   b+=`<text x="${cx.toFixed(1)}" y="${(y-5).toFixed(1)}" class="cval">${v.toLocaleString('he-IL')}</text>`;
+  lb+=`<text x="${cx.toFixed(1)}" y="${H-5}" class="clab">${esc(labs[i].short)}</text>`});
+ const tot=d.reduce((a,c)=>a+c,0);
+ el.innerHTML=`<div class="chd"><b>צריכה חודשית — כל הקטלוג</b>`+
+  `<span>${d.length} חודשים · ${tot.toLocaleString('he-IL')} יח׳ · השיא ${esc(labs[peak].name)} ${max.toLocaleString('he-IL')}</span></div>`+
+  `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="צריכה חודשית מצרפית">${g}${b}${lb}</svg>`}
+/* גבול עליון ותווי סקאלה עגולים — 1 / 2 / 2.5 / 5 כפול חזקה של 10 */
+function niceTop(v){if(v<=0)return 1;
+ const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;
+ return (f<=1?1:f<=1.5?1.5:f<=2?2:f<=3?3:f<=4?4:f<=5?5:f<=8?8:10)*e}
+function niceTicks(top){const out=[];for(let i=0;i<=4;i++)out.push(top*i/4);
+ return out.filter(t=>Number.isInteger(t))}
 function renderDecisions(rows){
+ document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
  const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
@@ -1811,20 +1992,21 @@ function renderDecisions(rows){
  if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
    const units=list.reduce((t,r)=>t+(r.miss||0),0),coll=GCOLL.has(g);
-   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="8" style="--gc:${col}">
+   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
      <span class="gu">${units?units.toLocaleString('he-IL')+' יח׳ חסרות':(list.length?'':'אין פריטים')}</span></td></tr>`);
    if(coll||!list.length)continue;
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
+    const buy=actQty(r);
     body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
-     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
-     <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
+     <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
+     <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
-     <td><span class="badge" style="${sCatStyle(r)}">${SEVLBL[r.sev]||'—'}</span></td>
-     <td class="act1">${esc((r.act||[])[0]||'')}</td>
-     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`)}}
+     <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
+     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
+     <td class="note">${esc(groupNote(g,r))}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -1858,9 +2040,9 @@ function renderDecisions(rows){
    <td>${c4}</td><td>${c5}</td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
    <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
-  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${moneyMix(rows.slice(0,c.n),x=>x[k]||0)} מתוך ${moneyMix(rows,x=>x[k]||0)} — כל ${rows.length-c.n} הנותרים יחד שווים ${moneyMix(rows.slice(c.n),x=>x[k]||0)}</td></tr>`)});
+  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${moneyMix(rows.slice(0,c.n),x=>x[k]||0)} מתוך ${moneyMix(rows,x=>x[k]||0)} — כל ${rows.length-c.n} הנותרים יחד שווים ${moneyMix(rows.slice(c.n),x=>x[k]||0)}</td></tr>`)});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
-   `<tr><td colspan="8" class="empty">${track==='short'
+   `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='cap'?'אין הון כלוא במסלול הזה.'
@@ -1887,6 +2069,7 @@ function renderDecisions(rows){
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
+ setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
  const rows=currentRows();
@@ -2237,7 +2420,8 @@ qEl('q').onkeydown=e=>{
   pushRecent(qEl('q').value);closeSug()}};
 document.addEventListener('mousedown',e=>{const t=e.target;
  if(t&&t.closest&&(t.closest('#qwrap')||t.closest('#qsug')))return;closeSug()});
-window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug()});
+window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug();
+ clearTimeout(window.__ctr);window.__ctr=setTimeout(topChart,120)});
 document.getElementById('wmBtn').onclick=e=>{e.stopPropagation();document.getElementById('wMenu').classList.toggle('open')};
 document.getElementById('saveView').onclick=()=>saveLayout(true);
 document.getElementById('resetView').onclick=()=>resetLayout();

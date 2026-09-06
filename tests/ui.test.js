@@ -104,10 +104,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const dr=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
    const rows=document.querySelector('.rows'),tbl=document.getElementById('tbl');
    return {onScreen:d.right>0&&d.left<innerWidth,open:document.body.classList.contains('dopen'),
-     rowsW:rows.clientWidth,tblW:tbl.scrollWidth,cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
+     rowsW:rows.clientWidth,tblW:tbl.scrollWidth,
+     railW:Math.round((document.querySelector('.wfilters')||{getBoundingClientRect:()=>({width:0})}).getBoundingClientRect().width),
+     cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
  ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
  ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
- ok('הגריד הוא שתי עמודות — הרשימה קיבלה את השלישית',dr.cols===2,dr.cols+' עמודות');
+ /* מסילת הסינון מקופלת כברירת מחדל (החיפוש עבר לסרגל העליון), ולכן
+    הרשימה מקבלת את כל הרוחב: עמודת רשת אחת, לא שתיים ולא שלוש. */
+ ok('הרשימה מקבלת את כל רוחב הגריד',dr.cols===1,dr.cols+' עמודות');
+ ok('מסילת הסינון מקופלת ולא משאירה רצועה ריקה',dr.railW===0,`רוחב מסילה ${dr.railW}`);
  ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
  const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
@@ -190,6 +195,33 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
  await p.setViewportSize({width:1512,height:860});
+
+ /* גרף הצריכה — ברמת המסך, לא קבור בתוך <details> בכרטיס הפריט */
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(700);
+ const ch=await p.evaluate(()=>{const c=document.getElementById('ctop');
+  if(c.hidden)return {hidden:true};
+  const sv=c.querySelector('svg'),b=sv.getBoundingClientRect();
+  const vb=sv.getAttribute('viewBox').split(' ').map(Number);
+  return {hidden:false,inView:b.top>=0&&b.bottom<=innerHeight,
+   bars:c.querySelectorAll('rect').length,labs:c.querySelectorAll('.clab').length,
+   vals:c.querySelectorAll('.cval').length,
+   /* יחס הצירים חייב להישמר, אחרת הטקסט נמתח */
+   skew:Math.abs((b.width/b.height)-(vb[2]/vb[3])),
+   ticks:[...c.querySelectorAll('.cax')].map(t=>t.textContent),
+   tallest:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('height'))),
+   /* שטח הציור נגזר מהציור עצמו: מקו הבסיס עד קו הרשת העליון */
+   plotH:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('y')+ +r.getAttribute('height')))
+        -Math.min(...[...c.querySelectorAll('line')].map(l=>+l.getAttribute('y1')))}});
+ ok('הגרף נראה במצב הקטלוג בלי גלילה ובלי לחיצה',!ch.hidden&&ch.inView);
+ ok('עמודה לכל חודש בדוח',ch.bars===11,ch.bars+' עמודות');
+ ok('רק השיא והחודש האחרון מתויגים',ch.vals===2,ch.vals+' תוויות ערך');
+ ok('יחס הצירים נשמר — הטקסט אינו נמתח',ch.skew<0.05,'סטייה '+ch.skew.toFixed(3));
+ ok('תווי הסקאלה עגולים',ch.ticks.every(t=>/^\d+(\.\d)?k?$/.test(t)),ch.ticks.join(' · '));
+ ok('העמודה הגבוהה ממלאת את רוב שטח הציור',ch.tallest>=ch.plotH*0.6,
+    `${Math.round(ch.tallest)} מתוך ${Math.round(ch.plotH)}`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ ok('הגרף אינו מופיע במצב "היום"',await p.evaluate(()=>document.getElementById('ctop').hidden));
+
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
