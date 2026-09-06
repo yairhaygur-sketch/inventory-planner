@@ -1,0 +1,346 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Archivo:wght@600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #5b5bd6; } a:hover { color: #4a4ac2; }
+    .b-r { display: grid; grid-template-columns: 34px 118px 1fr 108px 62px 62px 250px 62px;
+      align-items: center; gap: 0; height: 30px; border-bottom: 1px solid #eef1f6; padding: 0 10px; }
+    .b-r > div { padding: 0 6px; }
+    .b-num { font-family: 'Archivo', Arial, sans-serif; font-weight: 700; }
+    .b-chip { font-size: 10px; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+      display: inline-block; border: 1px solid transparent; }
+    .b-h { font-size: 10.5px; color: #6b7280; font-weight: 700; }
+    .b-btn { font-size: 9.5px; border: 1px solid #e6e9f0; border-radius: 4px; padding: 1px 5px;
+      background: #fff; color: #6b7280; display: inline-block; }
+    .b-sel { font-size: 11px; border: 1px solid #e6e9f0; border-radius: 6px; padding: 5px 8px;
+      background: #fff; color: #1e2433; display: flex; justify-content: space-between; }
+  </style>
+</helmet>
+
+<div dir="rtl" style="width: 1440px; height: 900px; background: #f3f5f8; color: #1e2433;
+  font-family: 'Assistant', Arial, sans-serif; font-size: 13px; display: flex; flex-direction: column;">
+
+  <!-- top bar -->
+  <div style="height: 58px; flex: 0 0 auto; background: #ffffff; border-bottom: 1px solid #e6e9f0;
+    display: flex; align-items: center; gap: 14px; padding: 0 16px;">
+    <div style="display: flex; align-items: center; gap: 9px;">
+      <div style="width: 32px; height: 32px; border-radius: 9px; background: #28354d; color: #fff;
+        display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">מ</div>
+      <div style="line-height: 1.25;">
+        <div style="font-size: 14px; font-weight: 800;">מרכז עבודה יומי</div>
+        <div style="font-size: 10.5px; color: #6b7280;">תכנון מלאי חלפים · ZT ולינק אנד קו</div>
+      </div>
+    </div>
+    <div style="padding-inline-start: 14px; border-inline-start: 1px solid #e6e9f0; line-height: 1.25;">
+      <div style="font-size: 15px; font-weight: 800;">מה דורש טיפול היום</div>
+      <div style="font-size: 10.5px; color: #6b7280;">יאיר גור · 3072 פריטים דורשים טיפול</div>
+    </div>
+    <div style="flex: 1 1 auto;"></div>
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #6b7280;">
+      <div style="border: 1px solid #e6e9f0; border-radius: 8px; padding: 5px 10px; background: #fff;">↓ ייצוא לאקסל</div>
+      <div style="border: 1px solid #e6e9f0; border-radius: 8px; padding: 5px 10px; background: #fff;">☀ מצב בהיר</div>
+      <div style="border: 1px solid #e6e9f0; border-radius: 8px; padding: 5px 10px; background: #fff;">חודש בסיס: August 2026</div>
+      <div style="border: 1px solid #d5d8fb; border-radius: 8px; padding: 5px 8px; background: #eef0fe; color: #4a4ac2; font-family: 'Archivo', Arial, sans-serif; font-weight: 700;">1 ▲</div>
+      <div style="border: 1px solid #e6e9f0; border-radius: 8px; padding: 5px 10px; background: #fff;">7569 מק״טים · 3072 משימות</div>
+      <div style="border-radius: 8px; padding: 6px 12px; background: #5b5bd6; color: #fff; font-weight: 700;">↑ העלאת קובץ ZMRP</div>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; min-height: 0;">
+
+    <!-- main column -->
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; background: #fff;">
+
+      <!-- mode tabs -->
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 0 0 auto;
+        border-bottom: 1px solid #e6e9f0;">
+        <div style="padding: 9px 16px; border-inline-start: 1px solid #e6e9f0; border-top: 3px solid #dc2626; display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 800;">היום</div>
+          <div style="font-family: 'Archivo', Arial, sans-serif; font-size: 21px; font-weight: 800;">48</div>
+        </div>
+        <div style="padding: 9px 16px; border-inline-start: 1px solid #e6e9f0; border-top: 3px solid #7c3aed; display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 700; color: #6b7280;">החודש</div>
+          <div style="font-family: 'Archivo', Arial, sans-serif; font-size: 21px; font-weight: 800; color: #6b7280;">576</div>
+        </div>
+        <div style="padding: 9px 16px; border-inline-start: 1px solid #e6e9f0; border-top: 3px solid #64748b; display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 700; color: #6b7280;">הקטלוג</div>
+          <div style="font-family: 'Archivo', Arial, sans-serif; font-size: 21px; font-weight: 800; color: #6b7280;">7,569</div>
+        </div>
+        <div style="padding: 9px 16px; border-top: 3px solid #2563eb; display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 13px; font-weight: 700; color: #6b7280;">תנועות</div>
+          <div style="font-size: 15px; color: #6b7280;">▤</div>
+        </div>
+      </div>
+
+      <!-- sub bar -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #eef1f6;">
+        <div style="border: 1px solid #e6e9f0; border-radius: 7px; padding: 4px 9px; font-size: 11.5px; background: #fff;">⚑ סמן 48 פריטים</div>
+        <div style="flex: 1 1 auto;"></div>
+        <div style="font-size: 11px; color: #6b7280;">חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה</div>
+        <div style="font-size: 11.5px; color: #6b7280;">(48)</div>
+        <div style="font-size: 12px; font-weight: 800;">היום</div>
+      </div>
+
+      <!-- table head -->
+      <div class="b-r" style="height: 27px; border-bottom: 1px solid #e6e9f0; background: #fbfcfe;">
+        <div class="b-h">#</div><div class="b-h">מק״ט</div><div class="b-h">תיאור</div>
+        <div class="b-h">סוג ההחלטה</div><div class="b-h" style="text-align: left;">חסר (יח׳)</div>
+        <div class="b-h" style="text-align: center;">חומרה</div><div class="b-h">פעולה מומלצת</div>
+        <div class="b-h" style="text-align: left;">כיסוי</div>
+      </div>
+
+      <div style="flex: 1 1 auto; overflow: hidden;">
+
+        <!-- group 1 -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+          height: 28px; background: #fef2f2; border-inline-end: 3px solid #dc2626; border-bottom: 1px solid #e6e9f0;">
+          <div style="font-size: 11.5px; color: #dc2626; font-weight: 700;">9 יח׳ חסרות</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 11px; color: #6b7280;">הזמנת לקוח ללא מלאי ובלי הזמנת רכש פתוחה</div>
+            <div style="font-size: 12px; font-weight: 800; color: #dc2626;">3 &nbsp;לקוח ממתין</div>
+            <div style="font-size: 10px; color: #6b7280;">⌄</div>
+          </div>
+        </div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">1</div>
+          <div style="display:flex;gap:4px;align-items:center;"><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608552221</span></div>
+          <div>קליפס</div>
+          <div><span class="b-chip" style="background:#fef2f2;color:#dc2626;">לקוח ממתין – אין רכש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">6</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#fef2f2;color:#dc2626;">קריטי</span></div>
+          <div style="font-size:12px;">לפתוח הזמנת רכש ל-6 יח׳</div>
+          <div style="text-align:left;color:#6b7280;">—</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">2</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">8894954317</span></div>
+          <div>פס קישוט תחתון דלת קדמית ימין</div>
+          <div><span class="b-chip" style="background:#fef2f2;color:#dc2626;">לקוח ממתין – אין רכש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">2</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#fef2f2;color:#dc2626;">קריטי</span></div>
+          <div style="font-size:12px;">לפתוח הזמנת רכש ל-2 יח׳</div>
+          <div style="text-align:left;color:#6b7280;">—</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">3</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608401122</span></div>
+          <div>מודול סוללת מתח גבוה</div>
+          <div><span class="b-chip" style="background:#fef2f2;color:#dc2626;">לקוח ממתין – אין רכש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">1</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#fef2f2;color:#dc2626;">קריטי</span></div>
+          <div style="font-size:12px;">לפתוח הזמנת רכש ל-1 יח׳</div>
+          <div style="text-align:left;color:#6b7280;">—</div></div>
+
+        <!-- group 2 -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+          height: 28px; background: #fff7ed; border-inline-end: 3px solid #ea7a0c; border-bottom: 1px solid #e6e9f0;">
+          <div style="font-size: 11.5px; color: #ea7a0c; font-weight: 700;">88 יח׳ חסרות</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 11px; color: #6b7280;">כיסוי קצר מזמן האספקה · פיק חוזר · חשד אזילה</div>
+            <div style="font-size: 12px; font-weight: 800; color: #ea7a0c;">8 &nbsp;מניעת חוסר</div>
+            <div style="font-size: 10px; color: #6b7280;">⌄</div>
+          </div>
+        </div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">4</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">1200-86-00359</span></div>
+          <div>חומר בידוד אגזוז TS063</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">42</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לפתוח רכש יזום ל-64 יח׳ (השלמה ל-ROP המוצע)</div>
+          <div class="b-num" style="text-align:left;">1.4</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">5</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608017028</span></div>
+          <div>צירייה אחורי שמאל לינק 02</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">20</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לפתוח רכש יזום ל-69 יח׳ (השלמה ל-ROP המוצע)</div>
+          <div class="b-num" style="text-align:left;">2.9</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">6</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608017027</span></div>
+          <div>צירייה אחורי ימין לינק 02</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">19</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לפתוח רכש יזום ל-68 יח׳ (השלמה ל-ROP המוצע)</div>
+          <div class="b-num" style="text-align:left;">3.0</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">7</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">12888173NX</span></div>
+          <div>מזרק יח מינון</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">3</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div>
+          <div class="b-num" style="text-align:left;">1.9</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">8</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">15558438</span></div>
+          <div>מצערת אגזוז</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">1</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div>
+          <div class="b-num" style="text-align:left;">3.0</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">9</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">12871960</span></div>
+          <div>חיישן לחץ - מסנן חלקיקים לדוד</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">1</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לבדוק אם הפיק חד-פעמי או תחילת מגמה</div>
+          <div class="b-num" style="text-align:left;">4.0</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">10</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">8893340868B13</span></div>
+          <div>פס קשת גלגל אחורי ימין</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">1</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לפתוח רכש יזום ל-4 יח׳ (השלמה ל-ROP המוצע)</div>
+          <div class="b-num" style="text-align:left;">2.4</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">11</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">8891481853</span></div>
+          <div>נאבה קדמי שמאל+ימין</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">מניעת חוסר</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">1</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">לפתוח רכש יזום ל-5 יח׳ (השלמה ל-ROP המוצע)</div>
+          <div class="b-num" style="text-align:left;">+ 2.4</div></div>
+
+        <!-- group 3 -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+          height: 28px; background: #eff6ff; border-inline-end: 3px solid #2563eb; border-bottom: 1px solid #e6e9f0;">
+          <div style="font-size: 11.5px; color: #2563eb; font-weight: 700;">408 יח׳ חסרות</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 11px; color: #6b7280;">צריכה ברבעון מול מלאי פנוי שלא מכסה חודש</div>
+            <div style="font-size: 12px; font-weight: 800; color: #2563eb;">37 &nbsp;אוזל החודש</div>
+            <div style="font-size: 10px; color: #6b7280;">⌄</div>
+          </div>
+        </div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">12</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">5511690886</span></div>
+          <div>מצתים NGK</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">77</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 77 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 5.4</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">13</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">5511801478</span></div>
+          <div>מסנן שמן 08 01</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">29</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 29 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 58.6</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">14</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608044172</span></div>
+          <div>מסנן אוויר 08 01</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">27</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 27 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 62.4</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">15</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">1200-10-00031</span></div>
+          <div>תושבת גומי LCK6125H / LCK6128H</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">25</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 25 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 8.6</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">16</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608276810</span></div>
+          <div>סמל אחורי לינק 02</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">19</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 19 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 5.6</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">17</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">6608281419</span></div>
+          <div>סמל תא מטען LYNK&amp;CO</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">19</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 19 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 5.9</div></div>
+
+        <div class="b-r"><div class="b-num" style="color:#6b7280;">18</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">9836-80-00375</span></div>
+          <div>מהדק TS077</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">אוזל החודש</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">17</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 17 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">0.7</div></div>
+
+        <div class="b-r" style="border-bottom: 0;"><div class="b-num" style="color:#6b7280;">19</div>
+          <div><span class="b-num" style="color:#5b5bd6;font-size:12px;">8889293965</span></div>
+          <div>בורג</div>
+          <div><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">חשד אזילה</span></div>
+          <div class="b-num" style="color:#dc2626;text-align:left;">17</div>
+          <div style="text-align:center;"><span class="b-chip" style="background:#eef0fe;color:#4a4ac2;">גבוה</span></div>
+          <div style="font-size:12px;">להשלים 17 יח׳ כדי לכסות את החודש הקרוב</div>
+          <div class="b-num" style="text-align:left;">+ 9.6</div></div>
+
+      </div>
+
+      <div style="height: 26px; flex: 0 0 auto; border-top: 1px solid #e6e9f0; display: flex;
+        align-items: center; justify-content: space-between; padding: 0 16px; font-size: 11px; color: #6b7280;">
+        <div>סה״כ 505 יח׳ חסרות</div>
+        <div>מוצג 1-48 מתוך 48</div>
+      </div>
+    </div>
+
+    <!-- filter rail -->
+    <div style="width: 232px; flex: 0 0 auto; background: #fff; border-inline-end: 1px solid #e6e9f0;
+      padding: 12px; display: flex; flex-direction: column; gap: 9px;">
+      <div style="font-size: 12px; font-weight: 800; text-align: center; padding-bottom: 4px;">סינון ומיקוד</div>
+      <div>
+        <div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">חיפוש מהיר</div>
+        <div class="b-sel"><span style="color: #9aa3b2;">מק״ט · תיאור · ספק…</span><span style="color:#9aa3b2;">⌕</span></div>
+      </div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">מותג</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">דגם</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">יבוא/מקומי</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">מעתד</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">ספק</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">קבוצת שיווק</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">קבוצת חומרים</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">סוג MRP</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div><div style="font-size: 10.5px; color: #6b7280; margin-bottom: 3px;">ABC</div><div class="b-sel"><span>הכל</span><span style="color:#9aa3b2;">▾</span></div></div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 4px;">
+        <div style="width: 34px; height: 18px; border-radius: 9px; background: #d5d8fb; position: relative;">
+          <div style="position: absolute; inset-block: 2px; inset-inline-start: 2px; width: 14px; border-radius: 50%; background: #fff;"></div>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 700;">הצג רק משימות</div>
+      </div>
+      <div style="border: 1px dashed #e6e9f0; border-radius: 7px; padding: 5px; text-align: center;
+        font-size: 11.5px; color: #6b7280;">▽ נקה פילטרים</div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>
