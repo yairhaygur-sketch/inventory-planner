@@ -195,6 +195,33 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
  await p.setViewportSize({width:1512,height:860});
+
+ /* גרף הצריכה — ברמת המסך, לא קבור בתוך <details> בכרטיס הפריט */
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(700);
+ const ch=await p.evaluate(()=>{const c=document.getElementById('ctop');
+  if(c.hidden)return {hidden:true};
+  const sv=c.querySelector('svg'),b=sv.getBoundingClientRect();
+  const vb=sv.getAttribute('viewBox').split(' ').map(Number);
+  return {hidden:false,inView:b.top>=0&&b.bottom<=innerHeight,
+   bars:c.querySelectorAll('rect').length,labs:c.querySelectorAll('.clab').length,
+   vals:c.querySelectorAll('.cval').length,
+   /* יחס הצירים חייב להישמר, אחרת הטקסט נמתח */
+   skew:Math.abs((b.width/b.height)-(vb[2]/vb[3])),
+   ticks:[...c.querySelectorAll('.cax')].map(t=>t.textContent),
+   tallest:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('height'))),
+   /* שטח הציור נגזר מהציור עצמו: מקו הבסיס עד קו הרשת העליון */
+   plotH:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('y')+ +r.getAttribute('height')))
+        -Math.min(...[...c.querySelectorAll('line')].map(l=>+l.getAttribute('y1')))}});
+ ok('הגרף נראה במצב הקטלוג בלי גלילה ובלי לחיצה',!ch.hidden&&ch.inView);
+ ok('עמודה לכל חודש בדוח',ch.bars===11,ch.bars+' עמודות');
+ ok('רק השיא והחודש האחרון מתויגים',ch.vals===2,ch.vals+' תוויות ערך');
+ ok('יחס הצירים נשמר — הטקסט אינו נמתח',ch.skew<0.05,'סטייה '+ch.skew.toFixed(3));
+ ok('תווי הסקאלה עגולים',ch.ticks.every(t=>/^\d+(\.\d)?k?$/.test(t)),ch.ticks.join(' · '));
+ ok('העמודה הגבוהה ממלאת את רוב שטח הציור',ch.tallest>=ch.plotH*0.6,
+    `${Math.round(ch.tallest)} מתוך ${Math.round(ch.plotH)}`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ ok('הגרף אינו מופיע במצב "היום"',await p.evaluate(()=>document.getElementById('ctop').hidden));
+
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});

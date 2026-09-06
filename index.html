@@ -842,6 +842,18 @@ body.nofilters .wdetail{grid-column:1}
 .top .lc{flex:0 1 auto;min-width:0;overflow:hidden}
 .top .qwrap{width:236px}
 .top .sp{flex:0 0 auto}
+
+/* רצועת הגרף מעל הרשימה — קיימת רק במסך "הקטלוג" */
+.ctop{flex:0 0 auto;padding:10px 14px 4px;border-bottom:1px solid var(--line2)}
+.ctop .chd{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
+.ctop .chd b{font-size:var(--f-md);font-weight:700}
+.ctop .chd span{font-size:var(--f-sm);color:var(--dim)}
+.ctop svg{display:block;width:100%;height:auto;max-height:112px}
+.ctop .cax{font-family:var(--num);font-size:9px;font-weight:600;fill:var(--dimmer)}
+.ctop .clab{font-size:10px;fill:var(--dim);text-anchor:middle}
+.ctop .cval{font-family:var(--num);font-size:11px;font-weight:700;fill:var(--ink);text-anchor:middle}
+
+/* הגרף מצויר ביחידות פיקסל — ציור מחדש כשהרוחב משתנה */
 </style>
 </head>
 <body>
@@ -898,6 +910,7 @@ body.nofilters .wdetail{grid-column:1}
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span></div>
+        <div class="ctop" id="ctop" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -1918,6 +1931,53 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
+
+/* ==================== צריכה חודשית — כל הקטלוג ====================
+   הגרפים היחידים באפליקציה ישבו בתוך <details> מקופל בכרטיס הפריט:
+   כדי לראות אחד מהם צריך היה לבחור פריט ואז לפתוח מגירה. זה גרף
+   ברמת המסך — נראה בלי גלילה ובלי לחיצה.
+   סדרה אחת, גוון אחד, בלי מקרא. מתויגים רק השיא והחודש האחרון.
+   הזמן זורם מימין לשמאל, כמו כיוון הקריאה.                          */
+function topChart(){
+ const el=document.getElementById('ctop');if(!el)return;
+ const show=(track==='cap')&&QF&&QF.all&&QF.all.length;
+ el.hidden=!show;
+ if(!show){el.innerHTML='';return}
+ const N=LABELS.length,sum=new Array(N).fill(0);
+ for(const x of QF.all){const m=x.months||[];
+  for(let i=0;i<N;i++)sum[i]+=Math.max(0,+m[i]||0)}
+ /* חודש בקצה החלון שאין בו נתון כלל אינו "אפס מכירות" — הוא מחוץ לדוח */
+ let last=N-1;while(last>0&&sum[last]===0)last--;
+ const d=[],labs=[];
+ for(let i=last;i>=0;i--){d.push(sum[i]);labs.push(LABELS[i])}   /* ישן -> חדש */
+ if(d.length<2){el.hidden=true;el.innerHTML='';return}
+ const max=Math.max(...d),peak=d.indexOf(max);
+ /* יחידת ה-viewBox היא פיקסל אמיתי, אחרת הטקסט נמתח עם הרוחב */
+ const W=Math.max(420,Math.round(el.clientWidth)||960);
+ const H=112,padT=16,padB=18,padE=34,base=H-padB;
+ const slot=(W-padE)/d.length,bw=Math.min(slot*0.6,46);
+ const top=niceTop(max),yOf=v=>base-(v/top)*(base-padT);
+ let g='',b='',lb='';
+ for(const t of niceTicks(top)){const y=yOf(t).toFixed(1);
+  g+=`<line x1="0" y1="${y}" x2="${W-padE+6}" y2="${y}" stroke="var(--line2)" stroke-width="1"></line>`+
+     `<text x="${W-padE+10}" y="${(+y+3).toFixed(1)}" class="cax">${t>=1000?(t/1000)+'k':t}</text>`}
+ d.forEach((v,i)=>{
+  const cx=W-padE-(i+0.5)*slot, x=(cx-bw/2).toFixed(1), y=yOf(v), h=Math.max(0,base-y).toFixed(1);
+  b+=`<rect x="${x}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h}" rx="3"`+
+     ` fill="var(--acc)" opacity="${i===peak?1:.4}"><title>${esc(labs[i].name)} ${labs[i].yy}׳ — ${v.toLocaleString('he-IL')} יח׳</title></rect>`;
+  if(i===peak||i===d.length-1)
+   b+=`<text x="${cx.toFixed(1)}" y="${(y-5).toFixed(1)}" class="cval">${v.toLocaleString('he-IL')}</text>`;
+  lb+=`<text x="${cx.toFixed(1)}" y="${H-5}" class="clab">${esc(labs[i].short)}</text>`});
+ const tot=d.reduce((a,c)=>a+c,0);
+ el.innerHTML=`<div class="chd"><b>צריכה חודשית — כל הקטלוג</b>`+
+  `<span>${d.length} חודשים · ${tot.toLocaleString('he-IL')} יח׳ · השיא ${esc(labs[peak].name)} ${max.toLocaleString('he-IL')}</span></div>`+
+  `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="צריכה חודשית מצרפית">${g}${b}${lb}</svg>`}
+/* גבול עליון ותווי סקאלה עגולים — 1 / 2 / 2.5 / 5 כפול חזקה של 10 */
+function niceTop(v){if(v<=0)return 1;
+ const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;
+ return (f<=1?1:f<=1.5?1.5:f<=2?2:f<=3?3:f<=4?4:f<=5?5:f<=8?8:10)*e}
+function niceTicks(top){const out=[];for(let i=0;i<=4;i++)out.push(top*i/4);
+ return out.filter(t=>Number.isInteger(t))}
 function renderDecisions(rows){
  document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
@@ -2009,6 +2069,7 @@ function renderDecisions(rows){
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
+ setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
  const rows=currentRows();
@@ -2359,7 +2420,8 @@ qEl('q').onkeydown=e=>{
   pushRecent(qEl('q').value);closeSug()}};
 document.addEventListener('mousedown',e=>{const t=e.target;
  if(t&&t.closest&&(t.closest('#qwrap')||t.closest('#qsug')))return;closeSug()});
-window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug()});
+window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug();
+ clearTimeout(window.__ctr);window.__ctr=setTimeout(topChart,120)});
 document.getElementById('wmBtn').onclick=e=>{e.stopPropagation();document.getElementById('wMenu').classList.toggle('open')};
 document.getElementById('saveView').onclick=()=>saveLayout(true);
 document.getElementById('resetView').onclick=()=>resetLayout();
