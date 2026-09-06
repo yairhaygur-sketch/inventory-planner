@@ -778,6 +778,30 @@ thead th,th .thc,.rank,.sug,.plannerGreeting,.cp,.dn,.badge,
 .btn,.btn.pri,.whead .wt,.qclr,.fclear,.dchip,.toggle,
 .dd .ddbtn,.dd .ddbtn span{font-size:var(--f-md)}
 .btn span,.fclear span,.dchip span{font-size:inherit}
+
+/* ==================== שקט בשורה ====================
+   נמדד לפני: חמישה שבבים בכל שורה, 240 על המסך. שני שבבי הסיווג ירדו
+   עם העמודות שלהם; שני הכפתורים נשארו אבל מופיעים רק כשהעכבר על השורה
+   או כשהיא נבחרת — ולכן הם לא נספרים כרעש קבוע. */
+.ract{display:inline-flex;gap:4px;opacity:0;pointer-events:none;transition:opacity .1s ease}
+tbody tr:hover .ract,tbody tr.sel .ract,tbody tr:focus-within .ract{opacity:1;pointer-events:auto}
+td.note{color:var(--dim)}
+td .mut{color:var(--dimmer)}
+
+/* רוחבי העמודות של "היום". אחרי שירדו שתי עמודות, הרוחב המשוחרר
+   התחלק שווה בשווה בין העמודות המספריות והשאיר את התיאור צר מדי. */
+#tbl[data-track=short] th:nth-child(1),#tbl[data-track=short] td:nth-child(1){width:38px}
+#tbl[data-track=short] th:nth-child(2),#tbl[data-track=short] td:nth-child(2){width:158px}
+#tbl[data-track=short] th:nth-child(4),#tbl[data-track=short] td:nth-child(4),
+#tbl[data-track=short] th:nth-child(5),#tbl[data-track=short] td:nth-child(5),
+#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6){width:76px}
+#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:290px}
+#tbl[data-track=short] td:nth-child(3){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* סך היחידות של הקבוצה צף שמאלה וחרג מהטבלה ב-17 פיקסלים */
+tr.grp td{padding-inline-end:16px}
+/* מונה השורה במסלול "היום" אינו נתון — הוא סימן מקום. בלי גלולה אפורה
+   מסביבו, השורה נשארת בלי אף אובייקט מצויר קבוע. */
+#tbl[data-track=short] .rank{background:transparent;color:var(--dimmer);min-width:0}
 </style>
 </head>
 <body>
@@ -1459,9 +1483,23 @@ let mode='today';
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
    הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
 const TGROUP=[
- ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי הזמנת רכש פתוחה','var(--red)'],
- ['prevent','מניעת חוסר','כיסוי קצר מזמן האספקה · פיק חוזר · חשד אזילה','var(--org)'],
- ['m1','אוזל החודש','צריכה ברבעון מול מלאי פנוי שלא מכסה חודש','var(--acc)']];
+ ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי רכש פתוח — לפתוח הזמנת רכש בכמות החסרה','var(--red)'],
+ ['prevent','מניעת חוסר','הכיסוי קצר מזמן האספקה — לפתוח רכש יזום להשלמה לנקודת ההזמנה','var(--org)'],
+ ['m1','אוזל החודש','המלאי הפנוי לא מכסה את החודש הקרוב — להשלים את הכמות החסרה','var(--acc)']];
+/* מה שכותרת הקבוצה אומרת, השורה לא חוזרת עליו. נמדד על הדוח האמיתי:
+   עמודת "סוג ההחלטה" החזיקה 4 ערכים שונים ב-48 שורות ועמודת "חומרה"
+   שניים — וכל ערך כבר כתוב בכותרת שמעליו. שתיהן ירדו, והטקסט המשותף
+   של ההחלטה עלה לכותרת ונכתב פעם אחת. עמודת ההערה נכתבת רק לחריג:
+   פריט שההחלטה שלו שונה מברירת המחדל של הקבוצה שלו. */
+const GROUP_LEAD={
+ wait:[/^לפתוח הזמנת רכש ל-/],
+ prevent:[/^לפתוח רכש יזום ל-/],
+ m1:[/^להשלים /]};
+/* ההחלטה של הפריט תואמת את הקבוצה -> אין מה לכתוב בשורה */
+function groupNote(g,r){const a=((r.act||[])[0]||'').trim();if(!a)return '';
+ const pats=GROUP_LEAD[g]||[];
+ if(pats.some(p=>p.test(a)))return '';
+ return a.replace(/\s*\(השלמה ל-ROP המוצע\)\s*$/,'').replace(/\s*כדי לכסות את החודש הקרוב\s*$/,'').trim()}
 /* הקיבוץ עונה על "מה אעשה", לא על "איך זה מסווג": פריט שהוא גם אזילה
    שזוהתה וגם חוסר של החודש הקרוב מקבל את החלטת הכמות, ולכן שייך
    ל"אוזל החודש" גם אם הסיווג שלו הוא "חשד אזילה". */
@@ -1824,13 +1862,23 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.style.display='';
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
+/* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
+function NCOL(){return track==='short'?7:8}
+/* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
+   מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
+   העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
+   קונים בדיוק את מה שחסר, וחזרה על אותו מספר פעמיים אינה מידע. */
+function actQty(r){const a=(r.act||[])[0]||'';
+ const m=a.match(/(?:ל-|להשלים\s+)(\d[\d,]*)\s*יח׳/);
+ return m?+m[1].replace(/,/g,''):null}
 function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
-  :track==='short'?['מק״ט','תיאור','סוג ההחלטה','חסר (יח׳)','חומרה','פעולה מומלצת','כיסוי']
+  :track==='short'?['מק״ט','תיאור','חסר (יח׳)','<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 function renderDecisions(rows){
+ document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
  const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
@@ -1843,20 +1891,21 @@ function renderDecisions(rows){
  if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
    const units=list.reduce((t,r)=>t+(r.miss||0),0),coll=GCOLL.has(g);
-   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="8" style="--gc:${col}">
+   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
      <span class="gu">${units?units.toLocaleString('he-IL')+' יח׳ חסרות':(list.length?'':'אין פריטים')}</span></td></tr>`);
    if(coll||!list.length)continue;
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
+    const buy=actQty(r);
     body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
-     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
-     <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
+     <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
+     <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
-     <td><span class="badge" style="${sCatStyle(r)}">${SEVLBL[r.sev]||'—'}</span></td>
-     <td class="act1">${esc((r.act||[])[0]||'')}</td>
-     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`)}}
+     <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
+     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
+     <td class="note">${esc(groupNote(g,r))}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -1890,9 +1939,9 @@ function renderDecisions(rows){
    <td>${c4}</td><td>${c5}</td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
    <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
-  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="8">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${moneyMix(rows.slice(0,c.n),x=>x[k]||0)} מתוך ${moneyMix(rows,x=>x[k]||0)} — כל ${rows.length-c.n} הנותרים יחד שווים ${moneyMix(rows.slice(c.n),x=>x[k]||0)}</td></tr>`)});
+  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${moneyMix(rows.slice(0,c.n),x=>x[k]||0)} מתוך ${moneyMix(rows,x=>x[k]||0)} — כל ${rows.length-c.n} הנותרים יחד שווים ${moneyMix(rows.slice(c.n),x=>x[k]||0)}</td></tr>`)});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
-   `<tr><td colspan="8" class="empty">${track==='short'
+   `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='cap'?'אין הון כלוא במסלול הזה.'
