@@ -793,9 +793,23 @@ td .mut{color:var(--dimmer)}
 #tbl[data-track=short] th:nth-child(1),#tbl[data-track=short] td:nth-child(1){width:38px}
 #tbl[data-track=short] th:nth-child(2),#tbl[data-track=short] td:nth-child(2){width:158px}
 #tbl[data-track=short] th:nth-child(4),#tbl[data-track=short] td:nth-child(4),
+#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6),
+#tbl[data-track=short] th:nth-child(8),#tbl[data-track=short] td:nth-child(8),
+#tbl[data-track=short] th:nth-child(9),#tbl[data-track=short] td:nth-child(9){width:58px}
 #tbl[data-track=short] th:nth-child(5),#tbl[data-track=short] td:nth-child(5),
-#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6){width:76px}
-#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:290px}
+#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:70px}
+#tbl[data-track=short] th:nth-child(10),#tbl[data-track=short] td:nth-child(10){width:196px}
+
+/* ============ מה יש לי, לא רק מה חסר ============
+   הרשימה אמרה "חסר 5" ולא אמרה שיש 0 במלאי ו-160 בדרך. שלוש העמודות
+   האלה הן מה שמכריע אם לפתוח הזמנה.
+   "בדרך" מעומעם בכוונה: בדוח האמיתי הוא גדול או שווה לחוסר ב-37 מתוך
+   48 השורות, ואין בדוח תאריך הגעה. מספר מלא היה נקרא ככיסוי ומבטל
+   בשקט את מסלול "אוזל החודש". הוא מודיע, הוא לא מרגיע.            */
+#tbl td.zero{color:var(--red);font-weight:700}
+#tbl td.cust{color:var(--ink);font-weight:700}
+#tbl td.otw{color:var(--dimmer);font-weight:400}
+#tbl td.otw i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.7}
 #tbl[data-track=short] td:nth-child(3){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* סך היחידות של הקבוצה צף שמאלה וחרג מהטבלה ב-17 פיקסלים */
 tr.grp td{padding-inline-end:16px}
@@ -1942,7 +1956,7 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
 /* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
-function NCOL(){return track==='short'?7:8}
+function NCOL(){return track==='short'?10:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -1952,7 +1966,10 @@ function actQty(r){const a=(r.act||[])[0]||'';
  return m?+m[1].replace(/,/g,''):null}
 function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
-  :track==='short'?['מק״ט','תיאור','חסר (יח׳)','<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
+  :track==='short'?['מק״ט','תיאור','מלאי',
+    '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
+    'לקוח','חסר (יח׳)',
+    '<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
@@ -2029,6 +2046,9 @@ function renderDecisions(rows){
     body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
+     <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
+     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
+     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
      <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>

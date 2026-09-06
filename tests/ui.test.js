@@ -214,6 +214,32 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
+ /* ============ מלאי · בדרך · לקוח ממתין ============
+    שלוש העמודות שמכריעות אם לפתוח הזמנה. "בדרך" מעומעם בכוונה:
+    בדוח האמיתי הוא >= החוסר ב-37 מתוך 48 השורות ואין בו ETA, ולכן
+    מספר מלא היה נקרא ככיסוי ומבטל את מסלול "אוזל החודש". */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const dec=await p.evaluate(()=>{
+  const h=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const tr=document.querySelector('#tbl tbody tr[data-i]');
+  const otw=document.querySelector('#tbl td.otw span');
+  const zero=document.querySelector('#tbl td.zero');
+  const gs=n=>{const e=document.querySelector(n);return e?getComputedStyle(e):null};
+  const so=gs('#tbl td.otw'),sz=gs('#tbl td.zero'),sn=gs('#tbl tbody tr[data-i] td.num');
+  return {heads:h, hasStock:h.includes('מלאי'), hasCust:h.includes('לקוח'),
+    hasOtw:h.some(x=>x.indexOf('בדרך')===0),
+    otwMarked:!!otw&&/⌛/.test(otw.textContent),
+    otwTitleHasEta:!!otw&&/אין תאריך הגעה/.test(otw.getAttribute('title')||''),
+    otwDim:so&&sn?so.color!==sn.color:false,
+    zeroRed:!!sz&&sz.fontWeight>=600}});
+ ok('עמודת מלאי קיימת',dec.hasStock,dec.heads.join(' · '));
+ ok('עמודת לקוח ממתין קיימת',dec.hasCust);
+ ok('עמודת "בדרך" קיימת',dec.hasOtw);
+ ok('"בדרך" מסומן ⌛ ולא נקרא ככיסוי',dec.otwMarked);
+ ok('ההסבר אומר במפורש שאין ETA',dec.otwTitleHasEta);
+ ok('"בדרך" מעומעם ביחס למספרים האחרים',dec.otwDim);
+ ok('מלאי אפס בולט',dec.zeroRed);
+
  /* סיווג שחורג מרוב הקבוצה נכתב בשורה. בדוח האמיתי אלה שמונה פריטי
     «חשד אזילה» בתוך «אוזל החודש» — הבחנה שנמחקה בטעות עם העמודה. */
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
