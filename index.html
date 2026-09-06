@@ -854,6 +854,22 @@ body.nofilters .wdetail{grid-column:1}
 .ctop .cval{font-family:var(--num);font-size:11px;font-weight:700;fill:var(--ink);text-anchor:middle}
 
 /* הגרף מצויר ביחידות פיקסל — ציור מחדש כשהרוחב משתנה */
+
+/* ==================== הדלת של מסילת הסינון ====================
+   שלוש שורות נפרדות סגרו את הסינון בלי דרך חזרה: ה-✕ על הכותרת הוסתר
+   ב-CSS, כפתור הווידג'טים נמחק מה-DOM, והתצוגה השמורה נדרסה בכל טעינה.
+   עכשיו: ✕ מקפל, הכפתור "סינון" בסרגל העליון פותח, והמצב נשמר.      */
+.wfilters .whead .wx{display:inline-flex!important;cursor:pointer;
+ width:20px;height:20px;align-items:center;justify-content:center;
+ border-radius:6px;color:var(--dimmer);font-size:var(--f-sm)}
+.wfilters .whead .wx:hover{background:var(--redL);color:var(--red)}
+.wfilters .whead{justify-content:space-between}
+#filtBtn{position:relative}
+#filtBtn.on{background:var(--accL);border-color:var(--accBorder);color:var(--accD);font-weight:700}
+#filtBtn .fn{font-family:var(--num);font-weight:700}
+
+/* סיווג שחורג מרוב הקבוצה — נכתב בשורה, כי הכותרת לא מכסה אותו */
+td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -864,6 +880,7 @@ body.nofilters .wdetail{grid-column:1}
     <div class="menuwrap"><button class="btn" id="wmBtn">⧉ וידג'טים ▾</button><div class="menu" id="wMenu"></div></div>
     <button class="btn" id="saveView">🔖 שמור תצוגה</button>
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
+    <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰ סינון</button>
     <button class="btn" id="exportXls">⭳ ייצוא לאקסל</button>
     <button class="btn" id="darkToggle">🌙 מצב כהה</button>
   </div>
@@ -1432,7 +1449,7 @@ const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
    ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
    81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis','filters'],sizes:{}};
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis'],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -1449,7 +1466,8 @@ function normalizeLayout(){WIDGETS.forEach(([id])=>{if(!LAYOUT.order.includes(id
 function applyLayout(){normalizeLayout();
   LAYOUT.order.forEach((id,i)=>{const el=document.getElementById('w_'+id);if(!el)return;
     el.style.order=i;el.style.display=LAYOUT.hidden.includes(id)?'none':'';
-    if(id==='filters')document.body.classList.toggle('nofilters',LAYOUT.hidden.includes('filters'));
+    if(id==='filters'){document.body.classList.toggle('nofilters',LAYOUT.hidden.includes('filters'));
+      if(typeof syncFiltBtn==='function')syncFiltBtn()}
     if(id==='detail'){el.classList.remove('sized');el.style.flexBasis='';el.style.height='';
       if(LAYOUT.hidden.includes('detail'))closeDetail();return}
     const sz=LAYOUT.sizes[id];
@@ -1554,6 +1572,13 @@ function groupNote(g,r){const a=((r.act||[])[0]||'').trim();if(!a)return '';
  const pats=GROUP_LEAD[g]||[];
  if(pats.some(p=>p.test(a)))return '';
  return a.replace(/\s*\(השלמה ל-ROP המוצע\)\s*$/,'').replace(/\s*כדי לכסות את החודש הקרוב\s*$/,'').trim()}
+/* הסיווג הרוב של כל קבוצה — נמדד מהנתונים ולא מקובע, כדי שהחריג
+   יתגלה בכל דוח. הכותרת נושאת את הרוב; שורה שחורגת ממנו נושאת אותו
+   בעצמה. בדוח שנבדק: 8 מתוך 37 ב"אוזל החודש" הם "חשד אזילה" —
+   ההבחנה הזאת נמחקה בטעות כשהעמודה ירדה, והיא מידע ולא רעש. */
+function majorCat(list){const c={};let top=null,n=0;
+ for(const r of list){const k=r.cat||'';c[k]=(c[k]||0)+1;if(c[k]>n){n=c[k];top=k}}
+ return top}
 /* הקיבוץ עונה על "מה אעשה", לא על "איך זה מסווג": פריט שהוא גם אזילה
    שזוהתה וגם חוסר של החודש הקרוב מקבל את החלטת הכמות, ולכן שייך
    ל"אוזל החודש" גם אם הסיווג שלו הוא "חשד אזילה". */
@@ -1997,6 +2022,7 @@ function renderDecisions(rows){
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
      <span class="gu">${units?units.toLocaleString('he-IL')+' יח׳ חסרות':(list.length?'':'אין פריטים')}</span></td></tr>`);
    if(coll||!list.length)continue;
+   const maj=majorCat(list);
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
     const buy=actQty(r);
@@ -2006,7 +2032,7 @@ function renderDecisions(rows){
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
      <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
-     <td class="note">${esc(groupNote(g,r))}</td></tr>`)}}
+     <td class="note">${(r.cat&&r.cat!==maj)?`<span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}${esc(groupNote(g,r))}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -2464,6 +2490,17 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  const dstr=new Date().toISOString().slice(0,10);
  XLSX.writeFile(wb,`Inventory_${cur}_${dstr}.xlsx`);
  toast(`יוצאו ${currentRows().length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
+/* wireDrag() הוגדר ומעולם לא נקרא, ולכן כפתורי ה-✕ על כותרות הווידג'טים
+   מעולם לא חוברו. הם היו מוסתרים ב-CSS אז איש לא הבחין. */
+document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
+ e.stopPropagation();hideWidget(x.dataset.hide)});
+document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
+/* הכפתור מראה אם המסילה פתוחה וכמה סינונים פעילים בפועל */
+function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
+ const open=!LAYOUT.hidden.includes('filters');
+ const n=FDEF.reduce((t,[k])=>t+(SEL[k]&&SEL[k].size?1:0),0);
+ b.classList.toggle('on',open||n>0);
+ b.innerHTML='☰ סינון'+(n?` <span class="fn">${n}</span>`:'')}
 document.getElementById('exportXls').onclick=()=>doExport();
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
@@ -2591,7 +2628,9 @@ document.addEventListener('keydown',e=>{
  el.textContent=`${p2(d.getDate())}.${p2(d.getMonth()+1)} ${p2(d.getHours())}:${p2(d.getMinutes())}`})();
 document.body.classList.add('mode-today');
 applyDark(DARKON);
-LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));applyLayout();
+/* לא לדרוס את התצוגה השמורה. השורה הזאת אתחלה את LAYOUT בכל טעינה,
+   ולכן כל קיפול או פתיחה של מסילת הסינון נמחקו ברענון. */
+applyLayout();
 ['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
 </script>
 </body>

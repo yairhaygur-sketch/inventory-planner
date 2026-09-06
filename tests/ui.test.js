@@ -109,10 +109,30 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
  ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
  ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
- /* מסילת הסינון מקופלת כברירת מחדל (החיפוש עבר לסרגל העליון), ולכן
-    הרשימה מקבלת את כל הרוחב: עמודת רשת אחת, לא שתיים ולא שלוש. */
- ok('הרשימה מקבלת את כל רוחב הגריד',dr.cols===1,dr.cols+' עמודות');
- ok('מסילת הסינון מקופלת ולא משאירה רצועה ריקה',dr.railW===0,`רוחב מסילה ${dr.railW}`);
+ /* מסילת הסינון פתוחה כברירת מחדל — תשעת הסינונים בשימוש יומיומי.
+    היא נקפלת ונפתחת, והמצב נשמר. הבדיקה הקודמת כאן קיבעה בטעות
+    שהמסילה מוסתרת; זו הייתה רגרסיה, לא כוונה. */
+ ok('הרשימה חולקת את הגריד עם מסילת הסינון',dr.cols===2,dr.cols+' עמודות');
+ ok('מסילת הסינון פתוחה כברירת מחדל',dr.railW>150,`רוחב מסילה ${dr.railW}`);
+ ok('תשעת הסינונים קיימים',
+   9===await p.evaluate(()=>document.querySelectorAll('.wfilters .ddbtn').length));
+ const railVis=()=>p.evaluate(()=>{const r=document.querySelector('.wfilters');
+   return !!r&&r.offsetParent!==null});
+ ok('כפתור «סינון» בסרגל העליון גלוי',
+   await p.evaluate(()=>{const b=document.getElementById('filtBtn');return !!b&&b.offsetParent!==null}));
+ await p.click('.wfilters .whead .wx');await p.waitForTimeout(350);
+ ok('✕ מקפל את המסילה',!(await railVis()));
+ ok('הקיפול משחרר את עמודת הרשת',
+   await p.evaluate(()=>document.body.classList.contains('nofilters')));
+ await p.click('#filtBtn');await p.waitForTimeout(350);
+ ok('הכפתור בסרגל מחזיר את המסילה',await railVis());
+ await p.click('.wfilters .whead .wx');await p.waitForTimeout(300);
+ await p.reload();await p.waitForTimeout(1600);
+ ok('הקיפול שורד רענון',!(await railVis()));
+ await p.click('#filtBtn');await p.waitForTimeout(300);
+ await p.reload();await p.waitForTimeout(1600);
+ ok('הפתיחה שורדת רענון',await railVis());
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4000);
  ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
  const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
@@ -194,6 +214,25 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
+ /* סיווג שחורג מרוב הקבוצה נכתב בשורה. בדוח האמיתי אלה שמונה פריטי
+    «חשד אזילה» בתוך «אוזל החודש» — הבחנה שנמחקה בטעות עם העמודה. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const oc=await p.evaluate(()=>{
+  const G={};for(const tr of document.querySelectorAll('#tbl tbody tr')){
+   if(tr.classList.contains('grp')){G.cur=tr.textContent.trim();continue}}
+  const notes=[...document.querySelectorAll('#tbl td.note .ocat')].map(x=>x.textContent.trim());
+  return {shown:notes.length,uniq:[...new Set(notes)]}});
+ ok('סיווג חריג נכתב בשורה ולא נבלע בכותרת',oc.shown>0,
+   `${oc.shown} שורות · ${oc.uniq.join(' · ')}`);
+ const noDup=await p.evaluate(()=>{
+  let bad=0;
+  for(const tr of document.querySelectorAll('#tbl tbody tr[data-i]')){
+   const o=tr.querySelector('td.note .ocat');if(!o)continue;
+   let h=tr.previousElementSibling;while(h&&!h.classList.contains('grp'))h=h.previousElementSibling;
+   if(h&&h.textContent.includes(o.textContent.trim()))bad++}
+  return bad});
+ ok('סיווג שכבר כתוב בכותרת אינו חוזר בשורה',noDup===0,noDup+' חזרות');
+
  await p.setViewportSize({width:1512,height:860});
 
  /* גרף הצריכה — ברמת המסך, לא קבור בתוך <details> בכרטיס הפריט */
