@@ -793,9 +793,23 @@ td .mut{color:var(--dimmer)}
 #tbl[data-track=short] th:nth-child(1),#tbl[data-track=short] td:nth-child(1){width:38px}
 #tbl[data-track=short] th:nth-child(2),#tbl[data-track=short] td:nth-child(2){width:158px}
 #tbl[data-track=short] th:nth-child(4),#tbl[data-track=short] td:nth-child(4),
+#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6),
+#tbl[data-track=short] th:nth-child(8),#tbl[data-track=short] td:nth-child(8),
+#tbl[data-track=short] th:nth-child(9),#tbl[data-track=short] td:nth-child(9){width:58px}
 #tbl[data-track=short] th:nth-child(5),#tbl[data-track=short] td:nth-child(5),
-#tbl[data-track=short] th:nth-child(6),#tbl[data-track=short] td:nth-child(6){width:76px}
-#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:290px}
+#tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:70px}
+#tbl[data-track=short] th:nth-child(10),#tbl[data-track=short] td:nth-child(10){width:196px}
+
+/* ============ מה יש לי, לא רק מה חסר ============
+   הרשימה אמרה "חסר 5" ולא אמרה שיש 0 במלאי ו-160 בדרך. שלוש העמודות
+   האלה הן מה שמכריע אם לפתוח הזמנה.
+   "בדרך" מעומעם בכוונה: בדוח האמיתי הוא גדול או שווה לחוסר ב-37 מתוך
+   48 השורות, ואין בדוח תאריך הגעה. מספר מלא היה נקרא ככיסוי ומבטל
+   בשקט את מסלול "אוזל החודש". הוא מודיע, הוא לא מרגיע.            */
+#tbl td.zero{color:var(--red);font-weight:700}
+#tbl td.cust{color:var(--ink);font-weight:700}
+#tbl td.otw{color:var(--dimmer);font-weight:400}
+#tbl td.otw i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.7}
 #tbl[data-track=short] td:nth-child(3){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* סך היחידות של הקבוצה צף שמאלה וחרג מהטבלה ב-17 פיקסלים */
 tr.grp td{padding-inline-end:16px}
@@ -840,7 +854,7 @@ body.nofilters .wdetail{grid-column:1}
 .top .ttl,.top .rdlbl,.brand .nm b{white-space:nowrap}
 .brand .nm span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
 .top .lc{flex:0 1 auto;min-width:0;overflow:hidden}
-.top .qwrap{width:236px}
+.top .qwrap{width:208px}
 .top .sp{flex:0 0 auto}
 
 /* רצועת הגרף מעל הרשימה — קיימת רק במסך "הקטלוג" */
@@ -870,6 +884,30 @@ body.nofilters .wdetail{grid-column:1}
 
 /* סיווג שחורג מרוב הקבוצה — נכתב בשורה, כי הכותרת לא מכסה אותו */
 td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;white-space:nowrap}
+
+/* ==================== הדלת לפריטים שסומנו "טופל" ====================
+   סימון מוציא פריט מתור העבודה ברונג הראשון של classify. המנגנון,
+   האחסון ב-localStorage וכפתור "בטל סימון" במגירה כולם היו קיימים —
+   רק לא הייתה דרך להגיע אליהם אחרי שהפריט נעלם מהרשימה.        */
+#doneBtn.on{background:var(--grnL);border-color:var(--grn);color:var(--grn);font-weight:700}
+#doneBtn .fn{font-family:var(--num);font-weight:700}
+#tbl .dn.undo{color:var(--acc);font-weight:700;background:var(--accL);padding:2px 9px}
+#tbl .dn.undo:hover{background:var(--acc);color:#fff}
+/* במסך הזה הפעולה היא כל העניין — היא לא מתחבאת עד ריחוף */
+body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
+
+/* הכפתור יושב בכותרת התור, ליד "סמן N פריטים" — הוא שייך לעבודה
+   ולא לפקדים הגלובליים, וכך גם נשאר מקום לתוויות בסרגל העליון. */
+.phd #doneBtn{margin-inline-start:8px;padding:4px 10px}
+
+/* מתחת ל-1400 פיקסלים אין מקום לשלוש תוויות בסרגל. האייקון נשאר,
+   הטקסט יורד, וה-title נושא את המשמעות — עדיף על תווית חתוכה. */
+@media(max-width:1400px){.top .lc .btn .lbl{display:none}}
+/* הכפתורים לא מתכווצים לאפס — תיבת החיפוש היא שנותנת מקום. מתחת
+   ל-1300 גם כותרת המסך יורדת: היא חוזרת ממילא בשורת המצבים שמתחת. */
+.top .lc{overflow:visible;flex:0 0 auto}
+.top .qwrap{flex:1 1 auto;min-width:132px;max-width:208px}
+@media(max-width:1300px){.top .titleblock{display:none}}
 </style>
 </head>
 <body>
@@ -880,9 +918,9 @@ td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;wh
     <div class="menuwrap"><button class="btn" id="wmBtn">⧉ וידג'טים ▾</button><div class="menu" id="wMenu"></div></div>
     <button class="btn" id="saveView">🔖 שמור תצוגה</button>
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
-    <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰ סינון</button>
-    <button class="btn" id="exportXls">⭳ ייצוא לאקסל</button>
-    <button class="btn" id="darkToggle">🌙 מצב כהה</button>
+    <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
+    <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
+    <button class="btn" id="darkToggle" title="החלפת ערכת צבעים">🌙<span class="lbl"> מצב כהה</span></button>
   </div>
   <div class="fgroup qwrap" id="qwrap">
     <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
@@ -894,7 +932,7 @@ td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;wh
     <div class="qstat" id="qstat"></div>
   </div>
   <div class="sp">
-    <span class="rdlbl">חודש בסיס:</span><input type="month" id="rd" title="החודש המלא האחרון בדוח">
+    <input type="month" id="rd" title="חודש בסיס — החודש המלא האחרון בדוח">
     <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
     <span class="updated" id="updated">לא נטען קובץ</span>
     <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
@@ -926,7 +964,8 @@ td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;wh
           <span class="seg" id="track"></span>
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
-          <span class="bulkwrap" id="bulk"></span></div>
+          <span class="bulkwrap" id="bulk"></span>
+          <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
         <div class="ctop" id="ctop" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
@@ -1528,7 +1567,8 @@ function toast(msg,act){const t=document.getElementById('toast');
 const DARK_KEY='planner_dark_v1';
 let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
 function applyDark(on){document.body.classList.toggle('dark',on);
-  const b=document.getElementById('darkToggle');if(b)b.textContent=on?'☀️ מצב בהיר':'🌙 מצב כהה';
+  const b=document.getElementById('darkToggle');
+  if(b)b.innerHTML=(on?'☀️':'🌙')+'<span class="lbl"> '+(on?'מצב בהיר':'מצב כהה')+'</span>';
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
 const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
 /* המגירה נפתחת רק כשיש פריט להראות, ונסגרת ב-Esc או בכפתור */
@@ -1549,7 +1589,10 @@ const MODES=[
  ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--red)'],
  ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--purple)'],
  ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--gray)']];
-const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'}};
+const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
+ /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
+    בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
+ done:{cur:'marked',track:'done'}};
 let mode='today';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
@@ -1596,6 +1639,7 @@ function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
 function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
  cur=c.cur;track=c.track;trackPicked=true;closeDetail();
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
+ document.body.classList.toggle('mode-done',m==='done');
  render()}
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
@@ -1942,7 +1986,7 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
 /* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
-function NCOL(){return track==='short'?7:8}
+function NCOL(){return track==='short'?10:track==='done'?6:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -1952,7 +1996,11 @@ function actQty(r){const a=(r.act||[])[0]||'';
  return m?+m[1].replace(/,/g,''):null}
 function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
-  :track==='short'?['מק״ט','תיאור','חסר (יח׳)','<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
+  :track==='done'?['מק״ט','תיאור','הסימון','מתי סומן','']
+  :track==='short'?['מק״ט','תיאור','מלאי',
+    '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
+    'לקוח','חסר (יח׳)',
+    '<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
@@ -2029,6 +2077,9 @@ function renderDecisions(rows){
     body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
+     <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
+     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
+     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
      <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
@@ -2044,6 +2095,16 @@ function renderDecisions(rows){
     <td class="num">${dry?'<span class="stake short">0</span>':r.free}</td>
     <td class="num miss"><b>${gap}</b></td>
     <td class="num">${r.po>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td></tr>`);
+   return}
+  if(track==='done'){const mk=r.mark||{};
+   const when=mk.ts?new Date(mk.ts):null;
+   const p2=n=>String(n).padStart(2,'0');
+   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
+    <td>${hlMark(r.desc.slice(0,44),SQ)}</td>
+    <td>${esc(MARK_LABEL[mk.t]||'מסומן')}${mk.note?' — '+esc(mk.note):''}</td>
+    <td class="num">${when?`${p2(when.getDate())}.${p2(when.getMonth()+1)} ${p2(when.getHours())}:${p2(when.getMinutes())}`:'—'}</td>
+    <td><button class="dn undo" data-undo="${esc(r.pn)}">↺ בטל סימון</button></td></tr>`);
    return}
   if(track==='fix'||track==='month'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
@@ -2071,12 +2132,15 @@ function renderDecisions(rows){
    `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
+     :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
+ document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
+ document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+   const pn=b.dataset.undo;setMark(pn,'','');toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה')});
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
@@ -2085,16 +2149,21 @@ function renderDecisions(rows){
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
- document.getElementById('pgR').textContent=(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
+ document.getElementById('pgR').textContent=track==='done'
+   ?'ביטול סימון מחזיר את הפריט לתור העבודה'
+   :(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
- document.getElementById('phdSub').textContent=(track==='fix'||track==='month')
+ document.getElementById('phdSub').textContent=track==='done'
+  ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
+  :(track==='fix'||track==='month')
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
+ if(typeof syncDoneBtn==='function')syncDoneBtn();
  setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
@@ -2103,6 +2172,11 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  document.getElementById('lt').textContent=cur==='moves'?'תנועות':(MODES.find(d=>d[0]===mode)||[,''])[1];
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
  renderBulk(rows);
+ /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
+    ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
+ if(track==='done'){const tk0=document.getElementById('track');
+   if(tk0){tk0.innerHTML='';tk0.style.display='none'}
+   renderDecisions(rows);return}
  if(cur==='today'){renderTrack();renderDecisions(rows);return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
  document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
@@ -2124,8 +2198,10 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
   <td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td></tr>`}).join('')
   ||`<tr><td colspan="10" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
  document.querySelectorAll('#tbl thead th.srt').forEach(h=>h.onclick=e=>{e.stopPropagation();openColPop(h,h.dataset.col)});
- document.querySelectorAll('#tbl tbody .dn').forEach(b=>b.onclick=e=>{e.stopPropagation();
+ document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
+ document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+   const pn=b.dataset.undo;setMark(pn,'','');toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה')});
  document.querySelectorAll('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length}`;
@@ -2495,6 +2571,14 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
 document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
  e.stopPropagation();hideWidget(x.dataset.hide)});
 document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
+/* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
+   בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
+document.getElementById('doneBtn').onclick=()=>setMode(mode==='done'?'today':'done');
+function syncDoneBtn(){const b=document.getElementById('doneBtn');if(!b)return;
+ const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
+ b.hidden=!n&&mode!=='done';
+ b.classList.toggle('on',mode==='done');
+ document.getElementById('doneN').textContent=n}
 /* הכפתור מראה אם המסילה פתוחה וכמה סינונים פעילים בפועל */
 function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
  const open=!LAYOUT.hidden.includes('filters');
