@@ -214,6 +214,49 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
+ /* ============ רצפת מלאי הביטחון ============
+    sugSS = max(ssStat, ssMin, lumpFloor), ו-ssMin הוא ערך שהמתכנן קבע
+    ב-SAP. בדוח האמיתי הוא מנצח ב-88% מהמקרים, ולכן ה"המלצה" מחזירה
+    את המספר שלו. הפער בין הרצפה לדרישה הסטטיסטית הוא החלטה שעולה
+    כסף, והוא חייב להיות גלוי. */
+ const seen=id=>p.evaluate(i=>{const e=document.getElementById(i);
+   return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0},id);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ ok('ב"היום" כפתור "מעל הדרישה" אינו נראה',!(await seen('floorBtn')));
+ await p.evaluate(()=>setMode('month'));await p.waitForTimeout(700);
+ const fl=await p.evaluate(()=>({vis:!document.getElementById('floorBtn').hidden,
+   txt:document.getElementById('floorBtn').textContent.trim(),
+   heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()),
+   over:document.querySelectorAll('#tbl td.need.over').length,
+   need:document.querySelectorAll('#tbl td.need').length,
+   /* הסימון חייב להתאים לנתונים: לא "יש סימונים" אלא "בדיוק אלה
+      שהפער שלהם חיובי" — בפיקסצ׳ר ייתכן שאין חפיפה כלל */
+   expectOver:(()=>{const rows=currentRows().slice(0,300);
+     return rows.filter(r=>ssFloorGap(r)>0).length})()}));
+ ok('ב"החודש" הכפתור נראה',await seen('floorBtn'),fl.txt);
+ ok('עמודת "הדרישה" נוספה למסלול הפרמטרים',fl.heads.includes('הדרישה'),fl.heads.join(' · '));
+ ok('הדרישה הסטטיסטית מוצגת גם כשהרצפה ניצחה',fl.need>0,fl.need+' שורות');
+ ok('הסימון תואם בדיוק את הפריטים שהפער שלהם חיובי',
+   fl.over===fl.expectOver,`מסומנים ${fl.over} · צפוי ${fl.expectOver}`);
+ await p.click('#floorBtn');await p.waitForTimeout(800);
+ const fv=await p.evaluate(()=>{
+   const cells=[...(document.querySelector('#tbl tbody tr[data-i]')||{children:[]}).children].map(td=>td.textContent.trim());
+   return {rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+     heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' · '),
+     pgR:document.getElementById('pgR').textContent, cells,
+     /* מיון לפי שווי הפער — יורד */
+     sorted:(()=>{const v=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,8)
+       .map(tr=>+((tr.children[6]||{}).textContent||'0').replace(/[^\d.]/g,''));
+       for(let i=1;i<v.length;i++)if(v[i]>v[i-1]+0.001)return false;return true})()}});
+ ok('המסלול מציג פריטים',fv.rows>0,fv.rows+' פריטים');
+ ok('עמודות ייעודיות',fv.heads.includes('שווי הפער'),fv.heads);
+ ok('ממוין לפי שווי הפער',fv.sorted);
+ ok('הפער חיובי בכל שורה',+fv.cells[5]>0,fv.cells.join(' | '));
+ ok('הפוטר מסכם יחידות וכסף',/יח׳ מעל הדרישה/.test(fv.pgR),fv.pgR);
+ await p.click('#floorBtn');await p.waitForTimeout(600);
+ ok('לחיצה שנייה חוזרת ל"החודש"','month'===await p.evaluate(()=>mode));
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+
  /* ============ הדלת לפריטים שסומנו "טופל" ============
     סימון מוציא פריט מתור העבודה ברונג הראשון של classify. המנגנון
     והאחסון היו קיימים, אבל לא הייתה דרך להגיע אליהם כדי לבטל. */

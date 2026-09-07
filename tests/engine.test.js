@@ -177,5 +177,57 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/06-bz.png'});
+ /* ============ פריטים שאינם מנוהלים במלאי ============
+    שלושה מקורות: PD · קבוצת שיווק "כלי עבודה"/"אביזרים" · סימון ידני.
+    "לפי דרישה" אינו "מוסתר" — הפריט נשאר גלוי וממשיך להופיע ב"לקוח
+    ממתין", כי הזמנת לקוח היא בדיוק הטריגר להזמין פריט כזה. */
+ const odBase=await p.evaluate(()=>{
+  const tools=ALL.filter(a=>OD_GROUPS.has(a.mkt1));
+  return {tools:tools.length, withRec:tools.filter(a=>a.sugSS>0||a.sugROP>0).length,
+    inM1:tools.filter(a=>isM1(a)).length,
+    inFloor:tools.filter(a=>ssFloorGap(a)>0).length}});
+ ok('קבוצות "כלי עבודה"/"אביזרים" מזוהות',odBase.tools>0,odBase.tools+' פריטים');
+ ok('הן אינן מקבלות המלצת SS/ROP',odBase.withRec===0,odBase.withRec+' עם המלצה');
+ ok('הן אינן נכנסות ל"אוזל החודש"',odBase.inM1===0);
+ ok('הן אינן נכנסות למסלול הרצפה',odBase.inFloor===0);
+
+ /* מחזור חיים מלא של הסימון הידני על פריט אמיתי מהתור */
+ const odPn=await p.evaluate(()=>{const a=QF.prevent.find(x=>!x.isOD&&x.sugSS>0&&x.cust<=0);
+   return a?a.pn:null});
+ ok('נמצא פריט לבדיקת הסימון',!!odPn,odPn||'—');
+ if(odPn){
+  const snap=()=>p.evaluate(n=>{const a=ALL.find(x=>x.pn===n);
+    return {cat:a.cat,ss:a.sugSS,rop:a.sugROP,isOD:a.isOD,stale:!!a.odStale,pf:!!a.paramFix,
+      inToday:QF.prevent.includes(a)||QF.waiting.includes(a)||QF.immediate.includes(a),
+      act:(a.act||[])[0]||''}},odPn);
+  const b0=await snap();
+  await p.evaluate(n=>setMark(n,'ondemand','בדיקה'),odPn);await p.waitForTimeout(500);
+  const b1=await snap();
+  ok('סימון "לפי דרישה" מוריד מתור העבודה',!b1.inToday&&b1.cat==='לפי דרישה',b1.cat);
+  ok('הסימון מאפס את המלצות המלאי',b1.ss===0&&b1.rop===0,`SS ${b1.ss} · ROP ${b1.rop}`);
+  ok('הפעולה אומרת שיוזמן לפי דרישה',/יוזמן כשתגיע דרישה/.test(b1.act),b1.act);
+  /* לקוח ממתין גובר: הזמנה אמיתית היא הטריגר להזמין */
+  await p.evaluate(n=>{const a=ALL.find(x=>x.pn===n);a._f=a.free;a._c=a.cust;
+    a.cust=5;a.free=0;a.po=0;apply()},odPn);await p.waitForTimeout(500);
+  const b2=await snap();
+  ok('לקוח ממתין גובר על ההחרגה',b2.inToday,b2.cat);
+  await p.evaluate(n=>{const a=ALL.find(x=>x.pn===n);a.free=a._f;a.cust=a._c;apply()},odPn);
+  await p.waitForTimeout(400);
+  /* ביטול מחזיר בדיוק את ההמלצות המקוריות — בלי דליפת מצב בין מעברים */
+  await p.evaluate(n=>setMark(n,'',''),odPn);await p.waitForTimeout(500);
+  const b3=await snap();
+  ok('ביטול הסימון מחזיר את ההמלצות המקוריות',
+    b3.ss===b0.ss&&b3.rop===b0.rop&&b3.inToday,`SS ${b0.ss}→${b3.ss} · ROP ${b0.rop}→${b3.rop}`);
+  /* תפוגה: חצי שנה */
+  await p.evaluate(n=>{setMark(n,'ondemand','ישן');
+    const k=Object.keys(MARKS).find(x=>x.indexOf(n)>=0);
+    MARKS[k].ts=Date.now()-200*864e5;saveMarks();apply()},odPn);await p.waitForTimeout(500);
+  const b4=await snap();
+  ok('סימון בן 200 יום פג',b4.stale&&!b4.isOD);
+  ok('פריט שההחרגה שלו פגה חוזר לאימות ולא לתור',
+    b4.pf&&/לאמת/.test(b4.act),b4.cat+' · '+b4.act);
+  ok('ההמלצות חוזרות עם התפוגה',b4.ss===b0.ss,`SS ${b4.ss}`);
+  await p.evaluate(n=>setMark(n,'',''),odPn);await p.waitForTimeout(400)}
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();
