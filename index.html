@@ -1076,7 +1076,7 @@ const LOW_PARAM_FLOOR=3;
 const M1_MIN3=10;
 /* פריט לא פעיל (04) או גמר מלאי (14) אינו "אוזל" — הוא נגמר בכוונה. */
 const m1Active=it=>{const c=stCode(it.st);return c!==4&&c!==14&&!/לא פעיל|גמר המלאי/.test(it.stTxt||'')};
-const isM1=it=>m1Active(it)&&!it.isPDItem&&it.c3>=M1_MIN3&&it.free<it.r3;
+const isM1=it=>m1Active(it)&&!it.isOD&&it.c3>=M1_MIN3&&it.free<it.r3;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -1240,10 +1240,15 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const mrp=CLEAN(r[m.mrp]);
     const z=srvMissing?0:zFor(srv),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
-    const lumpFloor=(!isPDItem&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
-    const ssStat=(rate>0&&!isPDItem)?Math.ceil(z*sdLT):0;
-    let sugSS=(rate>0&&!isPDItem)?Math.max(ssStat,ssMin,lumpFloor):0;
-    let sugROP=(rate>0&&!isPDItem)?Math.ceil(dLT+sugSS):0;
+    /* החלק הסטטי בלבד. הסימון הידני נקרא ב-classify, כי הוא משתנה בלי
+       בנייה מחדש של ALL — ושם גם מתאפסות ההמלצות. */
+    const odBrand=CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך';
+    const odPlanner=CLEAN(r[m.planner])||'ללא שיוך';
+    const isODStatic=isPDItem||OD_GROUPS.has(mkt1);
+    const lumpFloor=(!isODStatic&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
+    const ssStat=(rate>0&&!isODStatic)?Math.ceil(z*sdLT):0;
+    let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin,lumpFloor):0;
+    let sugROP=(rate>0&&!isODStatic)?Math.ceil(dLT+sugSS):0;
     if(sugSS>sugROP)sugROP=sugSS;
     const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
     const entFuture=isFutureDate(entries&&entries.date),saleFuture=isFutureDate(sales&&sales.date);
@@ -1258,24 +1263,75 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const ageTier=noCons3y?(dead3y?'dead':'young'):(slow3y?'slow':'active');
     out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
-      abc:CLEAN(r[m.abc]),brand:CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך',planner:CLEAN(r[m.planner])||'ללא שיוך',supplier:CLEAN(r[m.supplier])||'ללא ספק',
+      abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
-const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל'};
+const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל',
+ ondemand:'לפי דרישה'};
+/* ============ פריטים שאינם מנוהלים במלאי ============
+   PD כבר מוחרג מהמלצות SS/ROP כי הוא נרכש לפי הזמנה. יש עוד שתי
+   קבוצות שמתנהגות בדיוק כך למרות היסטוריית צריכה: כלי עבודה
+   ואביזרים — שתיהן ערכים נקיים בשדה "קבוצת שיווק" (152 ו-57 פריטים
+   בדוח שנבדק). ומעבר להן יש מקרים שאין להם שום סימן בנתונים, כמו
+   פריט קמפיין שהוזמנו עבורו הזמנות ואז הוחלט לעצור — אלה מסומנים ידנית.
+
+   "לפי דרישה" אינו "מוסתר": הפריט נשאר גלוי, הצריכה נמדדת, והוא
+   ממשיך להופיע ב"לקוח ממתין" — כי הזמנת לקוח היא בדיוק הטריגר
+   להזמין פריט כזה. מה שיורד הוא ההמלצה להחזיק מלאי.
+
+   הסימון הידני פג אחרי חצי שנה. בלי תפוגה זו דרך שקטה לאבד פריטים:
+   קמפיין חוזר, ואף אחד לא מזכיר לך שהחרגת אותו. */
+const OD_GROUPS=new Set(['כלי עבודה','אביזרים']);
+const OD_TTL=183*864e5;                      /* חצי שנה */
+function odMark(it){const mk=MARKS[markKey(it)]||MARKS[it.pn];
+ return (mk&&mk.t==='ondemand')?mk:null}
+function odExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>OD_TTL}
+/* onDemand פעיל = לא מנהלים מלאי. סימון שפג אינו פעיל, והפריט חוזר. */
+function onDemand(it){if(it.isPDItem||OD_GROUPS.has(it.mkt1))return true;
+ const mk=odMark(it);return !!mk&&!odExpired(mk)}
+function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
+ if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
+ return 'סומן ידנית'}
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
-  if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
+  /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
+     ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
+  /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
+     לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;
+  if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase}
+  if(mk&&mk.t==='ondemand'){
+    if(odExpired(mk))it.odStale=true;
+    else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0}}
+  else if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
     it.why=[['idea',isDone?`סומן כטופל${mk.note?' — '+mk.note:''}`:`סומן ידנית: ${lbl}${mk.note?' — '+mk.note:''}`],
       ['info',isDone?'הפריט טופל והוסר מהרשימה עד להסרת הסימון':'פריט מסומן מוחרג מהתרעות מחסור/עודף עד להסרת הסימון']];
     it.act=[isDone?'הפריט טופל — הוסר מתור העבודה':'לא נדרשת פעולת מלאי אוטומטית',
       isDone?'להסרה: לחץ "בטל סימון" כאן בפרטי הפריט כדי להחזירו לרשימה':'להסיר סימון כשההחרגה כבר לא רלוונטית'];
     Q.marked.push(it);continue}
+  /* ההחרגה פגה — הפריט חוזר לניהול מלאי, אבל לא ישר לתור העבודה:
+     קודם מאמתים שההחרגה באמת כבר לא רלוונטית. */
+  if(it.odStale){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    it.why=[['warn','ההחרגה "לפי דרישה" פגה — עברה חצי שנה מאז הסימון'],
+      ['info','הפריט חזר לניהול מלאי. אם ההחרגה עדיין נכונה, לסמן מחדש']];
+    it.act=['לאמת שההחרגה עדיין רלוונטית','לסמן מחדש "לפי דרישה" או להשאיר בניהול מלאי'];
+    Q.quality.push(it);continue}
+  /* onDemand בלי לקוח ממתין: אין מה להחליט. הרונגים של "לקוח ממתין"
+     יושבים לפני זה בשרשרת, ולכן פריט שיש עליו הזמנה כן מגיע אליהם. */
+  if(it.isOD&&it.cust<=0&&!it.isPDItem){
+    it.cat='לפי דרישה';it.sev=0;it.miss=0;
+    it.why=[['info',`${odSource(it)} — אינו מנוהל במלאי, ולכן אין המלצת מלאי ביטחון או נקודת הזמנה`],
+      it.d12>0?['idea',`נצרכו ${it.d12} יח׳ ב-12 החודשים — הצריכה נמדדת וממשיכה להופיע בכרטיס ובקטלוג`]:null,
+      it.odMarked?['warn',`סומן ידנית${it.mark&&it.mark.ts?' ב-'+new Date(it.mark.ts).toLocaleDateString('he-IL'):''} · הסימון פג אחרי חצי שנה`]:null].filter(Boolean);
+    it.act=['לא נדרשת פעולת מלאי — יוזמן כשתגיע דרישה',
+      it.odMarked?'להסיר את הסימון אם הפריט חזר לניהול מלאי':'—'];
+    Q.passive.push(it);continue}
   if(sc===4||/לא פעיל/.test(it.stTxt)){it.cat='רקע';it.expCap=it.price*Math.max(0,it.stock);
     it.why=[it.stock>0?['warn',`סטטוס 04 (לא פעיל) · יש מלאי ${it.stock} יח׳ · שווי ${money(it.price*it.stock,it.currency)} — מועמד לחיסול`]:['info','סטטוס 04 — פריט לא פעיל, אין מלאי'],
       (it.stock>0&&it.entAge!=null)?['info',`כניסה אחרונה לפני ${yrs(it.entAge)} · צריכה 3 שנים ${it.cons3y} יח׳`]:null].filter(Boolean);
@@ -1967,7 +2023,7 @@ function currentRows(){if(cur==='today')return decisionList(track);
  base=base.filter(passColFilters);
  return sortRowsBy(base)}
 function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?'var(--red)':r.sev===2?'var(--acc)':r.sev===1?'#9aa1b1':'#c5cad6'}
-const BULKMARKS=[['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
+const BULKMARKS=[['ondemand','לפי דרישה'],['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
 function markTabsOverflow(){const t=document.getElementById('tabs');if(!t)return;
  const q=t.closest('.qbody');if(!q)return;
  q.classList.toggle('tabsover',t.scrollWidth-t.clientWidth>4)}
@@ -2020,7 +2076,7 @@ function actQty(r){const a=(r.act||[])[0]||'';
    קבע. מה שמשתנה הוא שהפער בין הרצפה לדרישה הסטטיסטית מפסיק להיות
    בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
 function ssNeed(r){return Math.max(r.ssStat||0,r.lumpFloor||0)}
-function ssFloorGap(r){return (r.rate>0&&!r.isPDItem&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
+function ssFloorGap(r){return (r.rate>0&&!r.isOD&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
 function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
 function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
@@ -2433,8 +2489,8 @@ function decisionQty(r){
  if(r.orderQty>0)return r.orderQty+' יח׳';
  if(r.miss>0)return r.miss+' יח׳';
  if(r.excessQty>0)return r.excessQty+' יח׳';
- if(!r.isPDItem&&r.sugROP!==r.rop)return 'ROP '+r.rop+' → '+r.sugROP;
- if(!r.isPDItem&&r.sugSS!==r.ss)return 'SS '+r.ss+' → '+r.sugSS;
+ if(!r.isOD&&r.sugROP!==r.rop)return 'ROP '+r.rop+' → '+r.sugROP;
+ if(!r.isOD&&r.sugSS!==r.ss)return 'SS '+r.ss+' → '+r.sugSS;
  return '—'}
 function decisionBlock(r){
  const act=(r.act||[])[0]||'אין פעולה נדרשת';

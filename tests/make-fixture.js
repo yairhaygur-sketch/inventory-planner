@@ -53,10 +53,14 @@ for(let i=0;i<900;i++){
  const sell=['USD','USD','USD','EUR','ILS'][I(0,4)];
  const br=BR[I(0,BR.length-1)],md=MODEL[I(0,MODEL.length-1)],gp=GRP[I(0,GRP.length-1)];
  const pn=`${I(10,99)}${String.fromCharCode(65+I(0,25))}${I(100000,999999)}`;
+ /* קבוצת שיווק. שתי קבוצות אמיתיות מהדוח אינן מנוהלות במלאי — כלי עבודה
+    ואביזרים — ובלעדיהן הענף האוטומטי של "לפי דרישה" אינו נבדק כלל. */
+ const odR=rnd();
+ const odGrp=odR<.04?'כלי עבודה':odR<.07?'אביזרים':md;
  rows.push([pn,`חלק ${gp} ${md} דגם ${i}`,`Part ${gp} ${i}`,SUP[I(0,SUP.length-1)],
   ['01','04','14','01','01'][I(0,4)],'פעיל',mrpType,AB[I(0,2)],srvLevel,I(0,20),I(0,40),
   I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),I(0,5),cust,['Z001','Z004'][I(0,1)],
-  gp,br,'מתכנן א׳','12 חודשים',md,gp,
+  gp,br,'מתכנן א׳','12 חודשים',odGrp,gp,
   '100',br,'200',md,'300',rnd()<.15?'אביזרים':gp,
   y0,y1,y2,I(0,10),...months,
   dstr(now-saleAgo*DAY),dstr(now-entAgo*DAY)]);
