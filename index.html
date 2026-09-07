@@ -917,6 +917,14 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .btn[hidden]{display:none!important}
 #floorBtn.on{background:var(--orgL);border-color:var(--org);color:#a05c06;font-weight:700}
 #floorBtn .fn{font-family:var(--num);font-weight:700}
+
+/* מתג הקיבוץ — לפי החלטה או לפי ספק */
+.gseg{display:inline-flex;gap:0;margin-inline-start:8px;border-radius:8px;overflow:hidden;background:var(--panel2)}
+.gseg button{border:0;background:transparent;font-family:inherit;font-size:var(--f-sm);
+ padding:5px 11px;cursor:pointer;color:var(--dim)}
+.gseg button.on{background:var(--ink);color:#fff;font-weight:700}
+.gseg button:not(.on):hover{color:var(--ink)}
+tr.grp.sup b{font-size:var(--f-md)}
 </style>
 </head>
 <body>
@@ -974,6 +982,7 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
+          <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span> מעל הדרישה<span class="lbl" id="floorV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
         <div class="ctop" id="ctop" hidden></div>
@@ -2057,6 +2066,33 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
 /* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
+/* ============ איחוד הזמנות לפי ספק ============
+   נמדד על הדוח האמיתי: 48 הפריטים של "היום" מגיעים מ-4 ספקים בלבד,
+   ו-34 מהם מספק אחד. ההחלטה נעשית פריט-פריט אבל ההזמנה נעשית
+   ספק-ספק, ולכן יחידת העבודה הנכונה היא ההזמנה ולא השורה.
+
+   הכותרת נושאת את הספק, ולכן השורה נושאת את ההחלטה — הפוך מהקיבוץ
+   לפי החלטה. אותו כלל: מה שהכותרת אומרת, השורה לא חוזרת עליו. */
+const GRPBY_KEY='planner_groupby_v1';
+let groupBy='decision';
+try{const v=localStorage.getItem(GRPBY_KEY);if(v==='supplier'||v==='decision')groupBy=v}catch(_){}
+function setGroupBy(v){groupBy=v;try{localStorage.setItem(GRPBY_KEY,v)}catch(_){}
+ closeDetail();render()}
+/* דירוג בתוך ספק: אותו סדר דחיפות כמו ב"היום", כדי שלא נאבד אותו */
+function urgRank(r){if(!QF)return 2;
+ if(QF.waiting.includes(r)||QF.immediate.includes(r))return 0;
+ return isM1(r)?2:1}
+function supplierGroups(rows){const by=new Map();
+ for(const r of rows){const k=r.supplier||'ללא ספק';
+  if(!by.has(k))by.set(k,[]);by.get(k).push(r)}
+ for(const list of by.values())
+  list.sort((a,b)=>urgRank(a)-urgRank(b)||(b.miss||0)-(a.miss||0));
+ /* ההזמנה הגדולה ראשונה — היא גם זו שהכי משתלם לאחד */
+ return [...by.entries()].sort((a,b)=>b[1].length-a[1].length);}
+function supTotals(list){const cur={};let units=0;
+ for(const r of list){const q=actQty(r)||r.miss||0;units+=q;
+  const c=r.currency||'';cur[c]=(cur[c]||0)+q*(r.price||0)}
+ return {units,cur}}
 function NCOL(){return track==='short'?10:track==='done'?6:track==='floor'?8:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
@@ -2152,11 +2188,38 @@ function renderDecisions(rows){
  const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  const grouped=track==='short';
- const GB=grouped?groupRows(rows):null;
- const view=grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim):rows.slice(0,lim);
+ const bySup=grouped&&groupBy==='supplier';
+ const SG=bySup?supplierGroups(rows):null;
+ const GB=(grouped&&!bySup)?groupRows(rows):null;
+ const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l).slice(0,lim)
+   :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim):rows.slice(0,lim);
  const body=[];
  let acc=0;
- if(grouped){let idx=0;
+ if(bySup){let idx=0;
+  for(const [sup,list] of SG){
+   const t=supTotals(list),coll=GCOLL.has('sup:'+sup);
+   const lt=list[0]&&list[0].ltD?list[0].ltD+' ימ׳ אספקה':'';
+   body.push(`<tr class="grp sup${coll?' coll':''}" data-g="sup:${esc(sup)}"><td colspan="${NCOL()}" style="--gc:var(--acc)">
+     <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
+     <span class="gn">${list.length}</span>
+     <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
+     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}</span></td></tr>`);
+   if(coll)continue;
+   for(const r of list){if(idx>=lim)break;const i=idx++;
+    const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
+    const buy=actQty(r);
+    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+     <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
+     <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
+     <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
+     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
+     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
+     <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
+     <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
+     <td>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>
+     <td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td></tr>`)}}
+ }
+ else if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
    const units=list.reduce((t,r)=>t+(r.miss||0),0),coll=GCOLL.has(g);
    body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
@@ -2275,6 +2338,7 @@ function renderDecisions(rows){
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
+ if(typeof syncGseg==='function')syncGseg();
  setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
@@ -2684,6 +2748,11 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
    מעולם לא חוברו. הם היו מוסתרים ב-CSS אז איש לא הבחין. */
 document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
  e.stopPropagation();hideWidget(x.dataset.hide)});
+document.getElementById('gseg').querySelectorAll('button').forEach(b=>
+ b.onclick=()=>setGroupBy(b.dataset.gb));
+function syncGseg(){const g=document.getElementById('gseg');if(!g)return;
+ g.hidden=!(mode==='today'&&QF);
+ g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.gb===groupBy))}
 document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
 /* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */

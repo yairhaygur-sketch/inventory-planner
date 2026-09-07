@@ -214,6 +214,55 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
+ /* ============ איחוד הזמנות לפי ספק ============
+    ההחלטה נעשית פריט-פריט אבל ההזמנה נעשית ספק-ספק. בדוח האמיתי
+    48 הפריטים של "היום" מגיעים מ-4 ספקים, ו-34 מאחד. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const gsegSeen=await p.evaluate(()=>{const g=document.getElementById('gseg');
+   return !!g&&g.offsetParent!==null});
+ ok('מתג הקיבוץ גלוי ב"היום"',gsegSeen);
+ const byDec=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   grps:[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · ')}));
+ ok('ברירת המחדל היא קיבוץ לפי החלטה',/מניעת חוסר/.test(byDec.grps),byDec.grps);
+ await p.click('#gseg button[data-gb=supplier]');await p.waitForTimeout(700);
+ const bySup=await p.evaluate(()=>{
+  const gr=[...document.querySelectorAll('#tbl tr.grp.sup')];
+  const cats=[...document.querySelectorAll('#tbl td.note .ocat')].map(x=>x.textContent.trim());
+  /* הקבוצה הגדולה ראשונה — היא שהכי משתלם לאחד */
+  const sizes=gr.map(t=>+((t.querySelector('.gn')||{}).textContent||0));
+  let desc=true;for(let i=1;i<sizes.length;i++)if(sizes[i]>sizes[i-1])desc=false;
+  /* בתוך ספק, דרגת הדחיפות אינה יורדת. נבדק מול urgRank עצמו ולא לפי
+     טקסט הסיווג: "לקוח ממתין – אין רכש" ו"פער כיסוי להזמנת לקוח" הם
+     שני סיווגים שונים באותה דרגה, ובדיקה לפי טקסט הייתה מפילה אותם.
+     הסדר מתאפס בכל כותרת ספק. */
+  let order=true,prev=-1;
+  for(const tr of document.querySelectorAll('#tbl tbody tr')){
+   if(tr.classList.contains('grp')){prev=-1;continue}
+   if(!tr.hasAttribute('data-i'))continue;
+   const pn=((tr.querySelector('.obj')||{}).textContent||'').trim();
+   const it=ALL.find(a=>a.pn===pn);if(!it)continue;
+   const rk=urgRank(it);
+   if(rk<prev)order=false;
+   prev=rk}
+  return {rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+    groups:gr.length,sizes,desc,order,uniqCats:[...new Set(cats)].length,
+    hasUnits:gr.every(t=>/יח׳ להזמנה/.test(t.textContent)),
+    hasLT:gr.some(t=>/ימ׳ אספקה/.test(t.textContent))}});
+ ok('אותו מספר פריטים בשני הקיבוצים',bySup.rows===byDec.rows,`${byDec.rows} → ${bySup.rows}`);
+ ok('הפריטים מקובצים לפי ספק',bySup.groups>0,bySup.groups+' ספקים');
+ ok('ההזמנה הגדולה ראשונה',bySup.desc,bySup.sizes.join(' · '));
+ ok('כותרת הספק נושאת כמות לפי הזמנה',bySup.hasUnits);
+ ok('כותרת הספק נושאת זמן אספקה',bySup.hasLT);
+ ok('ההחלטה עוברת לשורה כשהכותרת נושאת את הספק',bySup.uniqCats>1,bySup.uniqCats+' סיווגים');
+ ok('בתוך ספק נשמר סדר הדחיפות',bySup.order);
+ await p.click('#tbl tr.grp.sup');await p.waitForTimeout(500);
+ const afterColl=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
+ ok('קיפול ספק מקפל את ההזמנה כולה',afterColl<bySup.rows,`${bySup.rows} → ${afterColl}`);
+ await p.click('#tbl tr.grp.sup');await p.waitForTimeout(400);
+ await p.click('#gseg button[data-gb=decision]');await p.waitForTimeout(600);
+ ok('חזרה לקיבוץ לפי החלטה',
+   /מניעת חוסר/.test(await p.evaluate(()=>[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · '))));
+
  /* ============ רצפת מלאי הביטחון ============
     sugSS = max(ssStat, ssMin, lumpFloor), ו-ssMin הוא ערך שהמתכנן קבע
     ב-SAP. בדוח האמיתי הוא מנצח ב-88% מהמקרים, ולכן ה"המלצה" מחזירה
