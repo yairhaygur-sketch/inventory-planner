@@ -798,7 +798,8 @@ td .mut{color:var(--dimmer)}
 #tbl[data-track=short] th:nth-child(9),#tbl[data-track=short] td:nth-child(9){width:58px}
 #tbl[data-track=short] th:nth-child(5),#tbl[data-track=short] td:nth-child(5),
 #tbl[data-track=short] th:nth-child(7),#tbl[data-track=short] td:nth-child(7){width:70px}
-#tbl[data-track=short] th:nth-child(10),#tbl[data-track=short] td:nth-child(10){width:196px}
+#tbl[data-track=short] th:nth-child(10),#tbl[data-track=short] td:nth-child(10){width:64px}
+#tbl[data-track=short] th:nth-child(11),#tbl[data-track=short] td:nth-child(11){width:172px}
 
 /* ============ מה יש לי, לא רק מה חסר ============
    הרשימה אמרה "חסר 5" ולא אמרה שיש 0 במלאי ו-160 בדרך. שלוש העמודות
@@ -925,6 +926,17 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .gseg button.on{background:var(--ink);color:#fff;font-weight:700}
 .gseg button:not(.on):hover{color:var(--ink)}
 tr.grp.sup b{font-size:var(--f-md)}
+
+/* ============ ותק בתור ============
+   פריט חדש הוא החלטה חדשה. פריט שחוזר ארבע הרצות ומעלה הוא תקוע —
+   וזו בעיה אחרת, שדורשת בירור מול הספק ולא הזמנה נוספת. */
+#tbl td.age{text-align:center}
+.ag{font-family:var(--num);font-size:var(--f-xs);font-weight:700;color:var(--dimmer);white-space:nowrap}
+.ag.new{color:var(--grn)}
+.ag.stuck{color:var(--org)}
+.ag i{font-style:normal;color:var(--red);margin-inline-start:1px}
+#histChip{cursor:default}
+#histChip b{font-family:var(--num)}
 </style>
 </head>
 <body>
@@ -982,6 +994,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
+          <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span> מעל הדרישה<span class="lbl" id="floorV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
@@ -1650,7 +1663,7 @@ const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקו�
 function openDetail(){if(!LAYOUT.hidden.includes('detail'))document.body.classList.add('dopen')}
 function closeDetail(){document.body.classList.remove('dopen');
  document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'))}
-let ALL=[],SEL={},Q=null,QF=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
+let ALL=[],SEL={},Q=null,QF=null,HRUN=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
@@ -1785,6 +1798,53 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
  document.getElementById('chips').innerHTML=o.join('');
  document.querySelectorAll('#chips .chip span').forEach(s=>s.onclick=()=>{
    if(s.dataset.cf){delete colFilters[s.dataset.cf]}else{SEL[s.dataset.k].delete(s.dataset.v)}apply()});}
+/* ============ זיכרון בין הרצות ============
+   עד היום כל העלאה התחילה מאפס: אי אפשר היה לדעת אם 48 הפריטים
+   הם חדשים או שאותם 48 חוזרים כבר שבועיים, ולא אם המלצה יושמה.
+   פריט שחוזר שש הרצות אינו "חוסר" — הוא תקוע, וזו בעיה אחרת.
+
+   לא נשמרים צילומי מצב שלמים אלא רשומה מתגלגלת אחת לכל מק״ט בתור:
+   מתי נכנס, בכמה הרצות נראה, ומה היה החוסר. ~600 פריטים בתור,
+   כ-40 בתים לכל אחד — עשירית ממה שצילום מלא של 7,569 היה תופס.
+
+   חתימת ההרצה מונעת ספירה כפולה: העלאה חוזרת של אותו קובץ מזוהה
+   לפי חודש הבסיס, מספר הפריטים וסכום הצריכה, ומעדכנת את ההרצה
+   האחרונה במקום ליצור חדשה. */
+const HIST_KEY='planner_history_v1', HIST_RUNS=40;
+let HIST={runs:[],items:{}};
+try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
+ if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
+function saveHist(){try{localStorage.setItem(HIST_KEY,JSON.stringify(HIST))}catch(_){}}
+function runSig(items){let c=0;for(const x of items)c+=(x.d12||0);
+ return `${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}|${items.length}|${c}`}
+/* התור שהזיכרון עוקב אחריו: מה שדורש פעולה, לא הקטלוג */
+function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs.follow,...Qs.quality]}
+function recordRun(items,Qs){
+ const sig=runSig(items),now=Date.now();
+ const last=HIST.runs[HIST.runs.length-1];
+ const repeat=!!last&&last.sig===sig;                 /* אותו קובץ שוב */
+ const q=histQueue(Qs), inQ=new Set(q.map(x=>x.pn));
+ if(!repeat){HIST.runs.push({sig,ts:now,n:items.length,q:q.length});
+  if(HIST.runs.length>HIST_RUNS)HIST.runs=HIST.runs.slice(-HIST_RUNS)}
+ else{last.ts=now;last.q=q.length}
+ const prev=HIST.items;const next={};
+ for(const x of q){const p=prev[x.pn];
+  next[x.pn]=p?{since:p.since,seen:repeat?p.seen:p.seen+1,miss:x.miss||0,prevMiss:repeat?p.prevMiss:p.miss,cat:x.cat}
+             :{since:now,seen:1,miss:x.miss||0,prevMiss:null,cat:x.cat}}
+ /* פריטים שיצאו מהתור — נספרים כנפתרו בהרצה הזאת ואז נשכחים */
+ let resolved=0;for(const pn of Object.keys(prev))if(!inQ.has(pn))resolved++;
+ HIST.items=next;HIST.lastResolved=repeat?(HIST.lastResolved||0):resolved;
+ saveHist();
+ /* הצמדה לפריטים עצמם, כדי שהתצוגה לא תיגע ב-localStorage */
+ for(const x of items){const h=next[x.pn];
+  if(!h){x.hSeen=0;x.hNew=false;x.hDays=0;x.hWorse=false;continue}
+  x.hSeen=h.seen;x.hNew=h.seen===1;
+  x.hDays=Math.max(0,Math.round((now-h.since)/864e5));
+  x.hWorse=h.prevMiss!=null&&(h.miss||0)>h.prevMiss}
+ return {runs:HIST.runs.length,newN:q.filter(x=>x.hNew).length,
+   backN:q.filter(x=>x.hSeen>1).length,resolved:HIST.lastResolved||0,
+   stuck:q.filter(x=>x.hSeen>=4).length}}
+function histReset(){HIST={runs:[],items:{}};saveHist()}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
  QF=classify(fl);QF.all=fl;SIDXV++;
  buildSideFilters();chips();render()}
@@ -2093,7 +2153,16 @@ function supTotals(list){const cur={};let units=0;
  for(const r of list){const q=actQty(r)||r.miss||0;units+=q;
   const c=r.currency||'';cur[c]=(cur[c]||0)+q*(r.price||0)}
  return {units,cur}}
-function NCOL(){return track==='short'?10:track==='done'?6:track==='floor'?8:8}
+/* תג הוותק בשורה. פריט חדש הוא החלטה חדשה; פריט שחוזר ארבע הרצות
+   ומעלה הוא תקוע — אותה שורה, בעיה אחרת לגמרי. */
+function ageTag(r){
+ if(!HRUN||!r.hSeen)return '';
+ if(r.hNew)return '<span class="ag new" title="נכנס לתור בהעלאה הזאת">חדש</span>';
+ const stuck=r.hSeen>=4;
+ const d=r.hDays>0?` · ${r.hDays} ימים`:'';
+ return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
+   `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
+function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -2130,7 +2199,8 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
   :track==='short'?['מק״ט','תיאור','מלאי',
     '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
     'לקוח','חסר (יח׳)',
-    '<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי','הערה']
+    '<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי',
+    '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>','הערה']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
@@ -2217,6 +2287,7 @@ function renderDecisions(rows){
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
      <td>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>
+     <td class="age">${ageTag(r)}</td>
      <td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td></tr>`)}}
  }
  else if(grouped){let idx=0;
@@ -2240,6 +2311,7 @@ function renderDecisions(rows){
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
      <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
+     <td class="age">${ageTag(r)}</td>
      <td class="note">${(r.cat&&r.cat!==maj)?`<span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}${esc(groupNote(g,r))}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
@@ -2339,6 +2411,7 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
  if(typeof syncGseg==='function')syncGseg();
+ if(typeof syncHistChip==='function')syncHistChip();
  setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
@@ -2750,6 +2823,18 @@ document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
  e.stopPropagation();hideWidget(x.dataset.hide)});
 document.getElementById('gseg').querySelectorAll('button').forEach(b=>
  b.onclick=()=>setGroupBy(b.dataset.gb));
+/* שורת המצב של ההרצה. מוצגת רק מההעלאה השנייה ואילך — בהעלאה
+   ראשונה אין מול מה להשוות, ו"48 חדשים" היה מטעה. */
+function syncHistChip(){const c=document.getElementById('histChip');if(!c)return;
+ const on=!!HRUN&&HRUN.runs>1&&mode==='today';
+ c.hidden=!on;if(!on)return;
+ const p=[];
+ if(HRUN.newN)p.push(`<b>${HRUN.newN}</b> חדשים`);
+ if(HRUN.backN)p.push(`<b>${HRUN.backN}</b> חוזרים`);
+ if(HRUN.stuck)p.push(`<b>${HRUN.stuck}</b> תקועים`);
+ if(HRUN.resolved)p.push(`<b>${HRUN.resolved}</b> נפתרו`);
+ c.innerHTML='↺ '+(p.length?p.join(' · '):'ללא שינוי');
+ c.title=`השוואה להעלאה הקודמת · ${HRUN.runs} העלאות בזיכרון`}
 function syncGseg(){const g=document.getElementById('gseg');if(!g)return;
  g.hidden=!(mode==='today'&&QF);
  g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.gb===groupBy))}
@@ -2823,6 +2908,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
+  HRUN=recordRun(ALL,Q);
   const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+Q[k].length,0);
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];

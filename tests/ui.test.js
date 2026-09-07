@@ -214,6 +214,50 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      return {h:tbl.scrollWidth>rows.clientWidth+2,t:Math.round(tbl.scrollWidth),c:rows.clientWidth}});
    ok(`${w}px · מצב ${m} · ללא גלילה אופקית`,!r.h,`טבלה ${r.t} ברשימה ${r.c}`);
   }}
+ /* ============ זיכרון בין הרצות ============
+    עד היום כל העלאה התחילה מאפס. פריט שחוזר ארבע הרצות אינו "חוסר"
+    אלא תקוע — אותה שורה, בעיה אחרת. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ /* ניקוי הקלט בין העלאות: change אינו משוגר כשהקובץ זהה */
+ const reload=async()=>{await p.setInputFiles('#f',[]);await p.waitForTimeout(120);
+   await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4500)};
+ const h0=await p.evaluate(()=>({runs:HRUN?HRUN.runs:0,
+   chipHidden:document.getElementById('histChip').hidden}));
+ ok('בהעלאה ראשונה אין שורת "מה השתנה"',h0.chipHidden,h0.runs+' הרצות');
+ await reload();
+ const hSame=await p.evaluate(()=>HRUN.runs);
+ ok('העלאה חוזרת של אותו קובץ אינה נספרת כהרצה',hSame===h0.runs,`${h0.runs} → ${hSame}`);
+ /* הרצה חדשה נכפית ע"י שינוי חתימת ההרצה האחרונה */
+ const bump=async()=>{await p.evaluate(()=>{HIST.runs[HIST.runs.length-1].sig='X'+Math.random();saveHist()});
+   await reload()};
+ await bump();
+ const h2=await p.evaluate(()=>({runs:HRUN.runs,newN:HRUN.newN,backN:HRUN.backN,
+   hidden:document.getElementById('histChip').hidden,
+   txt:document.getElementById('histChip').textContent.trim(),
+   heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' · '),
+   tags:[...new Set([...document.querySelectorAll('#tbl .ag')].map(x=>x.textContent.trim()))]}));
+ ok('הרצה שנייה נספרת',h2.runs===h0.runs+1,`${h0.runs} → ${h2.runs}`);
+ ok('שורת "מה השתנה" מופיעה מההרצה השנייה',!h2.hidden,h2.txt);
+ ok('הפריטים מסומנים כחוזרים ולא כחדשים',h2.backN>0&&h2.newN===0,
+   `חדשים ${h2.newN} · חוזרים ${h2.backN}`);
+ ok('עמודת "ותק" קיימת',h2.heads.includes('ותק'),h2.heads);
+ ok('תג הוותק מציג מונה הרצות',h2.tags.some(t=>/2×/.test(t)),h2.tags.join(' · '));
+ for(let k=0;k<3;k++)await bump();
+ const h5=await p.evaluate(()=>({runs:HRUN.runs,stuck:HRUN.stuck,
+   stuckTags:document.querySelectorAll('#tbl .ag.stuck').length,
+   txt:document.getElementById('histChip').textContent.trim()}));
+ ok('פריט שחוזר ארבע הרצות מסומן כתקוע',h5.stuck>0,`${h5.stuck} תקועים · ${h5.runs} הרצות`);
+ ok('התקועים מסומנים גם בשורה',h5.stuckTags>0,h5.stuckTags+' תגים');
+ ok('שורת המצב מונה תקועים',/תקועים/.test(h5.txt),h5.txt);
+ /* הזיכרון שורד רענון — הוא ב-localStorage ולא בזיכרון הדף */
+ const runsBeforeReload=await p.evaluate(()=>HIST.runs.length);
+ await p.reload();await p.waitForTimeout(1200);
+ ok('הזיכרון שורד רענון דף',
+   runsBeforeReload===await p.evaluate(()=>HIST.runs.length),runsBeforeReload+' הרצות');
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4500);
+ await p.evaluate(()=>{histReset();});
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+
  /* ============ איחוד הזמנות לפי ספק ============
     ההחלטה נעשית פריט-פריט אבל ההזמנה נעשית ספק-ספק. בדוח האמיתי
     48 הפריטים של "היום" מגיעים מ-4 ספקים, ו-34 מאחד. */
