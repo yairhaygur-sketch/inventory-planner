@@ -908,6 +908,15 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .top .lc{overflow:visible;flex:0 0 auto}
 .top .qwrap{flex:1 1 auto;min-width:132px;max-width:208px}
 @media(max-width:1300px){.top .titleblock{display:none}}
+
+/* עמודת "הדרישה" במסלול הפרמטרים — מסומנת כשהרצפה גבוהה ממנה */
+#tbl td.need{color:var(--dim)}
+#tbl td.need.over{color:var(--org);font-weight:700}
+/* .btn מגדיר display:flex ולכן דרס את [hidden] — הכפתורים המותנים
+   הוצגו למרות שהוסתרו. הבדיקה בדקה את התכונה ולא את הנראות. */
+.btn[hidden]{display:none!important}
+#floorBtn.on{background:var(--orgL);border-color:var(--org);color:#a05c06;font-weight:700}
+#floorBtn .fn{font-family:var(--num);font-weight:700}
 </style>
 </head>
 <body>
@@ -965,6 +974,7 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
+          <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span> מעל הדרישה<span class="lbl" id="floorV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
         <div class="ctop" id="ctop" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
@@ -1592,7 +1602,9 @@ const MODES=[
 const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
  /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
- done:{cur:'marked',track:'done'}};
+ done:{cur:'marked',track:'done'},
+ /* רצפת מלאי הביטחון — כל הפריטים, לא רק תור העבודה */
+ floor:{cur:'all',track:'floor'}};
 let mode='today';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
@@ -1640,6 +1652,7 @@ function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
  cur=c.cur;track=c.track;trackPicked=true;closeDetail();
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
  document.body.classList.toggle('mode-done',m==='done');
+ document.body.classList.toggle('mode-floor',m==='floor');
  render()}
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
@@ -1946,6 +1959,8 @@ function passColFilters(r){
    if(f.max!=null&&(!(typeof val==='number')||val>f.max))return false}
  return true}
 function currentRows(){if(cur==='today')return decisionList(track);
+ if(track==='floor')return sortRowsBy(floorRows().filter(passColFilters)
+   .sort((a,b)=>ssFloorGap(b)*(b.price||0)-ssFloorGap(a)*(a.price||0)));
  let base=cur==='all'?QF.all:QF[cur];
  if(onlyTasks&&cur==='all'){const TASK=new Set(['waiting','immediate','follow','prevent','excess','quality']);
    base=base.filter(r=>{for(const k of TASK)if(QF[k].includes(r))return true;return false})}
@@ -1986,7 +2001,7 @@ function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML=TRACKS.map(([k,l])=>`<button data-tr="${k}" class="${k===track?'on':''}">${l}</button>`).join('');
  t.querySelectorAll('button').forEach(b=>b.onclick=()=>{track=b.dataset.tr;trackPicked=true;render()})}
 /* מספר העמודות בטבלה הפעילה — מסלול "היום" ויתר על שתי עמודות כפולות */
-function NCOL(){return track==='short'?10:track==='done'?6:8}
+function NCOL(){return track==='short'?10:track==='done'?6:track==='floor'?8:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -1994,9 +2009,32 @@ function NCOL(){return track==='short'?10:track==='done'?6:8}
 function actQty(r){const a=(r.act||[])[0]||'';
  const m=a.match(/(?:ל-|להשלים\s+)(\d[\d,]*)\s*יח׳/);
  return m?+m[1].replace(/,/g,''):null}
+/* ============ רצפת מלאי הביטחון ============
+   sugSS = max(ssStat, ssMin, lumpFloor). ssMin הוא העמודה "מל.בט.מינ."
+   מה-SAP — כלומר מספר שהמתכנן קבע בעצמו. נמדד על הדוח האמיתי: ב-525
+   מתוך 595 הפריטים שמקבלים המלצה (88%) ssMin הוא שמנצח, ולכן ה"המלצה"
+   מחזירה למתכנן את המספר שלו במקום לאמת אותו. ROP, לעומת זאת, נגזר
+   מהקצב שבנתונים ואין לו עוגן לערך שב-SAP — ומסכים איתו רק ב-28%.
+
+   הנוסחה נשארת שמרנית בכוונה: לא ממליצים על פחות ביטחון ממה שהמתכנן
+   קבע. מה שמשתנה הוא שהפער בין הרצפה לדרישה הסטטיסטית מפסיק להיות
+   בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
+function ssNeed(r){return Math.max(r.ssStat||0,r.lumpFloor||0)}
+function ssFloorGap(r){return (r.rate>0&&!r.isPDItem&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
+function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
+function floorTotals(rows){const cur={};let units=0;
+ for(const r of rows){const g=ssFloorGap(r);units+=g;
+  const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
+ return {n:rows.length,units,cur}}
 function decisionHead(){const cols=(track==='fix'||track==='month')
-  ?['מק״ט','תיאור','ROP','SS','זמן אספקה','מה לתקן','']
+  ?['מק״ט','תיאור','ROP','SS',
+    '<span title="Z × σ × √LT — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
+    'זמן אספקה','מה לתקן']
   :track==='done'?['מק״ט','תיאור','הסימון','מתי סומן','']
+  :track==='floor'?['מק״ט','תיאור',
+    '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
+    '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
+    'פער','שווי הפער','צריכה 12ח׳']
   :track==='short'?['מק״ט','תיאור','מלאי',
     '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
     'לקוח','חסר (יח׳)',
@@ -2106,13 +2144,24 @@ function renderDecisions(rows){
     <td class="num">${when?`${p2(when.getDate())}.${p2(when.getMonth()+1)} ${p2(when.getHours())}:${p2(when.getMinutes())}`:'—'}</td>
     <td><button class="dn undo" data-undo="${esc(r.pn)}">↺ בטל סימון</button></td></tr>`);
    return}
+  if(track==='floor'){const gap=ssFloorGap(r),need=ssNeed(r);
+   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
+    <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
+    <td class="num"><b>${r.ssMin.toLocaleString('he-IL')}</b></td>
+    <td class="num">${need.toLocaleString('he-IL')}</td>
+    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
+    <td class="num">${money(gap*(r.price||0),r.currency)}</td>
+    <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td></tr>`);
+   return}
   if(track==='fix'||track==='month'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
+    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`:'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
     <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
-    <td class="act1">${esc((r.act||[])[0]||'')}</td><td></td></tr>`);
+    <td class="act1">${esc((r.act||[])[0]||'')}</td></tr>`);
    return}
   const money8=!!k;                                  /* מסלול כספי? רק אז יש דירוג ב-₪ */
   if(k)acc+=r[k]||0;
@@ -2132,6 +2181,7 @@ function renderDecisions(rows){
    `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
+     :track==='floor'?'אין פריט שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
@@ -2149,13 +2199,17 @@ function renderDecisions(rows){
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
- document.getElementById('pgR').textContent=track==='done'
+ document.getElementById('pgR').textContent=track==='floor'
+   ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+   :track==='done'
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
    :(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
- document.getElementById('phdSub').textContent=track==='done'
+ document.getElementById('phdSub').textContent=track==='floor'
+  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
+  :track==='done'
   ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
   :(track==='fix'||track==='month')
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
@@ -2164,6 +2218,7 @@ function renderDecisions(rows){
  wireCopy()}
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
+ if(typeof syncFloorBtn==='function')syncFloorBtn();
  setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
@@ -2174,6 +2229,9 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
+ if(track==='floor'){const tk1=document.getElementById('track');
+   if(tk1){tk1.innerHTML='';tk1.style.display='none'}
+   renderDecisions(rows);return}
  if(track==='done'){const tk0=document.getElementById('track');
    if(tk0){tk0.innerHTML='';tk0.style.display='none'}
    renderDecisions(rows);return}
@@ -2574,6 +2632,14 @@ document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFilt
 /* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
 document.getElementById('doneBtn').onclick=()=>setMode(mode==='done'?'today':'done');
+document.getElementById('floorBtn').onclick=()=>setMode(mode==='floor'?'month':'floor');
+/* הכפתור נראה במצב "החודש" (שם יושבים תיקוני הפרמטרים) ובמסלול עצמו */
+function syncFloorBtn(){const b=document.getElementById('floorBtn');if(!b)return;
+ const rows=floorRows(),t=floorTotals(rows);
+ b.hidden=!(t.n&&(mode==='month'||mode==='floor'));
+ b.classList.toggle('on',mode==='floor');
+ document.getElementById('floorN').textContent=t.n.toLocaleString('he-IL');
+ document.getElementById('floorV').textContent=' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}
 function syncDoneBtn(){const b=document.getElementById('doneBtn');if(!b)return;
  const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
  b.hidden=!n&&mode!=='done';
