@@ -229,5 +229,69 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   ok('ההמלצות חוזרות עם התפוגה',b4.ss===b0.ss,`SS ${b4.ss}`);
   await p.evaluate(n=>setMark(n,'',''),odPn);await p.waitForTimeout(400)}
 
+ /* ============ ריסון מגמת ירידה ============ */
+ const tr=await p.evaluate(()=>{
+  const S=a=>a.reduce((x,y)=>x+y,0);
+  const bad=[];let damped=0,gapPos=0,everUp=0,odLeak=0,monotone=0,floorHit=0;
+  for(const r of ALL){
+   if(r.trendF>1)everUp++;                                  /* אסור להגביר קצב */
+   if(r.trendF<1){damped++;
+    if(r.trendF<0.6-1e-9)floorHit++;
+    if(!(r.rateT<r.rate))monotone++;
+    if(r.isOD)odLeak++;
+    /* הריסון הוא בדיוק חצי מהירידה, עם רצפה */
+    const want=Math.max(0.6,1+(r.tRatio-1)*0.5);
+    if(Math.abs(r.trendF-want)>1e-9)bad.push(r.pn);
+    /* ROP מרוסן לעולם לא מעל המקורי, ולעולם לא מתחת ל-SS */
+    if(r.sugROPT>r.sugROP||r.sugROPT<r.sugSS)bad.push(r.pn+'/rop')}
+   if(trendGap(r)>0)gapPos++}
+  const rows=trendRows();
+  const sorted=rows.every((r,i)=>i===0||trendGap(rows[i-1])*(rows[i-1].price||0)>=0);
+  return {damped,gapPos,everUp,odLeak,monotone,floorHit,bad:bad.slice(0,4),
+    nRows:rows.length,sorted,
+    /* כל שורה במסלול חייבת פער חיובי */
+    allGap:rows.every(r=>trendGap(r)>0),
+    /* פריט לפי דרישה לא נכנס */
+    noOD:rows.every(r=>!r.isOD),
+    trigOK:ALL.every(r=>!(r.tRatio!=null&&r.tRatio>=0.9&&r.trendF<1))}});
+ ok('הקצב אף פעם לא מוגבר בגלל מגמה',tr.everUp===0,'הוגברו: '+tr.everUp);
+ ok('הריסון הוא חצי מהירידה, עם רצפת 0.6',tr.bad.length===0,tr.bad.join(',')||'—');
+ ok('הרצפה 0.6 לא נשברת',tr.floorHit===0);
+ ok('קצב מרוסן תמיד קטן מהקצב',tr.monotone===0);
+ ok('ריסון פועל רק מתחת לסף 0.9',tr.trigOK);
+ ok('פריט לפי דרישה לא מקבל פער מגמה',tr.odLeak===0&&tr.noOD);
+ ok('כל שורה במסלול המגמה נושאת פער חיובי',tr.allGap,tr.nRows+' שורות');
+ ok('מסלול המגמה קיים בנתוני הבדיקה',tr.damped>0&&tr.nRows>0,
+   'מרוסנים '+tr.damped+' · במסלול '+tr.nRows);
+
+ /* המסלול על המסך */
+ await p.evaluate(()=>setMode('trend'));await p.waitForTimeout(500);
+ const tv=await p.evaluate(()=>{
+  const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const tb=document.getElementById('tbl');
+  const btn=document.getElementById('trendBtn');
+  return {nth:th.length,head:th.join('|'),
+   cells:(document.querySelector('#tbl tbody tr')||{children:[]}).children.length,
+   over:tb.scrollWidth>tb.clientWidth+2,
+   btnVis:btn.offsetParent!==null,btnOn:btn.classList.contains('on'),
+   sub:document.getElementById('phdSub').textContent,
+   trackStrip:getComputedStyle(document.getElementById('track')).display}});
+ ok('כותרות המסלול תואמות למספר התאים',tv.nth===tv.cells&&tv.nth===8,tv.nth+' / '+tv.cells);
+ ok('אין גלישה אופקית במסלול המגמה',!tv.over);
+ ok('כפתור המגמה נראה ומסומן',tv.btnVis&&tv.btnOn);
+ ok('רצועת המסלולים מוסתרת',tv.trackStrip==='none',tv.trackStrip);
+ ok('התת-כותרת אומרת שההמלצה לא שונתה',/לא שונתה אוטומטית/.test(tv.sub));
+
+ /* [hidden] מול display מפורש — נבדק בנראות בפועל, לא בתכונה (סעיף 32) */
+ const vis=[];
+ for(const m of ['today','month','catalog','floor','trend']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(350);
+  vis.push([m,await p.evaluate(()=>{const g=document.getElementById('gseg');
+    return g.offsetParent!==null&&g.getBoundingClientRect().width>0})])}
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ ok('מתג הקיבוץ גלוי ב"היום" בלבד',
+   vis.every(([m,v])=>v===(m==='today')),
+   vis.map(([m,v])=>m+'='+v).join(' '));
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

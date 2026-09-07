@@ -918,9 +918,17 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .btn[hidden]{display:none!important}
 #floorBtn.on{background:var(--orgL);border-color:var(--org);color:#a05c06;font-weight:700}
 #floorBtn .fn{font-family:var(--num);font-weight:700}
+#trendBtn.on{background:var(--purpleL);border-color:var(--purple);color:var(--purple);font-weight:700}
+#trendBtn .fn{font-family:var(--num);font-weight:700}
+/* צבע = משמעות: בטבלה צבוע רק שווי/כמות הפער. עמודת המגמה היא הקשר,
+   לא ההימור, ולכן היא נשארת בגוון הטקסט המשני. */
+#tbl td.tdn{color:var(--dim);font-family:var(--num);white-space:nowrap}
 
 /* מתג הקיבוץ — לפי החלטה או לפי ספק */
 .gseg{display:inline-flex;gap:0;margin-inline-start:8px;border-radius:8px;overflow:hidden;background:var(--panel2)}
+/* אותה תקלה של סעיף 32: display מפורש דורס את [hidden]. מתג הקיבוץ
+   שייך ל"היום" בלבד, והוא נשאר גלוי בכל שאר המצבים. */
+.gseg[hidden]{display:none!important}
 .gseg button{border:0;background:transparent;font-family:inherit;font-size:var(--f-sm);
  padding:5px 11px;cursor:pointer;color:var(--dim)}
 .gseg button.on{background:var(--ink);color:#fff;font-weight:700}
@@ -997,6 +1005,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span> מעל הדרישה<span class="lbl" id="floorV"></span></button>
+          <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית">↘ <span class="fn" id="trendN">0</span> בירידה<span class="lbl" id="trendV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
         <div class="ctop" id="ctop" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
@@ -1037,6 +1046,8 @@ const NUM=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^\d.\-]/g,''));r
 const CURSYM={USD:'$',EUR:'€',ILS:'₪',NIS:'₪',GBP:'£',JPY:'¥'};
 const curSym=c=>{const k=String(c||'').trim().toUpperCase();return CURSYM[k]||(k?k+' ':'₪')};
 const money=(n,c)=>curSym(c)+Math.round(n).toLocaleString('he-IL');
+/* קצב חודשי — ספרה אחת אחרי הנקודה, בלי זנב אפסים */
+const fmt1=n=>(+n||0).toFixed(1).replace(/\.0$/,'');
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const moneyShort=(n,c)=>{n=Math.round(n||0);const s=curSym(c);
  if(n>=1e6)return s+(n/1e6).toFixed(n>=1e7?0:1)+'M';
@@ -1091,6 +1102,27 @@ const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5;
 const DROP_MIN_ACTIVE=6, DROP_REGULAR=0.8;
 /* פרמטרים ב-SAP שגדולים מכל מה שנמכר בשלוש שנים — סף לדגל */
 const LOW_PARAM_FLOOR=3;
+/* ============ ריסון מגמת ירידה ============
+   הקצב הוא ממוצע שטוח של שישה חודשים, והוא מוקרן קדימה על פני זמן
+   אספקה שלם — לפריט מסין, ארבעה חודשים. כשהביקוש ירד *בתוך* אותם
+   שישה חודשים, הממוצע יושב מעל הרמה שהפריט נמצא בה עכשיו, וכל חישוב
+   שנשען עליו מזמין יותר מדי.
+
+   נבדק על הדוח האמיתי בשלושה קיפולים: מסתירים 3, 4 או 5 חודשים
+   אחרונים, מחשבים קצב מששת החודשים שלפניהם ומשווים למה שנצרך בפועל.
+   הריסון הוריד את שגיאת התחזית ב-7.2%, 7.9% ו-3.1% — ועל תת-הקבוצה
+   שהוא נוגע בה, ב-22.7%, 18.5% ו-19.9%. ב-68%-75% מהמקרים הביקוש
+   בפועל אכן ירד מתחת לממוצע השטוח.
+
+   הכיוון ההפוך *לא* נבנה, וזו החלטה מדודה: הגברת הקצב על פריט
+   שהמריא הרעה את התחזית ב-18%-25% בכל קיפול. פריטים שדוגלו בעלייה
+   עלו מ-4.5 ל-18.6 יח׳ לחודש ואז חזרו ל-10.9 — הזינוק הוא רובו
+   חזרה לממוצע, ומי שמזמין לפיו קונה עודף. עלייה נשארת דגל לעין
+   אנושית, לא מכפיל אוטומטי.
+
+   הריסון הוא חצי מהירידה שנמדדה, לא כולה, ולא יורד מתחת ל-0.6:
+   ירידה אינה בהכרח נמשכת, והמחיר של קצב נמוך מדי הוא חוסר. */
+const TREND_TRIG=0.9, TREND_DAMP=0.5, TREND_FLOOR=0.6;
 /* "אוזל החודש" — צריכה ברבעון האחרון מול המלאי שיכסה את החודש הקרוב.
    שאלה אחרת מ"מניעת חוסר": שם הקצב הוא של 11 חודשים והאופק הוא זמן
    האספקה. כאן הקצב הוא של 3 חודשים בלבד והאופק הוא חודש אחד — כדי
@@ -1272,6 +1304,15 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin,lumpFloor):0;
     let sugROP=(rate>0&&!isODStatic)?Math.ceil(dLT+sugSS):0;
     if(sugSS>sugROP)sugROP=sugSS;
+    /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
+       האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
+       שנמדד. ראה TREND_TRIG. */
+    const tRec=clean.slice(0,3).reduce((a,b)=>a+b,0),tPre=clean.slice(3,6).reduce((a,b)=>a+b,0);
+    const tRatio=tPre>0?tRec/tPre:null;
+    const trendF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
+      ?Math.max(TREND_FLOOR,1+(tRatio-1)*TREND_DAMP):1;
+    const rateT=rate*trendF;
+    const sugROPT=trendF<1?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
     const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
     const entFuture=isFutureDate(entries&&entries.date),saleFuture=isFutureDate(sales&&sales.date);
     const entAge=entFuture?null:AGE(entries&&entries.date),saleAge=saleFuture?null:AGE(sales&&sales.date);
@@ -1288,7 +1329,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,A})}
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,
+      tRatio,tRec,tPre,trendF,rateT,sugROPT,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -1682,7 +1724,9 @@ const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
  done:{cur:'marked',track:'done'},
  /* רצפת מלאי הביטחון — כל הפריטים, לא רק תור העבודה */
- floor:{cur:'all',track:'floor'}};
+ floor:{cur:'all',track:'floor'},
+ /* מגמת ירידה — כנ״ל, כל הפריטים */
+ trend:{cur:'all',track:'trend'}};
 let mode='today';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
@@ -1731,6 +1775,7 @@ function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
  document.body.classList.toggle('mode-done',m==='done');
  document.body.classList.toggle('mode-floor',m==='floor');
+ document.body.classList.toggle('mode-trend',m==='trend');
  render()}
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
@@ -2084,8 +2129,15 @@ function passColFilters(r){
    if(f.max!=null&&(!(typeof val==='number')||val>f.max))return false}
  return true}
 function currentRows(){if(cur==='today')return decisionList(track);
- if(track==='floor')return sortRowsBy(floorRows().filter(passColFilters)
-   .sort((a,b)=>ssFloorGap(b)*(b.price||0)-ssFloorGap(a)*(a.price||0)));
+ /* sortRowsBy ממיין לפי sortCol, וברירת המחדל שלו ('sev') דרסה את
+    המיון לפי שווי — כך שהכיתוב "ממוין לפי שווי הפער" לא היה נכון.
+    כל עוד המשתמש לא בחר עמודה, המיון לפי השווי הוא שקובע. */
+ if(track==='floor'){const by=floorRows().filter(passColFilters)
+   .sort((a,b)=>ssFloorGap(b)*(b.price||0)-ssFloorGap(a)*(a.price||0));
+   return sortCol==='sev'?by:sortRowsBy(by)}
+ if(track==='trend'){const by=trendRows().filter(passColFilters)
+   .sort((a,b)=>trendGap(b)*(b.price||0)-trendGap(a)*(a.price||0));
+   return sortCol==='sev'?by:sortRowsBy(by)}
  let base=cur==='all'?QF.all:QF[cur];
  if(onlyTasks&&cur==='all'){const TASK=new Set(['waiting','immediate','follow','prevent','excess','quality']);
    base=base.filter(r=>{for(const k of TASK)if(QF[k].includes(r))return true;return false})}
@@ -2162,7 +2214,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:8}
+function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:track==='trend'?8:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -2187,6 +2239,17 @@ function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
   const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
  return {n:rows.length,units,cur}}
+/* ============ מסלול המגמה ============
+   הפער בין נקודת ההזמנה שנגזרת מהממוצע השטוח לבין זו שנגזרת מהקצב
+   המרוסן. הוא *לא* מוחל אוטומטית: sugROP נשאר מה שהיה, והמסלול הוא
+   רשימת בדיקה — הפריטים שבהם הממוצע יושב מעל הרמה הנוכחית. */
+function trendPct(r){return r.tRatio==null?null:Math.round((r.tRatio-1)*100)}
+function trendGap(r){return (!r.isOD&&r.trendF<1&&r.sugROP>r.sugROPT)?r.sugROP-r.sugROPT:0}
+function trendRows(){return (QF&&QF.all?QF.all:[]).filter(r=>trendGap(r)>0)}
+function trendTotals(rows){const cur={};let units=0;
+ for(const r of rows){const g=trendGap(r);units+=g;
+  const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
+ return {n:rows.length,units,cur}}
 function decisionHead(){const cols=(track==='fix'||track==='month')
   ?['מק״ט','תיאור','ROP','SS',
     '<span title="Z × σ × √LT — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
@@ -2196,6 +2259,11 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
     '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
     'פער','שווי הפער','צריכה 12ח׳']
+  :track==='trend'?['מק״ט','תיאור',
+    '<span title="שלושת החודשים האחרונים מול השלושה שלפניהם, בתוך חלון הקצב עצמו">מגמה</span>',
+    '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
+    '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
+    'פער','שווי הפער']
   :track==='short'?['מק״ט','תיאור','מלאי',
     '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
     'לקוח','חסר (יח׳)',
@@ -2345,6 +2413,16 @@ function renderDecisions(rows){
     <td class="num">${money(gap*(r.price||0),r.currency)}</td>
     <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td></tr>`);
    return}
+  if(track==='trend'){const gap=trendGap(r),pc=trendPct(r);
+   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
+    <td>${hlMark(r.desc.slice(0,32),SQ)}</td>
+    <td class="num tdn">↓${Math.abs(pc)}%</td>
+    <td class="num">${fmt1(r.rate)}<span class="sug">→${fmt1(r.rateT)}</span></td>
+    <td class="num">${r.sugROP.toLocaleString('he-IL')}<span class="sug">→${r.sugROPT.toLocaleString('he-IL')}</span></td>
+    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
+    <td class="num">${money(gap*(r.price||0),r.currency)}</td></tr>`);
+   return}
   if(track==='fix'||track==='month'){
    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
@@ -2373,6 +2451,7 @@ function renderDecisions(rows){
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='floor'?'אין פריט שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
+     :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
@@ -2392,6 +2471,8 @@ function renderDecisions(rows){
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
  document.getElementById('pgR').textContent=track==='floor'
    ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+   :track==='trend'
+   ?`${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
    :track==='done'
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
    :(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
@@ -2400,6 +2481,8 @@ function renderDecisions(rows){
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
  document.getElementById('phdSub').textContent=track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
+  :track==='trend'
+  ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית · ממוין לפי שווי הפער · ההמלצה לא שונתה אוטומטית'
   :track==='done'
   ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
   :(track==='fix'||track==='month')
@@ -2410,6 +2493,7 @@ function renderDecisions(rows){
 function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
+ if(typeof syncTrendBtn==='function')syncTrendBtn();
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
  setTimeout(topChart,0);
@@ -2424,6 +2508,9 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
  if(track==='floor'){const tk1=document.getElementById('track');
    if(tk1){tk1.innerHTML='';tk1.style.display='none'}
+   renderDecisions(rows);return}
+ if(track==='trend'){const tk2=document.getElementById('track');
+   if(tk2){tk2.innerHTML='';tk2.style.display='none'}
    renderDecisions(rows);return}
  if(track==='done'){const tk0=document.getElementById('track');
    if(tk0){tk0.innerHTML='';tk0.style.display='none'}
@@ -2680,7 +2767,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="fixbox"><div class="cur">SS ב-SAP: ${r.ss}</div><div class="new">${r.sugSS}</div>${delta(r.ss,r.sugSS)}</div>
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
-    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}</div></div>
+    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
    <details class="dsec" data-chart="c1"><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
     <div class="legend"><span style="color:#ff5b5b">●</span> פיק · <span style="color:#a78bfa">●</span> חשד אזילה · <span style="color:#e9a700">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}${notes.length?'<br>'+notes.join(' · '):''}</div></details>
    <details class="dsec" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
@@ -2718,6 +2805,11 @@ function explain(r){const A=r.A;
  if(lumpUsed)flags+=`<div class="flag info">🛡️ <b>רצפת-הגנת-פיק הופעלה (${lump}).</b> פריט <b>${A.pattern}</b> — ביקוש באשכולות. פיק בודד (${A.peak} יח׳) יכול לגרוף מלאי בזמן אספקה, לכן ה-SS מבטח לפחות חצי מהפיק ההיסטורי.</div>`;
  if(ssFloorUsed&&!lumpUsed){flags+=`<div class="flag">ℹ הביטחון הסטטיסטי (${zsdLT}) נמוך מרצפת ssMin (${r.ssMin}) — נבחרה הרצפה.</div>`;
    if(r.ssMin>r.d12&&r.d12>0)flags+=`<div class="flag">⚠️ <b>ssMin=${r.ssMin} חשוד</b> — גבוה מהצריכה השנתית (${r.d12} יח׳). ייתכן שארית ישנה ב-SAP. שקול לאפס.</div>`;}
+ /* מגמה — מוצגת בשני הכיוונים, אבל רק אחד מהם משנה מספר. */
+ if(trendGap(r)>0)flags+=`<div class="flag">↘️ <b>הביקוש ירד ב-${Math.abs(trendPct(r))}% בתוך חלון הקצב</b> — ${fmt1(r.tRec)} יח׳ בשלושת החודשים האחרונים מול ${fmt1(r.tPre)} בשלושה שלפניהם. הממוצע השטוח (${fmt1(r.rate)} יח׳/חודש) יושב מעל הרמה הנוכחית; קצב מרוסן ${fmt1(r.rateT)} נותן נקודת הזמנה <b>${r.sugROPT}</b> במקום ${r.sugROP} — <u>${trendGap(r)} יח׳ פחות</u> (${money(trendGap(r)*(r.price||0),r.currency)}). ההמלצה שבטבלה לא שונתה — זו בדיקה, לא החלטה.</div>`;
+ /* בסיס זעיר מייצר יחסים חסרי משמעות (1 יח׳ → 60 יח׳ = "6000%"),
+    ולכן הדגל דורש בסיס אמיתי ומנוסח בכפולות כשהיחס גדול. */
+ else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
  const ssRows=zeroBuf?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'קצב חודשי = 0'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
   :`<tr><td>רמת שירות</td><td>${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
     <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr><tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
@@ -2785,6 +2877,8 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
+ ['מגמה בחלון הקצב %',r=>trendPct(r)==null?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
+ ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
  ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
@@ -2850,6 +2944,13 @@ function syncFloorBtn(){const b=document.getElementById('floorBtn');if(!b)return
  b.classList.toggle('on',mode==='floor');
  document.getElementById('floorN').textContent=t.n.toLocaleString('he-IL');
  document.getElementById('floorV').textContent=' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}
+document.getElementById('trendBtn').onclick=()=>setMode(mode==='trend'?'month':'trend');
+function syncTrendBtn(){const b=document.getElementById('trendBtn');if(!b)return;
+ const rows=trendRows(),t=trendTotals(rows);
+ b.hidden=!(t.n&&(mode==='month'||mode==='trend'));
+ b.classList.toggle('on',mode==='trend');
+ document.getElementById('trendN').textContent=t.n.toLocaleString('he-IL');
+ document.getElementById('trendV').textContent=' · '+moneyMix(rows,r=>trendGap(r)*(r.price||0))}
 function syncDoneBtn(){const b=document.getElementById('doneBtn');if(!b)return;
  const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
  b.hidden=!n&&mode!=='done';
