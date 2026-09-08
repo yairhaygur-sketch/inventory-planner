@@ -462,6 +462,49 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
  ok('הגרף אינו מופיע במצב "היום"',await p.evaluate(()=>document.getElementById('ctop').hidden));
 
+ /* ============ יישור עמודה מול הכותרת שלה ============
+    text-align:end ב-RTL הוא שמאל, והכותרות יושבות ב-start (ימין) — כך
+    שכל ערך מספרי ישב בקצה הנגדי של התא מהכותרת שלו, עד 90px. נמדדת
+    קופסת הטקסט בפועל (Range) ולא קופסת התא, כי padding שונה בין th ל-td
+    הוא בדיוק מה שגורם לסטייה. */
+ const alignScan=()=>p.evaluate(()=>{
+   const t=document.querySelector('#tbl');if(!t)return [];
+   const ths=[...t.querySelectorAll('thead th')];
+   const row=[...t.querySelectorAll('tbody tr')]
+     .find(r=>!r.classList.contains('grp')&&r.children.length===ths.length);
+   if(!row)return [];
+   const inner=el=>{const rg=document.createRange();rg.selectNodeContents(el);
+     const b=rg.getBoundingClientRect();return b.width?b.right:null};
+   return ths.map((th,i)=>{const td=row.children[i];
+     const hi=inner(th.querySelector('.thc')||th),ci=inner(td);
+     if(hi==null||ci==null)return null;
+     return {t:th.textContent.trim().slice(0,12),
+       d:Math.round((td.getBoundingClientRect().right-ci)-(th.getBoundingClientRect().right-hi))}})
+     .filter(Boolean)});
+ const TOL=6;
+ for(const w of [1512,1180]){
+  await p.setViewportSize({width:w,height:860});await p.waitForTimeout(300);
+  for(const m of ['today','month','catalog','cust','floor','trend']){
+   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(450);
+   const cols=await alignScan();
+   const bad=cols.filter(c=>Math.abs(c.d)>TOL);
+   ok(`כל עמודה יושבת תחת הכותרת שלה · ${m} · ${w}px`,cols.length>0&&bad.length===0,
+     bad.length?bad.map(c=>`${c.t}=${c.d}px`).join(' · '):cols.length+' עמודות');}}
+ await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(300);
+ /* המספרים מיושרים לספרת האחדות — יישור לקצה הנגדי משאיר אותה מרופטת */
+ const ones=await p.evaluate(()=>{
+   const t=document.querySelector('#tbl');
+   const idx=[...t.querySelectorAll('thead th')].findIndex(h=>/צריכה|שווי|פער/.test(h.textContent));
+   if(idx<0)return null;
+   const xs=[...t.querySelectorAll('tbody tr')].filter(r=>!r.classList.contains('grp'))
+     .map(r=>r.children[idx]).filter(Boolean).slice(0,12)
+     .map(td=>{const rg=document.createRange();rg.selectNodeContents(td);
+       const b=rg.getBoundingClientRect();return b.width?Math.round(b.right):null}).filter(v=>v!=null);
+   return {n:xs.length,spread:xs.length?Math.max(...xs)-Math.min(...xs):0}});
+ ok('בעמודה מספרית ספרות האחדות מיושרות',!ones||ones.spread<=2,
+   ones?`${ones.n} ערכים · פיזור ${ones.spread}px`:'—');
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
+
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
