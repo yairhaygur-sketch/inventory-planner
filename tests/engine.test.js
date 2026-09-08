@@ -289,6 +289,54 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   vis.push([m,await p.evaluate(()=>{const g=document.getElementById('gseg');
     return g.offsetParent!==null&&g.getBoundingClientRect().width>0})])}
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ /* ============ נקודת הזמנה של 1 היא נוכחות, לא פרמטר ============ */
+ const rp=await p.evaluate(()=>{
+  const shown=decisionList('month');
+  const keep=ALL.filter(x=>x.rop===ROP_MIN_ACT&&!x.isPDItem&&!x.isOD);
+  const keepSS=ALL.filter(x=>x.ss===ROP_MIN_ACT&&!x.isPDItem&&!x.isOD);
+  return {
+   /* אף המלצה להוריד 1 → 0 על פריט שמנוהל מלאי */
+   ropDrops:keep.filter(x=>x.sugROP===0).length,
+   ssDrops:keepSS.filter(x=>x.sugSS===0).length,
+   kept:keep.filter(x=>x.sugROP===ROP_MIN_ACT).length,
+   /* PD ו«לפי דרישה» כן נשארים על 0 — מדיניות מפורשת */
+   pdZero:ALL.filter(x=>(x.isPDItem||x.isOD)&&x.rop===ROP_MIN_ACT&&x.sugROP===0).length,
+   /* לא נגענו בפריטים עם ROP גבוה יותר */
+   biggerStillDrop:ALL.filter(x=>x.rop>ROP_MIN_ACT&&x.sugROP===0).length,
+   /* ROP=1 אינו מכניס פריט לרשימת העבודה */
+   youngWithRop1:shown.filter(x=>x.cat==='טרם הוכיח את עצמו'&&x.rop<=ROP_MIN_ACT).length,
+   /* טקסט ההמלצה הישן נעלם לגמרי */
+   oldText:ALL.filter(x=>(x.act||[]).some(a=>/איפוס נקודת הזמנה מ-1 ל-0/.test(a))).length,
+   shown:shown.length};});
+ ok('אין המלצה להוריד נקודת הזמנה מ-1 ל-0',rp.ropDrops===0,rp.ropDrops+' המלצות');
+ ok('אין המלצה להוריד מלאי ביטחון מ-1 ל-0',rp.ssDrops===0,rp.ssDrops+' המלצות');
+ ok('ההמלצה על פריטים כאלה היא להשאיר 1',rp.kept>0,rp.kept+' פריטים');
+ ok('פריטי PD ולפי דרישה עדיין מקבלים 0 — מדיניות מפורשת',rp.pdZero>=0,rp.pdZero+' פריטים');
+ ok('נקודת הזמנה גבוהה מ-1 עדיין ניתנת לאיפוס',rp.biggerStillDrop>0,rp.biggerStillDrop+' פריטים');
+ ok('ROP=1 אינו מכניס «טרם הוכיח את עצמו» לרשימת החודש',rp.youngWithRop1===0);
+ ok('הטקסט «איפוס נקודת הזמנה מ-1 ל-0» נעלם',rp.oldText===0,rp.oldText+' מופעים');
+
+ /* ============ שקט אחרי מכירה ============ */
+ const sl=await p.evaluate(()=>{
+  const shown=decisionList('month');
+  const cand=ALL.filter(x=>x.sugROP===0&&x.rop>0&&x.d12>3&&!x.isPDItem&&!x.isOD&&x.rate<=0);
+  const noted=cand.filter(x=>(x.why||[]).some(w=>/שקט \d+ חודשים/.test(w[1])));
+  const dry=ALL.filter(x=>x.silentDry);
+  return {cand:cand.length,noted:noted.length,
+   /* הדגל נדלק רק כשאין מלאי */
+   dryAllEmpty:dry.every(x=>x.free<=0),
+   dryInMonth:dry.every(x=>shown.includes(x)),
+   dryHasAct:dry.every(x=>(x.act||[]).some(a=>/להחליט ידנית/.test(a))),
+   /* פריט עם מלאי מקבל הסבר מרגיע ולא דגל */
+   calm:cand.filter(x=>x.free>0).every(x=>!x.silentDry),
+   /* לא הומצא קצב — sugROP נשאר 0 */
+   stillZero:cand.every(x=>x.sugROP===0),
+   dry:dry.length,silentMax:Math.max(0,...cand.map(x=>x.silent))};});
+ ok('כל פריט ששקט אחרי מכירה מקבל הסבר',sl.cand>0&&sl.noted===sl.cand,sl.noted+'/'+sl.cand);
+ ok('הדגל האדום נדלק רק על פריט ללא מלאי',sl.dryAllEmpty&&sl.calm,sl.dry+' פריטים');
+ ok('הפריטים החשופים נכנסים לרשימת החודש עם החלטה ידנית',sl.dryInMonth&&sl.dryHasAct);
+ ok('לא הומצא קצב חלופי — ההמלצה נשארת 0',sl.stillZero,'שקט מקסימלי '+sl.silentMax+' חודשים');
+
  /* ============ לקוח ממתין ============ */
  const cw=await p.evaluate(()=>{
   const rows=(QF.all||[]).filter(custWaiting);
