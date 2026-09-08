@@ -1122,6 +1122,16 @@ const DROP_LOW=0.3, DROP_OK=0.6, DROP_MIN_MED=5;
 const DROP_MIN_ACTIVE=6, DROP_REGULAR=0.8;
 /* פרמטרים ב-SAP שגדולים מכל מה שנמכר בשלוש שנים — סף לדגל */
 const LOW_PARAM_FLOOR=3;
+/* ============ נקודת הזמנה של 1 היא נוכחות, לא פרמטר ============
+   נמדד: 275 מתוך 572 השורות ב"החודש" — 48% מהרשימה — היו «הורד נקודת
+   הזמנה מ-1 ל-0». 273 מהן על פריטים שלא נמכרו כלל, לא בשנה ולא בשלוש
+   שנים. 195 מהן היו ברשימה *רק* בגלל ההמלצה הזאת.
+
+   החלטת המתכנן: יחידה אחת על המדף היא ביטוח זול, לא פרמטר לתיקון.
+   הכלי לא מציע להוריד אותה ולא מכניס פריט לרשימת העבודה בגללה.
+   פריטי PD ו«לפי דרישה» מוחרגים מהכלל — עבורם המדיניות המפורשת היא
+   שאין ניהול מלאי כלל, וההמלצה 0 נכונה ומוסברת בכרטיס. */
+const ROP_MIN_ACT=1;
 /* ============ ריסון מגמת ירידה ============
    הקצב הוא ממוצע שטוח של שישה חודשים, והוא מוקרן קדימה על פני זמן
    אספקה שלם — לפריט מסין, ארבעה חודשים. כשהביקוש ירד *בתוך* אותם
@@ -1327,10 +1337,17 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
        שנמדד. ראה TREND_TRIG. */
+    /* כמה חודשים רצופים מהחודש האחרון אחורה לא נמכרה אף יחידה.
+       זה מה שמאפס את הקצב גם לפריט שנמכר יפה קודם. */
+    let silent=0;while(silent<months.length&&Math.max(0,months[silent])===0)silent++;
     const tRec=clean.slice(0,3).reduce((a,b)=>a+b,0),tPre=clean.slice(3,6).reduce((a,b)=>a+b,0);
     const tRatio=tPre>0?tRec/tPre:null;
     const trendF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
       ?Math.max(TREND_FLOOR,1+(tRatio-1)*TREND_DAMP):1;
+    /* ROP_MIN_ACT — לא מציעים להוריד נוכחות מינימלית שהמתכנן קבע */
+    if(!isODStatic){
+      if(sugROP===0&&NUM(r[m.rop])===ROP_MIN_ACT)sugROP=ROP_MIN_ACT;
+      if(sugSS===0&&NUM(r[m.ss])===ROP_MIN_ACT)sugSS=ROP_MIN_ACT}
     const rateT=rate*trendF;
     const sugROPT=trendF<1?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
     const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
@@ -1350,7 +1367,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
       ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,
-      tRatio,tRec,tPre,trendF,rateT,sugROPT,A})}
+      tRatio,tRec,tPre,trendF,rateT,sugROPT,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
@@ -1387,7 +1404,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;
   if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase}
   if(mk&&mk.t==='ondemand'){
     if(odExpired(mk))it.odStale=true;
@@ -1539,7 +1556,8 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.ss>it.sugSS?`להקטין מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון סביר','לסמן למעקב'];
     Q.excess.push(it);continue}
   if(it.stock>0&&it.noCons3y){
-    const val=it.price*it.stock, ropRisk=it.rop>0&&it.free<=it.rop;
+    /* ROP=1 אינו "סיכון להזמנה חוזרת" — ראה ROP_MIN_ACT */
+    const val=it.price*it.stock, ropRisk=it.rop>ROP_MIN_ACT&&it.free<=it.rop;
     const win=it.has3y?'3 שנים':'11 חודשים';
     if(ropRisk)it.paramFix=true;
     if(it.dead3y){it.sev=1;it.cat='מלאי מת';it.expCap=val;
@@ -1604,6 +1622,32 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
     Q.quality.push(it);continue}}
   it.why=[['ok','לא זוהתה בעיה — הפריט תקין ביחס לביקוש, לכיסוי ולפרמטרים']];it.act=['אין פעולה נדרשת'];Q.ok.push(it)}
+ /* ============ שקט אחרי מכירה ============
+    הקצב נמדד על ששת החודשים האחרונים בלבד. פריט שנמכר יפה לפני שמונה
+    חודשים ומאז שקט מקבל קצב 0, ומשם נקודת הזמנה 0 — גם כשב-SAP יושבת
+    נקודת הזמנה של 113. זה קורה ל-50 פריטים בדוח האמיתי.
+
+    נבדק אם נכון להציב קצב מרוסן במקום אפס, בקיפולים על הדוח: פריט ששקט
+    ששה חודשים נמכר שוב רק ב-16% מהמקרים (פריט פעיל: 52%), והקצב שאחרי
+    השקט הוא 14% מזה שלפניו. שגיאת התחזית של *אפס* קטנה מזו של רבע,
+    חצי או ממוצע מלא — בשלוש הגדרות שקט ובכל הקיפולים. כלומר אפס הוא
+    המספר הנכון, ורצפה מלאכותית הייתה מחמירה את התחזית.
+
+    לכן לא נבנה מספר חלופי. מה שכן חסר הוא *הסבר*: השורה אומרת «אפס»
+    ולא אומרת למה. הפער האמיתי הוא בין 44 פריטים שיש להם מלאי לחודשים
+    קדימה (אפס מסוכן רק על הנייר) לבין 6 שהמלאי שלהם אפס וזמן האספקה
+    120 יום — ואלה היחידים שדורשים החלטה אנושית. */
+ for(const it of items){
+  if(it.sugROP===0&&it.rop>0&&it.d12>3&&!it.isPDItem&&!it.isOD&&it.rate<=0&&it.silent>=3){
+   const dry=it.free<=0;
+   it.why.push([dry?'err':'info',
+     `שקט ${it.silent} חודשים — אך נמכרו ${it.d12} יח׳ ב-11 החודשים, רובן לפני השקט. `+
+     `הקצב נמדד על 6 החודשים האחרונים בלבד, ולכן הוא 0 וגם נקודת ההזמנה המוצעת 0`]);
+   if(dry){it.silentDry=true;it.paramFix=true;
+    it.why.push(['err',`אין מלאי פנוי וזמן האספקה ${it.ltD} יום — אם הביקוש יחזור, ההמתנה מלאה`]);
+    it.act=[`להחליט ידנית: לאפס את נקודת ההזמנה (${it.rop}) או להשאיר אותה עד שהשקט יוכח`,
+      ...(it.act||[])].slice(0,4)}
+   else it.why.push(['ok',`יש ${it.free} יח׳ במלאי — גם אם נקודת ההזמנה תתאפס, אין חשיפה מיידית`])}}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
