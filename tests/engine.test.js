@@ -284,11 +284,78 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  /* [hidden] מול display מפורש — נבדק בנראות בפועל, לא בתכונה (סעיף 32) */
  const vis=[];
- for(const m of ['today','month','catalog','floor','trend']){
+ for(const m of ['today','month','catalog','floor','trend','cust']){
   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(350);
   vis.push([m,await p.evaluate(()=>{const g=document.getElementById('gseg');
     return g.offsetParent!==null&&g.getBoundingClientRect().width>0})])}
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ /* ============ לקוח ממתין ============ */
+ const cw=await p.evaluate(()=>{
+  const rows=(QF.all||[]).filter(custWaiting);
+  const G=custGroups(rows);
+  const QN=['waiting','immediate','follow','prevent','excess','quality','marked','passive','ok'];
+  const where=x=>{for(const k of QN)if(Q[k].includes(x))return k;return '?'};
+  const qs={};for(const r of rows){const w=where(r);qs[w]=(qs[w]||0)+1}
+  return {n:rows.length,
+   /* ההגדרה עצמה: הזמנת לקוח פתוחה ומלאי פנוי אפס — שום תנאי נוסף */
+   defOK:rows.every(r=>r.cust>0&&r.free<=0),
+   complete:(QF.all||[]).filter(r=>r.cust>0&&r.free<=0).length===rows.length,
+   /* הפיצול מכסה את הכל בדיוק פעם אחת */
+   split:G.none.length+G.sup.reduce((a,[,l])=>a+l.length,0)===rows.length,
+   noneOK:G.none.every(r=>r.po<=0&&(r.transfer||0)<=0),
+   supOK:G.sup.every(([,l])=>l.every(r=>r.po>0||r.transfer>0)),
+   dupes:(()=>{const seen=new Set();let d=0;
+     for(const r of [...G.none,...G.sup.flatMap(([,l])=>l)]){if(seen.has(r.pn))d++;seen.add(r.pn)}return d})(),
+   /* מיון לפי שווי ההזמנה בתוך כל קבוצה */
+   sorted:G.sup.every(([,l])=>l.every((r,i)=>i===0||custVal(l[i-1])>=custVal(r)))
+     &&G.none.every((r,i)=>i===0||custVal(G.none[i-1])>=custVal(r)),
+   /* הרשימה באמת חוצה סיווגים — אחרת אין לה הצדקה */
+   queues:Object.keys(qs).length,qs,
+   pd:rows.filter(r=>r.isPDItem).length,
+   held:rows.filter(r=>r.stock>0).length};});
+ ok('כל שורה עומדת בהגדרה: הזמנת לקוח ומלאי פנוי אפס',cw.defOK&&cw.complete,cw.n+' פריטים');
+ ok('הפיצול מכסה את כל הפריטים בדיוק פעם אחת',cw.split&&cw.dupes===0);
+ ok('«אין רכש» מכיל רק פריטים ללא רכש ובלי מלאי בהעברה',cw.noneOK);
+ ok('קבוצות הספקים מכילות רק פריטים עם רכש או העברה',cw.supOK);
+ ok('בכל קבוצה המיון הוא לפי שווי ההזמנה',cw.sorted);
+ ok('הרשימה חוצה יותר מתור עבודה אחד',cw.queues>=2,JSON.stringify(cw.qs));
+
+ await p.evaluate(()=>setMode('cust'));await p.waitForTimeout(600);
+ const cv=await p.evaluate(()=>{
+  const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const trs=[...document.querySelectorAll('#tbl tbody tr')];
+  const dat=trs.filter(t=>t.dataset.i!==undefined);
+  const tb=document.getElementById('tbl'),btn=document.getElementById('custBtn');
+  return {nth:th.length,cells:dat.length?dat[0].children.length:0,
+   grps:trs.filter(t=>t.classList.contains('grp')).length,rows:dat.length,
+   over:tb.scrollWidth>tb.clientWidth+2,
+   btnVis:btn.offsetParent!==null,btnOn:btn.classList.contains('on'),
+   strip:getComputedStyle(document.getElementById('track')).display,
+   sub:document.getElementById('phdSub').textContent};});
+ ok('כותרות «לקוח ממתין» תואמות למספר התאים',cv.nth===cv.cells&&cv.nth===8,cv.nth+' / '+cv.cells);
+ ok('אין גלישה אופקית ב«לקוח ממתין»',!cv.over);
+ ok('יש כותרת קבוצה לכל קטע',cv.grps>=2,cv.grps+' קבוצות · '+cv.rows+' שורות');
+ ok('כל הפריטים מרונדרים',cv.rows===cw.n,cv.rows+' / '+cw.n);
+ ok('כפתור «לקוח ממתין» נראה ומסומן',cv.btnVis&&cv.btnOn);
+ ok('רצועת המסלולים מוסתרת',cv.strip==='none',cv.strip);
+ /* קיפול קבוצה מוריד רק אותה */
+ const coll=await p.evaluate(()=>{const g=document.querySelector('#tbl tbody tr.grp[data-g^="cst:sup:"]');
+   const key=g.dataset.g;const before=document.querySelectorAll('#tbl tbody tr[data-i]').length;
+   toggleGroup(key);const after=document.querySelectorAll('#tbl tbody tr[data-i]').length;
+   toggleGroup(key);
+   return {before,after,back:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+ ok('קיפול קבוצה מסתיר רק אותה ומחזיר',coll.after<coll.before&&coll.back===coll.before,
+   `${coll.before} → ${coll.after} → ${coll.back}`);
+ /* לחיצה על שורה פותחת את הפריט שבשורה — לא פריט אחר */
+ const click=await p.evaluate(()=>{const t=[...document.querySelectorAll('#tbl tbody tr[data-i]')].pop();
+   const pn=t.children[1].textContent.replace('העתק','').trim();t.click();
+   const c=document.querySelector('#detail .opn');
+   return {pn,card:c?c.textContent.replace('העתק','').trim():'—'}});
+ ok('לחיצה על השורה האחרונה פותחת את הפריט הנכון',click.pn===click.card,click.pn+' / '+click.card);
+ await p.evaluate(()=>{closeDetail();setMode('today')});await p.waitForTimeout(400);
+ const back=await p.evaluate(()=>({mode,n:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
+ ok('חזרה ל«היום» משחזרת את התור',back.mode==='today'&&back.n>0,back.n+' שורות');
+
  ok('מתג הקיבוץ גלוי ב"היום" בלבד',
    vis.every(([m,v])=>v===(m==='today')),
    vis.map(([m,v])=>m+'='+v).join(' '));
