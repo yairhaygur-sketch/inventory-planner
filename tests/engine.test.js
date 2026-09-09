@@ -284,11 +284,76 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  /* [hidden] מול display מפורש — נבדק בנראות בפועל, לא בתכונה (סעיף 32) */
  const vis=[];
- for(const m of ['today','month','catalog','floor','trend','cust']){
+ for(const m of ['today','month','catalog','floor','trend','cust','applied']){
   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(350);
   vis.push([m,await p.evaluate(()=>{const g=document.getElementById('gseg');
     return g.offsetParent!==null&&g.getBoundingClientRect().width>0})])}
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ /* ============ האם ההמלצה יושמה? ============ */
+ const ap0=await p.evaluate(()=>({ap:APPLIED,runs:PARAMS.runs.length,
+   btn:document.getElementById('apBtn').offsetParent!==null,
+   /* טבלת האמת של parState */
+   /* String() ולא join — join הופך null למחרוזת ריקה ומסתיר את המקרה */
+   t:[parState(1,1,1),parState(1,5,5),parState(1,5,9),parState(1,5,1)].map(String).join(',')}));
+ ok('הרצה ראשונה — אין עם מה להשוות',ap0.ap===null&&!ap0.btn,'תמונות: '+ap0.runs);
+ ok('טבלת האמת של השוואת פרמטר',ap0.t==='null,done,other,none',ap0.t);
+
+ const ap=await p.evaluate(()=>{
+  const pool=ALL.filter(x=>x.paramFix&&(x.rop!==x.sugROP||x.ss!==x.sugSS)).slice(0,9);
+  if(pool.length<9)return {short:pool.length};
+  const snap={};
+  pool.forEach((x,i)=>{
+   if(i<3)snap[x.pn]=[x.rop+5,x.ss+5,x.rop,x.ss];        /* ההצעה = מה שיש היום → יושם */
+   else if(i<5)snap[x.pn]=[x.rop+5,x.ss+5,x.rop+9,x.ss+9]; /* זז, אך לא להצעה → שונה אחרת */
+   else snap[x.pn]=[x.rop,x.ss,x.rop+7,x.ss+7]});          /* לא זז → לא נגעו */
+  /* תמונה קודמת מסונתזת, מלפני 30 יום */
+  PARAMS.runs=[{sig:'TEST',ts:Date.now()-30*864e5,it:snap}];
+  /* דרך הגלובלי, כי זה מה שהכפתור והמסך קוראים */
+  const res=APPLIED=recordParams(ALL);
+  const st={};for(const x of ALL)if(x.apStatus)st[x.apStatus]=(st[x.apStatus]||0)+1;
+  const rows=appliedRows();
+  return {res,st,runs:PARAMS.runs.length,rows:rows.length,
+    /* כל שורה נושאת את התמונה הקודמת */
+    hasPrev:rows.every(r=>r.apPrev&&typeof r.apPrev.rop==='number'),
+    /* לפריט שלא היה בתמונה הקודמת אין מצב */
+    clean:ALL.filter(x=>x.apStatus&&!snap[x.pn]).length,
+    days:res.days};});
+ if(ap.short!==undefined)ok('מדגם לבדיקת יישום',false,'רק '+ap.short+' פריטים');
+ else{
+  ok('שלושה יושמו במדויק',ap.res.done===3,JSON.stringify(ap.res));
+  ok('שניים שונו למספר אחר',ap.res.other===2);
+  ok('ארבעה לא נגעו',ap.res.none===4);
+  ok('הסך הכול הוא מה שהוצג בהעלאה הקודמת',ap.res.total===9);
+  ok('הפילוח על הפריטים תואם לסיכום',
+    ap.st.done===3&&ap.st.other===2&&ap.st.none===4,JSON.stringify(ap.st));
+  ok('רק פריטים שהיו בתמונה הקודמת מסומנים',ap.clean===0);
+  ok('כל שורה נושאת את הערכים הקודמים',ap.hasPrev&&ap.rows===9,ap.rows+' שורות');
+  ok('מרחק הזמן מההעלאה הקודמת נמדד',ap.days===30,ap.days+' ימים');}
+
+ /* אותו קובץ שוב לא יוצר תמונה חדשה — אחרת נשווה קובץ לעצמו */
+ const rep=await p.evaluate(()=>{const before=PARAMS.runs.length;
+   const r2=APPLIED=recordParams(ALL);return {before,after:PARAMS.runs.length,res:r2}});
+ ok('העלאה חוזרת של אותו קובץ לא מוסיפה תמונה',rep.before===rep.after,
+   rep.before+' → '+rep.after);
+
+ await p.evaluate(()=>setMode('applied'));await p.waitForTimeout(600);
+ const apv=await p.evaluate(()=>{
+  const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const trs=[...document.querySelectorAll('#tbl tbody tr')];
+  const dat=trs.filter(t=>t.dataset.i!==undefined);
+  const tb=document.getElementById('tbl'),b=document.getElementById('apBtn');
+  return {nth:th.length,cells:dat.length?dat[0].children.length:0,
+   grps:trs.filter(t=>t.classList.contains('grp')).length,rows:dat.length,
+   over:tb.scrollWidth>tb.clientWidth+2,btnVis:b.offsetParent!==null,btnOn:b.classList.contains('on'),
+   strip:getComputedStyle(document.getElementById('track')).display};});
+ ok('כותרות «יושמו» תואמות למספר התאים',apv.nth===apv.cells&&apv.nth===7,apv.nth+' / '+apv.cells);
+ ok('שלוש קבוצות — יושם, שונה אחרת, לא נגעו',apv.grps===3,apv.grps+' קבוצות');
+ ok('כל התשע מרונדרות',apv.rows===9,apv.rows+' שורות');
+ ok('אין גלישה אופקית ב«יושמו»',!apv.over);
+ ok('כפתור «יושמו» נראה ומסומן',apv.btnVis&&apv.btnOn);
+ ok('רצועת המסלולים מוסתרת',apv.strip==='none',apv.strip);
+ await p.evaluate(()=>{paramsReset();setMode('today')});await p.waitForTimeout(400);
+
  /* ============ נקודת הזמנה של 1 היא נוכחות, לא פרמטר ============ */
  const rp=await p.evaluate(()=>{
   const shown=decisionList('month');
