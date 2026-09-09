@@ -941,6 +941,21 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 #apBtn.on{background:var(--grnL);border-color:var(--grn);color:var(--grn);font-weight:700}
 #apBtn .fn{font-family:var(--num);font-weight:700}
 #tbl td.was{color:var(--dimmer);font-family:var(--num)}
+.stwrap{display:grid;gap:14px}
+.stwrap .card{border:1px solid var(--line2);border-radius:10px;padding:12px 14px;background:var(--panel2)}
+.stwrap h4{margin:0 0 8px;font-size:var(--f-md)}
+.stwrap .kv2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.stwrap .kv2 div{background:var(--panel0);border-radius:8px;padding:8px 10px}
+.stwrap .kv2 b{display:block;font-family:var(--num);font-size:var(--f-lg)}
+.stwrap .kv2 span{font-size:var(--f-xs);color:var(--dim)}
+.stwrap p{margin:6px 0;font-size:var(--f-sm);color:var(--soft);line-height:1.55}
+.stwrap .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.stwrap button{font-family:inherit;font-size:var(--f-sm);padding:8px 14px;border-radius:8px;
+ border:1px solid var(--line);background:var(--panel0);color:var(--ink);cursor:pointer}
+.stwrap button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.stwrap button.danger{border-color:var(--red);color:var(--red)}
+.stwrap .warn2{border-inline-start:3px solid var(--org);background:var(--orgL);padding:8px 12px;
+ border-radius:8px;font-size:var(--f-sm);color:var(--ink)}
 
 /* מתג הקיבוץ — לפי החלטה או לפי ספק */
 .gseg{display:inline-flex;gap:0;margin-inline-start:8px;border-radius:8px;overflow:hidden;background:var(--panel2)}
@@ -979,7 +994,9 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
+    <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה">⇅<span class="lbl"> מצב עבודה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים">🌙<span class="lbl"> מצב כהה</span></button>
+    <input type="file" id="stFile" accept="application/json,.json" hidden>
   </div>
   <div class="fgroup qwrap" id="qwrap">
     <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
@@ -2032,6 +2049,60 @@ function recordParams(items){
  return {total,done,other,none,gone,ts:prev.ts,
    runs:PARAMS.runs.length,days:Math.max(0,Math.round((now-prev.ts)/864e5))}}
 function paramsReset(){PARAMS={runs:[]};saveParams()}
+/* ============ מצב עבודה — גיבוי והעברה ============
+   כל מה שהמתכנן החליט יושב ב-localStorage של דפדפן אחד: הסימונים,
+   זיכרון התור, ותמונות הפרמטרים. ניקוי עוגיות מוחק הכול, ועמית שפותח
+   את האתר רואה דף ריק. זו לא תקלה — זו ארכיטקטורה בלי שרת — אבל היא
+   שבירה, ובנינו עליה ארבע יכולות.
+
+   הקובץ נושא *מה שהוחלט* ולא *איך המסך נראה*: הפריסה, ערכת הצבעים,
+   מצב הקיפול והחיפושים האחרונים אינם נכללים. לכן שחזור מלא אצל עמית
+   לא נוגע בתצוגה שלו.
+
+   מיזוג הוא רק הוספה ועדכון, לעולם לא מחיקה: סימון שנמחק מיוצג
+   בהיעדרו, ואי אפשר להבדיל בין «נמחק» ל«מעולם לא היה». סימון שמחקת
+   יכול לחזור ממיזוג, וזה כתוב במסך. */
+const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1'];
+const STATE_V=1;
+function stateBlob(){const keys={};
+ for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
+ return {app:'inventory-planner',kind:'work-state',v:STATE_V,ts:Date.now(),keys}}
+function stateStats(blob){const k=blob&&blob.keys||{};
+ const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
+ const m=j(k['planner_marks_v1'])||{},h=j(k['planner_history_v1'])||{},q=j(k['planner_params_v1'])||{};
+ const byT={};for(const key in m){const t=(m[key]&&m[key].t)||'—';byT[t]=(byT[t]||0)+1}
+ return {marks:Object.keys(m).length,byT,
+   runs:(h.runs||[]).length,tracked:Object.keys(h.items||{}).length,
+   snaps:(q.runs||[]).length,
+   size:Math.round(Object.values(k).reduce((a,b)=>a+b.length,0)/1024)}}
+function stateDownload(){const b=stateBlob();
+ const d=new Date(),p2=n=>String(n).padStart(2,'0');
+ const name=`planner-state-${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.json`;
+ const url=URL.createObjectURL(new Blob([JSON.stringify(b)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download=name;
+ document.body.appendChild(a);a.click();document.body.removeChild(a);
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ toast('✓ נשמר '+name)}
+function stateValidate(o){
+ if(!o||typeof o!=='object')return 'הקובץ אינו JSON תקין';
+ if(o.app!=='inventory-planner'||o.kind!=='work-state')return 'זה לא קובץ מצב עבודה של הכלי';
+ if(!o.keys||typeof o.keys!=='object')return 'הקובץ חסר את תוכן המצב';
+ if(+o.v>STATE_V)return `הקובץ נוצר בגרסה חדשה יותר (${o.v}) — עדכן את האתר לפני הטעינה`;
+ return null}
+/* מיזוג סימונים: לכל מפתח מנצח החותם המאוחר. לא נמחק דבר. */
+function stateMergeMarks(blob){const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
+ const inc=j((blob.keys||{})['planner_marks_v1'])||{};
+ let added=0,updated=0,kept=0;
+ for(const key in inc){const a=inc[key],b=MARKS[key];
+  if(!a||typeof a!=='object'||!a.t)continue;
+  if(!b){MARKS[key]=a;added++}
+  else if((a.ts||0)>(b.ts||0)){MARKS[key]=a;updated++}
+  else kept++}
+ saveMarks();return {added,updated,kept}}
+function stateRestoreAll(blob){
+ for(const k of STATE_KEYS){const v=(blob.keys||{})[k];
+  try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){}}
+ return true}
 function appliedRows(){return (QF&&QF.all?QF.all:[]).filter(r=>r.apStatus&&passColFilters(r))}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
  QF=classify(fl);QF.all=fl;SIDXV++;
@@ -3120,6 +3191,60 @@ function explain(r){const A=r.A;
  document.getElementById('modalwrap').classList.add('open')}
 document.getElementById('dchip').onclick=()=>toggleDiag();
 document.getElementById('dclose').onclick=()=>closeDetail();
+/* ============ חלונית מצב העבודה ============ */
+function stateClose(){document.getElementById('modalwrap').classList.remove('open')}
+function statePanel(incoming,err){
+ const cur=stateStats(stateBlob());
+ const inc=incoming?stateStats(incoming):null;
+ const lbl={handled:'טופל',ondemand:'לפי דרישה',campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג'};
+ const brk=o=>Object.entries(o.byT).map(([t,n])=>`${lbl[t]||t} ${n}`).join(' · ')||'—';
+ const box=(o,t)=>`<div class="card"><h4>${t}</h4><div class="kv2">
+   <div><b>${o.marks.toLocaleString('he-IL')}</b><span>סימונים</span></div>
+   <div><b>${o.runs}</b><span>העלאות בזיכרון</span></div>
+   <div><b>${o.snaps}</b><span>תמונות פרמטרים</span></div>
+   <div><b>${o.size}KB</b><span>גודל</span></div></div>
+   <p>${brk(o)}</p></div>`;
+ document.getElementById('mtitle').textContent='מצב עבודה — גיבוי והעברה';
+ document.getElementById('mbody').innerHTML=`<div class="stwrap">
+  ${err?`<div class="warn2">⚠ ${esc(err)}</div>`:''}
+  ${box(cur,'מה יש כאן עכשיו')}
+  <div class="card"><h4>שמירה</h4>
+   <p>הקובץ נושא <b>מה שהחלטת</b> — סימונים, זיכרון התור ותמונות הפרמטרים.
+   הוא <b>אינו</b> נושא את הפריסה, ערכת הצבעים או החיפושים האחרונים, ולכן
+   טעינה אצל עמית לא תיגע בתצוגה שלו.</p>
+   <div class="row"><button class="pri" id="stSave">⭳ שמור קובץ מצב</button>
+    <button id="stLoad">⭱ טען קובץ מצב…</button></div></div>
+  ${inc?`${box(inc,'מה יש בקובץ שנטען')}
+   <div class="card"><h4>איך להחיל</h4>
+    <p><b>מיזוג סימונים</b> — לכל מק״ט מנצח הסימון המאוחר יותר. זיכרון התור
+    ותמונות הפרמטרים <u>לא</u> משתנים.</p>
+    <div class="warn2">מיזוג מוסיף ומעדכן בלבד — הוא לעולם לא מוחק.
+    סימון שמחקת כאן ושקיים בקובץ <b>יחזור</b>, כי מחיקה מיוצגת בהיעדר ואי
+    אפשר להבדיל בינה לבין «מעולם לא היה».</div>
+    <p><b>שחזור מלא</b> — מחליף את שלושת החלקים במה שבקובץ. מה שיש כאן
+    עכשיו יימחק. מתאים לשחזור אחרי ניקוי עוגיות, לא למיזוג עבודה של שניים.</p>
+    <div class="row"><button class="pri" id="stMerge">מזג סימונים</button>
+     <button class="danger" id="stReplace">שחזור מלא — מחליף הכול</button></div></div>`:''}
+ </div>`;
+ document.getElementById('modalwrap').classList.add('open');
+ document.getElementById('stSave').onclick=()=>stateDownload();
+ document.getElementById('stLoad').onclick=()=>document.getElementById('stFile').click();
+ if(inc){
+  document.getElementById('stMerge').onclick=()=>{const r=stateMergeMarks(incoming);
+   stateClose();apply();
+   toast(`✓ מוזגו — ${r.added} נוספו · ${r.updated} עודכנו · ${r.kept} נשמרו כפי שהיו`)};
+  document.getElementById('stReplace').onclick=()=>{
+   if(!confirm('שחזור מלא ימחק את הסימונים והזיכרון שיש כאן עכשיו. להמשיך?'))return;
+   stateRestoreAll(incoming);stateClose();
+   toast('✓ שוחזר — רענן את הדף כדי לטעון את הזיכרון מחדש')}}}
+document.getElementById('stBtn').onclick=()=>statePanel(null,null);
+document.getElementById('stFile').onchange=e=>{const f=e.target.files&&e.target.files[0];
+ e.target.value='';if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{let o=null;try{o=JSON.parse(rd.result)}catch(_){}
+  const err=stateValidate(o);statePanel(err?null:o,err)};
+ rd.onerror=()=>statePanel(null,'הדפדפן לא הצליח לקרוא את הקובץ');
+ rd.readAsText(f)};
 document.getElementById('mclose').onclick=()=>document.getElementById('modalwrap').classList.remove('open');
 document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')document.getElementById('modalwrap').classList.remove('open')};
 document.getElementById('onlyTasks').onclick=function(){onlyTasks=!onlyTasks;this.classList.toggle('on',onlyTasks);render()};

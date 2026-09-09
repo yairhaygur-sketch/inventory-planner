@@ -289,6 +289,68 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   vis.push([m,await p.evaluate(()=>{const g=document.getElementById('gseg');
     return g.offsetParent!==null&&g.getBoundingClientRect().width>0})])}
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ /* ============ מצב עבודה — גיבוי והעברה ============ */
+ const stt=await p.evaluate(()=>{
+  const l=QF.all.slice(0,3),k=l.map(markKey);
+  MARKS={};
+  MARKS[k[0]]={t:'handled',note:'מקומי חדש',ts:2000};
+  MARKS[k[1]]={t:'handled',note:'מקומי ישן',ts:1000};
+  saveMarks();
+  const blob=stateBlob();
+  const inc={app:'inventory-planner',kind:'work-state',v:1,ts:Date.now(),
+    keys:{planner_marks_v1:JSON.stringify({
+      [k[0]]:{t:'ignore',note:'קובץ ישן',ts:1500},
+      [k[1]]:{t:'ignore',note:'קובץ חדש',ts:3000},
+      [k[2]]:{t:'campaign',note:'חדש לגמרי',ts:500}})}};
+  const merged=stateMergeMarks(inc);
+  return {
+   /* הקובץ נושא את מה שהוחלט בלבד */
+   keys:Object.keys(blob.keys).sort().join(','),
+   noDisplay:['planner_layout_v2','planner_dark_v1','planner_groups_v1',
+     'planner_groupby_v1','planner_recent_q_v1'].every(x=>blob.keys[x]===undefined),
+   env:blob.app==='inventory-planner'&&blob.kind==='work-state'&&blob.v===1,
+   /* אימות קלט */
+   vBad:stateValidate(null),vAlien:stateValidate({hello:1}),
+   vFuture:stateValidate({app:'inventory-planner',kind:'work-state',v:99,keys:{}}),
+   vOk:stateValidate(inc),
+   /* כלל החותם */
+   merged,keepLocal:MARKS[k[0]].note,takeFile:MARKS[k[1]].note,added:!!MARKS[k[2]],
+   stats:stateStats(blob)};});
+ ok('קובץ המצב נושא רק את מה שהוחלט',
+   stt.keys==='planner_history_v1,planner_marks_v1,planner_params_v1'&&stt.noDisplay,stt.keys);
+ ok('לקובץ יש חתימה וגרסה',stt.env);
+ ok('קובץ שאינו של הכלי נדחה',
+   !!stt.vBad&&!!stt.vAlien&&!!stt.vFuture&&stt.vOk===null,stt.vAlien||'');
+ ok('מיזוג — סימון מקומי חדש יותר נשמר',stt.keepLocal==='מקומי חדש',stt.keepLocal);
+ ok('מיזוג — סימון מהקובץ חדש יותר מנצח',stt.takeFile==='קובץ חדש',stt.takeFile);
+ ok('מיזוג — סימון שאינו קיים מקומית נוסף',stt.added);
+ ok('ספירת המיזוג מדויקת',
+   stt.merged.added===1&&stt.merged.updated===1&&stt.merged.kept===1,JSON.stringify(stt.merged));
+
+ /* מסע הלוך-חזור: גיבוי, מחיקה, שחזור */
+ const rt=await p.evaluate(()=>{
+  MARKS={};QF.all.slice(0,5).forEach(x=>setMark(x,'handled',''));
+  const saved=JSON.parse(JSON.stringify(stateBlob()));
+  const before=stateStats(saved);
+  MARKS={};saveMarks();paramsReset();
+  const wiped=stateStats(stateBlob());
+  stateRestoreAll(saved);
+  try{MARKS=JSON.parse(localStorage.getItem('planner_marks_v1')||'{}')}catch(_){MARKS={}}
+  return {before,wiped,after:stateStats(stateBlob())}});
+ ok('גיבוי ושחזור מחזירים את המצב במדויק',
+   rt.wiped.marks===0&&rt.after.marks===rt.before.marks&&rt.after.snaps===rt.before.snaps,
+   `${rt.before.marks} → ${rt.wiped.marks} → ${rt.after.marks}`);
+
+ /* הכפתור נכנס לסרגל בלי לחתוך אחרים */
+ const lcfit=await p.evaluate(()=>{const c=document.querySelector('.top .lc'),cb=c.getBoundingClientRect();
+  return {clipped:c.scrollWidth>c.clientWidth+2,
+   allVis:[...c.querySelectorAll('button')].every(x=>{const r=x.getBoundingClientRect();
+     return r.width>0&&r.left>=cb.left-1&&r.right<=cb.right+1}),
+   has:!!document.getElementById('stBtn')}});
+ ok('כפתור «מצב עבודה» נכנס לסרגל בלי לחתוך',
+   lcfit.has&&!lcfit.clipped&&lcfit.allVis);
+ await p.evaluate(()=>{MARKS={};saveMarks();paramsReset();apply()});await p.waitForTimeout(400);
+
  /* ============ האם ההמלצה יושמה? ============ */
  const ap0=await p.evaluate(()=>({ap:APPLIED,runs:PARAMS.runs.length,
    btn:document.getElementById('apBtn').offsetParent!==null,
