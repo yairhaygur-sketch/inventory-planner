@@ -462,6 +462,68 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
  ok('הגרף אינו מופיע במצב "היום"',await p.evaluate(()=>document.getElementById('ctop').hidden));
 
+ /* ============ המגירה דוחפת ולא מכסה — כשיש רוחב ============
+    מעל 1900px הרשימה מצטמצמת ברוחב המגירה; מתחת לזה המגירה מכסה, כי
+    עמודת התיאור הייתה יורדת מתחת ל-235px ומפסיקה להיות קריאה. הבדיקה
+    שומרת על שני הצדדים: גם על הדחיפה וגם על אי-החזרת תקלה 18. */
+ const dwAt=async w=>{
+  await p.setViewportSize({width:w,height:900});await p.waitForTimeout(350);
+  await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
+  const shut=await p.evaluate(()=>{const t=document.getElementById('tbl');
+    return {w:Math.round(t.getBoundingClientRect().width),
+      over:t.scrollWidth>t.clientWidth+2}});
+  await p.evaluate(()=>{const r=(QF.all||[])[0];if(r)detail(r)});
+  await p.waitForTimeout(400);
+  return p.evaluate(s0=>{
+   const t=document.getElementById('tbl'),d=document.querySelector('.wdetail');
+   const tb=t.getBoundingClientRect(),db=d.getBoundingClientRect();
+   const rows=[...t.querySelectorAll('tbody tr[data-i]')].slice(0,20);
+   const base=rows.length?Math.min(...rows.map(r=>r.getBoundingClientRect().height)):0;
+   const ths=[...t.querySelectorAll('thead th')];
+   const di=ths.findIndex(h=>/תיאור/.test(h.textContent));
+   return {open:document.body.classList.contains('dopen'),
+     overlap:Math.round(Math.max(0,Math.min(tb.right,db.right)-Math.max(tb.left,db.left))),
+     shrank:Math.round(tb.width)<s0.w-100,
+     shutW:s0.w,openW:Math.round(tb.width),
+     desc:di>=0&&rows.length?Math.round(rows[0].children[di].getBoundingClientRect().width):0,
+     wrapped:rows.filter(r=>r.getBoundingClientRect().height>base*1.5).length,
+     over:t.scrollWidth>t.clientWidth+2||s0.over}},shut)};
+ const dwWide=await dwAt(1920);
+ ok('ב-1920 המגירה דוחפת ואינה מכסה את הטבלה',
+   dwWide.open&&dwWide.overlap<5&&dwWide.shrank,
+   `חפיפה ${dwWide.overlap}px · ${dwWide.shutW}→${dwWide.openW}`);
+ ok('הדחיפה אינה יוצרת גלישה או שבירת שורות',!dwWide.over&&dwWide.wrapped===0,
+   `תיאור ${dwWide.desc}px · שורות שנשברו ${dwWide.wrapped}`);
+ ok('עמודת התיאור נשארת קריאה אחרי הדחיפה',dwWide.desc>=200,dwWide.desc+'px');
+ /* השבב היחיד שיורד בזמן הדחיפה הוא רמז המקלדת — 218px של טקסט סטטי.
+    בלעדיו שורת הכותרת נשברה לשתי שורות ב-1920. */
+ const dwHead=await p.evaluate(()=>{const e=document.querySelector('#w_queue .phd');
+   const k=e.querySelector('.kbd');
+   const kids=[...e.children].filter(c=>c.offsetParent!==null&&c.getBoundingClientRect().width>0);
+   return {h:Math.round(e.getBoundingClientRect().height),
+     kbd:k?k.offsetParent!==null:false,chips:kids.length,
+     avail:Math.round(e.clientWidth),
+     /* שבב שגבוה מ-32px נשבר בתוך עצמו — זה מה שהגביה את השורה */
+     tall:kids.filter(c=>c.getBoundingClientRect().height>32)
+       .map(c=>`${(c.id||c.className).toString().slice(0,10)} h${Math.round(c.getBoundingClientRect().height)} w${Math.round(c.getBoundingClientRect().width)}`),
+}});
+ ok('שורת הכותרת נשארת בשורה אחת גם כשהמגירה דוחפת',dwHead.h<=48,
+   `${dwHead.h}px · ${dwHead.chips} שבבים ב-${dwHead.avail}px`+
+   (dwHead.tall.length?` · נשברו: ${dwHead.tall.join(', ')}`:''));
+ ok('רמז המקלדת יורד בזמן הדחיפה, שאר השבבים נשארים',
+   !dwHead.kbd&&dwHead.chips>=4,dwHead.chips+' שבבים');
+ const dwMid=await dwAt(1512);
+ ok('ב-1512 המגירה מכסה — הרשימה לא מצטמצמת (תקלה 18 לא חוזרת)',
+   dwMid.open&&dwMid.overlap>100&&!dwMid.shrank,
+   `חפיפה ${dwMid.overlap}px · ${dwMid.shutW}→${dwMid.openW}`);
+ ok('גם במצב המכסה אין גלישה או שבירת שורות',!dwMid.over&&dwMid.wrapped===0);
+ await p.setViewportSize({width:1512,height:860});
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(350);
+ const dwBack=await p.evaluate(()=>{const t=document.getElementById('tbl');
+   return {w:Math.round(t.getBoundingClientRect().width),
+     open:document.body.classList.contains('dopen')}});
+ ok('סגירת המגירה מחזירה את הרוחב',!dwBack.open&&dwBack.w>=dwMid.shutW-2,dwBack.w+'px');
+
  /* ============ יישור עמודה מול הכותרת שלה ============
     text-align:end ב-RTL הוא שמאל, והכותרות יושבות ב-start (ימין) — כך
     שכל ערך מספרי ישב בקצה הנגדי של התא מהכותרת שלו, עד 90px. נמדדת
