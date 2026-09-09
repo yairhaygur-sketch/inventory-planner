@@ -567,7 +567,30 @@ button:focus-visible,input:focus-visible,label.btn:focus-visible,.tab:focus-visi
  display:flex;flex-direction:column;pointer-events:none}
 body.dopen .wdetail{transform:none;pointer-events:auto}
 @media(max-width:1180px){.wdetail{width:min(486px,72vw)}}
-@media(prefers-reduced-motion:reduce){.wdetail{transition:none}}
+/* ============ המגירה דוחפת, לא מכסה — כשיש רוחב ============
+   המגירה נפתחת מעל הצד הפנימי של הטבלה ומסתירה את העמודות שם. הפתרון
+   הוא לצמצם את הרשימה ברוחב המגירה — אבל רק כשיש מקום, אחרת חוזרת
+   בדיוק התקלה שבגללה הכרטיס הוצא מהגריד (סעיף 18).
+
+   נמדד: הטבלה נוזלית ואינה גולשת אופקית בשום רוחב, ואף שורה אינה
+   נשברת לשתי שורות. המחיר כולו נופל על עמודת התיאור, שמאבדת בדיוק
+   את 486px של המגירה עד לרצפה של 48px:
+
+     2200px  תיאור 1021 → 535     1800px  תיאור 621 → 135
+     1920px  תיאור  741 → 255     1750px  תיאור 571 →  85
+     1860px  תיאור  681 → 195     1700px  תיאור 521 →  48
+
+   השורה מציגה 30-40 תווים, שהם כ-210-280px. מתחת ל-1900px התיאור יורד
+   אל מתחת ל-235px ומפסיק להיות קריא — ולכן שם המגירה חוזרת לכסות. */
+@media(min-width:1900px){
+ body.dopen .wqueue{padding-inline-end:486px}
+ .wqueue{transition:padding-inline-end .16s ease}
+ body.dopen .wdetail{box-shadow:none}
+ /* רמז המקלדת הוא 218px של טקסט סטטי — הדבר היחיד בשורה שאינו נתון.
+    הוא יורד בזמן הדחיפה כדי שהשבבים לא יידחקו; מי שפתח כרטיס ממילא
+    עובד בעכבר. */
+ body.dopen #w_queue .phd .kbd{display:none}}
+@media(prefers-reduced-motion:reduce){.wdetail,.wqueue{transition:none}}
 .wdetail .rz{display:none}
 .dclose{position:absolute;inset-block-start:9px;inset-inline-start:10px;z-index:2;
  width:26px;height:26px;border:1px solid var(--line);background:var(--panel);
@@ -687,6 +710,17 @@ td.pnc{padding:5px 14px;font-size:13px}
 .phd{flex-wrap:nowrap;overflow:hidden;min-height:0}
 .phd>span:first-child,.phd .seg{flex:0 0 auto;white-space:nowrap}
 .phd .title,.phd .sub#lc{white-space:nowrap}
+/* תת-הכותרת היא הרכיב הגמיש היחיד בשורה. בלי min-width:0 היא נשברת
+   לשתי שורות *בתוך עצמה* ומגביהה את השורה כולה מ-44 ל-52px — וזה קרה
+   בכל פעם ששבב נוסף הצטרף. עכשיו היא מתקצרת בשלוש נקודות, והשורה
+   נשארת בגובה אחד בכל רוחב ובכל צירוף שבבים. */
+.phd #phdSub{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* אותה תקלה חזרה משבב אחר: מתג הקיבוץ נדחס ל-136px, הטקסט בתוכו נשבר,
+   והשורה גדלה ל-52px. הכלל הוא לרוחב השורה כולה ולא לשבב מסוים —
+   שום דבר בשורת הכותרת לא נשבר בתוך עצמו. תת-הכותרת (למעלה) היא
+   היחידה שמתקצרת, ותפריט הסימון הקבוצתי חוזר לשבירה רגילה. */
+#w_queue .phd > *{white-space:nowrap}
+#w_queue .phd .bulkmenu,#w_queue .phd .bulkmenu *{white-space:normal}
 .phd #phdSub{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .phd .kbd,.phd .bulkwrap{flex:0 0 auto}
 
