@@ -10,7 +10,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // 0. מצב ההתחלה — לפני שנגענו בכלום
  const fresh=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
-   return {open:document.body.classList.contains('dopen'),onScreen:d.right>0&&d.left<innerWidth}});
+   return {open:document.body.classList.contains('dopen'),
+     onScreen:d.right>0&&d.left<innerWidth}});
 
  // 1. ניווט מקלדת ↓
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
@@ -482,6 +483,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    const ths=[...t.querySelectorAll('thead th')];
    const di=ths.findIndex(h=>/תיאור/.test(h.textContent));
    return {open:document.body.classList.contains('dopen'),
+     push:document.body.classList.contains('push'),
      overlap:Math.round(Math.max(0,Math.min(tb.right,db.right)-Math.max(tb.left,db.left))),
      shrank:Math.round(tb.width)<s0.w-100,
      shutW:s0.w,openW:Math.round(tb.width),
@@ -512,6 +514,25 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    (dwHead.tall.length?` · נשברו: ${dwHead.tall.join(', ')}`:''));
  ok('רמז המקלדת יורד בזמן הדחיפה, שאר השבבים נשארים',
    !dwHead.kbd&&dwHead.chips>=4,dwHead.chips+' שבבים');
+ /* *אם* היא דוחפת תלוי בנתונים — כמה רחב התיאור בדוח הזה — ולכן זו
+    אינה תכונה שכדאי לקבע בבדיקה. מה שכן חייב להתקיים בכל מצב ובכל
+    רוחב הוא האינווריאנטה: כשדוחפת אין חפיפה ואין גלישה, וכשלא דוחפת
+    הרשימה לא זזה. */
+ const inv=[];let pushed=0;
+ for(const w of [1920,1745,1536,1280]){
+  for(const m of ['today','month','catalog','cust','floor','trend']){
+   await p.evaluate(k=>{closeDetail();setMode(k)},m);await p.waitForTimeout(320);
+   const r=await dwAt(w);
+   /* נבדק רק הכיוון שמסוכן: דחיפה שמסתירה נתונים. הכיוון ההפוך
+      («לא דוחפת ⇒ הרשימה לא זזה») נמדד כאן דרך מחלקת ה-body, והמדידה
+      הזאת התבררה כלא יציבה בין מעברי מצב — ולכן היא לא נקבעת כאן
+      כאילו היא אמת. */
+   const bad=r.push&&(r.overlap>5||r.over||!r.shrank||r.desc<200);
+   if(r.push)pushed++;
+   if(bad)inv.push(`${w}/${m} ${r.push?'דוחפת':'מכסה'} ${r.shutW}→${r.openW} חפיפה${r.overlap} תיאור${r.desc}${r.over?' גלישה':''}`);}}
+ ok('בכל מצב ובכל רוחב: כשדוחפת — אין חפיפה, אין גלישה, והתיאור קריא',
+   inv.length===0,inv.join(' · ')||`${pushed} דוחפות מתוך 24 צירופים`);
+ await p.evaluate(()=>{closeDetail();setMode('today')});await p.waitForTimeout(400);
  const dwMid=await dwAt(1512);
  ok('ב-1512 המגירה מכסה — הרשימה לא מצטמצמת (תקלה 18 לא חוזרת)',
    dwMid.open&&dwMid.overlap>100&&!dwMid.shrank,

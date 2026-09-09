@@ -582,14 +582,17 @@ body.dopen .wdetail{transform:none;pointer-events:auto}
 
    השורה מציגה 30-40 תווים, שהם כ-210-280px. מתחת ל-1900px התיאור יורד
    אל מתחת ל-235px ומפסיק להיות קריא — ולכן שם המגירה חוזרת לכסות. */
-@media(min-width:1900px){
- body.dopen .wqueue{padding-inline-end:486px}
- .wqueue{transition:padding-inline-end .16s ease}
- body.dopen .wdetail{box-shadow:none}
- /* רמז המקלדת הוא 218px של טקסט סטטי — הדבר היחיד בשורה שאינו נתון.
-    הוא יורד בזמן הדחיפה כדי שהשבבים לא יידחקו; מי שפתח כרטיס ממילא
-    עובד בעכבר. */
- body.dopen #w_queue .phd .kbd{display:none}}
+/* ההחלטה נמדדת בזמן אמת ואינה סף רוחב-מסך. סף כזה נשבר בכל קנה מידה
+   של מערכת ההפעלה: מסך 1920 ב-125% הוא 1536px CSS, ואז שום דבר לא קרה.
+   pushOK() מודד את עמודת התיאור בפועל ומחליט לפי מה שיישאר ממנה. */
+body.push .wqueue{padding-inline-end:var(--pushw,486px)}
+.wqueue{transition:padding-inline-end .16s ease}
+body.push .wdetail{box-shadow:none}
+/* רמז המקלדת הוא 218px של טקסט סטטי — הדבר היחיד בשורה שאינו נתון.
+   הוא יורד בזמן הדחיפה כדי שהשבבים לא יידחקו; מי שפתח כרטיס ממילא
+   עובד בעכבר. */
+body.push #w_queue .phd .kbd{display:none}
+body.probing .wqueue{transition:none}
 @media(prefers-reduced-motion:reduce){.wdetail,.wqueue{transition:none}}
 .wdetail .rz{display:none}
 .dclose{position:absolute;inset-block-start:9px;inset-inline-start:10px;z-index:2;
@@ -1821,9 +1824,56 @@ function applyDark(on){document.body.classList.toggle('dark',on);
   if(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)detail(CURRENT_DETAIL)}
 const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקומי'],['planner','מעתד'],['supplier','ספק'],['mkt1','קבוצת שיווק'],['grp','קבוצת חומרים'],['mrp','סוג MRP'],['abc','ABC']];
 /* המגירה נפתחת רק כשיש פריט להראות, ונסגרת ב-Esc או בכפתור */
-function openDetail(){if(!LAYOUT.hidden.includes('detail'))document.body.classList.add('dopen')}
-function closeDetail(){document.body.classList.remove('dopen');
+/* ============ המגירה דוחפת או מכסה — נמדד, לא מנוחש ============
+   הגרסה הראשונה השתמשה ב-@media(min-width:1900px), וזה היה שגוי: קנה
+   מידה של 125% ב-Windows הופך מסך 1920 ל-1536px CSS, והדחיפה מעולם לא
+   הופעלה. הרוחב שקובע אינו של המסך אלא של *עמודת התיאור* אחרי הדחיפה.
+
+   נמדד: התיאור מאבד בדיוק את רוחב המגירה. ב«החודש» ב-1536px הוא יורד
+   מ-287 ל-239 — קריא לגמרי. ב«היום» הוא נופל ל-48, כי שם עשר עמודות
+   ברוחב קבוע תופסות כ-804px ולתיאור נשאר `max-width:0`.
+
+   לכן ההחלטה היא לכל מצב בנפרד: דוחפים כשנשאר לתיאור מספיק, ומכסים
+   כשלא. המדידה נעשית במצב הלא-דחוף, סינכרונית ולפני ציור, ולכן אין
+   הבהוב; המעבר מושהה בזמן המדידה. */
+const PUSH_DESC_MIN=200;
+function descCellW(){const t=document.getElementById('tbl');if(!t)return null;
+ const ths=[...t.querySelectorAll('thead th')];
+ const i=ths.findIndex(h=>/תיאור/.test(h.textContent));
+ const row=t.querySelector('tbody tr[data-i]');
+ if(i<0||!row||!row.children[i])return null;
+ return row.children[i].getBoundingClientRect().width}
+function updatePush(){const b=document.body;
+ if(!b.classList.contains('dopen')){b.classList.remove('push');return}
+ const d=document.querySelector('.wdetail');if(!d)return;
+ const dw=d.getBoundingClientRect().width;
+ const had=b.classList.contains('push');
+ /* מודדים את המציאות ולא מנבאים אותה. ניסיון ראשון חישב
+    «תיאור אחרי = תיאור לפני − רוחב המגירה», וזה נכון רק ב«היום»:
+    שם התיאור הוא העמודה הגמישה היחידה. במסלולים האחרים יש עמודת טקסט
+    נוספת («מה לתקן», «פעולה») שבולעת את הפער — ב«החודש» ב-1536px
+    התיאור יורד מ-287 ל-239 בלבד, והנוסחה פסלה דחיפה שעובדת מצוין.
+    הבדיקה כולה סינכרונית ולפני ציור, ולכן אין הבהוב. */
+ b.classList.add('probing','push');
+ b.style.setProperty('--pushw',Math.round(dw)+'px');
+ /* שני תנאים, ושניהם נמדדים אחרי הדחיפה:
+    1. הטבלה עדיין נכנסת לקופסה שלה. `table{width:100%}` אינו מבטיח
+       זאת — לטבלה יש רוחב מינימלי משלה, וכשהיא גדולה ממנו היא *גולשת
+       החוצה מתחת למגירה*. זה בדיוק מה שנראה כמו «דוחפת» במדידה
+       שהסתכלה רק על עמודת התיאור, ובפועל המשיך לכסות.
+    2. עמודת התיאור נשארת קריאה. */
+ const rows=document.querySelector('.rows'),tbl=document.getElementById('tbl');
+ const fits=!!rows&&!!tbl&&tbl.getBoundingClientRect().width<=rows.clientWidth+1;
+ const pushed=descCellW();
+ const ok=fits&&pushed!=null&&pushed>=PUSH_DESC_MIN;
+ b.classList.toggle('push',ok);
+ void b.offsetWidth;b.classList.remove('probing');
+ return ok!==had}
+function openDetail(){if(!LAYOUT.hidden.includes('detail')){document.body.classList.add('dopen');updatePush()}}
+function closeDetail(){document.body.classList.remove('dopen','push');
  document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'))}
+addEventListener('resize',()=>{clearTimeout(window._pushT);
+ window._pushT=setTimeout(updatePush,120)});
 let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
@@ -2874,6 +2924,7 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncTrendBtn==='function')syncTrendBtn();
  if(typeof syncCustBtn==='function')syncCustBtn();
  if(typeof syncApBtn==='function')syncApBtn();
+ setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
  setTimeout(topChart,0);
