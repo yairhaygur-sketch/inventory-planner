@@ -938,6 +938,9 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 /* מלאי שקיים פיזית אך אינו פנוי — הפריט בבניין, וזו שאלה של הקצאה
    ולא של רכש. נמדד: 12 מתוך 81. */
 #tbl td.held{color:var(--blue);font-weight:700}
+#apBtn.on{background:var(--grnL);border-color:var(--grn);color:var(--grn);font-weight:700}
+#apBtn .fn{font-family:var(--num);font-weight:700}
+#tbl td.was{color:var(--dimmer);font-family:var(--num)}
 
 /* מתג הקיבוץ — לפי החלטה או לפי ספק */
 .gseg{display:inline-flex;gap:0;margin-inline-start:8px;border-radius:8px;overflow:hidden;background:var(--panel2)}
@@ -1023,6 +1026,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
+          <button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP">✔ <span class="fn" id="apN">0</span> יושמו<span class="lbl" id="apV"></span></button>
           <button class="btn" id="custBtn" hidden title="הזמנת לקוח פתוחה מול מלאי פנוי אפס — חוצה את כל הסיווגים">👤 <span class="fn" id="custN">0</span> לקוח ממתין<span class="lbl" id="custV"></span></button>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span> מעל הדרישה<span class="lbl" id="floorV"></span></button>
           <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית">↘ <span class="fn" id="trendN">0</span> בירידה<span class="lbl" id="trendV"></span></button>
@@ -1769,7 +1773,7 @@ const FDEF=[['brand','מותג'],['model','דגם'],['matType','יבוא/מקו�
 function openDetail(){if(!LAYOUT.hidden.includes('detail'))document.body.classList.add('dopen')}
 function closeDetail(){document.body.classList.remove('dopen');
  document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'))}
-let ALL=[],SEL={},Q=null,QF=null,HRUN=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
+let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
@@ -1792,7 +1796,9 @@ const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
  /* לקוח ממתין — חוצה סיווג, ולכן כל הפריטים ולא תור עבודה */
- cust:{cur:'all',track:'cust'}};
+ cust:{cur:'all',track:'cust'},
+ /* מה יושם מאז ההעלאה הקודמת */
+ applied:{cur:'all',track:'applied'}};
 let mode='today';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
@@ -1843,6 +1849,7 @@ function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
  document.body.classList.toggle('mode-floor',m==='floor');
  document.body.classList.toggle('mode-trend',m==='trend');
  document.body.classList.toggle('mode-cust',m==='cust');
+ document.body.classList.toggle('mode-applied',m==='applied');
  render()}
 const TRACKKEY={cap:'expCap'};
 let track='short', trackPicked=false;
@@ -1957,6 +1964,75 @@ function recordRun(items,Qs){
    backN:q.filter(x=>x.hSeen>1).length,resolved:HIST.lastResolved||0,
    stuck:q.filter(x=>x.hSeen>=4).length}}
 function histReset(){HIST={runs:[],items:{}};saveHist()}
+/* ============ האם ההמלצה יושמה? ============
+   הכלי אמר מה לתקן ומעולם לא בדק אם תיקנו. שני דוחות עוקבים מחזיקים את
+   `נק.הז.מחדש` ואת `מלאי בטחון` לכל מק״ט, ולכן ההשוואה אפשרית בלי שום
+   נתון חדש — צריך רק לזכור את התמונה הקודמת.
+
+   נשמרים רק פריטים שהייתה להם המלצה בפועל (2,563 מתוך 7,569 בדוח
+   האמיתי), וארבע תמונות לכל היותר. מדוד: ~85KB לתמונה, ~340KB בסך הכול,
+   מול מגבלה של כ-5MB. צילום מלא של כל הקטלוג היה תופס פי חמישה בלי
+   להוסיף מידע — לפריט בלי המלצה אין מה ליישם.
+
+   נשמרת גם ההמלצה *כפי שהייתה אז* ולא רק הפרמטר, כי החוקים משתנים
+   (ROP_MIN_ACT, ריסון המגמה) והשאלה היא אם עשו את מה שנאמר להם באותו
+   רגע — לא את מה שהכלי היה אומר היום.
+
+   מפתח נפרד מ-planner_history_v1 בכוונה: אם התמונות יתפחו ויימחקו,
+   זיכרון התור לא ייפגע. */
+const PAR_KEY='planner_params_v1', PAR_RUNS=4;
+let PARAMS={runs:[]};
+try{const q=JSON.parse(localStorage.getItem(PAR_KEY));
+ if(q&&Array.isArray(q.runs))PARAMS=q}catch(_){}
+function saveParams(){try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
+  /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
+  if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);saveParams()}}}
+/* המכנה הוא *מה שהכלי ביקש*, לא כל פער מספרי שקיים בקטלוג.
+   נמדד: 1,373 פריטים בקטלוג יש להם פער בין הפרמטר להמלצה, אבל רק מי
+   ש-paramFix דלוק עליו הוצג בפועל ברשימת העבודה. לדווח «40 מתוך 1,373»
+   היה מציג את המתכנן כמי שהתעלם מ-97% מההמלצות — כשרובן מעולם לא הוצגו
+   לו. השאלה היא אם עשו את מה שנאמר, ולכן המכנה הוא מה שנאמר. */
+function paramSnap(items){const it={};
+ for(const x of items){if(!x.paramFix)continue;
+  if(x.rop===x.sugROP&&x.ss===x.sugSS)continue;
+  it[x.pn]=[x.rop,x.ss,x.sugROP,x.sugSS]}
+ return it}
+/* מה קרה לפרמטר בודד מאז התמונה הקודמת */
+function parState(then,sug,now){
+ if(then===sug)return null;                 /* לא הייתה המלצה על השדה הזה */
+ if(now===sug)return 'done';                /* יושם בדיוק */
+ if(now!==then)return 'other';              /* שונה, אבל לא למספר שהוצע */
+ return 'none'}                             /* לא נגעו */
+function recordParams(items){
+ const sig=runSig(items),now=Date.now();
+ const last=PARAMS.runs[PARAMS.runs.length-1];
+ const repeat=!!last&&last.sig===sig;
+ /* העלאה חוזרת של אותו קובץ לא יוצרת תמונה חדשה — אחרת היינו משווים
+    קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. */
+ if(repeat)last.ts=now;
+ else{PARAMS.runs.push({sig,ts:now,it:paramSnap(items)});
+  if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
+ saveParams();
+ const prev=PARAMS.runs[PARAMS.runs.length-2];
+ for(const x of items){x.apStatus=null;x.apPrev=null}
+ if(!prev)return null;
+ let done=0,other=0,none=0,gone=0,total=0;
+ const byPn=new Map(items.map(x=>[x.pn,x]));
+ for(const pn in prev.it){
+  const [rop0,ss0,sug0,sugSS0]=prev.it[pn];
+  const x=byPn.get(pn);
+  total++;
+  if(!x){gone++;continue}
+  const a=parState(rop0,sug0,x.rop), b=parState(ss0,sugSS0,x.ss);
+  const st=[a,b].filter(Boolean);
+  /* הפריט "יושם" רק אם כל שדה שהומלץ עליו הגיע למספר המוצע */
+  const cls=st.every(v=>v==='done')?'done':st.some(v=>v==='done'||v==='other')?'other':'none';
+  x.apStatus=cls;x.apPrev={rop:rop0,ss:ss0,sugROP:sug0,sugSS:sugSS0,rState:a,sState:b};
+  if(cls==='done')done++;else if(cls==='other')other++;else none++}
+ return {total,done,other,none,gone,ts:prev.ts,
+   runs:PARAMS.runs.length,days:Math.max(0,Math.round((now-prev.ts)/864e5))}}
+function paramsReset(){PARAMS={runs:[]};saveParams()}
+function appliedRows(){return (QF&&QF.all?QF.all:[]).filter(r=>r.apStatus&&passColFilters(r))}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
  QF=classify(fl);QF.all=fl;SIDXV++;
  buildSideFilters();chips();render()}
@@ -2207,6 +2283,9 @@ function currentRows(){if(cur==='today')return decisionList(track);
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='cust'){const by=custRows().sort((a,b)=>custVal(b)-custVal(a));
    return sortCol==='sev'?by:sortRowsBy(by)}
+ if(track==='applied'){const R={done:0,other:1,none:2};
+   const by=appliedRows().sort((a,b)=>R[a.apStatus]-R[b.apStatus]||a.pn.localeCompare(b.pn));
+   return sortCol==='sev'?by:sortRowsBy(by)}
  let base=cur==='all'?QF.all:QF[cur];
  if(onlyTasks&&cur==='all'){const TASK=new Set(['waiting','immediate','follow','prevent','excess','quality']);
    base=base.filter(r=>{for(const k of TASK)if(QF[k].includes(r))return true;return false})}
@@ -2283,7 +2362,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:8}
+function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -2356,6 +2435,10 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
     '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
     'פער','שווי הפער','צריכה 12ח׳']
+  :track==='applied'?['מק״ט','תיאור',
+    '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
+    '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">מלאי ביטחון</span>',
+    'צריכה 11ח׳','מצב']
   :track==='cust'?['מק״ט','תיאור',
     '<span title="כמות בהז.פ — הזמנת לקוח פתוחה, בניכוי כמות חסומה למשלוח">ממתין</span>',
     '<span title="סה״כ מלאי. המלאי הפנוי הוא אפס בכל שורה כאן — מלאי שמופיע כאן קיים פיזית אך אינו זמין">במלאי</span>',
@@ -2465,6 +2548,47 @@ function renderCust(rows){
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
   tr.classList.add('sel');detail(view[+tr.dataset.i])});
  wireCopy()}
+const AP_G=[['done','יושם','שונה ב-SAP בדיוק למספר שהוצע','var(--grn)'],
+ ['other','שונה אחרת','הפרמטר זז, אבל לא למספר שהוצע — החלטה אחרת או תיקון חלקי','var(--acc)'],
+ ['none','לא נגעו','הפרמטר נשאר כפי שהיה','var(--gray)']];
+function apCell(then,now,sug,st){
+ if(st===null)return '<span class="mut">—</span>';
+ const arrow=then!==now?`<span class="was">${then}</span>→<b>${now}</b>`:`${now}`;
+ return `${arrow}${st==='done'?'':`<span class="sug"> (הוצע ${sug})</span>`}`}
+function renderApplied(rows){
+ document.getElementById('tbl').dataset.track=track;
+ document.querySelector('#tbl thead').innerHTML=decisionHead();
+ const body=[];let idx=0;
+ for(const [k,name,sub,col] of AP_G){
+  const list=rows.filter(r=>r.apStatus===k),coll=GCOLL.has('ap:'+k);
+  body.push(`<tr class="grp${coll?' coll':''}" data-g="ap:${k}"><td colspan="${NCOL()}" style="--gc:${col}">
+   <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
+   <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`);
+  if(coll||!list.length)continue;
+  for(const r of list){const i=idx++,p=r.apPrev;
+   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
+    <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
+    <td class="num">${apCell(p.rop,r.rop,p.sugROP,p.rState)}</td>
+    <td class="num">${apCell(p.ss,r.ss,p.sugSS,p.sState)}</td>
+    <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>
+    <td>${esc(r.cat)}</td></tr>`)}}
+ document.querySelector('#tbl tbody').innerHTML=body.join('')||
+  `<tr><td colspan="${NCOL()}" class="empty">אין עם מה להשוות — צריך שתי העלאות של שני דוחות שונים.</td></tr>`;
+ const A=APPLIED;
+ document.getElementById('pgL').textContent=`מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgR').textContent=A
+  ?`${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו${A.gone?` · ${A.gone} כבר לא בדוח`:''}`
+  :'';
+ document.getElementById('phdSub').textContent=A
+  ?`מתוך ${A.total} ההמלצות שהיו בהעלאה הקודמת${A.days?` לפני ${A.days} ימים`:''} — מה שונה בפועל ב-SAP`
+  :'השוואה בין שתי העלאות';
+ document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
+ const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
+ document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
+  tr.classList.add('sel');detail(view[+tr.dataset.i])});
+ wireCopy()}
 function renderDecisions(rows){
  document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
@@ -2473,6 +2597,7 @@ function renderDecisions(rows){
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  /* "לקוח ממתין" מרונדר בקבוצות משלו לפני כל שאר הענפים */
  if(track==='cust'){renderCust(rows);return}
+ if(track==='applied'){renderApplied(rows);return}
  const grouped=track==='short';
  const bySup=grouped&&groupBy==='supplier';
  const SG=bySup?supplierGroups(rows):null;
@@ -2643,6 +2768,7 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
  if(typeof syncTrendBtn==='function')syncTrendBtn();
  if(typeof syncCustBtn==='function')syncCustBtn();
+ if(typeof syncApBtn==='function')syncApBtn();
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
  setTimeout(topChart,0);
@@ -2663,6 +2789,9 @@ function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
    renderDecisions(rows);return}
  if(track==='cust'){const tk3=document.getElementById('track');
    if(tk3){tk3.innerHTML='';tk3.style.display='none'}
+   renderDecisions(rows);return}
+ if(track==='applied'){const tk4=document.getElementById('track');
+   if(tk4){tk4.innerHTML='';tk4.style.display='none'}
    renderDecisions(rows);return}
  if(track==='done'){const tk0=document.getElementById('track');
    if(tk0){tk0.innerHTML='';tk0.style.display='none'}
@@ -3097,6 +3226,15 @@ function syncFloorBtn(){const b=document.getElementById('floorBtn');if(!b)return
  b.classList.toggle('on',mode==='floor');
  document.getElementById('floorN').textContent=t.n.toLocaleString('he-IL');
  document.getElementById('floorV').textContent=' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}
+document.getElementById('apBtn').onclick=()=>setMode(mode==='applied'?'month':'applied');
+function syncApBtn(){const b=document.getElementById('apBtn');if(!b)return;
+ const A=APPLIED,on=!!A&&A.total>0&&(mode==='month'||mode==='applied');
+ b.hidden=!on;if(!on)return;
+ b.classList.toggle('on',mode==='applied');
+ document.getElementById('apN').textContent=A.done.toLocaleString('he-IL');
+ document.getElementById('apV').textContent=` מתוך ${A.total.toLocaleString('he-IL')}`;
+ b.title=`מתוך ${A.total} ההמלצות בהעלאה הקודמת${A.days?` (לפני ${A.days} ימים)`:''}: `+
+  `${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו`}
 document.getElementById('custBtn').onclick=()=>setMode(mode==='cust'?'today':'cust');
 function syncCustBtn(){const b=document.getElementById('custBtn');if(!b)return;
  const rows=(QF&&QF.all?QF.all:[]).filter(custWaiting),t=custTotals(rows);
@@ -3169,7 +3307,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
-  HRUN=recordRun(ALL,Q);
+  HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL);
   const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+Q[k].length,0);
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
