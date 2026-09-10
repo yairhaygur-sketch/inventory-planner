@@ -9,7 +9,7 @@ const D=n=>{const d=new Date(Date.now()-n*864e5);return `${String(d.getDate()).p
 // months[0] = חודש-1 (הקרוב ביותר)
 const mk=(pn,o)=>{const m=o.months;const y=m.reduce((a,b)=>a+b,0);
  return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק','01','פעיל',o.mrp||'ND','A',o.srv||95,
-  o.ss||0,o.rop||0,o.lt||30,2,0,100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
+  o.ss||0,o.rop||0,o.lt||30,2,0,o.price!=null?o.price:100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
   'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
   o.y0!=null?o.y0:y, o.y1!=null?o.y1:y, o.y2!=null?o.y2:y, 0, ...m, D(o.saleAgo||10), D(o.entAgo||60)]};
 
@@ -23,6 +23,13 @@ const rows=[
  mk('RUN-STOCKOUT-OPEN',{months:[20,20,20,0,0,0,20,20,20,20,20],free:4,lt:90}),
  // C · ביקוש 2 יח׳/שנה, מעט מלאי, ROP ענק ב-SAP
  mk('LOW-DEMAND',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80}),
+ // C1 · אותו פריט בדיוק, אבל 5 דולר ליחידה — רצפת מדיניות של 1 במקום אפס
+ mk('LOW-CHEAP',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:5,lt:120}),
+ // C2 · זול, ביקוש זעום, ובלי שום נוכחות ב-SAP — הצד השני של אותה מדיניות
+ mk('LOW-CHEAP-ZERO',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:5,lt:120}),
+ // C3 · אותו מחיר בדיוק בשני מטבעות — הסף לכל מטבע בנפרד, בלי המרה
+ mk('LOW-150-ILS',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'ILS'}),
+ mk('LOW-150-USD',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'USD'}),
  // D · ביקוש בירידה חדה שבה ה-ROP המוצע דווקא גבוה מהקיים
  mk('DECLINE',{months:[2,2,3,2,3,20,25,22,24,23,25],free:40,rop:1,ss:0,lt:120}),
  // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
@@ -55,10 +62,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  await p.setInputFiles('#f',SD+'/defects.xlsx');await p.waitForTimeout(2200);
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
-   return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,rop:r.rop,
-     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
+   return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
+     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
-          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),
+          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
           cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
@@ -95,7 +102,20 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
 
  // C · ביקוש זעום עם פרמטרים גבוהים ב-SAP
  ok('פריט 2 יח׳/שנה עם ROP=200 אינו "תקין"',o.low.cat!=='תקין',o.low.cat);
- ok('ומוצעת לו פעולת איפוס',/איפוס/.test(o.low.act),o.low.act);
+ ok('ומוצע לו אפס',o.low.sugROP===0&&o.low.sugSS===0&&/ל-0/.test(o.low.act),o.low.act);
+ // C1–C3 · רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP
+ ok('פריט זול באותה להקה מקבל רצפה של 1 ולא אפס',
+    o.cheap.sugROP===1&&o.cheap.sugSS===1,`sugROP=${o.cheap.sugROP} sugSS=${o.cheap.sugSS} (לפני: 0/0)`);
+ ok('וההמלצה אומרת את המספר החדש',/ל-1/.test(o.cheap.act),o.cheap.act);
+ ok('ההסבר מנמק במחיר וללא המרת מטבע',/\$5/.test(o.cheap.acts+o.cheap.why),o.cheap.why);
+ ok('פריט זול בלי נוכחות ב-SAP מקבל שורת עבודה',
+    o.cheap0.cat==='עדכון פרמטרים'&&o.cheap0.q==='quality',`${o.cheap0.q} · ${o.cheap0.cat} (לפני: תקין)`);
+ ok('וההחלטה היא לקבוע 1',/לקבוע נקודת הזמנה 1/.test(o.cheap0.act),o.cheap0.act);
+ ok('150 ש"ח נחשב זול — מתחת לסף ה-ILS',o.ils150.lowFloor===1,`lowFloor=${o.ils150.lowFloor}`);
+ ok('150 דולר אינו זול — מעל סף ה-USD',o.usd150.lowFloor===0&&o.usd150.sugROP===0,
+    `lowFloor=${o.usd150.lowFloor} sugROP=${o.usd150.sugROP}`);
+ ok('אותו מספר, שני מטבעות, שתי תשובות — אין המרה',
+    o.ils150.sugROP!==o.usd150.sugROP,`ILS→${o.ils150.sugROP} · USD→${o.usd150.sugROP}`);
  // D · כיוון ההמלצה נגזר מהמספרים
  ok('ROP מוצע גבוה → "העלאת"',/העלאת/.test(o.dec.act),o.dec.act);
  // מטבע — BZ נקוב במטבע של BE, ואסור להציג אותו כשקלים או לחבר מטבעות
