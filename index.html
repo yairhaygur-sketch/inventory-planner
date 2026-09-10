@@ -1190,6 +1190,41 @@ const LOW_PARAM_FLOOR=3;
    פריטי PD ו«לפי דרישה» מוחרגים מהכלל — עבורם המדיניות המפורשת היא
    שאין ניהול מלאי כלל, וההמלצה 0 נכונה ומוסברת בכרטיס. */
 const ROP_MIN_ACT=1;
+/* ============ רצפת מדיניות לביקוש זעום ============
+   הקצב מאופס לכל פריט עם 1–3 צריכות ב-11 חודשים, ומשם גם SS=0 וגם ROP=0.
+   הסף עצמו נכון: סטיית תקן משלוש תצפיות אינה מספר, והנוסחה הסטטיסטית
+   של מלאי הביטחון פשוט לא ישימה שם. מה שלא נובע מזה הוא «ולכן לא מחזיקים
+   כלום» — זו החלטת מדיניות שהתחבאה בתוך חישוב.
+
+   נמדד על הדוח האמיתי: 892 פריטים בלהקה הזאת.
+   · זמן אספקה לא מפריד — 807 מהם בטווח 90–150 יום, אף אחד מתחת ל-30.
+     לכן הוא לא נכנס לכלל; הוא כמעט קבוע.
+   · צריכת שלוש שנים לא מפרידה — שיעור היובש 9% בפלח 1–3 מול 6% בפלח 4–10.
+   · מחיר כן מפריד, ובכיוון ההפוך מהאינטואיציה: להחזיק יחידה אחת מכל 247
+     הפריטים שמתחת ל-10 דולר עולה 952 דולר בסך הכל, בעוד 34 הפריטים שמעל
+     1,000 עולים 49,695 ש"ח + 22,633 דולר. הזול הוא ביטוח זול; היקר הוא
+     זה שבאמת עדיף להזמין לפי דרישה.
+
+   הכלל: בלהקת 1–3, פריט שמחירו מתחת לסף מקבל רצפת מדיניות של יחידה אחת
+   במקום אפס. זו בדיוק ההיגיון של ROP_MIN_ACT, רק מהצד השני.
+
+   הסף הוא לכל מטבע בנפרד — אין המרה. חציון המחיר בלהקה הוא 26 דולר
+   לפריטי USD ו-341 ש"ח לפריטי ILS, כך שמספר אחד לשני המטבעות היה מכסה
+   כמעט את כל האחד וכמעט אף אחד מהשני.
+
+   בסף USD<50 / ILS<200: 539 פריטים נכללים, עלות יחידה אחת מכל אחד
+   7,573 דולר + 1,629 ש"ח. 82 מתוך 110 השורות שהכלי מציג היום כ«שקול
+   איפוס» מתרככות ל«הורד ל-1», ו-60 פריטים שב-SAP יושב עליהם 0 מקבלים
+   שורה חדשה «העלה ל-1» — מהם 8 יבשים היום עם לקוח ממתין. */
+const LOWDEM_MAX=3;
+const LOWDEM_CHEAP={USD:50,ILS:200,EUR:50};
+/* מחזיר את רצפת המדיניות (1) או 0. מחיר חסר או מטבע לא מוכר — אין רצפה,
+   כי אי אפשר להחליט «זול» בלי מחיר. */
+function lowDemFloor(d12,price,currency){
+ if(!(d12>=1&&d12<=LOWDEM_MAX))return 0;
+ if(!(price>0))return 0;
+ const t=LOWDEM_CHEAP[String(currency||'').trim().toUpperCase()];
+ return (t!=null&&price<t)?1:0}
 /* ============ ריסון מגמת ירידה ============
    הקצב הוא ממוצע שטוח של שישה חודשים, והוא מוקרן קדימה על פני זמן
    אספקה שלם — לפריט מסין, ארבעה חודשים. כשהביקוש ירד *בתוך* אותם
@@ -1402,6 +1437,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const tRatio=tPre>0?tRec/tPre:null;
     const trendF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
       ?Math.max(TREND_FLOOR,1+(tRatio-1)*TREND_DAMP):1;
+    /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
+    const lowFloor=isODStatic?0:lowDemFloor(d12,price,currency);
+    if(lowFloor){sugSS=Math.max(sugSS,lowFloor);sugROP=Math.max(sugROP,lowFloor)}
     /* ROP_MIN_ACT — לא מציעים להוריד נוכחות מינימלית שהמתכנן קבע */
     if(!isODStatic){
       if(sugROP===0&&NUM(r[m.rop])===ROP_MIN_ACT)sugROP=ROP_MIN_ACT;
@@ -1424,7 +1462,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -1674,11 +1712,26 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   {const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
    if(it.rate<=0&&!it.isPDItem&&(it.rop>bar||it.ss>bar)){
     it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    const tgt=`נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS}`;
     it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
-            ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר']];
-    it.act=[`לשקול איפוס נקודת הזמנה (${it.rop}) ומלאי ביטחון (${it.ss})`,
+            ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר'],
+            it.lowFloor?['info',`ההמלצה אינה אפס אלא ${it.lowFloor}: ${money(it.price,it.currency)} ליחידה — יחידה אחת על המדף זולה מהמתנה של ${Math.round(it.ltD)} יום`]:null].filter(Boolean);
+    it.act=[`לשנות ${tgt}`,
             'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
     Q.quality.push(it);continue}}
+  /* ============ הצד השני של אותה מדיניות ============
+     פריט זול בלהקת 1–3 שב-SAP יושב עליו אפס. הכלי המליץ עד היום אפס גם
+     הוא, ולכן השורה לא הופיעה בכלל. נמדד: 60 פריטים כאלה בדוח האמיתי,
+     8 מהם יבשים היום עם לקוח ממתין. ראה LOWDEM_CHEAP. */
+  if(it.lowFloor&&it.rate<=0&&!it.isPDItem&&!it.isOD&&(it.rop<it.sugROP||it.ss<it.sugSS)){
+   it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+   it.why=[['warn',`אין נוכחות מינימלית: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
+           ['info',`${it.d12} יח׳ ב-11 חודשים — מעט מדי לחישוב סטטיסטי, אבל לא אפס`],
+           ['idea',`${money(it.price,it.currency)} ליחידה · אספקה ${Math.round(it.ltD)} יום — יחידה אחת על המדף עולה פחות מהמתנה`],
+           it.free<=0?['err','מלאי פנוי אפס — הפריט חשוף עכשיו']:null].filter(Boolean);
+   it.act=[`לקבוע נקודת הזמנה ${it.sugROP} ומלאי ביטחון ${it.sugSS}`,
+           'אם המדיניות לפריט היא לפי דרישה — לשנות סוג MRP במקום להשאיר אפס'];
+   Q.quality.push(it);continue}
   it.why=[['ok','לא זוהתה בעיה — הפריט תקין ביחס לביקוש, לכיסוי ולפרמטרים']];it.act=['אין פעולה נדרשת'];Q.ok.push(it)}
  /* ============ שקט אחרי מכירה ============
     הקצב נמדד על ששת החודשים האחרונים בלבד. פריט שנמכר יפה לפני שמונה
