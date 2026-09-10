@@ -38,6 +38,8 @@ const rows=[
  // ETA · רכש פתוח שמכסה את הלקוח, מלאי אפס. הרכש חסר ETA ולכן אינו כיסוי:
  // ההחלטה חייבת להיות הכמות, לא "לבדוק Back Order אצל היצרן"
  mk('PO-NO-ETA',{months:[20,20,20,20,20,20,20,20,20,20,20],free:0,po:500,cust:10}),
+ // אותו מבנה בדיוק אבל עם מלאי שנשחק — חומרה 2 ולא 3
+ mk('PO-SOME-STOCK',{months:[20,20,20,20,20,20,20,20,20,20,20],free:12,po:500,cust:10}),
  // אותו מבנה בדיוק, אבל הצריכה מתחת לסף — נשאר מעקב אספקה
  mk('FOLLOW-OK',{months:[1,1,1,1,1,1,1,1,1,1,1],free:0,po:100,cust:5}),
  // COVERED · מלאי גדול, בלי הזמנות לקוח — כמו הדוח האמיתי שבו אין חוסרים
@@ -47,6 +49,10 @@ const rows=[
  mk('CUR-USD',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD'}),
  mk('CUR-EUR',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'EUR'}),
  mk('CUR-ILS',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'ILS'}),
+ // שני פריטי דולר בשווי שונה — לבדיקת סדר יורד בתוך בלוק המטבע
+ mk('CUR-USD2',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD',price:250}),
+ // SAP ss=1 ו-rop=3 בלי קצב: הרצפות מרימות SS, והכלל SS≤ROP חייב לרוץ אחריהן
+ mk('SSROP-GUARD',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:3,rop:3,ss:1,price:5000,cur:'USD'}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -65,8 +71,19 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
      act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
-          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
+          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
+          guard:g('SSROP-GUARD'),
+          inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
+               header:(COLS.find(c=>c[0]==='risk')||[])[1]},
+          rank:(()=>{const ex=Q.excess.filter(x=>x.expCap>0);
+            const ord=[...ex].sort((a,b)=>cmpMoneyDesc(a,b,'expCap'))
+              .map(x=>({pn:x.pn,cur:curKey(x),cap:x.expCap}));
+            const blocks=[];for(const r of ord){if(!blocks.length||blocks[blocks.length-1][0]!==r.cur)blocks.push([r.cur,[]]);
+              blocks[blocks.length-1][1].push(r)}
+            return {ord,blocks:blocks.map(([c,l])=>[c,l.length]),
+              desc:blocks.every(([c,l])=>l.every((r,i)=>i===0||l[i-1].cap>=r.cap)),
+              cut:cut80(ex.slice().sort((a,b)=>cmpMoneyDesc(a,b,'expCap')),'cap')}})(),
           cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
  // A · חודש אזילה אינו יוצר מלאי ביטחון יש מאין
@@ -96,7 +113,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     `${o.eta.q} · ${o.eta.cat} (לפני: follow · מעקב אספקה)`);
  ok('וההחלטה היא הכמות החסרה',/^להשלים \d+ יח׳/.test(o.eta.act),o.eta.act);
  ok('בירור ה-ETA יורד לפעולה נלווית',!/ETA|Back Order/.test(o.eta.act)&&/ETA/.test(o.eta.acts),o.eta.act);
- ok('הלקוח הממתין והרכש הפתוח מוזכרים בהסבר',/500/.test(o.eta.acts)&&o.eta.sev===2,`sev=${o.eta.sev}`);
+ ok('הלקוח הממתין והרכש הפתוח מוזכרים בהסבר',/500/.test(o.eta.acts),o.eta.acts.slice(0,60));
+ // חומרה 3 רק כשאין מה למכור מחר בבוקר
+ ok('"אוזל החודש" עם מלאי אפס מקבל חומרה 3',o.eta.sev===3,`sev=${o.eta.sev} (לפני: 2)`);
+ ok('אותו מבנה עם מלאי שנשחק נשאר חומרה 2',o.etaWet.sev===2,`sev=${o.etaWet.sev} · ${o.etaWet.cat}`);
  ok('אותו מבנה מתחת לסף הצריכה נשאר מעקב אספקה',o.fok.cat==='מעקב אספקה',
     `${o.fok.q} · ${o.fok.cat}`);
 
@@ -127,6 +147,23 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
    usdTxt:money(one.expCap,one.currency),
    ilsTxt:money(one.expCap,'ILS'),
    symbols:[...new Set(cap.map(r=>curSym(r.currency)))].sort().join('')}});
+ // תקלה 1 · הכלל SS≤ROP רץ אחרי הרצפות
+ ok('אין שום פריט שבו מלאי הביטחון המוצע גדול מנקודת ההזמנה המוצעת',
+    o.inv.ssGtRop===0,`${o.inv.ssGtRop} חריגים`);
+ ok('SAP ss=1 rop=3 בלי קצב → ההמלצה קוהרנטית',
+    o.guard.sugSS<=o.guard.sugROP&&o.guard.sugROP>=1,
+    `sugSS=${o.guard.sugSS} sugROP=${o.guard.sugROP} (לפני: 1 / 0)`);
+ // תקלה 8 · כותרת ההון הכלוא בלי סימן מטבע
+ ok('כותרת "הון כלוא" אינה נוקבת מטבע',!/[₪$€]/.test(o.inv.header||''),o.inv.header);
+ // תקלה 2 · דירוג כספי בבלוקים לפי מטבע, בלי המרה
+ ok('כל מטבע יושב בבלוק רציף אחד',
+    o.rank.blocks.length===new Set(o.rank.blocks.map(b=>b[0])).size,
+    JSON.stringify(o.rank.blocks));
+ ok('בתוך כל בלוק הסדר יורד לפי הסכום',o.rank.desc,
+    o.rank.ord.slice(0,4).map(r=>`${r.cur} ${r.cap}`).join(' · '));
+ ok('קו ה-80% מחושב לכל מטבע בנפרד',
+    !!o.rank.cut.byCur&&Object.keys(o.rank.cut.byCur).length>1,
+    JSON.stringify(Object.entries(o.rank.cut.byCur||{}).map(([c,v])=>`${c}: ${v.n}/${v.count}`)));
  ok('פריט דולרי מוצג ב-$ ולא ב-₪',/^\$/.test(cur.usdTxt),`${cur.usdTxt} (היה ${cur.ilsTxt})`);
  ok('סכום מפוצל לפי מטבע ולא מחובר',cur.mix.split(' · ').length>1,cur.mix);
  ok('כל המטבעות בקטלוג מיוצגים',cur.symbols.length>1,cur.symbols);
