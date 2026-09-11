@@ -1131,6 +1131,27 @@ const moneyShort=(n,c)=>{n=Math.round(n||0);const s=curSym(c);
  if(n>=1e6)return s+(n/1e6).toFixed(n>=1e7?0:1)+'M';
  if(n>=1e4)return s+Math.round(n/1e3)+'K';
  return s+n.toLocaleString('he-IL')};
+/* ============ דירוג כספי בלי המרת מטבע ============
+   דירוג לפי מספר גולמי הוא המרה 1:1 מוסתרת: ₪26,229 דורגו לפני
+   פריטי דולר גדולים ממנו בפועל, ו-6 מתוך 20 העליונים בתור העודף היו
+   פריטי שקל שלא היו אמורים להיות שם.
+
+   אין המרה, ולכן אין השוואה בין מטבעות — יש סדר. הרשימה נחתכת לבלוק
+   לכל מטבע, והדירוג הכספי קורה בתוך הבלוק בלבד. סדר הבלוקים נקבע לפי
+   מספר הפריטים ולא לפי הסכום, כי גם השוואת הסכומים הייתה המרה. */
+function curKey(r){return String(r&&r.currency||'').trim().toUpperCase()||'—'}
+let CURORDER=null;
+function buildCurOrder(items){const n={};
+ for(const it of items){if(!(it.expCap>0))continue;const c=curKey(it);n[c]=(n[c]||0)+1}
+ const ks=Object.keys(n).sort((a,b)=>n[b]-n[a]||a.localeCompare(b));
+ CURORDER={};ks.forEach((k,i)=>CURORDER[k]=i);return CURORDER}
+const CURNAME={USD:'דולר',ILS:'שקל',EUR:'אירו',NIS:'שקל',GBP:'לירה שטרלינג',JPY:'ין'};
+function curName(c){c=String(c||'').trim().toUpperCase();return CURNAME[c]||(c==='—'?'ללא מטבע':c)}
+function curPos(r){if(!CURORDER)return 0;const p=CURORDER[curKey(r)];return p==null?99:p}
+/* בכיוון יורד: בלוק המטבע לפי הסדר, ובתוכו מהגדול לקטן. */
+function cmpMoneyDesc(a,b,k){return (curPos(a)-curPos(b))||((b[k]||0)-(a[k]||0))}
+/* בכיוון עולה — לשימוש ב-sortRowsBy, שמהפך את התוצאה בסוף לפי sortDir. */
+function cmpMoneyAsc(a,b,k){return (curPos(b)-curPos(a))||((a[k]||0)-(b[k]||0))}
 /* סכום על פני פריטים במטבעות שונים — מפוצל, לא מחובר */
 function sumBy(list,val){const by={};
  for(const r of list){const v=val(r)||0;if(!v)continue;const k=String(r.currency||'').trim().toUpperCase()||'—';
@@ -1426,7 +1447,6 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const ssStat=(rate>0&&!isODStatic)?Math.ceil(z*sdLT):0;
     let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin,lumpFloor):0;
     let sugROP=(rate>0&&!isODStatic)?Math.ceil(dLT+sugSS):0;
-    if(sugSS>sugROP)sugROP=sugSS;
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
        שנמדד. ראה TREND_TRIG. */
@@ -1444,6 +1464,15 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     if(!isODStatic){
       if(sugROP===0&&NUM(r[m.rop])===ROP_MIN_ACT)sugROP=ROP_MIN_ACT;
       if(sugSS===0&&NUM(r[m.ss])===ROP_MIN_ACT)sugSS=ROP_MIN_ACT}
+    /* ============ SS≤ROP — אחרי הרצפות, לא לפניהן ============
+       נקודת הזמנה אפס פירושה ש-SAP לעולם לא מזמין. מלאי ביטחון 1 מעליה
+       אינו "כמעט נכון" — הוא לא ניתן ליישום: היחידה שתצא לא תוחזר לעולם.
+       הכלל רץ קודם מיד אחרי הנוסחה, ולכן שתי הרצפות שמופעלות אחריו
+       (rop_min_act ו-lowDemFloor) יכלו להרים את SS בלי להרים את ROP.
+       נמדד על הדוח האמיתי: 209 פריטים קיבלו «מלאי ביטחון 1, נקודת
+       הזמנה 0» — כולם עם קצב אפס, ב-SAP מלאי ביטחון 1 ונקודת הזמנה 2–6.
+       הכרטיס עצמו מציג «כלל SS≤ROP» ולכן גם סתר את עצמו. */
+    if(sugSS>sugROP)sugROP=sugSS;
     const rateT=rate*trendF;
     const sugROPT=trendF<1?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
     const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
@@ -1553,7 +1582,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        אומרת שהקצב האמיתי גבוה מהמדווח, ולכן היא נשארת הסיווג — אבל
        ההחלטה נשארת הכמות, ואימות העבר יורד לסוף. */
     const d=(A.drops.length&&it.d12>20)?A.drops[0]:null;
-    it.sev=2;it.cat=d?'חשד אזילה':'אוזל החודש';it.miss=gap;
+    /* מלאי אפס אינו "אוזל" — הוא כבר אזל. הכלל המתועד הוא חומרה 3
+       כשאין מה למכור מחר בבוקר, וחומרה 2 כשיש מלאי שנשחק.
+       נמדד: 25 פריטים כאלה בדוח האמיתי, 18 מהם עם לקוח ממתין,
+       וכולם דורגו כמו פריט שיש לו מלאי. */
+    it.sev=it.free<=0?3:2;it.cat=d?'חשד אזילה':'אוזל החודש';it.miss=gap;
     it.why=[['err',`${it.free} יח׳ במלאי מול צריכה ${it.c3} יח׳ ברבעון — ${it.r3.toFixed(1)} לחודש`],
       d?['idea',`זוהתה אזילה ב${d.len>1?`${d.len} חודשים`:LABELS[d.i-1].name} — הקצב האמיתי גבוה מהמדווח, ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`]:null,
       it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה`]:null,
@@ -1762,6 +1795,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
+ buildCurOrder(items);
  return Q}
 const MK_KEY='planner_marks_v1';
 let MARKS={};
@@ -2030,12 +2064,28 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='short'?base.filter(r=>r.miss>0).sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
-  :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>(b[TRACKKEY[tr]]||0)-(a[TRACKKEY[tr]]||0));
+  :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>cmpMoneyDesc(a,b,TRACKKEY[tr]));
  return DL_CACHE[tr]=out}
-function cut80(list,tr){const k=TRACKKEY[tr];if(!k)return {n:list.length,total:0,cut:0};
- const total=list.reduce((s,r)=>s+r[k],0);let acc=0,n=0;
- for(const r of list){acc+=r[k];n++;if(acc>=total*.8)break}
- return {n,total,cut:acc}}
+/* קו ה-80% חושב על סכום של דולרים ושקלים יחד — חיבור שאסור לפי
+   מדיניות BZ, ושייצר קו שאינו קיים באף מטבע. עכשיו הוא מחושב לכל
+   מטבע בנפרד, ו-n הוא סכום הפריטים שמעל הקו בכל המטבעות. */
+/* מגבלת הרינדור חייבת להיות לכל מטבע בנפרד. ברגע שהרשימה סודרה
+   בבלוקים, 2,370 פריטי הדולר דחקו את כל בלוק השקל (₪227,424 ב-149
+   פריטים) אל מחוץ ל-351 השורות המרונדרות — כלומר הוא נעלם מהמסך.
+   נלקחים מכל מטבע הפריטים שמעל קו ה-80% שלו ועוד שלושה. */
+function capView(rows,c){if(!c||!c.byCur)return rows.slice(0,300);
+ const seen={},out=[];
+ for(const r of rows){const ck=curKey(r),cb=c.byCur[ck],lim=cb?cb.n+3:50;
+  seen[ck]=(seen[ck]||0)+1;if(seen[ck]<=lim)out.push(r)}
+ return out}
+function cut80(list,tr){const k=TRACKKEY[tr];if(!k)return {n:list.length,byCur:null};
+ const g=new Map();
+ for(const r of list){const c=curKey(r);if(!g.has(c))g.set(c,[]);g.get(c).push(r)}
+ const byCur={};let n=0;
+ for(const [c,l] of g){const total=l.reduce((s,r)=>s+(r[k]||0),0);let acc=0,i=0;
+  for(const r of l){acc+=r[k]||0;i++;if(acc>=total*.8)break}
+  byCur[c]={total,n:i,cut:acc,count:l.length};n+=i}
+ return {n,byCur}}
 const DEF=[['today','החלטות היום','מדורג בכסף','var(--red)'],
  ['waiting','לקוח ממתין','עדיין אין הזמנת רכש','var(--red)'],
  ['quality','המלצות MRP','ROP · SS · זמן אספקה','var(--purple)'],
@@ -2283,7 +2333,7 @@ function tiles(){
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    setMode(e.dataset.m)})}
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
- ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא ₪','n']];
+ ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
  const drop=new Set(r.A.drops.map(d=>d.i)),spike=new Set(r.A.spikes.map(x=>x.i));
  return '<span class="spark" title="צריכה 11 חודשים — מהישן לחדש">'+m.map((v,i)=>{const idx=i+1;
@@ -2298,13 +2348,19 @@ const COLACC={pn:r=>r.pn,desc:r=>r.desc,model:r=>r.model,pattern:r=>r.A.pattern,
  spark:r=>r.d12,miss:r=>r.miss||r.orderQty||0,
  free:r=>r.free,cust:r=>r.cust,po:r=>r.po,rop:r=>r.rop,ss:r=>r.ss,
  cov:r=>r.cov==null?Infinity:r.cov,trend:r=>r.A.trend.pct,risk:r=>r.risk||0,sev:r=>r.sev};
+/* ============ כיוון שבירת השוויון ============
+   sortRowsBy מהפך את התוצאה בסוף לפי sortDir, ולכן כל משווה חייב
+   להיות כתוב בכיוון *עולה*. שבירת השוויון נכתבה בכיוון יורד ואז
+   התהפכה שוב — ולכן תור "הון לשחרור" נפתח ב-10 פריטים ששווים אפס,
+   והגדול שבהם ($34,598) ישב במקום 2,711 מתוך 2,711. */
+function tieAsc(a,b){return (a.sev-b.sev)||cmpMoneyAsc(a,b,'risk')}
 function cmp(a,b,key){const fa=COLACC[key];
- if(typeof fa!=='function')return (b.sev-a.sev)||((b.risk||0)-(a.risk||0));
+ if(typeof fa!=='function')return tieAsc(a,b);
  const va=fa(a),vb=fa(b);
  if(typeof va==='string'||typeof vb==='string')return String(va).localeCompare(String(vb),'he');
  return (va||0)-(vb||0)}
 function sortRowsBy(arr){return [...arr].sort((a,b)=>{let r=cmp(a,b,sortCol);
-  if(r===0)r=(b.sev-a.sev)||((b.risk||0)-(a.risk||0));return sortDir==='asc'?r:-r})}
+  if(r===0)r=tieAsc(a,b);return sortDir==='asc'?r:-r})}
 /* ============ מנוע חיפוש (v0.13) ============
    נורמליזציה עברית · אסימונים מרובים · קידומות שדה · החרגה · ביטוי מדויק ·
    דירוג רלוונטיות · הדגשת התאמות · חלונית תוצאות גלובלית.
@@ -2811,9 +2867,10 @@ function renderDecisions(rows){
  const SG=bySup?supplierGroups(rows):null;
  const GB=(grouped&&!bySup)?groupRows(rows):null;
  const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l).slice(0,lim)
-   :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim):rows.slice(0,lim);
+   :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim)
+   :k?capView(rows,c):rows.slice(0,lim);
  const body=[];
- let acc=0;
+ let acc=0,curBlk=null,blkI=0;
  if(bySup){let idx=0;
   for(const [sup,list] of SG){
    const t=supTotals(list),coll=GCOLL.has('sup:'+sup);
@@ -2913,9 +2970,19 @@ function renderDecisions(rows){
     <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
     <td class="act1">${esc((r.act||[])[0]||'')}</td></tr>`);
    return}
-  const money8=!!k;                                  /* מסלול כספי? רק אז יש דירוג ב-₪ */
-  if(k)acc+=r[k]||0;
-  const pct=(k&&c.total)?Math.round(acc/c.total*100):0,above=k?i<c.n:false;
+  /* האחוז המצטבר וקו ה-80% נמדדים בתוך המטבע של השורה בלבד. הרשימה
+     מסודרת בבלוקים לפי מטבע, ולכן המונה מתאפס במעבר בין בלוק לבלוק. */
+  if(k){const ck=curKey(r);
+   if(ck!==curBlk){curBlk=ck;acc=0;blkI=0;
+    const cb=c.byCur&&c.byCur[ck];
+    if(cb&&c.byCur&&Object.keys(c.byCur).length>1)
+     body.push(`<tr class="grp" data-g="cur:${esc(ck)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
+       <b>${esc(curName(ck))}</b><span class="gn">${cb.count.toLocaleString('he-IL')}</span>
+       <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
+       <span class="gu">${money(cb.total,ck)}</span></td></tr>`)}
+   acc+=r[k]||0;blkI++}
+  const cb=k&&c.byCur?c.byCur[curKey(r)]:null;
+  const pct=(cb&&cb.total)?Math.round(acc/cb.total*100):0,above=cb?blkI<=cb.n:false;
   const c4=k?`<span class="stake ${track}">${money(r[k],r.currency)}</span>`
             :`<span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span>`;
   const c5=k?`<span class="cum">${pct}%</span>`
@@ -2926,7 +2993,8 @@ function renderDecisions(rows){
    <td>${c4}</td><td>${c5}</td>
    <td class="act1">${esc((r.act||[])[0]||'')}</td>
    <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
-  if(k&&above&&i===c.n-1)body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% · ${c.n} הפריטים שמעל מרכזים ${moneyMix(rows.slice(0,c.n),x=>x[k]||0)} מתוך ${moneyMix(rows,x=>x[k]||0)} — כל ${rows.length-c.n} הנותרים יחד שווים ${moneyMix(rows.slice(c.n),x=>x[k]||0)}</td></tr>`)});
+  if(cb&&above&&blkI===cb.n){const ck=curKey(r);
+   body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
    `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'

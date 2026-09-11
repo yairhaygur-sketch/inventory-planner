@@ -588,6 +588,40 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    ones?`${ones.n} ערכים · פיזור ${ones.spread}px`:'—');
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
 
+ /* ============ מסלול ההון הכלוא — בלוק לכל מטבע ============
+    הדירוג הכספי אינו משווה מטבעות זה לזה, ולכן הרשימה מסודרת בבלוקים.
+    שתי הסכנות: שהמיון יתהפך (הגדול ביותר בסוף), ושמגבלת הרינדור
+    תדחק בלוק שלם אל מחוץ למסך. */
+ await p.evaluate(()=>{cur='today';track='cap';DL_CACHE={};apply()});await p.waitForTimeout(500);
+ const cap=await p.evaluate(()=>{
+   const trs=[...document.querySelectorAll('#tbl tbody tr')];
+   const rows=currentRows();
+   const seq=[];let last=null;
+   for(const r of rows){const c=curKey(r);if(c!==last){seq.push(c);last=c}}
+   const curs=[...new Set(rows.map(curKey))];
+   /* view הוא מקומי ל-renderDecisions; המטבעות שהוצגו בפועל נקראים
+      מכותרות הקבוצה, ומאומתים בכך שאחרי כל כותרת יש לפחות שורת נתונים. */
+   const shown=[];
+   for(const g of trs.filter(t=>t.classList.contains('grp')&&/^cur:/.test(t.dataset.g||''))){
+     let nx=g.nextElementSibling,has=false;
+     while(nx&&!nx.classList.contains('grp')){if(nx.dataset.i!=null){has=true;break}nx=nx.nextElementSibling}
+     if(has)shown.push(g.dataset.g.slice(4))}
+   const first=rows[0],biggest=rows.reduce((m,r)=>r.expCap>m.expCap?r:m,rows[0]);
+   return {n:rows.length,seq,curs,shown,
+     firstIsBiggestOfItsBlock:first.expCap===Math.max(...rows.filter(r=>curKey(r)===curKey(first)).map(r=>r.expCap)),
+     firstCap:first.expCap,maxCap:biggest.expCap,
+     groups:trs.filter(t=>t.classList.contains('grp')).length,
+     cuts:trs.filter(t=>t.classList.contains('cutrow')).length}});
+ ok('כל מטבע יושב בבלוק רציף אחד',cap.seq.length===cap.curs.length,
+   `סדר הבלוקים: ${cap.seq.join(' → ')} · מטבעות: ${cap.curs.length}`);
+ ok('הפריט הראשון הוא הגדול בבלוק שלו ולא הקטן',cap.firstIsBiggestOfItsBlock,
+   `ראשון ${cap.firstCap.toLocaleString('he-IL')} · מקסימום ${cap.maxCap.toLocaleString('he-IL')}`);
+ ok('כל מטבע מקבל כותרת קבוצה משלו',cap.groups===cap.curs.length,
+   `${cap.groups} כותרות · ${cap.curs.length} מטבעות`);
+ ok('קו ה-80% נמתח לכל מטבע בנפרד',cap.cuts===cap.curs.length,
+   `${cap.cuts} קווים · ${cap.curs.length} מטבעות`);
+ ok('אף מטבע לא נדחק אל מחוץ לרשימה המרונדרת',cap.shown.length===cap.curs.length,
+   `מוצגים ${cap.shown.join(', ')} · קיימים ${cap.curs.join(', ')}`);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
