@@ -191,19 +191,19 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
   const o={base:(()=>{delete MARKS[k];Q=classify(ALL);return snap()})(),
    ttl:{handled:markTTL('handled')/864e5,campaign:markTTL('campaign')/864e5,
         ignore:markTTL('ignore')/864e5,ondemand:markTTL('ondemand')/864e5},
-   handledFresh:run('handled',10), handledStale:run('handled',60),
+   handledFresh:run('handled',2), handledStale:run('handled',10),
    campFresh:run('campaign',100), campStale:run('campaign',200),
    ignoreStale:run('ignore',200)};
   MARKS[k]={t:'ondemand',ts:ago(200)};Q=classify(ALL);
   o.odStale=(()=>{const r=ALL.find(x=>x.pn===t.pn);return {cat:r.cat,odStale:!!r.odStale}})();
   delete MARKS[k];Q=classify(ALL);o.after=snap();
   return o});
- ok('«טופל» פג אחרי 45 יום ולא אחרי חצי שנה',mkx.ttl.handled===45,`${mkx.ttl.handled} ימים`);
+ ok('«טופל» פג אחרי שבוע — נגזר מקצב של שני דוחות ביום',mkx.ttl.handled===7,`${mkx.ttl.handled} ימים`);
  ok('שאר הסוגים פגים אחרי חצי שנה',
     mkx.ttl.campaign===183&&mkx.ttl.ignore===183&&mkx.ttl.ondemand===183,JSON.stringify(mkx.ttl));
- ok('«טופל» טרי מסתיר את הפריט',mkx.handledFresh.q==='marked'&&mkx.handledFresh.cat==='טופל',
+ ok('«טופל» בן יומיים עדיין מסתיר',mkx.handledFresh.q==='marked'&&mkx.handledFresh.cat==='טופל',
     `${mkx.handledFresh.q} · ${mkx.handledFresh.cat}`);
- ok('«טופל» בן 60 יום מחזיר את הפריט לסיווג האמיתי',
+ ok('«טופל» בן 10 ימים מחזיר את הפריט לסיווג האמיתי',
     mkx.handledStale.q!=='marked'&&mkx.handledStale.cat===mkx.base.cat,
     `${mkx.handledStale.q} · ${mkx.handledStale.cat} (בסיס: ${mkx.base.cat})`);
  ok('וההסבר אומר שהסימון פג',/פג/.test(mkx.handledStale.note),mkx.handledStale.note);
