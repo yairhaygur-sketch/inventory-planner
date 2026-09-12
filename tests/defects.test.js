@@ -181,6 +181,41 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('פריט דולרי מוצג ב-$ ולא ב-₪',/^\$/.test(cur.usdTxt),`${cur.usdTxt} (היה ${cur.ilsTxt})`);
  ok('סכום מפוצל לפי מטבע ולא מחובר',cur.mix.split(' · ').length>1,cur.mix);
  ok('כל המטבעות בקטלוג מיוצגים',cur.symbols.length>1,cur.symbols);
+ // פקיעת סימונים — ראה MARK_TTL
+ const mkx=await p.evaluate(()=>{
+  const t=ALL.find(x=>x.sev>0)||ALL[0], k=markKey(t), ago=d=>Date.now()-d*864e5;
+  const snap=()=>{const r=ALL.find(x=>x.pn===t.pn);
+    return {cat:r.cat,q:Object.keys(Q).find(z=>Q[z].includes(r)),stale:!!r.markStale,
+      note:(r.why||[]).map(w=>w[1]).find(x=>/פג/.test(x))||''}};
+  const run=(type,days)=>{MARKS[k]={t:type,ts:ago(days)};Q=classify(ALL);return snap()};
+  const o={base:(()=>{delete MARKS[k];Q=classify(ALL);return snap()})(),
+   ttl:{handled:markTTL('handled')/864e5,campaign:markTTL('campaign')/864e5,
+        ignore:markTTL('ignore')/864e5,ondemand:markTTL('ondemand')/864e5},
+   handledFresh:run('handled',10), handledStale:run('handled',60),
+   campFresh:run('campaign',100), campStale:run('campaign',200),
+   ignoreStale:run('ignore',200)};
+  MARKS[k]={t:'ondemand',ts:ago(200)};Q=classify(ALL);
+  o.odStale=(()=>{const r=ALL.find(x=>x.pn===t.pn);return {cat:r.cat,odStale:!!r.odStale}})();
+  delete MARKS[k];Q=classify(ALL);o.after=snap();
+  return o});
+ ok('«טופל» פג אחרי 45 יום ולא אחרי חצי שנה',mkx.ttl.handled===45,`${mkx.ttl.handled} ימים`);
+ ok('שאר הסוגים פגים אחרי חצי שנה',
+    mkx.ttl.campaign===183&&mkx.ttl.ignore===183&&mkx.ttl.ondemand===183,JSON.stringify(mkx.ttl));
+ ok('«טופל» טרי מסתיר את הפריט',mkx.handledFresh.q==='marked'&&mkx.handledFresh.cat==='טופל',
+    `${mkx.handledFresh.q} · ${mkx.handledFresh.cat}`);
+ ok('«טופל» בן 60 יום מחזיר את הפריט לסיווג האמיתי',
+    mkx.handledStale.q!=='marked'&&mkx.handledStale.cat===mkx.base.cat,
+    `${mkx.handledStale.q} · ${mkx.handledStale.cat} (בסיס: ${mkx.base.cat})`);
+ ok('וההסבר אומר שהסימון פג',/פג/.test(mkx.handledStale.note),mkx.handledStale.note);
+ ok('«קמפיין» בן 100 יום עדיין מסתיר',mkx.campFresh.q==='marked',mkx.campFresh.q);
+ ok('«קמפיין» בן 200 יום פג',mkx.campStale.q!=='marked'&&mkx.campStale.stale,
+    `${mkx.campStale.q} · ${mkx.campStale.note}`);
+ ok('«מוחרג ידנית» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
+    `${mkx.ignoreStale.q} · ${mkx.ignoreStale.note}`);
+ ok('«לפי דרישה» שפג ממשיך למסלול שלו ולא לסיווג רגיל',
+    mkx.odStale.odStale===true&&mkx.odStale.cat==='עדכון פרמטרים',JSON.stringify(mkx.odStale));
+ ok('הסרת הסימון מחזירה את המצב המקורי',
+    mkx.after.cat===mkx.base.cat&&!mkx.after.stale,`${mkx.after.cat} (בסיס ${mkx.base.cat})`);
  // המסך הראשי לא נשאר ריק כשאין חוסרים
  const scr=await p.evaluate(()=>({track,shortN:decisionList('short').length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
