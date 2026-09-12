@@ -1513,9 +1513,27 @@ const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ig
    קמפיין חוזר, ואף אחד לא מזכיר לך שהחרגת אותו. */
 const OD_GROUPS=new Set(['כלי עבודה','אביזרים']);
 const OD_TTL=183*864e5;                      /* חצי שנה */
+/* ============ פקיעה לכל סוגי הסימון ============
+   עד כאן רק «לפי דרישה» נבדק מול תאריך. «קמפיין», «לאישור טיפול»,
+   «מוחרג ידנית» ו«טופל» נכנסו ל-Q.marked ועשו continue — לנצח.
+   פריט שסומן «טופל» לפני שנה נשאר מוסתר גם אם הבעיה חזרה, ואף אחד
+   לא מזכיר לך שהחרגת אותו. זה בדיוק הנימוק שכבר כתוב כאן למעלה
+   עבור «לפי דרישה»; הוא תקף לכל סוג.
+
+   «טופל» מקבל תוקף קצר יותר משאר הסוגים, ומסיבה מבנית: הוא אינו
+   החרגת מדיניות אלא הצהרה על פעולה — «שיניתי את זה ב-SAP». התשובה
+   אם הפעולה תפסה מגיעה בדוח הבא, לא בעוד חצי שנה. 45 יום מכסים
+   מחזור דיווח אחד ועוד שוליים.
+
+   שני המספרים הם החלטה עסקית, לא חישוב. */
+const MARK_TTL={ondemand:OD_TTL,campaign:OD_TTL,ignore:OD_TTL,treatment:OD_TTL,
+  handled:45*864e5};
+function markTTL(t){const v=MARK_TTL[t];return v==null?OD_TTL:v}
+function markExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>markTTL(mk.t)}
+const markAgeD=mk=>(mk&&mk.ts)?Math.round((Date.now()-mk.ts)/864e5):null;
 function odMark(it){const mk=MARKS[markKey(it)]||MARKS[it.pn];
  return (mk&&mk.t==='ondemand')?mk:null}
-function odExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>OD_TTL}
+function odExpired(mk){return markExpired(mk)}
 /* onDemand פעיל = לא מנהלים מלאי. סימון שפג אינו פעיל, והפריט חוזר. */
 function onDemand(it){if(it.isPDItem||OD_GROUPS.has(it.mkt1))return true;
  const mk=odMark(it);return !!mk&&!odExpired(mk)}
@@ -1529,11 +1547,12 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;
   if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase}
   if(mk&&mk.t==='ondemand'){
     if(odExpired(mk))it.odStale=true;
     else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0}}
+  else if(mk&&mk.t&&markExpired(mk)){it.markStale=mk}
   else if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
     it.why=[['idea',isDone?`סומן כטופל${mk.note?' — '+mk.note:''}`:`סומן ידנית: ${lbl}${mk.note?' — '+mk.note:''}`],
@@ -1792,6 +1811,42 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=[`להחליט ידנית: לאפס את נקודת ההזמנה (${it.rop}) או להשאיר אותה עד שהשקט יוכח`,
       ...(it.act||[])].slice(0,4)}
    else it.why.push(['ok',`יש ${it.free} יח׳ במלאי — גם אם נקודת ההזמנה תתאפס, אין חשיפה מיידית`])}}
+ /* סימון שפג — הפריט חזר לסיווג רגיל, וזה חייב להיאמר. בניגוד
+    ל«לפי דרישה» שיש לו רונג משלו, כאן לא כופים שורת עבודה: פריט
+    שסומן «טופל» ובאמת תקין היום צריך להישאר «תקין». */
+ for(const it of items){const mk=it.markStale;if(!mk)continue;
+  const lbl=MARK_LABEL[mk.t]||'מסומן', days=markAgeD(mk);
+  it.why.push(['info',`הסימון «${lbl}» פג — עברו ${days} ימים מאז שסומן, `+
+    `והפריט חזר לסיווג רגיל`]);
+  if(it.sev>0)it.act=[...(it.act||[]),`אם ההחרגה «${lbl}» עדיין נכונה — לסמן מחדש`].slice(0,4)}
+ /* ============ הפרמטר שמחזיר את המלאי ============
+    רונג העודף/האיטי/המת רץ *לפני* רונג הפרמטרים ועושה continue, ולכן
+    פריט שיושבת עליו נקודת הזמנה גבוהה מכל מה שנמכר בשלוש שנים נבלע
+    בתוכו ומקבל רק «לבחון הקטנת מלאי».
+
+    זו עצה חסרה חצי: Q1840816 מחזיק 198 יח׳, נמכרו ממנו 2 בשלוש שנים,
+    והכלי אומר «לבחון הקטנת מלאי ב-196 יח׳». אבל ב-SAP יושבת נקודת
+    הזמנה 6 — ברגע שהמלאי ירד, SAP יזמין אותן בחזרה. מי שיבצע את
+    ההמלצה בלי לגעת בפרמטר יראה את המלאי חוזר.
+
+    נמדד על הדוח האמיתי: 109 פריטים כאלה — 107 «מלאי איטי», 1 «מלאי
+    מת», 1 «ירידה בביקוש». סה"כ 880 יחידות של נקודת הזמנה, ומלאי בשווי
+    30,309 דולר + 5,845 ש"ח יושב עליהם. רק 2 מהם נושאים היום paramFix.
+
+    זו אינה שורה חדשה ברשימה — הפריט כבר שם. מה שנוסף הוא ההחלטה
+    השנייה על אותה שורה, ו-paramFix כדי שלולאת היישום (סעיף 5ו) תדע
+    לעקוב אחריה. הסף הוא אותו LOW_PARAM_FLOOR של רונג הפרמטרים. */
+ for(const it of items){
+  if(it.rate>0||it.isPDItem||it.isOD||it.paramFix)continue;
+  const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
+  if(!(it.rop>bar||it.ss>bar))continue;
+  if(!Q.excess.includes(it))continue;
+  it.paramFix=true;
+  it.why.push(['warn',`ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}, `+
+    `מול ${hist} יח׳ ש${it.has3y?'נמכרו בשלוש שנים':'נמכרו ב-11 חודשים'}`]);
+  it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
+  it.act=[...(it.act||[]),
+    `לעדכן נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS} — אחרת המלאי יחזור`].slice(0,4)}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
@@ -3635,6 +3690,15 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   const missingPrices=ALL.filter(x=>x.priceMissing).length;
   if(futureDates)DIAG.warn.push(`${futureDates} פריטים כוללים תאריך תנועה עתידי — התאריך הוחרג מחישובי גיל מלאי.`);
   if(missingPrices)DIAG.warn.push(`${missingPrices} פריטים ללא מחיר FOB — ההון הכלוא והחוסר אינם מכומתים עבורם.`);
+  /* מק״ט כפול בדוח: כל שורה הופכת לפריט נפרד, אבל הסימונים והלולאה
+     של הפרמטרים ממופתחים לפי מק״ט — כך שסימון על אחד משפיע על שניהם.
+     בדוח שנבדק זה קרה לפריט אחד. זה לא נתפס לבד; צריך לומר אותו. */
+  {const seen=new Map();
+   for(const x of ALL)seen.set(x.pn,(seen.get(x.pn)||0)+1);
+   const dups=[...seen.entries()].filter(([k,v])=>v>1).map(([k])=>k);
+   if(dups.length)DIAG.warn.push(
+     `${dups.length} מק״טים מופיעים ביותר משורה אחת (${dups.slice(0,3).join(', ')}${dups.length>3?'…':''}) — `+
+     `סימון ידני על אחד מהם יחול על כולם.`)}
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);

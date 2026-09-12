@@ -27,6 +27,10 @@ const rows=[
  mk('LOW-CHEAP',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:5,lt:120}),
  // C2 · זול, ביקוש זעום, ובלי שום נוכחות ב-SAP — הצד השני של אותה מדיניות
  mk('LOW-CHEAP-ZERO',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:5,lt:120}),
+ // C4 · מלאי איטי עם נקודת הזמנה שגבוהה מכל מה שנמכר בשלוש שנים —
+ //      הקטנת המלאי לבדה לא תחזיק כי SAP יזמין בחזרה
+ mk('SLOW-BAD-ROP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:2,y1:0,y2:0,free:198,rop:6,ss:0,price:0.18}),
+ mk('SLOW-OK-ROP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:2,y1:0,y2:0,free:198,rop:1,ss:0,price:0.18}),
  // C3 · אותו מחיר בדיוק בשני מטבעות — הסף לכל מטבע בנפרד, בלי המרה
  mk('LOW-150-ILS',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'ILS'}),
  mk('LOW-150-USD',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'USD'}),
@@ -69,9 +73,9 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
-     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
+     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),actN:(r.act||[]).length,paramFix:r.paramFix,why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
-          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
+          runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
           guard:g('SSROP-GUARD'),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
@@ -136,6 +140,16 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     `lowFloor=${o.usd150.lowFloor} sugROP=${o.usd150.sugROP}`);
  ok('אותו מספר, שני מטבעות, שתי תשובות — אין המרה',
     o.ils150.sugROP!==o.usd150.sugROP,`ILS→${o.ils150.sugROP} · USD→${o.usd150.sugROP}`);
+ // C4 · הפרמטר שמחזיר את המלאי — ראה הפוסט-פאס ב-classify
+ ok('מלאי איטי עם נקודת הזמנה חורגת נשאר באותו תור',o.slowBad.q==='excess',
+    `${o.slowBad.q} · ${o.slowBad.cat}`);
+ ok('אך מקבל גם את ההחלטה על הפרמטר',/לעדכן נקודת הזמנה/.test(o.slowBad.acts),o.slowBad.acts);
+ ok('וההסבר אומר למה הקטנת מלאי לבדה לא תחזיק',/יזמין בחזרה/.test(o.slowBad.why),o.slowBad.why);
+ ok('והוא נכנס למעקב היישום',o.slowBad.paramFix===true,`paramFix=${o.slowBad.paramFix}`);
+ ok('אותו פריט עם נקודת הזמנה 1 אינו מקבל את ההערה',
+    !/לעדכן נקודת הזמנה/.test(o.slowOk.acts)&&o.slowOk.paramFix!==true,
+    `paramFix=${o.slowOk.paramFix} · ${o.slowOk.acts}`);
+ ok('ההחלטות נשארות עד 4',o.slowBad.actN<=4,`${o.slowBad.actN} החלטות`);
  // D · כיוון ההמלצה נגזר מהמספרים
  ok('ROP מוצע גבוה → "העלאת"',/העלאת/.test(o.dec.act),o.dec.act);
  // מטבע — BZ נקוב במטבע של BE, ואסור להציג אותו כשקלים או לחבר מטבעות
@@ -167,6 +181,41 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('פריט דולרי מוצג ב-$ ולא ב-₪',/^\$/.test(cur.usdTxt),`${cur.usdTxt} (היה ${cur.ilsTxt})`);
  ok('סכום מפוצל לפי מטבע ולא מחובר',cur.mix.split(' · ').length>1,cur.mix);
  ok('כל המטבעות בקטלוג מיוצגים',cur.symbols.length>1,cur.symbols);
+ // פקיעת סימונים — ראה MARK_TTL
+ const mkx=await p.evaluate(()=>{
+  const t=ALL.find(x=>x.sev>0)||ALL[0], k=markKey(t), ago=d=>Date.now()-d*864e5;
+  const snap=()=>{const r=ALL.find(x=>x.pn===t.pn);
+    return {cat:r.cat,q:Object.keys(Q).find(z=>Q[z].includes(r)),stale:!!r.markStale,
+      note:(r.why||[]).map(w=>w[1]).find(x=>/פג/.test(x))||''}};
+  const run=(type,days)=>{MARKS[k]={t:type,ts:ago(days)};Q=classify(ALL);return snap()};
+  const o={base:(()=>{delete MARKS[k];Q=classify(ALL);return snap()})(),
+   ttl:{handled:markTTL('handled')/864e5,campaign:markTTL('campaign')/864e5,
+        ignore:markTTL('ignore')/864e5,ondemand:markTTL('ondemand')/864e5},
+   handledFresh:run('handled',10), handledStale:run('handled',60),
+   campFresh:run('campaign',100), campStale:run('campaign',200),
+   ignoreStale:run('ignore',200)};
+  MARKS[k]={t:'ondemand',ts:ago(200)};Q=classify(ALL);
+  o.odStale=(()=>{const r=ALL.find(x=>x.pn===t.pn);return {cat:r.cat,odStale:!!r.odStale}})();
+  delete MARKS[k];Q=classify(ALL);o.after=snap();
+  return o});
+ ok('«טופל» פג אחרי 45 יום ולא אחרי חצי שנה',mkx.ttl.handled===45,`${mkx.ttl.handled} ימים`);
+ ok('שאר הסוגים פגים אחרי חצי שנה',
+    mkx.ttl.campaign===183&&mkx.ttl.ignore===183&&mkx.ttl.ondemand===183,JSON.stringify(mkx.ttl));
+ ok('«טופל» טרי מסתיר את הפריט',mkx.handledFresh.q==='marked'&&mkx.handledFresh.cat==='טופל',
+    `${mkx.handledFresh.q} · ${mkx.handledFresh.cat}`);
+ ok('«טופל» בן 60 יום מחזיר את הפריט לסיווג האמיתי',
+    mkx.handledStale.q!=='marked'&&mkx.handledStale.cat===mkx.base.cat,
+    `${mkx.handledStale.q} · ${mkx.handledStale.cat} (בסיס: ${mkx.base.cat})`);
+ ok('וההסבר אומר שהסימון פג',/פג/.test(mkx.handledStale.note),mkx.handledStale.note);
+ ok('«קמפיין» בן 100 יום עדיין מסתיר',mkx.campFresh.q==='marked',mkx.campFresh.q);
+ ok('«קמפיין» בן 200 יום פג',mkx.campStale.q!=='marked'&&mkx.campStale.stale,
+    `${mkx.campStale.q} · ${mkx.campStale.note}`);
+ ok('«מוחרג ידנית» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
+    `${mkx.ignoreStale.q} · ${mkx.ignoreStale.note}`);
+ ok('«לפי דרישה» שפג ממשיך למסלול שלו ולא לסיווג רגיל',
+    mkx.odStale.odStale===true&&mkx.odStale.cat==='עדכון פרמטרים',JSON.stringify(mkx.odStale));
+ ok('הסרת הסימון מחזירה את המצב המקורי',
+    mkx.after.cat===mkx.base.cat&&!mkx.after.stale,`${mkx.after.cat} (בסיס ${mkx.base.cat})`);
  // המסך הראשי לא נשאר ריק כשאין חוסרים
  const scr=await p.evaluate(()=>({track,shortN:decisionList('short').length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
