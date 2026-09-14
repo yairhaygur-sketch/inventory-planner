@@ -325,10 +325,14 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --purple:#5B4B8A; --purpleL:#EFECF7;
  --gray:#636D7A; --neutral:#9AA5B1; --neutralL:#EFF2F5; --bar:#8A94A0;
 
- /* ---- טיפוגרפיה: משקל יוצר היררכיה, לא גודל ---- */
- --f-micro:10.5px; --f-sm:12px; --f-base:13.5px; --f-lg:16px; --f-xl:22px;
- --f-num:28px; --f-hero:40px;
- --f-xs:10.5px; --f-md:13.5px;
+ /* ---- טיפוגרפיה ----
+    הסולם החדש נכנס כשמות בלבד. השמות הישנים שומרים על הערכים שלהם
+    עד שלב 2, כי הם קובעים את גיאומטריית הטבלה: f-md 13->13.5 גוזל
+    14px מעמודת התיאור ו-f-xs 10->10.5 עוד 4px, והעמודה יורדת
+    מ-216px ל-198px — מתחת ל-PUSH_DESC_MIN. המגירה מפסיקה לדחוף.
+    שינוי גודל בטבלה הוא שינוי טבלה, והוא שייך לשלב 2. */
+ --f-micro:10.5px; --f-base:13.5px; --f-num:28px; --f-hero:40px;
+ --f-xs:10px; --f-sm:11.5px; --f-md:13px; --f-lg:19px; --f-xl:24px;
 
  /* ---- צורה ---- */
  --shadow:none; --shadowH:0 8px 24px rgba(15,18,22,.18);
