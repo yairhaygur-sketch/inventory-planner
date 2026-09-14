@@ -575,8 +575,18 @@ tbody tr.sel{background:#212832}
 body:not(.dark) tbody tr.sel{background:var(--accL)}
 .spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;width:96px;direction:ltr}
 .spark .sb{flex:1 1 0;min-width:2px;background:var(--bar);display:block}
-.spark .sb.d{background:var(--red)}
-.spark .sb.s{background:var(--acc)}
+.anoms{display:flex;flex-direction:column;gap:5px}
+.anom{font-size:var(--f-md);font-weight:700;padding:7px 10px;border-inline-start:3px solid var(--c)}
+.anom.s{--c:var(--high);background:var(--high-bg);color:var(--high)}
+.anom.d{--c:var(--trend);background:var(--trend-bg);color:var(--trend)}
+
+/* ============ פיק וצניחה — שפה אחת בשני המסכים ============
+   נמדד לפני: בספארקליין הפיק היה --acc (כחול המערכת) והצניחה --red,
+   ובגרף הפוך — הפיק #ff5b5b והצניחה #a78bfa. אותו אדום סימן «פיק»
+   במסך אחד ו«צניחה» במסך השני.
+   פיק=--high, צניחה=--trend, בשניהם. האדום משתחרר לחומרה 3 בלבד. */
+.spark .sb.s{background:var(--high)}
+.spark .sb.d{background:var(--trend)}
 td.miss .neg{color:var(--red);font-weight:700}
 td.miss .warnq{color:var(--org);font-weight:700}
 td.miss .posq{color:var(--dim)}
@@ -2567,7 +2577,7 @@ function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)))
  const drop=new Set(r.A.drops.map(d=>d.i)),spike=new Set(r.A.spikes.map(x=>x.i));
  return '<span class="spark" title="צריכה 11 חודשים — מהישן לחדש">'+m.map((v,i)=>{const idx=i+1;
   const h=Math.max(12,Math.round(Math.max(0,v)/mx*100));
-  const cls=drop.has(idx)?' d':spike.has(idx)?' s':'';
+  const cls=spike.has(idx)?' s':drop.has(idx)?' d':'';
   return `<i class="sb${cls}" style="height:${h}%"></i>`}).reverse().join('')+'</span>'}
 function missCell(r){if(r.miss>0)return `<span class="neg">-${r.miss}</span>`;
  if(r.orderQty>0)return `<span class="warnq">${r.orderQty}</span>`;
@@ -3439,24 +3449,32 @@ function barChart(cv,r){
  const max=Math.max(...d.map(Math.abs),1),padX=28,padTop=28,padBot=42;
  const bw=(W-padX*2)/d.length,base=H-padBot;
  const spike=new Set(r.A.spikes.map(s=>s.i)),drop=new Set(r.A.drops.map(s=>s.i));
+ /* הגרף קורא את אותם טוקנים כמו הספארקליין. היו כאן שישה ערכי hex
+    קשיחים שלא עברו דרך מערכת הצבעים. */
+ const CS=getComputedStyle(document.documentElement);
+ const T=(n,fb)=>(CS.getPropertyValue(n)||'').trim()||fb;
+ const C_SPIKE=T('--high','#A35905'), C_DROP=T('--trend','#5B4B8A'),
+       C_BASE=T('--calm','#636D7A'),  C_CUR=T('--ink-3','#8A94A0'),
+       C_MED=T('--accent','#1F5C8B'), C_INK=T('--ink','#151A21'),
+       C_ON=T('--on-fill','#FFFFFF');
  const yOf=v=>base-(Math.abs(v)/max)*(H-padTop-padBot);
  if(r.A.med>0){const my=base-(r.A.med/max)*(H-padTop-padBot);
-   ctx.strokeStyle='rgba(233,167,0,.75)';ctx.setLineDash([7,6]);ctx.lineWidth=2;
+   ctx.strokeStyle=C_MED;ctx.setLineDash([7,6]);ctx.lineWidth=2;
    ctx.beginPath();ctx.moveTo(padX,my);ctx.lineTo(W-padX,my);ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle='#e9a700';ctx.font='700 15px Arial';ctx.textAlign='left';ctx.fillText('חציון '+r.A.med+(r.A.active<11?' (חו׳ עם מכירה)':''),padX+4,my-6)}
+   ctx.fillStyle=C_MED;ctx.font='700 15px Arial';ctx.textAlign='left';ctx.fillText('חציון '+r.A.med+(r.A.active<11?' (חו׳ עם מכירה)':''),padX+4,my-6)}
  d.forEach((v,i)=>{const isCur=hasCur&&i===d.length-1;const mi=isCur?-1:(11-i);
    const w=Math.min(bw*.5,26),cx=padX+i*bw+bw/2,x=cx-w/2,y=yOf(v);
-   const col=isCur?'#64748b':(v<0?'#6b7280':spike.has(mi)?'#ff5b5b':drop.has(mi)?'#a78bfa':'#38bdf8');
+   const col=isCur?C_CUR:(v<0?C_BASE:spike.has(mi)?C_SPIKE:drop.has(mi)?C_DROP:C_BASE);
    const glow=(spike.has(mi)||drop.has(mi))&&!isCur;
    ctx.fillStyle='rgba(255,255,255,.05)';dropBar(ctx,x,padTop,w,base-padTop);ctx.fill();
    if(isCur){ctx.fillStyle='rgba(148,163,184,.15)';dropBar(ctx,x,y,w,base-y);ctx.fill();
-     ctx.strokeStyle='#64748b';ctx.setLineDash([4,3]);ctx.lineWidth=1.5;dropBar(ctx,x,y,w,base-y);ctx.stroke();ctx.setLineDash([])}
+     ctx.strokeStyle=C_CUR;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;dropBar(ctx,x,y,w,base-y);ctx.stroke();ctx.setLineDash([])}
    else{ctx.save();if(glow){ctx.shadowColor=col;ctx.shadowBlur=14}ctx.fillStyle=col;dropBar(ctx,x,y,w,base-y);ctx.fill();ctx.restore()}
    const br=Math.min(w*.6,15);
    ctx.save();if(glow){ctx.shadowColor=col;ctx.shadowBlur=12}
-   ctx.fillStyle=isCur?'#2b323f':col;ctx.beginPath();ctx.arc(cx,y,br,0,7);ctx.fill();ctx.restore();
-   ctx.fillStyle=isCur?'#cbd5e1':'#10141c';ctx.font='800 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(v),cx,y);ctx.textBaseline='alphabetic';
-   ctx.fillStyle=isCur?'#94a3b8':(spike.has(mi)?'#ff8f8f':drop.has(mi)?'#c4b5fd':'#aab3c5');
+   ctx.fillStyle=isCur?C_CUR:col;ctx.beginPath();ctx.arc(cx,y,br,0,7);ctx.fill();ctx.restore();
+   ctx.fillStyle=C_ON;ctx.font='800 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(v),cx,y);ctx.textBaseline='alphabetic';
+   ctx.fillStyle=isCur?C_CUR:(spike.has(mi)?C_SPIKE:drop.has(mi)?C_DROP:C_BASE);
    ctx.font=glow?'700 12px Arial':'12px Arial';ctx.textAlign='center';ctx.fillText(labs[i].short,cx,H-22);
    ctx.fillStyle='#6b7280';ctx.font='10px Arial';ctx.fillText(isCur?'חלקי':("'"+labs[i].yy),cx,H-8)})}
 function projChart(cv,r){
@@ -3525,9 +3543,20 @@ function decisionBlock(r){
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div></div>`}
 function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
+ /* ============ חריגות בהיסטוריה ============
+    נמדד: 248 פריטים בדוח מחזיקים פיק ו-30 מחזיקים צניחה, אבל «פיק»
+    הופיע בהסבר של 5 פריטים בלבד — 2% ממי שיש לו אחד. הטקסט הזה נבנה
+    כאן ורונדר בסוף שורת המקרא של הגרף — 444 תווים לתוך שורה אחת,
+    אחרי «מגמה» ו«דפוס», בתוך מקטע שהיה מקופל. כלומר הוא היה שם ולא
+    היה נראה. עכשיו הוא מקטע משלו בראש תיק הפריט, והוסר מהמקרא כדי
+    שלא יופיע פעמיים.
+    הוא אינו סיבת סיווג ולא הופך להיות אחת — פיק לבדו לא דוחף פריט
+    לתור, אחרת 248 פריטים היו נכנסים אליו. זו עובדה על ההיסטוריה,
+    והיא נחוצה כשמחליטים כמות. */
  const notes=[];
- if(A.spikes.length)notes.push(A.spikes.map(s=>`פיק ב${LABELS[s.i-1].name}: ${s.q} — פי ${s.x}`).join(' · '));
- if(A.drops.length)notes.push('<span style="color:var(--purple);font-weight:700">'+A.drops.map(s=>`צניחה ב${LABELS[s.i-1].name}: ${s.q} — חשד אזילה`).join(' · ')+'</span>');
+ if(A.spikes.length)notes.push(`<span class="anom s">▲ ${A.spikes.map(s=>`פיק ב${LABELS[s.i-1].name}: ${s.q} יח׳ — פי ${s.x} מהחציון`).join(' · ')}</span>`);
+ if(A.drops.length)notes.push(`<span class="anom d">▼ ${A.drops.map(s=>`צניחה ב${LABELS[s.i-1].name}: ${s.q} יח׳ — חשד אזילה`).join(' · ')}</span>`);
+ const anomHTML=notes.length?`<div class="anoms">${notes.join('')}</div>`:'';
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
  <div class="ohead"><div class="opn">${esc(r.pn)}${copyBtn(r.pn)}</div><h2>${esc(r.desc)}</h2>
@@ -3544,6 +3573,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  </div>
  <div class="opad">
   <div class="col">
+   ${anomHTML?`<div class="sec" data-dt="why"><h3>חריגות בהיסטוריה</h3>${anomHTML}</div>`:''}
    <div class="sec" data-dt="why"><h3>למה הפריט ברשימה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
    <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
    <div class="sec" data-dt="why"><h3>פעולות מומלצות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
@@ -3569,7 +3599,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
     <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
    <details class="dsec" data-dt="data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
-    <div class="legend"><span style="color:#ff5b5b">●</span> פיק · <span style="color:#a78bfa">●</span> חשד אזילה · <span style="color:#e9a700">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}${notes.length?'<br>'+notes.join(' · '):''}</div></details>
+    <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
     <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח, משום שאין ETA בדוח. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
