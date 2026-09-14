@@ -5,7 +5,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const ctx=await b.newContext({viewport:{width:1512,height:860}});
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- await p.goto('file://'+path.join(SD,'..','index.html'));
+ await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2500);
 
  // 0. מצב ההתחלה — לפני שנגענו בכלום
@@ -60,8 +60,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  // 5. גרפים מתקפלים
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
  const d0=await p.evaluate(()=>{const o=document.querySelector('#detail .opad');return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflow}});
- await p.evaluate(()=>document.querySelector('#detail details[data-chart="c1"]').open=true);
- await p.waitForTimeout(400);
+ /* הגרף יושב בטאב «נתונים» של תיק הפריט. קנבס בטאב מוסתר הוא ברוחב 0
+    ואסור לצייר לתוכו — לכן קודם עוברים לטאב, ורק אז פותחים את המקטע. */
+ await p.evaluate(()=>{
+   const t=[...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='data');
+   if(t)t.click();
+   document.querySelector('#detail details[data-chart="c1"]').open=true});
+ await p.waitForTimeout(600);
  const drawn=await p.evaluate(()=>{const c=document.getElementById('c1');return c&&c.width>0&&
    c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(v=>v!==0)});
  ok('גרף הצריכה מצויר בפתיחת המקטע',drawn);
@@ -315,8 +320,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     כסף, והוא חייב להיות גלוי. */
  const seen=id=>p.evaluate(i=>{const e=document.getElementById(i);
    return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0},id);
+ /* הניווט עבר לסרגל הטאבים. הכפתורים בכותרת הפאנל נשארו כסיכום כספי
+    בתוך המסלול בלבד — ולכן נכנסים למסלול דרך הטאב, לא דרכם. */
+ const navTo=async k=>{await p.evaluate(m=>[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m===m)?.click(),k)};
+ const navSeen=k=>p.evaluate(m=>{const t=[...document.querySelectorAll('#tabs .tab')]
+   .find(e=>e.dataset.m===m);return !!t&&t.getBoundingClientRect().width>0},k);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
- ok('ב"היום" כפתור "מעל הדרישה" אינו נראה',!(await seen('floorBtn')));
+ ok('ב"היום" מסלול "רצפת SS" נגיש מסרגל הטאבים',await navSeen('floor'));
+ ok('ב"היום" הסיכום הכספי של המסלול אינו מוצג',!(await seen('floorBtn')));
  await p.evaluate(()=>setMode('month'));await p.waitForTimeout(700);
  const fl=await p.evaluate(()=>({vis:!document.getElementById('floorBtn').hidden,
    txt:document.getElementById('floorBtn').textContent.trim(),
@@ -327,12 +339,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       שהפער שלהם חיובי" — בפיקסצ׳ר ייתכן שאין חפיפה כלל */
    expectOver:(()=>{const rows=currentRows().slice(0,300);
      return rows.filter(r=>ssFloorGap(r)>0).length})()}));
- ok('ב"החודש" הכפתור נראה',await seen('floorBtn'),fl.txt);
+ ok('ב"החודש" המסלול עדיין נגיש מהטאבים',await navSeen('floor'));
  ok('עמודת "הדרישה" נוספה למסלול הפרמטרים',fl.heads.includes('הדרישה'),fl.heads.join(' · '));
  ok('הדרישה הסטטיסטית מוצגת גם כשהרצפה ניצחה',fl.need>0,fl.need+' שורות');
  ok('הסימון תואם בדיוק את הפריטים שהפער שלהם חיובי',
    fl.over===fl.expectOver,`מסומנים ${fl.over} · צפוי ${fl.expectOver}`);
- await p.click('#floorBtn');await p.waitForTimeout(800);
+ await navTo('floor');await p.waitForTimeout(800);
+ ok('בתוך המסלול מופיע הסיכום הכספי',await seen('floorBtn'));
  const fv=await p.evaluate(()=>{
    const cells=[...(document.querySelector('#tbl tbody tr[data-i]')||{children:[]}).children].map(td=>td.textContent.trim());
    return {rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
@@ -348,7 +361,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('הפער חיובי בכל שורה',+fv.cells[5]>0,fv.cells.join(' | '));
  ok('הפוטר מסכם יחידות וכסף',/יח׳ מעל הדרישה/.test(fv.pgR),fv.pgR);
  await p.click('#floorBtn');await p.waitForTimeout(600);
- ok('לחיצה שנייה חוזרת ל"החודש"','month'===await p.evaluate(()=>mode));
+ ok('לחיצה על הסיכום מחזירה ל"החודש"','month'===await p.evaluate(()=>mode));
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
 
  /* ============ הדלת לפריטים שסומנו "טופל" ============
@@ -358,17 +371,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
  const dHid=()=>p.evaluate(()=>document.getElementById('doneBtn').hidden);
- ok('בלי סימונים הכפתור "טופלו" מוסתר',await dHid());
+ const dTab=()=>navSeen('done');
+ ok('בלי סימונים הטאב "טופלו" אינו קיים',!(await dTab()));
  const n0=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  for(let k=0;k<3;k++){
   await p.evaluate(()=>document.querySelector('#tbl tbody tr[data-i] .dn[data-done]').click());
   await p.waitForTimeout(400)}
- ok('אחרי סימון הכפתור מופיע',!(await dHid()));
- ok('המונה מציג את המספר הנכון',
-   '3'===await p.evaluate(()=>document.getElementById('doneN').textContent));
+ ok('אחרי סימון הטאב מופיע',await dTab());
+ ok('תג הטאב מציג את המספר הנכון',
+   '3'===await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')]
+     .find(t=>t.dataset.m==='done')?.querySelector('.bdg')?.textContent.trim()));
  ok('הפריטים ירדו מתור העבודה',
    (await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))===n0-3);
- await p.click('#doneBtn');await p.waitForTimeout(600);
+ await navTo('done');await p.waitForTimeout(600);
  const dv=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' · '),
    undo:document.querySelectorAll('#tbl .dn[data-undo]').length,
@@ -383,12 +398,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ביטול מוריד את הפריט מהמסך',
    2===await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length));
  await p.click('#doneBtn');await p.waitForTimeout(500);
- ok('לחיצה שנייה מחזירה ל"היום"','today'===await p.evaluate(()=>mode));
+ ok('לחיצה על הסיכום מחזירה ל"היום"','today'===await p.evaluate(()=>mode));
  ok('הפריט שבוטל חזר לתור העבודה',
    (await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))===n0-2);
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.waitForTimeout(600);
- ok('ניקוי הסימונים מסתיר את הכפתור שוב',await dHid());
+ ok('ניקוי הסימונים מסיר את הטאב שוב',!(await dTab()));
 
  /* ============ מלאי · בדרך · לקוח ממתין ============
     שלוש העמודות שמכריעות אם לפתוח הזמנה. "בדרך" מעומעם בכוונה:

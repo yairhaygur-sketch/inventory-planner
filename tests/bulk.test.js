@@ -7,7 +7,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
  p.on('dialog',d=>d.accept());
- await p.goto('file://'+path.join(SD,'..','index.html'));
+ await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
  // עוברים לטאב "הון לשחרור" ומסננים
  await p.evaluate(()=>{cur='excess';render()});await p.waitForTimeout(400);
