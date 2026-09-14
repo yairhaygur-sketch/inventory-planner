@@ -8,18 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Archivo:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
-:root{
---bg:#eef1f7;--panel:#ffffff;--ink:#1e2433;--dim:#6b7280;--line:#e6e9f0;--line2:#eef1f6;
---acc:#5b5bd6;--accD:#4a4ac2;--accL:#eef0fe;--accBorder:#d5d8fb;
---red:#dc2626;--redL:#fef2f2;--org:#ea7a0c;--orgL:#fff7ed;--grn:#16a34a;--grnL:#f0fdf4;--yel:#d97706;--blue:#2563eb;--blueL:#eff6ff;--purple:#7c3aed;--purpleL:#f5f3ff;--gray:#64748b;
---neutral:#8b91a3;--neutralL:#f1f2f6;
---shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
---shadowH:0 6px 18px rgba(16,24,40,.14);
---r:14px}
-body.dark{--bg:#12151c;--panel:#1b2029;--ink:#e6e9f0;--dim:#9aa3b2;--line:#2a303c;--line2:#232833;
- --accL:#20264a;--accBorder:#39406e;--neutralL:#232833;
- --redL:#3a1d21;--orgL:#3a2a19;--grnL:#17301f;--blueL:#182740;--purpleL:#221b38;
- --shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px rgba(0,0,0,.4);--shadowH:0 8px 22px rgba(0,0,0,.55)}
+/* טוקנים — מקור אמת יחיד. ראה :root המאוחד למטה. */
 body.dark .updated,body.dark .btn,body.dark .qsearch,body.dark .ddbtn,body.dark .cp,body.dark .dn,body.dark .marks button,body.dark .top input[type=month]{background:#232833}
 body.dark .menu,body.dark .ddpanel,body.dark .colpop,body.dark .modal,body.dark .kv .box,body.dark .fclear{background:#1b2029}
 body.dark .whead,body.dark .kpi,body.dark .tab,body.dark thead th,body.dark .fixbox,body.dark .acts li,body.dark .mvcard,body.dark .calc .ch,body.dark .calc tr.step td{background:#20252f}
@@ -308,14 +297,17 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --red:#b23b32;--redL:#fbeceb;--redInk:#fdf2f0;--org:#c9974a;--orgL:#fdf5e9;--grn:#4a8a5c;--grnL:#eef6f0;
  --blue:#3f77ad;--blueL:#eaf1f8;--purple:#6d5aa8;--purpleL:#f0edf8;--gray:#6f7885;
  --neutral:#8d97a3;--neutralL:#eef1f5;--bar:#8b97a6;
- --shadow:none;--shadowH:0 8px 24px rgba(15,18,22,.18);--r:0}
+ --shadow:none;--shadowH:0 8px 24px rgba(15,18,22,.18);--r:0;
+ --panel0:#f2f4f8;--soft:#5a6472;
+ --f-xs:10px;--f-sm:11.5px;--f-md:13px;--f-lg:19px;--f-xl:24px}
 body.dark{
  --bg:#0f1216;--panel:#161a1f;--panel2:#1d222a;--ink:#e7ebf0;--dim:#8d97a3;--dimmer:#6f7885;
  --line:#262c34;--line2:#202630;--acc:#7aa7d4;--accD:#9ec2e6;--accL:#1d2836;--accBorder:#31465c;
  --red:#b23b32;--redL:#2c1614;--redInk:#fdf2f0;--org:#c9974a;--orgL:#3a2519;--grn:#5aa06e;--grnL:#16281c;
  --blue:#7aa7d4;--blueL:#17222e;--purple:#9c8ad4;--purpleL:#221d33;--gray:#8d97a3;
  --neutral:#495260;--neutralL:#1e2228;--bar:#495260;
- --shadow:none;--shadowH:0 10px 30px rgba(0,0,0,.55)}
+ --shadow:none;--shadowH:0 10px 30px rgba(0,0,0,.55);
+ --panel0:#12161a;--soft:#b8c1cc}
 body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
 /* קצוות חדים בכל הממשק */
 .widget,.kpi,.tab,.btn,.badge,.chip,.fchip,.rq,.cp,.dn,.qbtn,.sxls,.seg,.menu,.ddpanel,.colpop,.modal,
@@ -384,8 +376,6 @@ body.dark .snone,body.dark .fclear{border-color:var(--line)}
 body.dark .sres mark{background:#5c4a12;color:#fff}
 
 /* ============ Stage B-C — פריסה קבועה לפי design/stage-bc-full-screen.dc.html ============ */
-:root{--panel0:#f2f4f8;--soft:#5a6472}
-body.dark{--panel0:#12161a;--soft:#b8c1cc}
 .dash{padding:0;gap:0;grid-template-columns:220px minmax(0,1fr) 360px;grid-template-rows:auto minmax(0,1fr) auto;background:var(--bg);overflow:hidden}
 .widget{border:0;border-radius:0;box-shadow:none;min-height:0}
 .whead{display:none}
@@ -800,7 +790,6 @@ td.pnc{padding:5px 14px;font-size:13px}
    ולכן הבלוק הזה יושב אחרון בגיליון בכוונה — הוא הסמכות היחידה על
    גודל טקסט במסך הרשימה. כרטיס הפריט והחלוניות שומרים על הסולם שלהם
    בשלב הזה.                                                          */
-:root{--f-xs:10px;--f-sm:11.5px;--f-md:13px;--f-lg:19px;--f-xl:24px}
 
 /* xl — מוני המצב בלבד */
 .tab .n{font-size:var(--f-xl);font-weight:700;letter-spacing:-.02em}
