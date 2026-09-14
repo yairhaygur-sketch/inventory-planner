@@ -14,7 +14,7 @@ body.dark .menu,body.dark .ddpanel,body.dark .colpop,body.dark .modal,body.dark 
 body.dark .whead,body.dark .kpi,body.dark .tab,body.dark thead th,body.dark .fixbox,body.dark .acts li,body.dark .mvcard,body.dark .calc .ch,body.dark .calc tr.step td{background:var(--surface-2)}
 body.dark .kpi .ic{background:#2a303c}
 body.dark .kpi.urgent{background:linear-gradient(180deg,#2a1e22,#20252f)}
-body.dark tbody tr:hover{background:#232833}
+body.dark tbody tr:hover{background:var(--surface-2)}
 body.dark tbody tr.sel{background:#20264a}
 *{box-sizing:border-box}
 html,body{height:100%;overflow:hidden;margin:0}
@@ -127,7 +127,7 @@ th .fdot{width:6px;height:6px;border-radius:50%;background:var(--acc);display:no
 th.filt .fdot{display:inline-block}
 td{padding:8px 9px;border-bottom:1px solid var(--line2);white-space:nowrap}
 tbody tr{cursor:pointer}
-tbody tr:hover{background:#f7f8fb}
+tbody tr:hover{background:var(--surface-2)}
 tbody tr.sel{background:var(--accL)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%}
 .obj{color:var(--acc);font-weight:700}
@@ -326,11 +326,12 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --gray:#636D7A; --neutral:#9AA5B1; --neutralL:#EFF2F5; --bar:#8A94A0;
 
  /* ---- טיפוגרפיה ----
-    הסולם החדש נכנס כשמות בלבד. השמות הישנים שומרים על הערכים שלהם
-    עד שלב 2, כי הם קובעים את גיאומטריית הטבלה: f-md 13->13.5 גוזל
-    14px מעמודת התיאור ו-f-xs 10->10.5 עוד 4px, והעמודה יורדת
-    מ-216px ל-198px — מתחת ל-PUSH_DESC_MIN. המגירה מפסיקה לדחוף.
-    שינוי גודל בטבלה הוא שינוי טבלה, והוא שייך לשלב 2. */
+    הסולם החדש נכנס כשמות. הגדלים הישנים נשארים, וזו החלטה ולא דחייה.
+    f-md 13->13.5 גוזל 14px מעמודת התיאור, שיורדת מ-216px ל-202px —
+    שני פיקסלים מעל PUSH_DESC_MIN=200. מרווח כזה אינו מקום להשאיר בו
+    כלי שעובדים בו יומיום. וחשוב מזה: המפרט עצמו קובע שבטבלה צפופה
+    ההיררכיה נוצרת מ*משקל* ולא מגודל. הגדלת הבסיס סותרת את הנימוק
+    שלו. ההיררכיה כאן נבנית ממשקל, והיא לא עולה אף פיקסל. */
  --f-micro:10.5px; --f-base:13.5px; --f-num:28px; --f-hero:40px;
  --f-xs:10px; --f-sm:11.5px; --f-md:13px; --f-lg:19px; --f-xl:24px;
 
@@ -481,9 +482,21 @@ td{padding:12px 10px;border-bottom:1px solid var(--line2)}
    כדי שהטקסט יתחיל באותו קו (ראה #tbl thead th[data-col="pn"]) */
 td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-family:var(--num);font-weight:700;font-size:15px;
  font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:right}
-tr.sev3 td.pnc{border-inline-start-color:var(--red)}
-tr.sev2 td.pnc{border-inline-start-color:var(--org)}
-tr.sev1 td.pnc,tr.sev0 td.pnc{border-inline-start-color:var(--neutral)}
+/* ==================== פס החומרה ====================
+   נמדד לפני: הפס היה קיים במצב «הקטלוג» בלבד. בחמשת המסלולים
+   האחרים — היום, החודש, רצפת SS, מגמה, לקוח ממתין — השורה לא נשאה
+   שום סימן חומרה. זה אותו כלל, על שני סוגי הטבלאות. */
+tr[class*="sev"]>td.rnk{border-inline-start:3px solid var(--calm)}
+/* מספרים בטבלה מיושרים לעמודה — ספרה מתחת לספרה */
+#tbl td,#tbl th{font-variant-numeric:tabular-nums}
+/* היררכיה ממשקל ולא מגודל: המק"ט הוא מה שסורקים, והוא מקבל 700.
+   התיאור הוא מה שקוראים, והוא נשאר 400. אפס פיקסלים של עלות בגובה. */
+#tbl td .obj{font-weight:700}
+td.pnc{border-inline-start-width:3px}
+tr.sev3>td.rnk,tr.sev3 td.pnc{border-inline-start-color:var(--critical)}
+tr.sev2>td.rnk,tr.sev2 td.pnc{border-inline-start-color:var(--high)}
+tr.sev1>td.rnk,tr.sev1 td.pnc{border-inline-start-color:var(--steady)}
+tr.sev0>td.rnk,tr.sev0 td.pnc{border-inline-start-color:var(--calm)}
 /* ============ יישור עמודות מספריות ============
    text-align:end ב-RTL הוא *שמאל*, וכותרות הטבלה יושבות ב-start (ימין).
    התוצאה הייתה שכל ערך מספרי ישב בקצה הנגדי של התא מהכותרת שלו — עד
@@ -2882,7 +2895,7 @@ function niceTicks(top){const out=[];for(let i=0;i<=4;i++)out.push(top*i/4);
  return out.filter(t=>Number.isInteger(t))}
 function custRow(r,i){
  const stock=Math.max(0,r.stock||0);
- return `<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+ return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
   <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
   <td>${hlMark(r.desc.slice(0,36),SQ)}</td>
   <td class="num"><span class="stake qty">${r.cust.toLocaleString('he-IL')}</span></td>
@@ -2942,7 +2955,7 @@ function renderApplied(rows){
    <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`);
   if(coll||!list.length)continue;
   for(const r of list){const i=idx++,p=r.apPrev;
-   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
     <td class="num">${apCell(p.rop,r.rop,p.sugROP,p.rState)}</td>
@@ -2996,7 +3009,7 @@ function renderDecisions(rows){
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
     const buy=actQty(r);
-    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
@@ -3020,7 +3033,7 @@ function renderDecisions(rows){
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
     const buy=actQty(r);
-    body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
@@ -3035,7 +3048,7 @@ function renderDecisions(rows){
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   if(track==='m1'){const gap=Math.ceil(r.r3-r.free),dry=r.free<=0;
-   body.push(`<tr data-i="${i}" class="sev${dry?3:2}"><td><span class="rank${dry?' hi':''}">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${dry?3:2}"><td class="rnk"><span class="rank${dry?' hi':''}">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td>
     <td>${hlMark(r.desc.slice(0,22),SQ)}</td>
     <td class="num">${r.c3}</td><td class="num">${r.r3.toFixed(1)}</td>
@@ -3046,7 +3059,7 @@ function renderDecisions(rows){
   if(track==='done'){const mk=r.mark||{};
    const when=mk.ts?new Date(mk.ts):null;
    const p2=n=>String(n).padStart(2,'0');
-   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,44),SQ)}</td>
     <td>${esc(MARK_LABEL[mk.t]||'מסומן')}${mk.note?' — '+esc(mk.note):''}</td>
@@ -3054,7 +3067,7 @@ function renderDecisions(rows){
     <td><button class="dn undo" data-undo="${esc(r.pn)}">↺ בטל סימון</button></td></tr>`);
    return}
   if(track==='floor'){const gap=ssFloorGap(r),need=ssNeed(r);
-   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
     <td class="num"><b>${r.ssMin.toLocaleString('he-IL')}</b></td>
@@ -3064,7 +3077,7 @@ function renderDecisions(rows){
     <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td></tr>`);
    return}
   if(track==='trend'){const gap=trendGap(r),pc=trendPct(r);
-   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,32),SQ)}</td>
     <td class="num tdn">↓${Math.abs(pc)}%</td>
@@ -3074,7 +3087,7 @@ function renderDecisions(rows){
     <td class="num">${money(gap*(r.price||0),r.currency)}</td></tr>`);
    return}
   if(track==='fix'||track==='month'){
-   body.push(`<tr data-i="${i}"><td><span class="rank">${i+1}</span></td>
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
