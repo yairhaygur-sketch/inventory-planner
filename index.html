@@ -486,6 +486,70 @@ td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-famil
    נמדד לפני: הפס היה קיים במצב «הקטלוג» בלבד. בחמשת המסלולים
    האחרים — היום, החודש, רצפת SS, מגמה, לקוח ממתין — השורה לא נשאה
    שום סימן חומרה. זה אותו כלל, על שני סוגי הטבלאות. */
+.dtabs{display:flex;gap:4px;padding:6px 14px;background:var(--surface-2);
+  border-bottom:1px solid var(--line)}
+.dtabs .dt{border:0;background:transparent;font-family:inherit;font-size:var(--f-md);
+  font-weight:700;color:var(--ink-2);padding:6px 12px;border-radius:var(--r-ctl);cursor:pointer}
+.dtabs .dt:hover{background:var(--surface)}
+.dtabs .dt.on{background:var(--accent);color:var(--on-fill)}
+
+/* ==================== תדריך הפתיחה ==================== */
+.brief{position:fixed;inset:0;z-index:400;background:var(--paper);
+  display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+/* display:flex דורס את [hidden] המובנה. בלי זה השכבה הסגורה נשארת
+   פרושה על כל המסך ובולעת כל לחיצה — הכלי כולו מפסיק להגיב. */
+.brief[hidden]{display:none}
+.briefbox{width:min(980px,100%)}
+.briefhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.briefhd b{font-size:var(--f-lg);font-weight:800}
+.briefhd span{font-size:var(--f-md);color:var(--ink-2)}
+.briefdiag{background:var(--high-bg);color:var(--high);border-inline-start:3px solid var(--high);
+  padding:9px 12px;font-size:var(--f-md);font-weight:700;margin-bottom:12px}
+.briefcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:16px}
+.bcard{background:var(--surface);border:1px solid var(--line);padding:13px 14px;
+  border-inline-start:3px solid var(--c,var(--calm))}
+.bcard .bl{font-size:var(--f-xs);letter-spacing:.04em;color:var(--ink-3);font-weight:700}
+.bcard .bv{font-family:var(--num);font-size:26px;font-weight:800;color:var(--c,var(--ink));
+  font-variant-numeric:tabular-nums;line-height:1.25;margin-top:3px}
+.bcard .bs{font-size:var(--f-sm);color:var(--ink-2);margin-top:3px;line-height:1.5}
+.bcard .bs b{font-family:var(--num);font-variant-numeric:tabular-nums}
+.briefline{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--surface-2);
+  border-bottom:1px solid var(--line);font-size:var(--f-sm);color:var(--ink-2)}
+.briefline button{border:0;background:none;color:var(--accent);font-weight:700;
+  font-family:inherit;font-size:var(--f-sm);cursor:pointer;text-decoration:underline}
+@media(max-width:720px){.briefcards{grid-template-columns:1fr}}
+
+/* ==================== סרגל הניווט ====================
+   מחלקה נפרדת בכוונה. ל-.tab הקיים יש 47 בלוקי כללים בשבעה הקשרים,
+   והוא משמש גם ל-#movtabs. .navtab מנצח אותם בספציפיות ולא נוגע בהם. */
+.tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2);padding:4px;
+  grid-template-columns:none}
+.tab.navtab{display:flex;align-items:center;gap:7px;min-width:0;flex:0 0 auto;
+  background:transparent;border:0;border-radius:var(--r-ctl);padding:7px 11px;
+  color:var(--ink-2);font-weight:700;box-shadow:none;transition:.12s;cursor:pointer}
+.tab.navtab::before{display:none}
+.tab.navtab:hover{background:var(--surface)}
+.tab.navtab .nico{font-size:15px;line-height:1;color:var(--c,var(--calm))}
+.tab.navtab .t{font-size:var(--f-md);font-weight:700;white-space:nowrap;overflow:visible;
+  text-overflow:clip}
+.tab.navtab .bdg{font-family:var(--num);font-size:11.5px;font-weight:700;
+  background:var(--calm-bg);color:var(--ink-2);border-radius:99px;padding:1px 7px;
+  font-variant-numeric:tabular-nums}
+/* תג אדום גם כשהטאב כבוי — ככה «היום» צועק כשיש בו חומרה 3 */
+.tab.navtab.alert .bdg{background:var(--critical-bg);color:var(--critical)}
+.tab.navtab .m{display:none}
+.tab.navtab.sel{background:var(--accent);color:var(--on-fill);box-shadow:none}
+/* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
+   בלי ההצהרה המפורשת הזאת הוא נותן דיו בהיר על מילוי בהיר: 2.48:1. */
+.tab.navtab.sel .t,.tab.navtab.sel .nico{color:var(--on-fill)}
+.tab.navtab.sel .bdg{background:color-mix(in srgb,var(--on-fill) 22%,transparent);color:var(--on-fill)}
+.tab.navtab.sel.alert .bdg{background:var(--critical);color:var(--on-fill)}
+/* המשנה של הטאב הפעיל בלבד — ספירה בוחרת מסלול, הסכום שייך לתוכו */
+.tab.navtab.sel .m{display:inline;font-size:11px;font-weight:600;
+  color:var(--on-fill);opacity:.85;white-space:nowrap}
+@media(max-width:1280px){.tab.navtab .t{font-size:12px}.tab.navtab{padding:6px 8px;gap:5px}
+  .tab.navtab.sel .m{display:none}}
+
 tr[class*="sev"]>td.rnk{border-inline-start:3px solid var(--calm)}
 /* מספרים בטבלה מיושרים לעמודה — ספרה מתחת לספרה */
 #tbl td,#tbl th{font-variant-numeric:tabular-nums}
@@ -1081,6 +1145,19 @@ tr.grp.sup b{font-size:var(--f-md)}
 </style>
 </head>
 <body>
+<!-- ============ תדריך פתיחה ============
+     מופיע רק כשיש משהו חדש מאז ההרצה הקודמת. אחרת — ישר לטבלה, עם פס
+     דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
+     בזה, ויש בדיקה ייעודית שטוענת *בלי* הפרמטר ובודקת את המספרים). -->
+<div id="brief" class="brief" hidden>
+  <div class="briefbox">
+    <div class="briefhd"><b id="briefTtl">התדריך</b>
+      <span id="briefSub"></span></div>
+    <div id="briefDiag" class="briefdiag" hidden></div>
+    <div id="briefCards" class="briefcards"></div>
+    <button class="btn pri" id="briefGo">התחל לעבוד</button>
+  </div>
+</div>
 <div class="top">
   <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
@@ -2097,9 +2174,33 @@ const TRACKS=[['short','חוסרים לטיפול'],['m1','אוזל החודש']
    ומנוע הרינדור ממשיך לעבוד בדיוק כפי שעבד. שום תצוגה לא הולכת לאיבוד —
    עודף, רקע, מסומנים ותנועות נגישים מתוך "הקטלוג". */
 const MODES=[
- ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--red)'],
- ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--purple)'],
- ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--gray)']];
+ ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--critical)'],
+ ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--steady)'],
+ ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--calm)']];
+/* ============ סרגל הניווט — שבעה מסלולים בשורה אחת ============
+   נמדד לפני: ארבעת המסלולים האלה היו כפתורים עם hidden, וכל אחד נראה
+   רק ממצב אחד — floor ו-trend מ«החודש», cust מ«היום», applied מ«החודש».
+   כלומר כדי להגיע ל«רצפת SS» היה צריך לדעת מראש שהיא קיימת *ו* לעמוד
+   במצב הנכון. הם שווים כסף ואי אפשר היה למצוא אותם.
+   כאן הם טאבים קבועים עם ספירה, לפי סעיף 3ב במפרט. */
+const NAV=[
+ ['today','היום','◷','var(--critical)'],
+ ['month','החודש','▤','var(--steady)'],
+ ['catalog','הקטלוג','☰','var(--calm)'],
+ ['floor','רצפת SS','⚑','var(--high)'],
+ ['trend','מגמה','↘','var(--trend)'],
+ ['cust','לקוח ממתין','◉','var(--critical)'],
+ ['applied','יישום','✓','var(--capital)']];
+/* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
+   שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
+function navCount(k){
+ if(!QF)return {n:0,hot:0};
+ const hot=rows=>rows.filter(r=>r.sev===3).length;
+ if(k==='floor'){const r=floorRows();return {n:r.length,hot:hot(r)}}
+ if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
+ if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
+ if(k==='applied'){return {n:APPLIED?APPLIED.total:0,hot:0}}
+ const r=modeRows(k);return {n:r.length,hot:hot(r)}}
 const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
  /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
@@ -2289,7 +2390,7 @@ function recordRun(items,Qs){
   x.hSeen=h.seen;x.hNew=h.seen===1;
   x.hDays=Math.max(0,Math.round((now-h.since)/864e5));
   x.hWorse=h.prevMiss!=null&&(h.miss||0)>h.prevMiss}
- return {runs:HIST.runs.length,newN:q.filter(x=>x.hNew).length,
+ return {runs:HIST.runs.length,repeat,newN:q.filter(x=>x.hNew).length,
    backN:q.filter(x=>x.hSeen>1).length,resolved:HIST.lastResolved||0,
    stuck:q.filter(x=>x.hSeen>=4).length}}
 function histReset(){HIST={runs:[],items:{}};saveHist()}
@@ -2437,23 +2538,26 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
  document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
 function tiles(){
  const t=document.getElementById('tabs');
- t.innerHTML=MODES.map(([k,name,sub,c])=>{
-  const rows=modeRows(k);
-  let mn=sub;
-  if(k==='today'){const u=rows.reduce((x,r)=>x+(r.miss||0),0);
-    mn=u?`${u.toLocaleString('he-IL')} יח׳ חסרות`:sub}
-  else if(k==='month'){const ex=rows.filter(r=>r.paramFix).length;
-    mn=ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:sub}
-  else{const cap=decisionList('cap');
-    mn=cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true,1)}`:sub}
-  return `<div class="tab mode ${k===mode?'sel':''}" style="--c:${c}" data-m="${k}"
-   title="${esc(name+' — '+sub)}"><div class="t">${name}</div>
-   <div class="nrow"><span class="n">${rows.length.toLocaleString('he-IL')}</span></div>
-   <div class="m">${mn}</div></div>`}).join('')
-  +`<div class="tab modx ${cur==='moves'?'sel':''}" style="--c:var(--blue)" data-m="moves"
-     title="תנועות — CF · CG · נכנס ולא נמכר"><div class="t">תנועות</div>
-     <div class="nrow"><span class="n">${(QF&&QF.all?QF.all:[]).length?'▤':''}</span></div>
-     <div class="m">CF · CG</div></div>`;
+ const sub=k=>{
+  if(k==='today'){const u=modeRows('today').reduce((x,r)=>x+(r.miss||0),0);
+   return u?`${u.toLocaleString('he-IL')} יח׳ חסרות`:''}
+  if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
+   return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
+  if(k==='catalog'){const cap=decisionList('cap');
+   return cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true,1)}`:''}
+  if(k==='applied'&&APPLIED)return `${APPLIED.done} יושמו`;
+  return ''};
+ t.innerHTML=NAV.map(([k,name,ico,c])=>{
+  const {n,hot}=navCount(k);
+  if(!n&&k!=='today'&&k!=='month'&&k!=='catalog')return '';
+  return `<div class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
+   title="${esc(name)}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
+   <span class="m">${esc(sub(k))}</span></div>`}).join('')
+  +(()=>{const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
+    return n||mode==='done'?`<div class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
+     title="פריטים שסימנת כטופל"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m"></span></div>`:''})()
+  +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
+     title="תנועות — CF · CG · נכנס ולא נמכר"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m">CF · CG</span></div>`;
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    setMode(e.dataset.m)})}
@@ -3321,7 +3425,11 @@ function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();
 function dropBar(ctx,x,y,w,h){const r=w/2;h=Math.max(h,r);
  ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x,y+r);
  ctx.arc(x+r,y+r,r,Math.PI,0);ctx.lineTo(x+w,y+h);ctx.closePath()}
-function barChart(cv,r){const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=192;
+function barChart(cv,r){
+ /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
+    ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
+ if(!cv||!cv.clientWidth)return;
+ const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=192;
  ctx.clearRect(0,0,W,H);
  ctx.fillStyle='#23262e';roundRect(ctx,0,0,W,H,18);ctx.fill();
  const hist=[...r.months].reverse(),histLabs=[...LABELS].reverse();
@@ -3351,7 +3459,11 @@ function barChart(cv,r){const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*
    ctx.fillStyle=isCur?'#94a3b8':(spike.has(mi)?'#ff8f8f':drop.has(mi)?'#c4b5fd':'#aab3c5');
    ctx.font=glow?'700 12px Arial':'12px Arial';ctx.textAlign='center';ctx.fillText(labs[i].short,cx,H-22);
    ctx.fillStyle='#6b7280';ctx.font='10px Arial';ctx.fillText(isCur?'חלקי':("'"+labs[i].yy),cx,H-8)})}
-function projChart(cv,r){const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=150;
+function projChart(cv,r){
+ /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
+    ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
+ if(!cv||!cv.clientWidth)return;
+ const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=150;
  ctx.clearRect(0,0,W,H);
  ctx.fillStyle='#23262e';roundRect(ctx,0,0,W,H,16);ctx.fill();
  const wk=12,padX=34,padTop=22,padBot=30,pts=[];
@@ -3425,12 +3537,17 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
   ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
   <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
  ${decisionBlock(r)}
+ <div class="dtabs" id="dtabs">
+  <button class="dt on" data-dt="why">החלטה</button>
+  <button class="dt" data-dt="data">נתונים</button>
+  <button class="dt" data-dt="hist">היסטוריה</button>
+ </div>
  <div class="opad">
   <div class="col">
-   <div class="sec"><h3>למה הפריט ברשימה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
-   ${movePanel(r)}${marksPanel(r)}
-   <div class="sec"><h3>פעולות מומלצות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
-   <div class="sec"><h3>נתוני מקור</h3><div class="kv">
+   <div class="sec" data-dt="why"><h3>למה הפריט ברשימה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
+   <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
+   <div class="sec" data-dt="why"><h3>פעולות מומלצות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
+   <div class="sec" data-dt="data"><h3>נתוני מקור</h3><div class="kv">
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
     <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
@@ -3445,18 +3562,32 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:''}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   </div>
   <div class="col">
-   <div class="sec"><h3 style="display:flex;justify-content:space-between;align-items:center">תיקון פרמטרים<button class="explain" id="explainBtn">🔍 מאחורי החישוב</button></h3><div class="fix">
+   <div class="sec" data-dt="data"><h3 style="display:flex;justify-content:space-between;align-items:center">תיקון פרמטרים<button class="explain" id="explainBtn">🔍 מאחורי החישוב</button></h3><div class="fix">
     <div class="fixbox"><div class="cur">ROP ב-SAP: ${r.rop}</div><div class="new">${r.sugROP}</div>${delta(r.rop,r.sugROP)}</div>
     <div class="fixbox"><div class="cur">SS ב-SAP: ${r.ss}</div><div class="new">${r.sugSS}</div>${delta(r.ss,r.sugSS)}</div>
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
     <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
-   <details class="dsec" data-chart="c1"><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
+   <details class="dsec" data-dt="data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
     <div class="legend"><span style="color:#ff5b5b">●</span> פיק · <span style="color:#a78bfa">●</span> חשד אזילה · <span style="color:#e9a700">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}${notes.length?'<br>'+notes.join(' · '):''}</div></details>
-   <details class="dsec" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
+   <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
     <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח, משום שאין ETA בדוח. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
  </div>`;
+ /* ============ שלושת הטאבים של תיק הפריט ============
+    המגירה הייתה זרם אחד: הסבר, החלטות, היסטוריה, פרמטרים וגרף ברצף.
+    הסלקטורים לא זזו — רק התווסף data-dt לכל מקטע, וזה מה שמסתתר. */
+ const dtSel=k=>{
+  document.querySelectorAll('#dtabs .dt').forEach(b=>b.classList.toggle('on',b.dataset.dt===k));
+  document.querySelectorAll('#detail [data-dt]').forEach(e=>{
+   if(e.classList.contains('dt'))return;
+   e.hidden=e.dataset.dt!==k});
+  /* הקנבס מצויר רק כשיש לו רוחב — מרעננים אחרי שהטאב נפתח */
+  if(k==='data')document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
+    if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
+    (d.dataset.chart==='c1'?barChart:projChart)(cv,r)})};
+ document.querySelectorAll('#dtabs .dt').forEach(b=>b.onclick=()=>dtSel(b.dataset.dt));
+ dtSel('why');
  /* קנבס בתוך details סגור הוא ברוחב 0 — מציירים רק כשנפתח */
  document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
   const draw=()=>{if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
@@ -3675,16 +3806,20 @@ document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFilt
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
 document.getElementById('doneBtn').onclick=()=>setMode(mode==='done'?'today':'done');
 document.getElementById('floorBtn').onclick=()=>setMode(mode==='floor'?'month':'floor');
-/* הכפתור נראה במצב "החודש" (שם יושבים תיקוני הפרמטרים) ובמסלול עצמו */
+/* ============ הכפתורים האלה אינם ניווט יותר ============
+   סרגל הטאבים נושא את הניווט לשבעת המסלולים. מה שנשאר לכפתור הוא
+   מה שטאב לא יכול לשאת: הסכום הכספי. לכן הוא מופיע *בתוך* המסלול
+   בלבד — סיכום בהקשר, לא דלת. זו ההחלטה שהמתכנן קיבל ב-14.9:
+   «הספירה עוזרת לבחור לאן ללכת, הסכום עוזר להחליט מה לעשות בפנים». */
 function syncFloorBtn(){const b=document.getElementById('floorBtn');if(!b)return;
  const rows=floorRows(),t=floorTotals(rows);
- b.hidden=!(t.n&&(mode==='month'||mode==='floor'));
+ b.hidden=mode!=='floor';
  b.classList.toggle('on',mode==='floor');
  document.getElementById('floorN').textContent=t.n.toLocaleString('he-IL');
  document.getElementById('floorV').textContent=' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}
 document.getElementById('apBtn').onclick=()=>setMode(mode==='applied'?'month':'applied');
 function syncApBtn(){const b=document.getElementById('apBtn');if(!b)return;
- const A=APPLIED,on=!!A&&A.total>0&&(mode==='month'||mode==='applied');
+ const A=APPLIED,on=!!A&&A.total>0&&mode==='applied';
  b.hidden=!on;if(!on)return;
  b.classList.toggle('on',mode==='applied');
  document.getElementById('apN').textContent=A.done.toLocaleString('he-IL');
@@ -3694,20 +3829,20 @@ function syncApBtn(){const b=document.getElementById('apBtn');if(!b)return;
 document.getElementById('custBtn').onclick=()=>setMode(mode==='cust'?'today':'cust');
 function syncCustBtn(){const b=document.getElementById('custBtn');if(!b)return;
  const rows=(QF&&QF.all?QF.all:[]).filter(custWaiting),t=custTotals(rows);
- b.hidden=!(t.n&&(mode==='today'||mode==='cust'));
+ b.hidden=mode!=='cust';
  b.classList.toggle('on',mode==='cust');
  document.getElementById('custN').textContent=t.n.toLocaleString('he-IL');
  document.getElementById('custV').textContent=' · '+moneyMix(rows,custVal)}
 document.getElementById('trendBtn').onclick=()=>setMode(mode==='trend'?'month':'trend');
 function syncTrendBtn(){const b=document.getElementById('trendBtn');if(!b)return;
  const rows=trendRows(),t=trendTotals(rows);
- b.hidden=!(t.n&&(mode==='month'||mode==='trend'));
+ b.hidden=mode!=='trend';
  b.classList.toggle('on',mode==='trend');
  document.getElementById('trendN').textContent=t.n.toLocaleString('he-IL');
  document.getElementById('trendV').textContent=' · '+moneyMix(rows,r=>trendGap(r)*(r.price||0))}
 function syncDoneBtn(){const b=document.getElementById('doneBtn');if(!b)return;
  const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
- b.hidden=!n&&mode!=='done';
+ b.hidden=mode!=='done';
  b.classList.toggle('on',mode==='done');
  document.getElementById('doneN').textContent=n}
 /* הכפתור מראה אם המסילה פתוחה וכמה סינונים פעילים בפועל */
@@ -3735,7 +3870,9 @@ function showDiag(){const el=document.getElementById('diag');
 function toggleDiag(){const el=document.getElementById('diag');
  el.classList.toggle('show');document.getElementById('dchip').classList.toggle('on',el.classList.contains('show'))}
 let ALL_RAW=null;
+let LOADMS=0;
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
+ const t0=performance.now();
  document.getElementById('updated').textContent='קורא קובץ...';
  const rd=new FileReader();
  rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});let best=null;
@@ -3778,9 +3915,81 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('plannerGreeting').textContent=planner?`${planner[0]} · ${tasks} פריטים דורשים טיפול`:`${tasks} פריטים דורשים טיפול`;
   document.getElementById('updated').textContent=`${ALL.length} מק״טים · ${tasks} משימות${detected?' · '+new Date(detected).toLocaleDateString('he-IL'):''}`;
-  colFilters={};apply()}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
+  colFilters={};apply();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
+/* ============ תדריך הפתיחה ============
+   שתי שאלות נפרדות: מה להציג, ומתי להציג.
+
+   מתי: רק כשיש משהו חדש מאז ההרצה הקודמת. המתכנן טוען פעמיים ביום,
+   כלומר ~500 פעם בשנה; מסך שחוסם בכל טעינה הופך למכשול בשבוע השני.
+   «חדש» = פריט חדש בתור הממתינים או בחומרה 3, גידול בתור המיידי,
+   אזהרת DIAG פעילה, או יותר מ-24 שעות מההרצה הקודמת.
+   אם אין היסטוריה בכלל — מציגים. עדיף מיותר מאשר להחביא שינוי. */
+const BRIEF_SKIP=(()=>{try{return new URLSearchParams(location.search).has('nobrief')}catch(_){return false}})();
+/* אזהרת DIAG *חדשה* היא חדשות; אותה אזהרה בדיוק כמו בהרצה הקודמת
+   אינה. «172 פריטים ללא מחיר FOB» היא תכונה קבועה של הדוח, ואם היא
+   תפתח את התדריך היא תפתח אותו בכל טעינה לנצח — כלומר תבטל את השער
+   כולו. נשמרת חתימה, ומשווים. */
+function diagSig(){return (DIAG&&DIAG.warn)?DIAG.warn.join('|'):''}
+function briefReason(h){
+ const sig=diagSig(), diagNew=sig&&sig!==(HIST.lastDiag||'');
+ /* אותו קובץ בדיוק שוב: recordRun מזהה זאת לפי החתימה ואינו רושם
+    הרצה חדשה. אין מה להשוות. */
+ if(h&&h.repeat)return diagNew?'אזהרה חדשה על הדוח':null;
+ if(!HIST.runs||HIST.runs.length<=1)return 'הדוח הראשון שנטען כאן';
+ const prev=HIST.runs[HIST.runs.length-2];
+ const hours=prev&&prev.ts?Math.round((Date.now()-prev.ts)/36e5):999;
+ if(diagNew)return 'אזהרה חדשה על הדוח';
+ if(h&&h.newN>0)return `${h.newN} פריטים חדשים בתור`;
+ const worse=(QF&&QF.all?QF.all:[]).filter(r=>r.hWorse).length;
+ if(worse>0)return `${worse} חוסרים החמירו`;
+ if(hours>=24)return `עברו ${hours} שעות מההרצה הקודמת`;
+ return null}
+function briefCards(h){
+ const Q3=(QF&&QF.all?QF.all:[]).filter(r=>r.sev===3).length;
+ const wait=(QF&&QF.waiting)?QF.waiting.length:0;
+ const cap=decisionList('cap');
+ const worse=(QF&&QF.all?QF.all:[]).filter(r=>r.hWorse).length;
+ const c=[];
+ c.push({l:'הדוח',v:ALL.length.toLocaleString('he-IL'),s:`מק״טים · נטען ב-${(LOADMS/1000).toFixed(1)} שנ׳`,c:'var(--calm)'});
+ c.push({l:'בוער עכשיו',v:Q3.toLocaleString('he-IL'),
+   s:`בחומרה 3 · <b>${wait}</b> לקוחות ממתינים ללא רכש`,c:'var(--critical)'});
+ if(cap.length){
+  /* כל מטבע בשורה משלו. הגרסה הראשונה כאן הציגה «$1.0M+2» — הצורה
+     המקוצרת שנועדה לטאב צר, שמחביאה שני מטבעות מאחורי סימן פלוס.
+     במסך שכולו מוקדש למספר אחד אין שום סיבה לקצר, ואין סיבה להסתיר
+     מטבע. הדומיננטי גדול, השאר מתחתיו — ולעולם לא מחוברים. */
+  const by=sumBy(cap,r=>r.expCap||0);
+  const rest=by.slice(1).map(([cu,v])=>money(v,cu)).join(' · ');
+  c.push({l:'הון לשחרור',v:by.length?money(by[0][1],by[0][0]):'—',
+   s:(rest?rest+'<br>':'')+`<b>${cap.length.toLocaleString('he-IL')}</b> פריטים בעודף`,
+   c:'var(--capital)'})}
+ if(h)c.push({l:'מה השתנה',v:(h.newN||0).toLocaleString('he-IL'),
+   s:`חדשים בתור · <b>${worse}</b> החמירו · <b>${h.resolved||0}</b> יצאו`,c:'var(--high)'});
+ if(APPLIED&&APPLIED.total)c.push({l:'מה יושם',v:APPLIED.done.toLocaleString('he-IL'),
+   s:`מתוך <b>${APPLIED.total}</b> המלצות · <b>${APPLIED.other}</b> שונו אחרת · <b>${APPLIED.none}</b> לא נגעו`,c:'var(--steady)'});
+ return c}
+function showBrief(h){
+ const box=document.getElementById('brief');if(!box)return;
+ const why=BRIEF_SKIP?null:briefReason(h);
+ /* נרשם אחרי ההחלטה, כדי שאותה אזהרה לא תיחשב חדשה בפעם הבאה */
+ HIST.lastDiag=diagSig();saveHist();
+ const line=document.getElementById('briefLine');
+ if(!why){box.hidden=true;document.body.classList.remove('briefing');
+  if(line)line.hidden=true;return}
+ document.getElementById('briefSub').textContent=why;
+ const d=document.getElementById('briefDiag');
+ const warn=(DIAG&&DIAG.warn)?DIAG.warn:[];
+ d.hidden=!warn.length; if(warn.length)d.textContent=warn.join(' · ');
+ document.getElementById('briefCards').innerHTML=briefCards(h).map(x=>
+  `<div class="bcard" style="--c:${x.c}"><div class="bl">${esc(x.l)}</div>
+   <div class="bv">${x.v}</div><div class="bs">${x.s}</div></div>`).join('');
+ box.hidden=false;document.body.classList.add('briefing')}
+function closeBrief(){const b=document.getElementById('brief');if(b)b.hidden=true;
+ document.body.classList.remove('briefing')}
+document.addEventListener('click',e=>{if(e.target&&e.target.id==='briefGo')closeBrief()});
+
 /* ============ תנועות אחרונות — מטאב-קבוע לטאב בתור העבודה ============ */
 /* הרצועה התחתונה גזלה 292px קבועים מתוך 860 — יותר מתור העבודה עצמו. */
 function showMovesPanel(on){

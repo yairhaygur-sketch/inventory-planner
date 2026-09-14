@@ -11,7 +11,7 @@ let total=0;
  const ctx=await b.newContext({viewport:{width:1600,height:1000}});
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
  const p=await ctx.newPage();
- await p.goto('file://'+path.join(__dirname,'..','index.html'));
+ await p.goto('file://'+path.join(__dirname,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',path.join(__dirname,'zmrp-demo.xlsx'));
  await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});
  await p.waitForTimeout(1200);

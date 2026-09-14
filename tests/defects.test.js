@@ -68,7 +68,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  const ctx=await b.newContext({viewport:{width:1512,height:860}});
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- await p.goto('file://'+path.join(SD,'..','index.html'));
+ await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/defects.xlsx');await p.waitForTimeout(2200);
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';

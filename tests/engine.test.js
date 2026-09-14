@@ -5,7 +5,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const ctx=await b.newContext({viewport:{width:1512,height:860}});
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
- await p.goto('file://'+path.join(SD,'..','index.html'));
+ await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
 
  const st=await p.evaluate(()=>{
@@ -26,6 +26,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    modeDefault: mode,
    modeCounts:  MODES.map(m=>m[0]+'='+modeRows(m[0]).length).join(' '),
    tabsShown:   document.querySelectorAll('#tabs .tab').length,
+   /* יעד ריק = תג שמראה 0. כזה לא אמור להופיע כלל. */
+   tabsEmpty:   [...document.querySelectorAll('#tabs .tab .bdg')]
+                  .filter(b=>b.textContent.trim()==='0').length,
+   tabsCore:    ['today','month','catalog']
+                  .filter(k=>[...document.querySelectorAll('#tabs .tab')]
+                    .some(t=>t.dataset.m===k)).length,
    trackStrip:  getComputedStyle(document.getElementById('track')).display,
    trackDefault:track,
    diag:        DIAG.warn.join(' | '),
@@ -44,7 +50,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מסלולים: short/m1/cap/fix',st.tracks==='short,m1,cap,fix',st.tracks);
  ok('שלושה מצבים: היום/החודש/קטלוג',st.modes==='today,month,catalog',st.modes);
  ok('ברירת מחדל = היום',st.modeDefault==='today'&&st.trackDefault==='short');
- ok('ארבעה יעדים בסרגל במקום 11',st.tabsShown===4,st.tabsShown+' אריחים');
+ /* היה: «ארבעה יעדים בסרגל במקום 11». הכלל ההוא נולד מכך ש-13 יעדים
+    לעבודה של 48 פריטים היו יותר מדי, ושניים מהם היו ריקים. הוא צמצם
+    נכון — אבל הוא צמצם את מה שנראה, לא את מה שקיים: ארבעת המסלולים
+    המשיכו להתקיים כ-hidden, כל אחד נגיש ממצב אחד בלבד, ואי אפשר היה
+    למצוא אותם. רצפת SS לבדה מחזיקה $127,834 + ₪106,574.
+    הכלל החדש: יעד מופיע אם *ויש בו משהו*. שלושת המצבים תמיד; מסלול
+    נוסף רק כשהספירה שלו גדולה מאפס. לכן המספר אינו קבוע — הוא נגזר
+    מהנתונים, וזה בדיוק מה שהכלל הקודם ניסה להשיג. */
+ ok('אין יעדים ריקים בסרגל',st.tabsEmpty===0,
+    st.tabsShown+' יעדים · '+st.tabsEmpty+' ריקים');
+ ok('שלושת המצבים תמיד בסרגל',st.tabsCore===3,st.tabsCore+' מתוך 3');
  ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
  ok('לכל מצב יש תוכן',/today=[1-9]/.test(st.modeCounts)&&/month=[1-9]/.test(st.modeCounts)&&/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
@@ -160,7 +176,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
  await p.evaluate(()=>{track='short';render()});await p.waitForTimeout(300);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
- const dt=await p.evaluate(()=>document.getElementById('detail').innerText);
+ /* המגירה מחולקת לשלושה טאבים. «נתוני מקור» יושב ב«נתונים», ולכן
+    קוראים את שלושתם ולא רק את הפעיל — התוכן לא אבד, הוא לחיצה מכאן. */
+ const dt=await p.evaluate(()=>{
+   const t=[...document.querySelectorAll('#dtabs .dt')];
+   let all='';
+   for(const b of t){b.click();all+=' '+document.getElementById('detail').innerText}
+   if(t[0])t[0].click();
+   return all});
  const dcur=await p.evaluate(()=>CURRENT_DETAIL&&CURRENT_DETAIL.currency);
  ok('כרטיס הפריט ללא "הכנסה בסיכון"',!dt.includes('הכנסה בסיכון'));
  ok('כרטיס הפריט ללא "הון נדרש לכיסוי"',!dt.includes('הון נדרש לכיסוי'));
