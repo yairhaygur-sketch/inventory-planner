@@ -493,6 +493,26 @@ td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-famil
 .dtabs .dt:hover{background:var(--surface)}
 .dtabs .dt.on{background:var(--accent);color:var(--on-fill)}
 
+.nlq{margin-bottom:11px}
+.nlq input{width:100%;box-sizing:border-box;font-family:inherit;font-size:var(--f-md);
+  padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-ctl);
+  background:var(--surface);color:var(--ink)}
+.nlq input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.nlqout{margin-top:7px;background:var(--surface-2);padding:8px 9px;font-size:var(--f-sm)}
+.nlqout .nrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.nlqout .nch{background:var(--accent-bg);color:var(--accent-ink);border:1px solid var(--accent-line);
+  border-radius:99px;padding:2px 9px;font-weight:700;font-size:11.5px}
+.nlqout .nch.st{background:var(--high-bg);color:var(--high);border-color:var(--high)}
+.nlqout .nch.no{background:transparent;color:var(--ink-3);border-color:var(--line);
+  text-decoration:line-through;font-weight:400}
+.nlqout .nsum{color:var(--ink-2);margin-bottom:7px;line-height:1.5}
+.nlqout .nsum b{font-family:var(--num);font-variant-numeric:tabular-nums;color:var(--ink)}
+.nlqout .nact{display:flex;gap:6px}
+.nlqout button{font-family:inherit;font-size:var(--f-sm);font-weight:700;cursor:pointer;
+  border-radius:var(--r-ctl);padding:5px 12px;border:1px solid var(--accent)}
+.nlqout button.go{background:var(--accent);color:var(--on-fill)}
+.nlqout button.no2{background:transparent;color:var(--accent)}
+
 /* ==================== תדריך הפתיחה ==================== */
 .brief{position:fixed;inset:0;z-index:400;background:var(--paper);
   display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
@@ -1207,6 +1227,14 @@ tr.grp.sup b{font-size:var(--f-md)}
   <section class="widget wfilters" id="w_filters" data-w="filters">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="fbody">
+      <!-- ============ שאילתה בשפה חופשית ============
+           לא מריצה כלום לבד. מציגה מה הבינה, ואתה מחליט. -->
+      <div class="nlq">
+        <label class="tl" for="nlq">שאלה בשפה חופשית</label>
+        <input id="nlq" type="text" autocomplete="off"
+          placeholder="למשל: בלמים של לינק אנד קו בלי מלאי">
+        <div id="nlqOut" class="nlqout" hidden></div>
+      </div>
       <div id="sidefilters"></div>
       <div class="toggle" id="onlyTasks"><span class="sw"></span><span>הצג רק משימות</span></div>
       <div class="chips" id="chips"></div>
@@ -3948,6 +3976,104 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   colFilters={};apply();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
+/* ============ שאילתה בשפה חופשית ============
+   אין כאן מודל ואין קריאת רשת. העיקרון: לא להמציא אוצר מילים אלא
+   להתאים את המילים שכתבת מול הערכים שקיימים *בדוח שלך* — מותגים,
+   ספקים, דגמים, קבוצות. לכן זה עובד על כל דוח בלי לתחזק רשימות.
+
+   שלושה כללים שהופכים את זה לבטוח:
+   1. שום דבר לא רץ לבד. מוצג מה זוהה, ואתה לוחץ «החל».
+   2. מילה שלא זוהתה מוצגת מחוקה. אתה רואה מה התעלמנו ממנו — בלי זה
+      אפשר לקבל רשימה שנראית סבירה ולפעול לפיה בלי לדעת שסוננה חלקית.
+   3. מוצגת ספירת התוצאות *לפני* ההחלה. */
+const NLQ_STATE=[
+ {k:'cust', re:/לקוח ממתין|ממתין ללקוח|הזמנת לקוח/, lab:'לקוח ממתין'},
+ {k:'floor',re:/רצפ|מעל הדריש|מלאי ביטחון גבוה/,    lab:'רצפת SS'},
+ {k:'trend',re:/מגמ|ירידה בביקוש|ביקוש יורד/,        lab:'מגמת ירידה'},
+ {k:'catalog',re:/עודף|הון כלוא|מלאי מת/,            lab:'הון כלוא'},
+ {k:'today',re:/דחוף|בוער|היום|חוסר/,                lab:'היום'},
+ {k:'month',re:/החודש|פרמטר|אוזל/,                   lab:'החודש'},
+ {k:'done', re:/טופל/,                               lab:'טופלו'}];
+const NLQ_STOP=new Set(['של','עם','ללא','בלי','את','כל','יש','לי','תראה','הצג','מה',
+ 'אילו','איזה','שיש','שאין','בלא','על','מ','ב','ל','ו','או','גם','פריטים','מקטים','מק״טים']);
+function nlqNorm(t){return String(t||'').replace(/["'׳״]/g,'').toLowerCase().trim()}
+/* מפרק שאילתה לשלושה חלקים: ערכי סינון שנמצאו בדוח, מצב, ומה שלא זוהה */
+function nlqParse(q){
+ const raw=String(q||'').trim();
+ if(!raw)return null;
+ const out={dims:{},state:null,unknown:[],n:0};
+ let rest=' '+raw+' ';
+ /* מצב — הביטוי הארוך ביותר קודם, כדי ש«לקוח ממתין» ינצח את «היום» */
+ for(const st of NLQ_STATE){if(st.re.test(raw)){out.state=st;
+   rest=rest.replace(st.re,' ');break}}
+ /* ערכים אמיתיים מהדוח: הארוך ביותר קודם, כדי ש«לינק אנד קו» ינצח «לינק» */
+ const vals=[];
+ for(const [k,lab] of FDEF){
+  const seen=new Set();
+  for(const it of ALL){const v=it[k];if(!v||seen.has(v))continue;seen.add(v);
+    if(String(v).length>=2)vals.push({k,lab,v,n:nlqNorm(v)})}}
+ vals.sort((a,b)=>b.n.length-a.n.length);
+ const restN=nlqNorm(rest);
+ let masked=restN;
+ for(const c of vals){
+  if(c.n.length<2)continue;
+  if(masked.indexOf(c.n)<0)continue;
+  (out.dims[c.k]=out.dims[c.k]||[]).push(c.v);
+  masked=masked.split(c.n).join(' ');
+ }
+ /* מה שנשאר ואינו מילת קישור — לא זוהה, ונאמר את זה */
+ /* עברית מדביקה תחיליות למילה: «הפריטים» אינו «פריטים». מנסים גם
+    בלי אות תחילית אחת ובלי שתיים, במקום למנות נטיות. */
+ const isStop=w=>{if(NLQ_STOP.has(w))return true;
+  if(/^[הבלמושכ]/.test(w)&&NLQ_STOP.has(w.slice(1)))return true;
+  if(/^[הבלמושכ]{2}/.test(w)&&NLQ_STOP.has(w.slice(2)))return true;
+  return false};
+ out.unknown=masked.split(/[\s,.;·־–—()]+/).filter(w=>w&&w.length>1&&!isStop(w));
+ /* כמה פריטים יתקבלו */
+ const pool=ALL.filter(it=>Object.entries(out.dims).every(([k,list])=>list.includes(it[k])));
+ out.n=pool.length;
+ out.empty=!out.state&&!Object.keys(out.dims).length;
+ return out}
+function nlqRender(r){
+ const box=document.getElementById('nlqOut');if(!box)return;
+ if(!r){box.hidden=true;return}
+ if(r.empty){box.hidden=false;
+  box.innerHTML=`<div class="nsum">לא זוהה כלום. נסה שם מותג, ספק, דגם, או ביטוי כמו «לקוח ממתין» / «עודף».</div>`;
+  return}
+ const chips=[];
+ if(r.state)chips.push(`<span class="nch st">${esc(r.state.lab)}</span>`);
+ for(const [k,list] of Object.entries(r.dims)){
+  const lab=(FDEF.find(f=>f[0]===k)||[,k])[1];
+  for(const v of list)chips.push(`<span class="nch">${esc(lab)}: ${esc(v)}</span>`)}
+ for(const w of r.unknown)chips.push(`<span class="nch no">${esc(w)}</span>`);
+ box.hidden=false;
+ box.innerHTML=`<div class="nrow">${chips.join('')}</div>`
+  +`<div class="nsum"><b>${r.n.toLocaleString('he-IL')}</b> פריטים תואמים`
+  +(r.unknown.length?` · <b>${r.unknown.length}</b> מילים לא זוהו ולא סוננו`:'')
+  +`</div><div class="nact"><button class="go" id="nlqGo">החל</button>`
+  +`<button class="no2" id="nlqNo">בטל</button></div>`}
+function nlqApply(r){
+ if(!r)return;
+ FDEF.forEach(([k])=>SEL[k]=new Set());
+ for(const [k,list] of Object.entries(r.dims))SEL[k]=new Set(list);
+ if(r.state)setMode(r.state.k); else apply();
+ apply();
+ document.getElementById('nlqOut').hidden=true;
+ toast(`הוחל · ${r.n.toLocaleString('he-IL')} פריטים`)}
+(function nlqWire(){
+ const inp=document.getElementById('nlq');if(!inp)return;
+ let last=null,t=null;
+ inp.addEventListener('input',()=>{clearTimeout(t);
+   t=setTimeout(()=>{last=ALL.length?nlqParse(inp.value):null;nlqRender(last)},180)});
+ inp.addEventListener('keydown',e=>{
+   if(e.key==='Enter'&&last&&!last.empty){e.preventDefault();nlqApply(last);inp.value=''}
+   if(e.key==='Escape'){inp.value='';nlqRender(null)}});
+ document.addEventListener('click',e=>{
+   if(!e.target)return;
+   if(e.target.id==='nlqGo'){nlqApply(last);inp.value=''}
+   if(e.target.id==='nlqNo'){inp.value='';nlqRender(null)}});
+})();
+
 /* ============ תדריך הפתיחה ============
    שתי שאלות נפרדות: מה להציג, ומתי להציג.
 
