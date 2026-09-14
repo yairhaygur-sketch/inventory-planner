@@ -9,9 +9,9 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <style>
 /* טוקנים — מקור אמת יחיד. ראה :root המאוחד למטה. */
-body.dark .updated,body.dark .btn,body.dark .qsearch,body.dark .ddbtn,body.dark .cp,body.dark .dn,body.dark .marks button,body.dark .top input[type=month]{background:#232833}
+body.dark .updated,body.dark .btn:not(.pri),body.dark .qsearch,body.dark .ddbtn,body.dark .cp,body.dark .dn,body.dark .marks button,body.dark .top input[type=month]{background:var(--surface-2)}
 body.dark .menu,body.dark .ddpanel,body.dark .colpop,body.dark .modal,body.dark .kv .box,body.dark .fclear{background:#1b2029}
-body.dark .whead,body.dark .kpi,body.dark .tab,body.dark thead th,body.dark .fixbox,body.dark .acts li,body.dark .mvcard,body.dark .calc .ch,body.dark .calc tr.step td{background:#20252f}
+body.dark .whead,body.dark .kpi,body.dark .tab,body.dark thead th,body.dark .fixbox,body.dark .acts li,body.dark .mvcard,body.dark .calc .ch,body.dark .calc tr.step td{background:var(--surface-2)}
 body.dark .kpi .ic{background:#2a303c}
 body.dark .kpi.urgent{background:linear-gradient(180deg,#2a1e22,#20252f)}
 body.dark tbody tr:hover{background:#232833}
@@ -30,7 +30,7 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .updated{font-size:11.5px;color:var(--dim);background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
 .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap}
 .btn:hover{border-color:var(--accBorder);background:var(--accL);color:var(--accD)}
-.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}.btn.pri:hover{background:var(--accD)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill)}.btn.pri:hover{background:var(--accD)}
 .top input[type=file]{width:0;opacity:0;position:absolute;pointer-events:none}
 .top input[type=month]{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:11.5px;font-family:inherit;background:#fff;color:var(--ink)}
 .top .rdlbl{font-size:11px;color:var(--dim)}
@@ -61,9 +61,9 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .wqueue{grid-column:2;grid-row:2;height:auto}
 .wdetail{grid-column:3;grid-row:2;height:auto}
 .wmoves{grid-column:1 / -1;grid-row:3;height:auto}
-.whead{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line2);background:#f8fafc;flex:0 0 auto;cursor:grab}
+.whead{display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--line2);background:var(--surface-2);flex:0 0 auto;cursor:grab}
 .whead:active{cursor:grabbing}
-.whead .hnd{color:#c2c8d6;font-size:14px;letter-spacing:-2px;cursor:grab}
+.whead .hnd{color:var(--ink-3);font-size:14px;letter-spacing:-2px;cursor:grab}
 .whead .wt{font-weight:700;font-size:13px}
 .whead .wsub{font-size:11px;color:var(--dim)}
 .whead .wsp{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
@@ -89,7 +89,7 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .ddbtn:hover{border-color:var(--accBorder)}
 .ddbtn.on{border-color:var(--acc);background:var(--accL);color:var(--accD);font-weight:600}
 .ddbtn .car{color:var(--dim);font-size:9px}
-.ddbtn .cnt{background:var(--acc);color:#fff;border-radius:9px;font-size:10px;font-weight:700;padding:1px 7px}
+.ddbtn .cnt{background:var(--acc);color:var(--on-fill);border-radius:9px;font-size:10px;font-weight:700;padding:1px 7px}
 .ddpanel{display:none;position:absolute;top:38px;inset-inline-start:0;inset-inline-end:0;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;max-height:260px;overflow:auto;box-shadow:var(--shadowH)}
 .ddpanel.open{display:block}
 .ddpanel input.s{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12px;margin-bottom:6px;font-family:inherit;outline:none}
@@ -144,7 +144,7 @@ tbody tr.sel{background:var(--accL)}
 .cp:hover{color:var(--acc);border-color:var(--accBorder);background:var(--accL)}
 .cp.done{color:var(--grn);border-color:#86efac;background:var(--grnL)}
 .dn{background:#fff;border:1px solid #86efac;color:var(--grn);border-radius:6px;font-size:10px;font-weight:700;padding:2px 8px;cursor:pointer;margin-inline-start:4px;font-family:inherit;vertical-align:1px}
-.dn:hover{background:var(--grn);color:#fff;border-color:var(--grn)}
+.dn:hover{background:var(--grn);color:var(--on-fill);border-color:var(--grn)}
 .pager{padding:8px 12px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--dim);flex:0 0 auto}
 .colpop{display:none;position:fixed;z-index:120;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadowH);width:240px;padding:9px}
 .colpop.open{display:block}
@@ -160,7 +160,7 @@ tbody tr.sel{background:var(--accL)}
 .colpop .vals label .c{color:var(--dim);margin-inline-start:auto;font-size:11px}
 .colpop .act{display:flex;justify-content:space-between;margin-top:8px}
 .colpop .act button{border:none;background:none;color:var(--acc);font-size:12px;cursor:pointer;font-family:inherit;padding:4px}
-.colpop .act button.ok{background:var(--acc);color:#fff;border-radius:8px;padding:5px 12px;font-weight:700}
+.colpop .act button.ok{background:var(--acc);color:var(--on-fill);border-radius:8px;padding:5px 12px;font-weight:700}
 .detail{flex:1;overflow:hidden;display:flex;flex-direction:column}
 .ohead{padding:11px 15px;border-bottom:1px solid var(--line2);flex:0 0 auto}
 .ohead h2{font-size:15px;margin:0 0 2px;font-weight:700}
@@ -185,15 +185,15 @@ tbody tr.sel{background:var(--accL)}
 .marks{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
 .marks button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit}
 .marks button:hover{border-color:var(--acc);color:var(--accD);background:var(--accL)}
-.marks button.on{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700}
+.marks button.on{background:var(--acc);color:var(--on-fill);border-color:var(--acc);font-weight:700}
 .marks button.dn2{border-color:#86efac;color:var(--grn)}
-.marks button.dn2:hover{background:var(--grn);color:#fff;border-color:var(--grn)}
-.marks button.dn2.on{background:var(--grn);border-color:var(--grn);color:#fff}
+.marks button.dn2:hover{background:var(--grn);color:var(--on-fill);border-color:var(--grn)}
+.marks button.dn2.on{background:var(--grn);border-color:var(--grn);color:var(--on-fill)}
 .marks button.clr:hover{border-color:var(--red);color:var(--red);background:var(--redL)}
 .marknote{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;font-family:inherit;outline:none}
 .acts{list-style:none;padding:0;margin:0;counter-reset:a}
 .acts li{background:#f7f8fb;border:1px solid var(--line2);border-radius:9px;padding:6px 10px;margin-bottom:5px;font-size:12px;display:flex;gap:8px;align-items:center;line-height:1.35}
-.acts li::before{counter-increment:a;content:counter(a);background:var(--acc);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto}
+.acts li::before{counter-increment:a;content:counter(a);background:var(--acc);color:var(--on-fill);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto}
 .fix{display:flex;gap:7px}
 .fixbox{flex:1;background:#f7f8fb;border:1px solid var(--line2);border-radius:9px;padding:8px;text-align:center}
 .fixbox .cur{font-size:10.5px;color:var(--dim)}.fixbox .new{font-size:23px;font-weight:800;margin:1px 0;color:var(--acc)}
@@ -216,11 +216,11 @@ canvas{display:block;width:100%;border-radius:12px}
 body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 .empty{color:var(--dim);padding:40px;text-align:center;font-size:13.5px}
 .explain{background:var(--accL);border:1px solid var(--accBorder);color:var(--accD);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:700}
-.explain:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+.explain:hover{background:var(--acc);color:var(--on-fill);border-color:var(--acc)}
 .modalwrap{display:none;position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.45);align-items:center;justify-content:center}
 .modalwrap.open{display:flex}
 .modal{background:#fff;border-radius:14px;width:min(720px,94vw);max-height:92vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-.modal .mhd{position:sticky;top:0;background:var(--acc);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.modal .mhd{position:sticky;top:0;background:var(--acc);color:var(--on-fill);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
 .modal .mhd b{font-size:14px}.modal .mhd .x{cursor:pointer;font-size:18px;line-height:1;opacity:.9}.modal .mhd .x:hover{opacity:1}
 .modal .mbody{padding:14px 16px}
 .calc{border:1px solid var(--line);border-radius:11px;margin-bottom:12px;overflow:hidden}
@@ -270,7 +270,7 @@ body{background:#f5f6f8}
 .seg button{border:none;background:none;font-family:inherit;font-size:11.5px;padding:6px 10px;cursor:pointer;color:var(--dim);border-inline-start:1px solid var(--line2);white-space:nowrap}
 .seg button:first-child{border-inline-start:none}
 .seg button:hover{color:var(--accD);background:var(--accL)}
-.seg button.on{background:var(--acc);color:#fff;font-weight:700}
+.seg button.on{background:var(--acc);color:var(--on-fill);font-weight:700}
 body.dark .seg{background:#232833}
 .phd .seg{margin-inline-start:auto}
 .phd .seg button{padding:5px 9px;font-size:11px}
@@ -292,22 +292,79 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 /* ============ שכבת עיצוב — מבוסס design/mockup-dark.html ============ */
 :root{
  --num:"Archivo","Assistant",Arial,sans-serif;
- --bg:#eef1f7;--panel:#ffffff;--panel2:#f4f6fa;--ink:#1e2433;--dim:#6b7280;--dimmer:#8891a0;
- --line:#dfe4ec;--line2:#e9edf3;--acc:#3f77ad;--accD:#2f5c88;--accL:#eaf1f8;--accBorder:#c5d8ea;
- --red:#b23b32;--redL:#fbeceb;--redInk:#fdf2f0;--org:#c9974a;--orgL:#fdf5e9;--grn:#4a8a5c;--grnL:#eef6f0;
- --blue:#3f77ad;--blueL:#eaf1f8;--purple:#6d5aa8;--purpleL:#f0edf8;--gray:#6f7885;
- --neutral:#8d97a3;--neutralL:#eef1f5;--bar:#8b97a6;
- --shadow:none;--shadowH:0 8px 24px rgba(15,18,22,.18);--r:0;
- --panel0:#f2f4f8;--soft:#5a6472;
- --f-xs:10px;--f-sm:11.5px;--f-md:13px;--f-lg:19px;--f-xl:24px}
+
+ /* ---- משטחים: נייר קריר בהטיה כחולה, לא לבן טהור ---- */
+ --paper:#F2F5F8; --surface:#FFFFFF; --surface-2:#E9EEF4;
+ --line:#D8E0E9; --line-soft:#EAEFF4;
+
+ /* ---- דיו ---- */
+ --ink:#151A21; --ink-2:#5A6673; --ink-3:#636D7A;
+
+ /* ---- מבטא: כחול פלדה. צבע המערכת, לא צבע התרעה ---- */
+ --accent:#1F5C8B; --accent-ink:#0F3A5A; --accent-bg:#E6EEF5; --accent-line:#BDD3E5;
+
+ /* ---- סמנטיקה: תפקיד אחד לכל צבע ---- */
+ --critical:#C0392B; --critical-bg:#FBECEA;   /* חומרה 3 — מישהו ממתין עכשיו */
+ --high:#A35905;     --high-bg:#FEF4E7;       /* חומרה 2 — אוזל החודש */
+ --steady:#1F5C8B;   --steady-bg:#E6EEF5;     /* חומרה 1 — פרמטרים, מעקב */
+ --capital:#2D7867;  --capital-bg:#E7F2EF;    /* הון כלוא — הזדמנות, לא סכנה */
+ --calm:#636D7A;     --calm-bg:#EFF2F5;       /* חומרה 0 — רקע, תקין */
+ --trend:#5B4B8A;    --trend-bg:#EFECF7;      /* מסלול מגמה — ציר נפרד מחומרה */
+
+ /* דיו על מילוי. מתהפך במצב כהה — ראה body.dark */
+ --on-fill:#FFFFFF;
+
+ /* ---- שמות ישנים. אותם ערכים בדיוק, עד שהשימושים יוחלפו ---- */
+ --bg:#F2F5F8; --panel:#FFFFFF; --panel2:#E9EEF4; --panel0:#F2F5F8;
+ --dim:#5A6673; --dimmer:#636D7A; --soft:#5A6673; --line2:#EAEFF4;
+ --acc:#1F5C8B; --accD:#0F3A5A; --accL:#E6EEF5; --accBorder:#BDD3E5;
+ --red:#C0392B; --redL:#FBECEA; --redInk:#FDF2F0;
+ --org:#A35905; --orgL:#FEF4E7;
+ --grn:#2D7867; --grnL:#E7F2EF;
+ --blue:#1F5C8B; --blueL:#E6EEF5;
+ --purple:#5B4B8A; --purpleL:#EFECF7;
+ --gray:#636D7A; --neutral:#9AA5B1; --neutralL:#EFF2F5; --bar:#8A94A0;
+
+ /* ---- טיפוגרפיה ----
+    הסולם החדש נכנס כשמות בלבד. השמות הישנים שומרים על הערכים שלהם
+    עד שלב 2, כי הם קובעים את גיאומטריית הטבלה: f-md 13->13.5 גוזל
+    14px מעמודת התיאור ו-f-xs 10->10.5 עוד 4px, והעמודה יורדת
+    מ-216px ל-198px — מתחת ל-PUSH_DESC_MIN. המגירה מפסיקה לדחוף.
+    שינוי גודל בטבלה הוא שינוי טבלה, והוא שייך לשלב 2. */
+ --f-micro:10.5px; --f-base:13.5px; --f-num:28px; --f-hero:40px;
+ --f-xs:10px; --f-sm:11.5px; --f-md:13px; --f-lg:19px; --f-xl:24px;
+
+ /* ---- צורה ---- */
+ --shadow:none; --shadowH:0 8px 24px rgba(15,18,22,.18);
+ --r:0;          /* כרטיסים, טבלה, פאנלים — קצה חד */
+ --r-ctl:6px;    /* פקדים בלבד. ההבחנה בין מה שלוחצים למה שקוראים */
+}
 body.dark{
- --bg:#0f1216;--panel:#161a1f;--panel2:#1d222a;--ink:#e7ebf0;--dim:#8d97a3;--dimmer:#6f7885;
- --line:#262c34;--line2:#202630;--acc:#7aa7d4;--accD:#9ec2e6;--accL:#1d2836;--accBorder:#31465c;
- --red:#b23b32;--redL:#2c1614;--redInk:#fdf2f0;--org:#c9974a;--orgL:#3a2519;--grn:#5aa06e;--grnL:#16281c;
- --blue:#7aa7d4;--blueL:#17222e;--purple:#9c8ad4;--purpleL:#221d33;--gray:#8d97a3;
- --neutral:#495260;--neutralL:#1e2228;--bar:#495260;
- --shadow:none;--shadowH:0 10px 30px rgba(0,0,0,.55);
- --panel0:#12161a;--soft:#b8c1cc}
+ --paper:#0E1217; --surface:#161B22; --surface-2:#1D242D;
+ --line:#2A3340; --line-soft:#212932;
+ --ink:#E6EBF1; --ink-2:#98A3B0; --ink-3:#808B97;
+ --accent:#5B9BD1; --accent-ink:#8FBCE3; --accent-bg:#16283A; --accent-line:#31465C;
+ --critical:#E06A5E; --critical-bg:#2E1614;
+ --high:#E0A055;     --high-bg:#2F2213;
+ --steady:#5B9BD1;   --steady-bg:#16283A;
+ --capital:#4FA88F;  --capital-bg:#122823;
+ --calm:#8A94A0;     --calm-bg:#1D242D;
+ --trend:#9C8AD4;    --trend-bg:#221D33;
+
+ /* לבן על המילוי הבהיר נותן 2.98:1. דיו כהה נותן 6.31:1. ההיפוך מכוון. */
+ --on-fill:#0E1217;
+
+ --bg:#0E1217; --panel:#161B22; --panel2:#1D242D; --panel0:#0E1217;
+ --dim:#98A3B0; --dimmer:#808B97; --soft:#98A3B0; --line2:#212932;
+ --acc:#5B9BD1; --accD:#8FBCE3; --accL:#16283A; --accBorder:#31465C;
+ --red:#E06A5E; --redL:#2E1614; --redInk:#0E1217;
+ --org:#E0A055; --orgL:#2F2213;
+ --grn:#4FA88F; --grnL:#122823;
+ --blue:#5B9BD1; --blueL:#16283A;
+ --purple:#9C8AD4; --purpleL:#221D33;
+ --gray:#8A94A0; --neutral:#49525F; --neutralL:#1E2228; --bar:#49525F;
+ --shadow:none; --shadowH:0 10px 30px rgba(0,0,0,.55);
+}
 body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
 /* קצוות חדים בכל הממשק */
 .widget,.kpi,.tab,.btn,.badge,.chip,.fchip,.rq,.cp,.dn,.qbtn,.sxls,.seg,.menu,.ddpanel,.colpop,.modal,
@@ -591,7 +648,7 @@ body.probing .wqueue{transition:none}
  display:flex;align-items:center;justify-content:center;padding:0}
 .dclose:hover{color:var(--red);border-color:var(--red)}
 body:not(.dopen) .dclose{display:none}
-.dchip{border:1px solid var(--org);background:var(--orgL);color:#a37a2f;font-family:var(--num);
+.dchip{border:1px solid var(--org);background:var(--orgL);color:var(--org);font-family:var(--num);
  font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;line-height:1.4}
 .dchip:hover,.dchip.on{background:var(--org);color:var(--bg);border-color:var(--org)}
 .dchip[hidden]{display:none}
@@ -929,7 +986,7 @@ td.note .ocat{font-weight:700;color:var(--c,var(--ink));margin-inline-end:7px;wh
 #doneBtn.on{background:var(--grnL);border-color:var(--grn);color:var(--grn);font-weight:700}
 #doneBtn .fn{font-family:var(--num);font-weight:700}
 #tbl .dn.undo{color:var(--acc);font-weight:700;background:var(--accL);padding:2px 9px}
-#tbl .dn.undo:hover{background:var(--acc);color:#fff}
+#tbl .dn.undo:hover{background:var(--acc);color:var(--on-fill)}
 /* במסך הזה הפעולה היא כל העניין — היא לא מתחבאת עד ריחוף */
 body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 
@@ -978,7 +1035,7 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .stwrap .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .stwrap button{font-family:inherit;font-size:var(--f-sm);padding:8px 14px;border-radius:8px;
  border:1px solid var(--line);background:var(--panel0);color:var(--ink);cursor:pointer}
-.stwrap button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+.stwrap button.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill);font-weight:700}
 .stwrap button.danger{border-color:var(--red);color:var(--red)}
 .stwrap .warn2{border-inline-start:3px solid var(--org);background:var(--orgL);padding:8px 12px;
  border-radius:8px;font-size:var(--f-sm);color:var(--ink)}
@@ -990,7 +1047,7 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .gseg[hidden]{display:none!important}
 .gseg button{border:0;background:transparent;font-family:inherit;font-size:var(--f-sm);
  padding:5px 11px;cursor:pointer;color:var(--dim)}
-.gseg button.on{background:var(--ink);color:#fff;font-weight:700}
+.gseg button.on{background:var(--ink);color:var(--paper);font-weight:700}
 .gseg button:not(.on):hover{color:var(--ink)}
 tr.grp.sup b{font-size:var(--f-md)}
 
@@ -1959,7 +2016,7 @@ function toast(msg,act){const t=document.getElementById('toast');
  t.classList.add('show');clearTimeout(t._t);
  t._t=setTimeout(()=>t.classList.remove('show'),act?9000:1600)}
 const DARK_KEY='planner_dark_v1';
-let DARKON=true;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
+let DARKON=false;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
 function applyDark(on){document.body.classList.toggle('dark',on);
   const b=document.getElementById('darkToggle');
   if(b)b.innerHTML=(on?'☀️':'🌙')+'<span class="lbl"> '+(on?'מצב בהיר':'מצב כהה')+'</span>';
