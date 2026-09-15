@@ -467,7 +467,6 @@ body.dark .sres mark{background:#5c4a12;color:#fff}
 .tab .t{font-size:13px;font-weight:600;color:var(--ink)}
 .tab .nrow{display:flex;align-items:baseline;gap:8px}
 .tab .n{font-family:var(--num);font-size:22px;font-weight:800;line-height:1;color:var(--ink);margin:0}
-.tab .tsum{font-size:12px;color:var(--dim);white-space:nowrap}
 .tab .m{font-size:12px;color:var(--dim);margin-top:2px}
 .qpanel{margin:0;border:0}
 .phd{padding:12px 18px;border-bottom:1px solid var(--line);gap:12px;align-items:baseline}
@@ -817,7 +816,6 @@ tr.grp.coll b,tr.grp.coll .gn{opacity:.75}
 .tab{min-width:104px;padding:5px 11px 6px;border-top-width:3px}
 .tab .t{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tab .n{font-size:17px}
-.tab .tsum{font-size:11px}
 .tab .m{display:none}
 .wmoves .tab,#movesPanel .tab{min-width:98px}
 
@@ -876,11 +874,8 @@ td.pnc{padding:5px 14px;font-size:13px}
 
 /* שום טקסט בטאב לא חורג מגבולותיו — גלישה כאן דורסת את הטאב השכן */
 .tab{overflow:hidden}
-.tab .t,.tab .tsum,.tab .m{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .t,.tab .m{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tab .nrow{min-width:0;overflow:hidden}
-.tab .tsum{display:block;width:100%;font-size:10.5px;line-height:1.3;margin-top:1px;
- color:var(--dim);font-variant-numeric:tabular-nums}
-.tab .tsum .more{opacity:.6;font-size:9.5px}
 
 /* שורת הכותרת — חמישה רכיבים בשורה אחת. בלי הכללים האלה המשפט המסביר
    נדחס לעמודה של מילה בשורה, והשורה מתנפחת מ-37px ל-139px. */
@@ -1352,13 +1347,15 @@ function sumBy(list,val){const by={};
  for(const r of list){const v=val(r)||0;if(!v)continue;const k=String(r.currency||'').trim().toUpperCase()||'—';
   by[k]=(by[k]||0)+v}
  return Object.entries(by).sort((a,b)=>b[1]-a[1])}
-const moneyMix=(list,val,short,max)=>{const e=sumBy(list,val);
+/* מחזיר טקסט בלבד. היה כאן פרמטר max שקיצר לרשימה אחת והוסיף
+   `<span class="more">+N</span>` — כלומר ענף אחד מתוך שלושה החזיר HTML
+   ושניים החזירו טקסט. הקורא היחיד שלו היה כותרת המשנה של הטאב, ששמה
+   את התוצאה דרך esc() — אז המשתמש ראה «$1.0M<span class="more">+2</span>»
+   כטקסט על המסך. הענף הוסר ולא תוקן: פונקציה שמחזירה טקסט בכל מקרה
+   אי אפשר לשבור ככה שוב. הוא גם הסתיר שני מטבעות מאחורי «+2». */
+const moneyMix=(list,val,short)=>{const e=sumBy(list,val);
  const f=short?moneyShort:money;
  if(!e.length)return f(0,'ILS');
- /* בטאב צר אין מקום לשלושה מטבעות — המחרוזת גולשת ודורסת את השכן.
-    מוצג הדומיננטי ומונה לשאר; הפירוט המלא ב-title. */
- if(max&&e.length>max)return e.slice(0,max).map(([c,v])=>f(v,c)).join(' · ')
-   +`<span class="more">+${e.length-max}</span>`;
  return e.map(([c,v])=>f(v,c)).join(' · ')};
 /* Z לפי רמת שרות — הופכי ההתפלגות הנורמלית (Acklam).
    הטבלה הקודמת החזיקה חמישה ערכים בלבד והחזירה 1.28 לכל השאר, ולכן רמת
@@ -2603,7 +2600,7 @@ function tiles(){
   if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
    return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
   if(k==='catalog'){const cap=decisionList('cap');
-   return cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true,1)}`:''}
+   return cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true)}`:''}
   if(k==='applied'&&APPLIED)return `${APPLIED.done} יושמו`;
   return ''};
  t.innerHTML=NAV.map(([k,name,ico,c])=>{
