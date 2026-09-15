@@ -52,6 +52,39 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    await p.evaluate(()=>document.querySelectorAll('#movtbl tbody tr.sel').length===1));
  // חזרה
  await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m==='today')?.click());
+
+ /* ============ שום טאב לא מציג HTML כטקסט ============
+    נמדד אחרי באג אמיתי: כותרת המשנה של «הקטלוג» הציגה על המסך את
+    המחרוזת «$1.0M<span class="more">+2</span>». moneyMix החזיר HTML
+    בענף אחד מתוך שלושה, והקורא העביר אותו דרך esc(). הבדיקה סורקת
+    את כל הטאבים בכל המסלולים, כי הכשל שקט לגמרי — אין שגיאה, אין
+    בדיקה שנופלת, רק תגית שמופיעה למתכנן. */
+ const tabText=async()=>p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')]
+   .map(t=>({m:t.dataset.m,
+     t:(t.querySelector('.t')||{}).textContent||'',
+     bdg:(t.querySelector('.bdg')||{}).textContent||'',
+     sub:(t.querySelector('.m')||{}).textContent||''})));
+ const badMarkup=[];
+ for(const md of ['today','month','catalog','floor','trend','cust']){
+   await p.evaluate(k=>setMode(k),md);await p.waitForTimeout(260);
+   for(const t of await tabText()){
+     const all=t.t+' '+t.bdg+' '+t.sub;
+     if(/<[a-zA-Z/]|&lt;|&gt;|&amp;/.test(all))badMarkup.push(`${md}→${t.m}: ${all.trim()}`);
+   }
+ }
+ ok('אף טאב אינו מציג תגית HTML כטקסט',badMarkup.length===0,
+   badMarkup.slice(0,3).join(' | ')||'נסרקו 6 מסלולים');
+
+ /* כותרת המשנה של הקטלוג חייבת למנות כל מטבע שקיים — בלי «+N» */
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(400);
+ const cur=await p.evaluate(()=>{
+   const sub=(document.querySelector('#tabs .tab[data-m=catalog] .m')||{}).textContent||'';
+   const syms=[...new Set(sumBy(decisionList('cap'),r=>r.expCap||0)
+     .map(([c])=>curSym(c)))];
+   return {sub,syms,missing:syms.filter(x=>sub.indexOf(x)<0)}});
+ ok('כל מטבע בהון הכלוא מופיע בכותרת המשנה',cur.missing.length===0,
+   `"${cur.sub.trim()}" · מטבעות ${cur.syms.join(' ')}`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
  await p.waitForTimeout(400);
  ok('חזרה לתור העבודה משחזרת את הרשימה',
    await p.evaluate(()=>getComputedStyle(document.querySelector('#w_queue .qpanel')).display!=='none'
