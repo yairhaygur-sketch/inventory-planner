@@ -513,6 +513,26 @@ td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-famil
 .nlqout button.go{background:var(--accent);color:var(--on-fill)}
 .nlqout button.no2{background:transparent;color:var(--accent)}
 
+/* ==================== מצב הסבר ====================
+   כבוי — אפס נוכחות. דלוק — טבעת דקה על כל מה שיודע להסביר את עצמו,
+   ולחיצה פותחת חלונית במקום להפעיל את הכפתור. */
+#xpBtn.on{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
+body.xp [data-xp]{box-shadow:inset 0 0 0 1px var(--accent-line);cursor:help}
+body.xp [data-xp]:hover{box-shadow:inset 0 0 0 2px var(--accent)}
+body.xp #tbl,body.xp .rows{cursor:default}
+.xppop{position:fixed;z-index:500;width:min(340px,calc(100vw - 20px));
+  background:var(--surface);border:1px solid var(--line);
+  border-inline-start:3px solid var(--accent);box-shadow:var(--shadowH);
+  padding:13px 15px;font-size:var(--f-md);line-height:1.6;color:var(--ink)}
+.xppop[hidden]{display:none}
+.xppop .xph{font-weight:800;font-size:15px;margin-bottom:9px;
+  padding-bottom:7px;border-bottom:1px solid var(--line-soft)}
+.xppop .xpb+.xpb{margin-top:11px}
+.xppop .xpl{font-size:10.5px;letter-spacing:.06em;font-weight:700;
+  color:var(--accent);text-transform:uppercase;margin-bottom:2px}
+.xppop .xpl.chk{color:var(--high)}
+.xppop p{margin:0;color:var(--ink-2)}
+
 /* ==================== תדריך הפתיחה ==================== */
 .brief{position:fixed;inset:0;z-index:400;background:var(--paper);
   display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
@@ -1199,6 +1219,7 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה">⇅<span class="lbl"> מצב עבודה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים">🌙<span class="lbl"> מצב כהה</span></button>
+    <button class="btn" id="xpBtn" aria-pressed="false" title="מצב הסבר — לחיצה על כל כפתור תסביר מה הוא מראה ומה לבדוק, במקום להפעיל אותו">?<span class="lbl"> הסבר</span></button>
     <input type="file" id="stFile" accept="application/json,.json" hidden>
   </div>
   <div class="fgroup qwrap" id="qwrap">
@@ -2589,13 +2610,13 @@ function tiles(){
   const {n,hot}=navCount(k);
   if(!n&&k!=='today'&&k!=='month'&&k!=='catalog')return '';
   return `<div class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
-   title="${esc(name)}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
+   data-xp="nav-${k}" title="${esc(name)}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
    <span class="m">${esc(sub(k))}</span></div>`}).join('')
   +(()=>{const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
     return n||mode==='done'?`<div class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
-     title="פריטים שסימנת כטופל"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m"></span></div>`:''})()
+     data-xp="nav-done" title="פריטים שסימנת כטופל"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m"></span></div>`:''})()
   +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
-     title="תנועות — CF · CG · נכנס ולא נמכר"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m">CF · CG</span></div>`;
+     data-xp="nav-moves" title="תנועות — CF · CG · נכנס ולא נמכר"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m">CF · CG</span></div>`;
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    setMode(e.dataset.m)})}
@@ -2833,7 +2854,7 @@ function renderBulk(rows){
  if(!n||cur==='moves'){el.innerHTML='';return}
  const active=FDEF.filter(([k])=>SEL[k].size).map(([,l])=>l)
    .concat(Object.keys(colFilters).map(c=>COLLABEL[c]||c));
- el.innerHTML=`<button class="bulkbtn" id="bulkBtn">⚑ סמן ${n.toLocaleString('he-IL')} פריטים</button>
+ el.innerHTML=`<button class="bulkbtn" id="bulkBtn" data-xp="q-bulk">⚑ סמן ${n.toLocaleString('he-IL')} פריטים</button>
   <div class="bulkmenu" id="bulkMenu">
    <div class="bh">מסמן את <b>${n.toLocaleString('he-IL')}</b> הפריטים שברשימה כרגע${
      active.length?` · סינון פעיל: ${esc(active.join(' · '))}`:' · <b>ללא סינון</b>'}</div>
@@ -3595,9 +3616,9 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
   <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
  ${decisionBlock(r)}
  <div class="dtabs" id="dtabs">
-  <button class="dt on" data-dt="why">החלטה</button>
-  <button class="dt" data-dt="data">נתונים</button>
-  <button class="dt" data-dt="hist">היסטוריה</button>
+  <button class="dt on" data-dt="why" data-xp="dt-why">החלטה</button>
+  <button class="dt" data-dt="data" data-xp="dt-data">נתונים</button>
+  <button class="dt" data-dt="hist" data-xp="dt-hist">היסטוריה</button>
  </div>
  <div class="opad">
   <div class="col">
@@ -3976,6 +3997,155 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   colFilters={};apply();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
+/* ============ מצב הסבר ============
+   שתי שאלות לכל כפתור, ותמיד באותו סדר: מה אני רואה, ומה לבדוק.
+   לא תיאור של מה הכפתור «עושה» — תיאור של מה המספר סופר במציאות,
+   ואיזו שאלה כדאי לשאול עליו. */
+const XP={
+ /* ---- שבעת המסלולים ---- */
+ 'nav-today':{t:'היום',
+  see:'פריטים שאם לא תיגע בהם היום, מישהו יישאר בלי חלק. שלוש קבוצות: לקוח שכבר הזמין ואין מה לתת לו, פריט שהכיסוי שלו קצר מזמן האספקה, ופריט שהמלאי הפנוי שלו לא מחזיק את החודש הקרוב.',
+  chk:'התחל מהקבוצה העליונה — «לקוח ממתין». שם יש הזמנה אמיתית בצד השני. אם הקבוצה הזאת ריקה, אין דחוף אמיתי היום.'},
+ 'nav-month':{t:'החודש',
+  see:'פריטים שלא בוערים היום אבל יבערו בקרוב אם לא תתכנן. רובם תיקוני פרמטרים — נקודת הזמנה או מלאי ביטחון ב-SAP שלא תואמים את הצריכה בפועל.',
+  chk:'המספר הקטן מתחת לטאב אומר כמה מהם מחכים לעדכון ב-SAP. אלה השינויים שמונעים את התור של מחר.'},
+ 'nav-catalog':{t:'הקטלוג',
+  see:'כל המק״טים בדוח, בלי סינון. זה לא תור עבודה — זה מקום לחפש ולבדוק.',
+  chk:'משמש כשאתה מחפש פריט מסוים, או כשאתה רוצה לראות את ההון הכלוא ואת המלאי המת בתמונה מלאה.'},
+ 'nav-floor':{t:'רצפת SS',
+  see:'פריטים שבהם מלאי הביטחון שהגדרת ב-SAP גבוה מהדרישה הסטטיסטית. כלומר: אתה מחזיק יותר ממה שהחישוב אומר שצריך, ביודעין או לא.',
+  chk:'לכל פריט יש פער, ולפער יש מחיר. היכנס וראה את הסכום. אם בחרת את הרצפה במכוון — זה בסדר גמור, אבל שווה לדעת כמה זה עולה.'},
+ 'nav-trend':{t:'מגמה',
+  see:'פריטים שהביקוש שלהם ירד בתוך אותם 11 חודשים. הממוצע השטוח עדיין גבוה, כי הוא זוכר את החודשים החזקים — אז הכלי עלול להמליץ להזמין לפי עבר שכבר לא קיים.',
+  chk:'אלה המועמדים להורדת פרמטרים. לפני שאתה מוריד — פתח את הפריט וראה בגרף אם הירידה אמיתית או שזה חודש אחד חריג.'},
+ 'nav-cust':{t:'לקוח ממתין',
+  see:'פריטים עם הזמנת לקוח פתוחה מול מלאי פנוי אפס. זה חוצה את כל הסיווגים — פריט יכול להיות «תקין» לפי כל מדד ועדיין להיות כאן.',
+  chk:'הפרד בין אלה שיש להם רכש פתוח בדרך לאלה שאין. רק השניים האחרונים באמת תקועים.'},
+ 'nav-applied':{t:'יישום',
+  see:'מה קרה להמלצות מההרצה הקודמת. הכלי זוכר מה אמר, וכשאתה טוען דוח חדש הוא משווה: מה שונה ב-SAP בדיוק כמו שהומלץ, מה שונה למספר אחר, ומה לא נגעו בו.',
+  chk:'אם הרבה המלצות «לא נגעו» — או שהן לא נכונות, או שהן לא מגיעות למי שמבצע. שתי בעיות שונות לגמרי.'},
+ 'nav-done':{t:'טופלו',
+  see:'פריטים שסימנת כטופל. סימון מוציא פריט מכל תורי העבודה, כדי שלא תראה אותו שוב בכל טעינה.',
+  chk:'זו הדלת חזרה. אם סימנת משהו בטעות — כאן מבטלים. הסימון פג מעצמו אחרי שבוע.'},
+ 'nav-moves':{t:'תנועות',
+  see:'תנועות מלאי אחרונות — כניסות ויציאות, כולל פריטים שנכנסו ולא נמכרו.',
+  chk:'שימושי כשמספר בדוח נראה לא הגיוני ואתה רוצה לראות מה באמת זז.'},
+ /* ---- הסיכומים הכספיים בתוך מסלול ---- */
+ 'sum-floor':{t:'הסיכום הכספי של רצפת SS',
+  see:'כמה כסף שוכב בפער בין הרצפה שהגדרת לדרישה המחושבת, מפוצל לפי מטבע. לעולם לא מחובר — דולר ושקל הם שני מספרים שונים.',
+  chk:'זה הסכום שישתחרר אם תוריד את הרצפה לדרישה. זו לא המלצה להוריד — זה תג מחיר על ההחלטה.'},
+ 'sum-cust':{t:'הסיכום הכספי של לקוח ממתין',
+  see:'שווי הזמנות הלקוח שממתינות מול מלאי אפס, לפי מטבע.',
+  chk:'זה כסף שכבר הובטח ללקוח ואי אפשר לספק. הוא לא «בסיכון» — הוא כבר תקוע.'},
+ 'sum-trend':{t:'הסיכום הכספי של מגמה',
+  see:'שווי הפער בין מה שהפרמטרים מחזיקים לבין הרמה שאליה הביקוש ירד.',
+  chk:'הסכום הזה ישתחרר בהדרגה אם תעדכן את הפרמטרים — לא מיד.'},
+ 'sum-applied':{t:'כמה יושמו',
+  see:'מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP.',
+  chk:'אם המספר נמוך באופן עקבי, הבעיה היא בשרשרת הביצוע ולא בהמלצות.'},
+ 'sum-done':{t:'מונה הטיפולים',
+  see:'כמה פריטים סימנת כטופל מאז הטעינה. סימון לא משנה כלום ב-SAP — הוא רק אומר לכלי «את זה כבר עשיתי, אל תראה לי שוב». הפריט יורד מכל תורי העבודה עד שהסימון פג.',
+  chk:'אם המספר גדול והתור עדיין ארוך, סימנת דברים שלא היו בתור מלכתחילה. לחיצה כאן מחזירה לתור הרגיל.'},
+ /* ---- סרגל עליון ---- */
+ 'top-filter':{t:'סינון',
+  see:'מקפל ופותח את מסילת הסינון בצד. המסילה מסננת לפי מותג, ספק, דגם, קבוצה — הערכים נלקחים מהדוח שלך עצמו.',
+  chk:'המספר על הכפתור אומר כמה סינונים פעילים כרגע. אם הרשימה נראית קצרה מדי — בדוק שם קודם.'},
+ 'top-export':{t:'ייצוא לאקסל',
+  see:'מוריד את מה שמוצג כרגע על המסך, אחרי הסינון והמיון, כקובץ אקסל.',
+  chk:'מייצא את התצוגה הנוכחית ולא את כל הקטלוג. אם אתה רוצה הכול — עבור ל«הקטלוג» ונקה סינונים לפני.'},
+ 'top-state':{t:'מצב עבודה',
+  see:'גיבוי והעברה של מה שהחלטת — סימונים, היסטוריה, המלצות קודמות. לא של איך המסך נראה.',
+  chk:'השתמש בזה כשאתה עובר למחשב אחר. בלי זה הזיכרון נשאר בדפדפן הזה בלבד.'},
+ 'top-dark':{t:'מצב כהה',
+  see:'מחליף בין ערכת צבעים בהירה לכהה. הבחירה נשמרת בדפדפן.',
+  chk:'שני המצבים נבדקים אוטומטית על כל אלמנט עם טקסט — אין מצב שטקסט נעלם באחד מהם.'},
+ 'top-widgets':{t:'וידג׳טים',
+  see:'בוחר אילו חלקי מסך מוצגים — שורת המדדים, מסילת הסינון, תור העבודה, כרטיס הפריט.',
+  chk:'אם משהו נעלם לך מהמסך, זה המקום הראשון לבדוק.'},
+ 'top-save':{t:'שמור תצוגה',
+  see:'זוכר את סידור המסך הנוכחי — מה מוצג, באיזה סדר, ובאיזה גודל.',
+  chk:'שומר רק את הפריסה. הסימונים וההיסטוריה נשמרים בנפרד ותמיד.'},
+ 'top-reset':{t:'אפס תצוגה',
+  see:'מחזיר את סידור המסך למצב שממנו הכלי מתחיל — אילו חלקים מוצגים, באיזה סדר ובאיזה רוחב. זה נוגע רק לפריסה, כמו לסדר מחדש ניירות על שולחן.',
+  chk:'בטוח ללחוץ בכל רגע. הסימונים, ההיסטוריה והדוח הטעון לא מושפעים — הם נשמרים בנפרד מהפריסה.'},
+ 'top-file':{t:'העלאת קובץ ZMRP',
+  see:'טוען דוח ZMRP מ-SAP. הכול קורה בדפדפן שלך — שום נתון לא נשלח לשום מקום.',
+  chk:'אחרי הטעינה, אם משהו השתנה מאז הפעם הקודמת, יוצג תדריך קצר לפני הטבלה.'},
+ /* ---- כותרת התור ---- */
+ 'q-group':{t:'לפי החלטה / לפי ספק',
+  see:'משנה איך התור מקובץ. «לפי החלטה» מקבץ פריטים שצריך לעשות להם אותו דבר; «לפי ספק» מקבץ לפי ממי מזמינים.',
+  chk:'עבוד «לפי ספק» כשאתה עומד לפתוח הזמנה — כל מה שהולך לאותו ספק באותו מקום.'},
+ 'q-bulk':{t:'סמן N פריטים',
+  see:'מסמן בלחיצה אחת את כל מה שמוצג ברשימה כרגע כטופל. המספר על הכפתור הוא בדיוק מספר השורות שיושפעו — לא כל הקטלוג, אלא מה ששרד את הסינון והמסלול הנוכחיים.',
+  chk:'לפני הלחיצה, קרא את המספר והשווה אותו לשורת הסיכום למטה. אם הם לא זהים, הסינון שלך צר או רחב ממה שחשבת. ביטול נעשה מטאב «טופלו».'},
+ 'q-hist':{t:'מה השתנה',
+  see:'השוואה להעלאה הקודמת — כמה פריטים חדשים נכנסו לתור, כמה יצאו.',
+  chk:'אם התור גדל בלי שעשית כלום, משהו בשטח השתנה.'},
+ /* ---- תיק הפריט ---- */
+ 'dt-why':{t:'טאב «החלטה»',
+  see:'למה הפריט ברשימה ומה מומלץ לעשות, בשורות ממוספרות. גם חריגות בהיסטוריה — פיק או צניחה.',
+  chk:'זו הסיבה שהמגירה נפתחה. אם ההסבר לא משכנע אותך — אל תפעל.'},
+ 'dt-data':{t:'טאב «נתונים»',
+  see:'המספרים הגולמיים: מלאי, רכש, לקוח, קצב, זמן אספקה, והפרמטרים לפני ואחרי. וגרף 11 החודשים.',
+  chk:'כאן מאמתים את ההמלצה מול המקור. הגרף מראה אם הצריכה יציבה או קופצת.'},
+ 'dt-hist':{t:'טאב «היסטוריה»',
+  see:'מה עשית עם הפריט הזה בעבר — סימונים, הרצות קודמות, תנועות.',
+  chk:'אם פריט חוזר לתור שוב ושוב, כאן רואים את זה.'},
+ /* ---- שאילתה ---- */
+ 'nlq':{t:'שאלה בשפה חופשית',
+  see:'כותבים בעברית רגילה, והכלי מתרגם לסינונים. הוא מחפש את המילים שלך בתוך הערכים שקיימים בדוח — מותגים, ספקים, דגמים.',
+  chk:'מילה שהוא לא זיהה מוצגת מחוקה. זה החלק החשוב: אם «בלי מלאי» מופיע מחוק, הרשימה לא סוננה לפי זה.'},
+};
+let XPON=false;
+function xpPop(el,key){
+ const d=XP[key];if(!d)return;
+ let pop=document.getElementById('xpPop');
+ if(!pop){pop=document.createElement('div');pop.id='xpPop';pop.className='xppop';
+   document.body.appendChild(pop)}
+ pop.innerHTML=`<div class="xph">${esc(d.t)}</div>`
+  +`<div class="xpb"><div class="xpl">מה אתה רואה</div><p>${esc(d.see)}</p></div>`
+  +`<div class="xpb"><div class="xpl chk">מה לבדוק</div><p>${esc(d.chk)}</p></div>`;
+ pop.hidden=false;
+ const r=el.getBoundingClientRect();
+ pop.style.visibility='hidden';pop.style.insetInlineStart='0';pop.style.top='0';
+ const pw=pop.offsetWidth,ph=pop.offsetHeight;
+ let top=r.bottom+8; if(top+ph>innerHeight-8)top=Math.max(8,r.top-ph-8);
+ let left=r.left+r.width/2-pw/2;
+ left=Math.max(10,Math.min(left,innerWidth-pw-10));
+ pop.style.left=left+'px';pop.style.top=top+'px';
+ pop.style.insetInlineStart='auto';
+ pop.style.visibility='visible'}
+function xpHide(){const p=document.getElementById('xpPop');if(p)p.hidden=true}
+function xpSet(on){XPON=on;document.body.classList.toggle('xp',on);
+ const b=document.getElementById('xpBtn');
+ if(b){b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false')}
+ if(!on)xpHide();
+ else toast('מצב הסבר פעיל — לחץ על כל כפתור כדי לראות מה הוא מראה')}
+(function xpWire(){
+ const btn=document.getElementById('xpBtn');if(!btn)return;
+ btn.onclick=()=>xpSet(!XPON);
+ /* הצמדת מפתחות לכפתורים הקבועים */
+ const map={filtBtn:'top-filter',exportXls:'top-export',stBtn:'top-state',
+   darkToggle:'top-dark',wmBtn:'top-widgets',saveView:'top-save',resetView:'top-reset',
+   floorBtn:'sum-floor',custBtn:'sum-cust',trendBtn:'sum-trend',apBtn:'sum-applied',
+   doneBtn:'sum-done',gseg:'q-group',histChip:'q-hist',nlq:'nlq'};
+ for(const [id,k] of Object.entries(map)){const e=document.getElementById(id);
+   if(e)e.dataset.xp=k}
+ const lab=document.querySelector('label.btn.pri[for="f"],label[for="f"]');
+ if(lab)lab.dataset.xp='top-file';
+ /* במצב הסבר הלחיצה מסבירה במקום להפעיל — בשלב הלכידה, לפני כל מאזין אחר */
+ document.addEventListener('click',e=>{
+   if(!XPON)return;
+   const t=e.target.closest&&e.target.closest('[data-xp]');
+   if(e.target.closest&&e.target.closest('#xpPop'))return;
+   if(e.target.id==='xpBtn')return;
+   if(!t){xpHide();return}
+   e.preventDefault();e.stopPropagation();
+   xpPop(t,t.dataset.xp)},true);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&XPON){xpHide()}});
+ addEventListener('resize',xpHide);
+})();
+
 /* ============ שאילתה בשפה חופשית ============
    אין כאן מודל ואין קריאת רשת. העיקרון: לא להמציא אוצר מילים אלא
    להתאים את המילים שכתבת מול הערכים שקיימים *בדוח שלך* — מותגים,
