@@ -347,10 +347,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /מניעת חוסר/.test(await p.evaluate(()=>[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · '))));
 
  /* ============ רצפת מלאי הביטחון ============
-    sugSS = max(ssStat, ssMin, lumpFloor), ו-ssMin הוא ערך שהמתכנן קבע
-    ב-SAP. בדוח האמיתי הוא מנצח ב-88% מהמקרים, ולכן ה"המלצה" מחזירה
-    את המספר שלו. הפער בין הרצפה לדרישה הסטטיסטית הוא החלטה שעולה
-    כסף, והוא חייב להיות גלוי. */
+    sugSS = max(ssStat, ssMin), ו-ssMin הוא העמודה "מל.בט.מינ." מה-SAP.
+    נמדד: ב-2,629 מתוך 2,638 הפריטים שיש להם ssMin הוא זהה בדיוק
+    לעמודת "מלאי בטחון" — כלומר הרצפה היא המצב הקיים, ולכן הנוסחה
+    לעולם לא תמליץ להוריד. הפער בין הרצפה לדרישה הסטטיסטית הוא
+    החלטה שעולה כסף, והוא חייב להיות גלוי. */
  const seen=id=>p.evaluate(i=>{const e=document.getElementById(i);
    return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0},id);
  /* הניווט עבר לסרגל הטאבים. הכפתורים בכותרת הפאנל נשארו כסיכום כספי

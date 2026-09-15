@@ -38,6 +38,9 @@ const rows=[
  mk('DECLINE',{months:[2,2,3,2,3,20,25,22,24,23,25],free:40,rop:1,ss:0,lt:120}),
  // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
  mk('SPORADIC',{months:[0,0,10,0,0,0,0,10,0,0,10],free:200}),
+ // B3 · גושי עם פיק בודד גדול. רצפת-הגנת-פיק הישנה נתנה לו ⌈0.5×30⌉=15
+ //      בלי קשר לנוסחה — כולל על פריט שהכלי עצמו לא זיהה בו פיק.
+ mk('LUMPY-PEAK',{months:[0,2,30,0,0,0,0,0,0,0,0],free:200,srv:50,rop:0,ss:0}),
  mk('EDGE-ONLY',{months:[5,0,0,0,0,0,0,0,0,0,6],free:200}),
  // ETA · רכש פתוח שמכסה את הלקוח, מלאי אפס. הרכש חסר ETA ולכן אינו כיסוי:
  // ההחלטה חייבת להיות הכמות, לא "לבדוק Back Order אצל היצרן"
@@ -77,6 +80,11 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
           runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
+          lumpy:(()=>{const r=ALL.find(x=>x.pn==='LUMPY-PEAK');
+            return {peak:r.A.peak,pattern:r.A.pattern,spikes:r.A.spikes.length,
+              ssStat:r.ssStat,ssMin:r.ssMin,sugSS:r.sugSS,halfPeak:Math.ceil(0.5*r.A.peak)}})(),
+          noThirdSource:ALL.filter(x=>x.sugSS>Math.max(x.ssStat||0,x.ssMin||0,x.lowFloor||0,x.ss||0))
+            .map(x=>`${x.pn}: SS=${x.sugSS} מול max(${x.ssStat},${x.ssMin},${x.lowFloor},${x.ss})`),
           guard:g('SSROP-GUARD'),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
                header:(COLS.find(c=>c[0]==='risk')||[])[1]},
@@ -94,6 +102,17 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('ביקוש שטוח → סטיית תקן 0',o.clean.sd===0&&o.clean.sugSS===0);
  ok('חודש אזילה אינו מנפח את סטיית התקן',o.so.sd===0&&o.so.sugSS===0,
     `sd=${o.so.sd} SS=${o.so.sugSS} (לפני התיקון: 3.02 / 6)`);
+ // B3 · פיק היסטורי אינו מקור עצמאי למלאי ביטחון
+ ok('פיק גדול אינו מייצר מלאי ביטחון מחוץ לנוסחה',
+    o.lumpy.sugSS<o.lumpy.halfPeak,
+    `פיק ${o.lumpy.peak} · ${o.lumpy.pattern} · SS=${o.lumpy.sugSS} (רצפת-הפיק הישנה: ${o.lumpy.halfPeak})`);
+ ok('ומלאי הביטחון הוא בדיוק max(סטטיסטי, ssMin)',
+    o.lumpy.sugSS===Math.max(o.lumpy.ssStat,o.lumpy.ssMin),
+    `max(${o.lumpy.ssStat}, ${o.lumpy.ssMin}) = ${o.lumpy.sugSS}`);
+ ok('הכלי לא זיהה כאן פיק — ולכן גם לא הגן מפניו',o.lumpy.spikes===0,
+    `${o.lumpy.spikes} פיקים`);
+ ok('לאף פריט אין מלאי ביטחון ממקור רביעי',o.noThirdSource.length===0,
+    o.noThirdSource.join(' | '));
  // B · רצף אזילה מזוהה ואינו נראה כירידת ביקוש
  ok('אזילה של 3 חודשים מזוהה',o.run.drops===3,`drops=${o.run.drops} (לפני: 0)`);
  ok('רצף אזילה אינו מוצג כירידה בביקוש',o.run.trend===0,`מגמה ${o.run.trend}% (לפני: -40%)`);
