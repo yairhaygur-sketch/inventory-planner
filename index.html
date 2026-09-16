@@ -1582,7 +1582,22 @@ function analyze(m){
   if(active>0)pattern=adi<1.32?(cv2<0.49?'חלק':'תנודתי'):(cv2<0.49?'ספורדי':'גושי');
   const muAll=fix.reduce((a,b)=>a+b,0)/11, varAll=fix.reduce((a,b)=>a+(b-muAll)**2,0)/10;
   const sd=Math.sqrt(varAll), peak=Math.max(...pos,0);
-  return {med,avg,active,spikes,drops,trend:{rec,pre,pct},adi:+adi.toFixed(2),cv2:+cv2.toFixed(2),pattern,sd,peak,mu};}
+  /* ============ שכיחות מול גודל — ולמה אין כאן מה לתקן ============
+     מפתה לומר ש-σ על 11 חודשים "כולל אפסים" מודד בעיקר את כמות האפסים,
+     ושצריך להפריד: p = שיעור החודשים עם ביקוש, q = הגודל כשהוא מגיע.
+     ההפרדה הזאת נכונה — אבל היא *זהות אלגברית*, לא תיקון:
+         Var(D) = p·E[q²] − (p·μq)²  ≡  השונות של הסדרה כולל האפסים
+     (כי p·E[q²] = Σv²/11 ו-p·μq = Σv/11). כלומר σ שכבר מחושב כאן מכיל
+     את שני המספרים בתוכו. מי שמפיל את האיבר הנגרע מקבל מודל הגעות
+     פואסוני שמנפח פריט סדיר — ביקוש שטוח של 12 בכל חודש היה מקבל
+     SS=18 במקום 0. נבדק, נמדד, נדחה. ראו tests/defects.test.js.
+     p ו-μq נשמרים כאן להצגה בלבד: הם מסבירים למתכנן *מה* σ מכיל. */
+  const ev=fix.filter(v=>v>0), k=ev.length;
+  const pAct=k/11;
+  const muEv=k?ev.reduce((a,b)=>a+b,0)/k:0;
+  const varEv=k?ev.reduce((a,b)=>a+(b-muEv)**2,0)/k:0;
+  return {med,avg,active,spikes,drops,trend:{rec,pre,pct},adi:+adi.toFixed(2),cv2:+cv2.toFixed(2),pattern,sd,peak,mu,
+    pAct,muEv,sdEv:Math.sqrt(varEv)};}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
   if(DIAG.hardStop)return out;
   for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn)continue;
@@ -1635,9 +1650,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const odBrand=CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך';
     const odPlanner=CLEAN(r[m.planner])||'ללא שיוך';
     const isODStatic=isPDItem||OD_GROUPS.has(mkt1);
-    const lumpFloor=(!isODStatic&&(A.pattern==='גושי'||A.pattern==='ספורדי')&&ltM>=1)?Math.ceil(0.5*A.peak):0;
     const ssStat=(rate>0&&!isODStatic)?Math.ceil(z*sdLT):0;
-    let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin,lumpFloor):0;
+    let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin):0;
     let sugROP=(rate>0&&!isODStatic)?Math.ceil(dLT+sugSS):0;
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
@@ -1683,7 +1697,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,lumpFloor,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -2920,16 +2934,17 @@ function actQty(r){const a=(r.act||[])[0]||'';
  const m=a.match(/(?:ל-|להשלים\s+)(\d[\d,]*)\s*יח׳/);
  return m?+m[1].replace(/,/g,''):null}
 /* ============ רצפת מלאי הביטחון ============
-   sugSS = max(ssStat, ssMin, lumpFloor). ssMin הוא העמודה "מל.בט.מינ."
-   מה-SAP — כלומר מספר שהמתכנן קבע בעצמו. נמדד על הדוח האמיתי: ב-525
-   מתוך 595 הפריטים שמקבלים המלצה (88%) ssMin הוא שמנצח, ולכן ה"המלצה"
-   מחזירה למתכנן את המספר שלו במקום לאמת אותו. ROP, לעומת זאת, נגזר
-   מהקצב שבנתונים ואין לו עוגן לערך שב-SAP — ומסכים איתו רק ב-28%.
+   sugSS = max(ssStat, ssMin). ssMin הוא העמודה "מל.בט.מינ." מה-SAP.
+   נמדד על הדוח האמיתי, ושווה לדעת מה הוא באמת: מתוך 2,638 פריטים
+   שיש להם ssMin, ב-2,629 הוא *זהה בדיוק* לעמודת "מלאי בטחון" — תשע
+   חריגות. כלומר זו לא רצפת מדיניות שמישהו שקל, אלא המצב הקיים.
+   ומכאן שהנוסחה, מבנית, אינה יכולה להמליץ להוריד מלאי ביטחון — רק
+   להעלות או להשאיר. ROP, לעומת זאת, נגזר מהקצב ואין לו עוגן כזה.
 
    הנוסחה נשארת שמרנית בכוונה: לא ממליצים על פחות ביטחון ממה שהמתכנן
    קבע. מה שמשתנה הוא שהפער בין הרצפה לדרישה הסטטיסטית מפסיק להיות
    בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
-function ssNeed(r){return Math.max(r.ssStat||0,r.lumpFloor||0)}
+function ssNeed(r){return r.ssStat||0}
 function ssFloorGap(r){return (r.rate>0&&!r.isOD&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
 function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
 function floorTotals(rows){const cur={};let units=0;
@@ -3643,7 +3658,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="fixbox"><div class="cur">SS ב-SAP: ${r.ss}</div><div class="new">${r.sugSS}</div>${delta(r.ss,r.sugSS)}</div>
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
-    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin}${r.lumpFloor>0?` · רצפת-פיק ${r.lumpFloor}`:''} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
+    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
    <details class="dsec" data-dt="data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
     <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
@@ -3684,16 +3699,16 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
 function explain(r){const A=r.A;
  const active=A.active,med=A.med,sd=+A.sd.toFixed(2),ltM=+r.ltM.toFixed(2),sqrtLT=+Math.sqrt(Math.max(r.ltM,0)).toFixed(3);
  const z=r.z, sdLT=+r.sdLT.toFixed(2), zsdLT=Math.ceil(z*r.sdLT), dLT=+r.dLT.toFixed(2);
- const rateZero=r.rate<=0;const lump=r.lumpFloor||0;
+ const pAct=+A.pAct.toFixed(2), muEv=+A.muEv.toFixed(1);
+ const rateZero=r.rate<=0;
  const isPDItem=!!r.isPDItem;const zeroBuf=rateZero||isPDItem;
- const ssFloorUsed=!zeroBuf&&r.sugSS===r.ssMin&&r.ssMin>Math.max(zsdLT,lump);
- const lumpUsed=!zeroBuf&&lump>0&&r.sugSS===lump&&lump>=zsdLT&&lump>=r.ssMin;
+ const ssFloorUsed=!zeroBuf&&r.sugSS===r.ssMin&&r.ssMin>zsdLT;
  let flags='';
  if(isPDItem)flags+=`<div class="flag info">🛈 <b>פריט PD — לפי הזמנה בלבד.</b> פריטי PD מנוהלים ידנית, ולכן <u>אין המלצת מלאי ביטחון או נקודת הזמנה</u> (מוצע 0).${(r.ssMin>0||r.ss>0)?` שים לב: ב-SAP יושבת רצפת ssMin=${r.ssMin}${r.ss>0?` / SS=${r.ss}`:''} על פריט בעל צריכה ${r.d12} יח׳/שנה — סביר שזו שארית שגויה, שקול לאפס.`:''}</div>`;
  if(!isPDItem&&!rateZero&&r.ltD<=0)flags+=`<div class="flag crit">🛑 <b>זמן אספקה = ${r.ltD} (חסר/0) — הסיבה השורשית.</b> LT=0 מאפס גם את ביקוש-בזמן-האספקה וגם את מרכיב הביטחון, ולכן <u>גם ROP וגם SS נופלים</u>. הזן זמן אספקה אמיתי ב-"אספ.מתוכנ." ויחושבו מחדש.</div>`;
- if(!isPDItem&&z===0&&!rateZero&&r.ltD>0)flags+=`<div class="flag crit">⚠️ <b>רמת השירות ${r.srv} → Z=0.</b> Z=0 מאפס את מרכיב הביטחון הסטטיסטי. ${lump>0?`רצפת-הגנת-הפיק (${lump}) עדיין מגנה על הפריט.`:'העלה "רמת שרות" ל-90/95 וה-SS יעלה.'}</div>`;
- if(lumpUsed)flags+=`<div class="flag info">🛡️ <b>רצפת-הגנת-פיק הופעלה (${lump}).</b> פריט <b>${A.pattern}</b> — ביקוש באשכולות. פיק בודד (${A.peak} יח׳) יכול לגרוף מלאי בזמן אספקה, לכן ה-SS מבטח לפחות חצי מהפיק ההיסטורי.</div>`;
- if(ssFloorUsed&&!lumpUsed){flags+=`<div class="flag">ℹ הביטחון הסטטיסטי (${zsdLT}) נמוך מרצפת ssMin (${r.ssMin}) — נבחרה הרצפה.</div>`;
+ if(!isPDItem&&z===0&&!rateZero&&r.ltD>0)flags+=`<div class="flag crit">⚠️ <b>רמת השירות ${r.srv} → Z=0.</b> Z=0 מאפס את מרכיב הביטחון הסטטיסטי — נשארת רק רצפת ssMin${r.ssMin>0?` (${r.ssMin})`:' , והיא 0'}. העלה "רמת שרות" ל-90/95 וה-SS יעלה.</div>`;
+ if(!zeroBuf&&A.pAct<0.5)flags+=`<div class="flag info">🛈 <b>ביקוש מקוטע — ${active} חודשים מתוך 11.</b> בזמן אספקה של ${ltM} חודשים אתה מצפה שישאלו אותך <b>${fmt1(A.pAct*Math.max(r.ltM,0))}</b> פעמים, ובכל פעם בערך ${fmt1(A.muEv)} יח׳. σ=${sd} כבר מכיל את שניהם — פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר לאותה צריכה שנתית, וזה מכוון: כשהוא נדרש, הוא נדרש בבת אחת.</div>`;
+ if(ssFloorUsed){flags+=`<div class="flag">ℹ הביטחון הסטטיסטי (${zsdLT}) נמוך מרצפת ssMin (${r.ssMin}) — נבחרה הרצפה.</div>`;
    if(r.ssMin>r.d12&&r.d12>0)flags+=`<div class="flag">⚠️ <b>ssMin=${r.ssMin} חשוד</b> — גבוה מהצריכה השנתית (${r.d12} יח׳). ייתכן שארית ישנה ב-SAP. שקול לאפס.</div>`;}
  /* מגמה — מוצגת בשני הכיוונים, אבל רק אחד מהם משנה מספר. */
  if(trendGap(r)>0)flags+=`<div class="flag">↘️ <b>הביקוש ירד ב-${Math.abs(trendPct(r))}% בתוך חלון הקצב</b> — ${fmt1(r.tRec)} יח׳ בשלושת החודשים האחרונים מול ${fmt1(r.tPre)} בשלושה שלפניהם. הממוצע השטוח (${fmt1(r.rate)} יח׳/חודש) יושב מעל הרמה הנוכחית; קצב מרוסן ${fmt1(r.rateT)} נותן נקודת הזמנה <b>${r.sugROPT}</b> במקום ${r.sugROP} — <u>${trendGap(r)} יח׳ פחות</u> (${money(trendGap(r)*(r.price||0),r.currency)}). ההמלצה שבטבלה לא שונתה — זו בדיקה, לא החלטה.</div>`;
@@ -3702,12 +3717,12 @@ function explain(r){const A=r.A;
  else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
  const ssRows=zeroBuf?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'קצב חודשי = 0'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
   :`<tr><td>רמת שירות</td><td>${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
-    <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr><tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
+    <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr>
+    <tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
     <tr class="step"><td>σ_LT = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
     <tr class="step"><td>⌈ Z × σ_LT ⌉ (סטטיסטי)</td><td>⌈${z} × ${sdLT}⌉ = ${zsdLT}</td></tr>
     <tr><td>רצפת ssMin מ-SAP</td><td>${r.ssMin}</td></tr>
-    ${lump>0?`<tr><td>רצפת-הגנת-פיק (${A.pattern})</td><td>⌈0.5 × ${A.peak}⌉ = ${lump}</td></tr>`:''}
-    <tr class="total"><td>SS מוצע = max</td><td>max(${zsdLT}, ${r.ssMin}${lump>0?', '+lump:''}) = ${r.sugSS}</td></tr>`;
+    <tr class="total"><td>SS מוצע = max</td><td>max(${zsdLT}, ${r.ssMin}) = ${r.sugSS}</td></tr>`;
  const ropRows=zeroBuf?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'קצב = 0'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
   :`<tr><td>קצב חודשי מתוקן</td><td>${r.rate.toFixed(2)}${r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:''}</td></tr>
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr><tr class="step"><td>ביקוש_LT = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
@@ -3717,7 +3732,7 @@ function explain(r){const A=r.A;
  const mvRow=(r.sales!=null||r.entries!=null)?`<tr><td>תנועה אחרונה — מכירה/כניסה</td><td>${movText(r.sales)} / ${movText(r.entries)}</td></tr>`:'';
  document.getElementById('mtitle').textContent=`מאחורי החישוב — ${r.pn}`;
  document.getElementById('mbody').innerHTML=`${flags||''}
-  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , ssMin${lump>0?' , רצפת-פיק':''} )</div><table>${ssRows}</table></div>
+  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , ssMin )</div><table>${ssRows}</table></div>
   <div class="calc"><div class="ch">נקודת הזמנה (ROP)<span class="res">${r.sugROP}</span></div><div class="formula">ROP = ⌈ (קצב × LT) + SS ⌉</div><table>${ropRows}</table></div>${guard}
   <div class="calc"><div class="ch">בסיס הנתונים</div><table>
     <tr><td>חודשים פעילים</td><td>${active}/11</td></tr><tr><td>חציון צריכה (חודשים עם מכירה)</td><td>${med}</td></tr><tr><td>צריכה 11 חו׳</td><td>${r.d12}</td></tr>
@@ -3725,7 +3740,7 @@ function explain(r){const A=r.A;
     <tr><td>סדרת צריכה</td><td style="direction:ltr">${r.months.join(' · ')}</td></tr>
     ${r.curMonth!=null?`<tr><td>חודש נוכחי (חלקי — מוחרג)</td><td>${r.curMonth}</td></tr>`:''}${mvRow}
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
-   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים (v0.11) — כדי לשקף תנודתיות אמיתית. לגושי/ספורדי נוספת רצפת-הגנת-פיק. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. חודשי אזילה הוחלפו בחציון ופיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
+   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים — והוא <b>כבר</b> מכיל גם את השכיחות וגם את הגודל: p×E[q²] − (p×μq)² שווה לו בדיוק. לכן אין רצפת-פיק ואין תוספת לגושי/ספורדי; פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר מעצם החישוב. חודשי אזילה הוחלפו בחציון — חודש בלי מלאי אינו חודש בלי ביקוש. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. פיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
 document.getElementById('dchip').onclick=()=>toggleDiag();
 document.getElementById('dclose').onclick=()=>closeDetail();
