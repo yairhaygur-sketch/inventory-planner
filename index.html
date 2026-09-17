@@ -28,6 +28,9 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .top .lc{display:flex;align-items:center;gap:8px;margin-inline-start:10px}
 .top .sp{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
 .updated{font-size:11.5px;color:var(--dim);background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.etachip{font-size:11.5px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.etachip:hover{border-color:var(--acc)}
+.etachip.stale{color:var(--org);background:var(--orgL);border-color:var(--org)}
 .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap}
 .btn:hover{border-color:var(--accBorder);background:var(--accL);color:var(--accD)}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill)}.btn.pri:hover{background:var(--accD)}
@@ -1144,6 +1147,16 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 #tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
 #tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
 #tbl[data-track="short"] td.val{font-weight:700;white-space:nowrap}
+/* ETA_SPLIT — «משובץ» הוא מידע מרגיע ולכן מעומעם; «תקוע» הוא מה
+   שדורש פעולה ולכן נושא את צבע האזהרה. שתיהן צרות בכוונה: הרוחב
+   שהן גוזלות בא מהתיאור, וזה הדבר היחיד במסך הזה שאסור לרעוב. */
+#tbl td.sched{color:var(--dimmer);font-weight:400;white-space:nowrap}
+#tbl td.sched i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.75}
+#tbl td.stk{color:var(--org);font-weight:700;white-space:nowrap}
+#tbl td.stk i{font-style:normal;font-size:9px;margin-inline-start:1px;opacity:.7;font-weight:400}
+#tbl td.sched .mut,#tbl td.stk .mut{font-weight:400}
+#tbl[data-track="short"] td.sched{width:58px}
+#tbl[data-track="short"] td.stk{width:48px}
 #tbl tr.grp.cur td{padding-block:4px}
 #tbl td.need{color:var(--dim)}
 #tbl td.need.over{color:var(--org);font-weight:700}
@@ -1249,6 +1262,8 @@ tr.grp.sup b{font-size:var(--f-md)}
     <input type="month" id="rd" title="חודש בסיס — החודש המלא האחרון בדוח">
     <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
     <span class="updated" id="updated">לא נטען קובץ</span>
+    <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
+    <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
     <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
   </div>
 </div>
@@ -1617,6 +1632,117 @@ function analyze(m){
   const varEv=k?ev.reduce((a,b)=>a+(b-muEv)**2,0)/k:0;
   return {med,avg,active,spikes,drops,trend:{rec,pre,pct},adi:+adi.toFixed(2),cv2:+cv2.toFixed(2),pattern,sd,peak,mu,
     pAct,muEv,sdEv:Math.sqrt(varEv)};}
+/* ==================== דוח ETA — אספקות מתוכננות ====================
+   דוח נפרד לחלוטין מ-ZMRP, ונטען בנפרד. הסיבה אינה טכנית אלא קצבית:
+   ZMRP מתחלף כל בוקר, דוח ה-ETA פעם בשבוע. לכן הוא נשמר ב-localStorage
+   ושורד העלאה של ZMRP חדש — אחרת היית מעלה אותו מחדש כל יום, שוכח,
+   והמסך היה מראה "תקוע 0" ומשקר לך.
+
+   מה הדוח נותן: אילו יחידות מתוך הרכש הפתוח כבר שובצו לאספקה עם
+   תאריך. מה הוא לא נותן: הבטחה מול ביצוע. אין בו היסטוריה, ולכן אי
+   אפשר לגזור ממנו סטיית תקן של זמן אספקה.
+
+   הצירוף הוא לפי מק״ט בלבד. בדוח ZMRP אין מספר הזמנת רכש — רק כמות —
+   ולכן אי אפשר להצמיד אספקה להזמנה מסוימת. נמדד על הדוחות האמיתיים:
+   296 מתוך 310 מק״טים בדוח ה-ETA נמצאים בקטלוג; 13 אינם בו כלל, ואחד
+   נבדל בסיומת גרסה (8890218190 מול 8890218190I43). לא מנחשים סיומות.
+
+   המק״טים בשני הדוחות עטופים בסימני כיוון RTL בלתי-נראים. בלי הסרתם
+   אף מק״ט לא מתחבר — CLEAN עושה זאת. */
+const ETA_KEY='planner_eta_v1';
+const ETA_STALE_DAYS=7;
+let ETA=null;
+try{const o=JSON.parse(localStorage.getItem(ETA_KEY)||'null');
+ if(o&&o.byPn&&typeof o.byPn==='object')ETA=o}catch(_){ETA=null}
+function etaKey(s){return CLEAN(s).replace(/[⁦-⁩ ]/g,'').toUpperCase()}
+function ymd(d){const p2=n=>String(n).padStart(2,'0');
+ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function etaToday(){return ymd(new Date())}
+/* זיהוי הדוח: הכותרת של ETA זרה לחלוטין לזו של ZMRP. "תארי.אספקה"
+   אינה מופיעה בשום מקום ב-ZMRP, ולהפך. אין סיכוי לבלבול בין השניים. */
+function etaFindHeader(a){
+ for(let i=0;i<Math.min(30,a.length);i++){const row=a[i].map(CLEAN);
+  if(row.indexOf('תארי.אספקה')>=0&&row.indexOf('חומר')>=0&&row.indexOf('כמות באספקה')>=0)
+   return {hdr:row,at:i}}
+ return null}
+/* מחזיר {byPn,rows,parts,units,ts} או {err}. */
+function etaParse(wb){
+ for(const nm of wb.SheetNames){
+  const a=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,blankrows:false,defval:''});
+  const h=etaFindHeader(a);if(!h)continue;
+  const ix={pn:h.hdr.indexOf('חומר'),qty:h.hdr.indexOf('כמות באספקה'),
+   date:h.hdr.indexOf('תארי.אספקה'),dlv:h.hdr.indexOf('אספקה')};
+  const byPn={};let rows=0,units=0,undated=0;
+  for(const r of a.slice(h.at+1)){
+   const pn=etaKey(r[ix.pn]);if(!pn)continue;
+   const q=NUM(r[ix.qty]);if(q<=0)continue;
+   const v=r[ix.date];let d=null;
+   if(v instanceof Date&&!isNaN(v))d=ymd(v);
+   else{const s=CLEAN(v);const mm=s.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+    if(mm){let y=+mm[3];if(y<100)y+=2000;d=ymd(new Date(y,(+mm[2])-1,+mm[1]))}
+    else if(/^\d{4}-\d{2}-\d{2}/.test(s))d=s.slice(0,10)}
+   if(!d){undated++;continue}
+   (byPn[pn]=byPn[pn]||[]).push([q,d,CLEAN(r[ix.dlv])]);
+   rows++;units+=q}
+  if(!rows)return {err:'הקובץ זוהה כדוח ETA אבל אין בו שורה אחת עם כמות ותאריך'};
+  for(const k in byPn)byPn[k].sort((x,y)=>x[1]<y[1]?-1:x[1]>y[1]?1:0);
+  return {byPn,rows,units,undated,parts:Object.keys(byPn).length,ts:Date.now()}}
+ return {err:'לא זוהתה שורת כותרות של דוח ETA (נדרשות "חומר", "כמות באספקה", "תארי.אספקה")'}}
+/* ============ ETA_SPLIT — "בדרך" אינו מספר אחד ============
+   עד כאן הרכש הפתוח הוצג כגוש אחד בלי תאריך, והמתכנן הסיק ממנו שהפריט
+   מכוסה. הדוח מראה שהגוש מפוצל: חלק שובץ לאספקה עם תאריך, וחלק לא
+   שובץ לשום דבר. נמדד על הדוח האמיתי — 24 פריטים בשכבה 1 עם משלוח
+   חלקי, 549 יחידות רכש בלי שום אספקה. הדוגמה החדה: ממיר מתחים
+   8894765000, 12 לקוחות ממתינים, 18 יח׳ ברכש — 5 בדרך, 13 לא.
+
+   תאריך שכבר עבר אינו נספר כמשובץ. משלוח שהיה אמור להגיע ולא הגיע
+   אינו כיסוי, והוא בדיוק מה שצריך לבלוט. */
+/* שתי התאים של מסך הבוקר. בלי דוח ETA — תא אחד, זהה לקודם. */
+function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)}
+function etaCells(r){
+ const po=(r.po||0)+(r.transfer||0);
+ if(!ETA)return `<td class="num otw">${po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי">${po.toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>`;
+ const q=r.etaQty||0,st=r.stuck||0,past=r.etaPast||0;
+ const tSched=q>0
+  ?`${q.toLocaleString('he-IL')} יח׳ שובצו לאספקה · המוקדמת ${etaShort(r.etaFirst)}`+(past>0?` · ${past} יח׳ היו אמורות להגיע ועברו`:'')
+  :(r.etaHas?`הפריט מופיע בדוח ה-ETA${past>0?`, אבל כל ${past} היחידות בו כבר עברו את תאריך ההגעה`:', בלי אספקה עתידית'}`
+           :'הפריט אינו מופיע בדוח ה-ETA');
+ /* «בהעברה» הוא מלאי שכבר שלנו ונע בין מחסנים — לא הזמנה מול ספק,
+    ולכן אינו נכנס ל«תקוע». הוא גם לא נעלם בשקט: אם יש כזה, הוא נאמר. */
+ const tr=r.transfer>0?` · ${r.transfer} יח׳ בהעברה פנימית (לא נספרות כאן)`:'';
+ const tStuck=(st>0
+  ?`${st.toLocaleString('he-IL')} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
+  :(r.po>0?'כל הרכש הפתוח משובץ לאספקה':'אין רכש פתוח'))+tr;
+ return `<td class="num sched" title="${tSched}">${q>0?`${q.toLocaleString('he-IL')}<i>·${etaShort(r.etaFirst)}</i>`:'<span class="mut">—</span>'}</td>`
+  +`<td class="num stk" title="${tStuck}">${st>0?st.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>`}
+/* משפט אחד שחייב להישאר נכון בשני המצבים. לפני הפיצול כל המסכים אמרו
+   "אין ETA בדוח" — אמירה שהפכה לשקר ברגע שנטען דוח. */
+function otwWhy(r){
+ if(!ETA)return 'לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי';
+ const q=(r&&r.etaQty)||0,st=(r&&r.stuck)||0;
+ return q>0&&st>0?`${q} יח׳ שובצו לאספקה (המוקדמת ${etaShort(r.etaFirst)}) ו-${st} יח׳ בלי שום תאריך`
+  :q>0?`כל הכמות שובצה לאספקה — המוקדמת ${etaShort(r.etaFirst)}`
+  :'אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה';}
+function otwHead(){return ETA
+ ?'רכש פתוח. חלקו שובץ לאספקה עם תאריך — הפירוט במסך הבוקר, בעמודות «משובץ» ו«תקוע»'
+ :'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי'}
+function etaApply(list){
+ const t=etaToday(),by=(ETA&&ETA.byPn)||null;
+ for(const r of list){
+  const ls=by?by[etaKey(r.pn)]:null;
+  if(!ls){r.etaQty=0;r.etaPast=0;r.etaFirst=null;r.etaHas=false;
+   r.stuck=by?Math.max(0,r.po||0):0;continue}
+  let fut=0,past=0,first=null;
+  for(const [q,d] of ls){if(d<t){past+=q}else{fut+=q;if(!first)first=d}}
+  r.etaHas=true;r.etaQty=fut;r.etaPast=past;r.etaFirst=first;
+  r.stuck=Math.max(0,(r.po||0)-fut)}
+ return list}
+function etaAgeDays(){if(!ETA||!ETA.ts)return null;
+ return Math.floor((Date.now()-ETA.ts)/864e5)}
+function etaSave(){try{localStorage.setItem(ETA_KEY,JSON.stringify(ETA))}catch(_){
+  toast('⚠ דוח ה-ETA נטען אבל לא נשמר — אחסון הדפדפן מלא')}}
+function etaClear(){ETA=null;try{localStorage.removeItem(ETA_KEY)}catch(_){}
+ if(ALL&&ALL.length){etaApply(ALL);apply()}etaChip()}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
   if(DIAG.hardStop)return out;
   for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn)continue;
@@ -1852,7 +1978,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['err',`${it.free} יח׳ במלאי מול צריכה ${it.c3} יח׳ ברבעון — ${it.r3.toFixed(1)} לחודש`],
       d?['idea',`זוהתה אזילה ב${d.len>1?`${d.len} חודשים`:LABELS[d.i-1].name} — הקצב האמיתי גבוה מהמדווח, ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`]:null,
       it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה`]:null,
-      it.po>0?['warn',`${it.po} יח׳ בהזמנת רכש פתוחה, אבל אין ETA בדוח — משלוח בלי תאריך אינו כיסוי ואינו נספר`]
+      it.po>0?['warn',`${it.po} יח׳ בהזמנת רכש פתוחה — ${otwWhy(it)}. משלוח בלי תאריך אינו כיסוי ואינו נספר`]
              :['err','אין הזמנת רכש פתוחה שתכסה את הפער'],
       (it.srvMissing||it.ltD<=0)?['warn','רמת שירות או זמן אספקה חסרים ב-SAP — אי אפשר לחשב ROP/SS, אבל החוסר עצמו אינו תלוי בהם']:null,
       paramGap?['idea',`נקודת ההזמנה ${it.rop} נמוכה מ-${it.sugROP} הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים`]:null
@@ -1924,7 +2050,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     if(it.po>0&&it.covA!==null&&it.covA>=it.ltM){it.cat='מעקב אספקה';it.sev=1;it.miss=0;
       it.why=[['info',`כיסוי ממלאי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} — אבל ${it.po} יח׳ כבר בדרך`],
         ['ok',`עם הרכש הפתוח הכיסוי ${it.covA.toFixed(1)} חודשים — אין צורך ברכש יזום נוסף`],
-        ['warn','אין ETA בדוח — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
+        ['warn',otwWhy(it)+' — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
       it.act=['לוודא מול הספק שהרכש אכן בדרך','לבקש ETA','לא לפתוח רכש נוסף בשלב זה'];
       Q.follow.push(it);continue}
     it.cat='מניעת חוסר';
@@ -2398,7 +2524,8 @@ let DL_CACHE={};
 /* אוזל החודש: צריכה משמעותית ברבעון, ומלאי פנוי שלא יחזיק חודש.
    רק ZM. פריטי PD נרכשים לפי הזמנה ואינם מנוהלים במלאי, ולכן "לא יכסה
    את החודש" חסר משמעות עבורם.
-   הרכש הפתוח אינו נספר ואינו משפיע על הדירוג: אין ETA בדוח, ומשלוח
+   הרכש הפתוח אינו נספר ואינו משפיע על הדירוג, גם כשיש לו תאריך מדוח
+   ה-ETA: הדירוג הוא של מה שחסר היום. משלוח
    בלי תאריך אינו כיסוי. הוא מוצג כעמודת מידע בלבד. */
 function m1Rows(base){return base.filter(isM1)
  .sort((a,b)=>(b.r3-b.free)-(a.r3-a.free))}
@@ -3058,7 +3185,7 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
   :track==='cust'?['מק״ט','תיאור',
     '<span title="כמות בהז.פ — הזמנת לקוח פתוחה, בניכוי כמות חסומה למשלוח">ממתין</span>',
     '<span title="סה״כ מלאי. המלאי הפנוי הוא אפס בכל שורה כאן — מלאי שמופיע כאן קיים פיזית אך אינו זמין">במלאי</span>',
-    '<span title="רכש פתוח ואספקות. אין ETA בדוח, ולכן זו כמות בלי תאריך">בדרך ⌛</span>',
+    `<span title="${otwHead()}">בדרך ⌛</span>`,
     'זמן אספקה','שווי ההזמנה']
   :track==='trend'?['מק״ט','תיאור',
     '<span title="שלושת החודשים האחרונים מול השלושה שלפניהם, בתוך חלון הקצב עצמו">מגמה</span>',
@@ -3067,12 +3194,15 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     'פער','שווי הפער']
   :track==='short'?['מק״ט','תיאור','ספק','דגם',
     '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
-    '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
+    /* בלי דוח ETA אין במה לפצל — עמודה אחת, בדיוק כמו קודם. ראה ETA_SPLIT */
+    ...(ETA?['<span title="יחידות מתוך הרכש הפתוח ששובצו לאספקה עם תאריך, והתאריך המוקדם מביניהן">משובץ</span>',
+             '<span title="רכש פתוח שלא שובץ לשום אספקה — אין לו תאריך ואינו נספר ככיסוי">תקוע</span>']
+           :['<span title="רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>']),
     'לקוח',
     '<span title="קצב חודשי פחות המלאי במדף — היחידות שלא יסופקו החודש">לא יסופק</span>',
     '<span title="היחידות שלא יסופקו כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
     '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
-  :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
+  :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר',`<span title="מוצג למידע בלבד ואינו נספר ככיסוי. ${otwHead()}">בדרך</span>`]
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 
@@ -3129,7 +3259,7 @@ function custRow(r,i){
   <td>${hlMark(r.desc.slice(0,36),SQ)}</td>
   <td class="num"><span class="stake qty">${r.cust.toLocaleString('he-IL')}</span></td>
   <td class="num${stock>0?' held':''}"${stock>0?` title="${stock} יח׳ קיימות פיזית אך המלאי הפנוי אפס — הקצאה, חסימה או בדיקה"`:''}>${stock>0?stock.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-  <td class="num otw">${(r.po+(r.transfer||0))>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
+  <td class="num otw">${(r.po+(r.transfer||0))>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — ${otwWhy(r)}">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
   <td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
   <td class="num">${money(custVal(r),r.currency)}</td></tr>`}
 function renderCust(rows){
@@ -3242,7 +3372,7 @@ function renderDecisions(rows){
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
+     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח — ${otwWhy(r)}">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
      <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
      <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
      <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
@@ -3278,7 +3408,7 @@ function renderDecisions(rows){
      <td class="mdl" title="${esc(r.model||'')}"><bdi>${esc((r.model||'—').slice(0,15))}</bdi></td>
      <td class="cg">${sparkline(r)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח, ולכן אינו נספר ככיסוי">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
+     ${etaCells(r)}
      <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
      <td class="num"><span class="stake qty">${Math.ceil(r.unsQty||0).toLocaleString('he-IL')}</span></td>
      <td class="num val">${money(r.unsVal||0,r.currency)}</td>
@@ -3726,7 +3856,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
    <details class="dsec" data-dt="data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
     <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
-    <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח, משום שאין ETA בדוח. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
+    <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח${ETA?', כולל הכמות שכבר שובצה לאספקה':', משום שלא נטען דוח ETA'}. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
  </div>`;
  /* ============ שלושת הטאבים של תיק הפריט ============
@@ -4026,6 +4156,38 @@ function toggleDiag(){const el=document.getElementById('diag');
  el.classList.toggle('show');document.getElementById('dchip').classList.toggle('on',el.classList.contains('show'))}
 let ALL_RAW=null;
 let LOADMS=0;
+/* ============ קליטת דוח ה-ETA ============
+   נטען בנפרד מ-ZMRP ובכל סדר. אם ZMRP עוד לא נטען, הדוח נשמר ומחכה
+   לו; אם הוא כבר נטען, החישוב מתרענן מיד בלי לקרוא את הקובץ מחדש. */
+function etaChip(){const el=document.getElementById('etachip');if(!el)return;
+ if(!ETA){el.hidden=true;return}
+ const d=etaAgeDays(),stale=d!=null&&d>ETA_STALE_DAYS;
+ const when=d===0?'היום':d===1?'אתמול':'לפני '+d+' ימים';
+ el.hidden=false;el.classList.toggle('stale',!!stale);
+ el.textContent=(stale?'⚠ ':'')+'ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים · '+when;
+ el.title=(stale?'הדוח בן יותר מ-'+ETA_STALE_DAYS+' ימים — תאריכים בו כבר אינם מהימנים. ':'')
+  +ETA.rows.toLocaleString('he-IL')+' שורות · '+ETA.units.toLocaleString('he-IL')+' יח׳ משובצות'
+  +(ETA.undated?' · '+ETA.undated+' שורות בלי תאריך הוחרגו':'')
+  +'\nלחץ להסרת הדוח.'}
+document.getElementById('etachip').onclick=()=>{
+ if(!ETA)return;
+ if(!confirm('להסיר את דוח ה-ETA? עמודות "משובץ" ו"תקוע" יחזרו להציג רכש פתוח בלי תאריך.'))return;
+ etaClear();toast('דוח ה-ETA הוסר')};
+document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file)return;
+ const rd=new FileReader();
+ rd.onload=ev=>{let res;
+  try{res=etaParse(XLSX.read(ev.target.result,{type:'array',cellDates:true}))}
+  catch(err){res={err:'לא ניתן לקרוא את הקובץ: '+err.message}}
+  if(res.err){toast('⛔ '+res.err);e.target.value='';return}
+  ETA=res;etaSave();etaChip();
+  if(ALL&&ALL.length){etaApply(ALL);apply();
+   const hit=ALL.filter(r=>r.etaHas).length;
+   toast('✓ דוח ETA — '+res.parts.toLocaleString('he-IL')+' מק״טים, '+hit.toLocaleString('he-IL')+' מהם בקטלוג');
+   if(hit===0)toast('⚠ אף מק״ט מדוח ה-ETA לא נמצא בקטלוג — ודא שזה אותו מפעל');}
+  else toast('✓ דוח ETA נשמר — יצטרף ברגע שתעלה דוח ZMRP');
+  e.target.value=''};
+ rd.readAsArrayBuffer(file)};
+etaChip();
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
  const t0=performance.now();
  document.getElementById('updated').textContent='קורא קובץ...';
@@ -4048,6 +4210,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
+  etaApply(ALL);
   const futureDates=ALL.filter(x=>x.entFuture||x.saleFuture).length;
   const missingPrices=ALL.filter(x=>x.priceMissing).length;
   if(futureDates)DIAG.warn.push(`${futureDates} פריטים כוללים תאריך תנועה עתידי — התאריך הוחרג מחישובי גיל מלאי.`);

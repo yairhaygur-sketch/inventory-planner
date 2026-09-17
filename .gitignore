@@ -1,6 +1,9 @@
 node_modules/
 tests/zmrp-demo.xlsx
 tests/defects.xlsx
+tests/zmrp-demo-eta.xlsx
+tests/eta-zmrp.xlsx
+tests/eta-report.xlsx
 
 # פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
 design/*/*.html

@@ -14,7 +14,10 @@ let total=0;
  await p.goto('file://'+path.join(__dirname,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',path.join(__dirname,'zmrp-demo.xlsx'));
  await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});
- await p.waitForTimeout(1200);
+ /* גם דוח ה-ETA — אחרת הצ׳יפ בכותרת ועמודות «משובץ»/«תקוע» אינם
+    מרונדרים כלל, וצבע שלא מרונדר אינו נמדד. */
+ await p.setInputFiles('#fe',path.join(__dirname,'zmrp-demo-eta.xlsx'));
+ await p.waitForTimeout(1500);
  for(const mode of ['light','dark']){
   await p.evaluate(m=>document.body.classList.toggle('dark',m==='dark'),mode);
   await p.waitForTimeout(300);
