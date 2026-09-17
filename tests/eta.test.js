@@ -88,7 +88,21 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
   covered:typeof etaCoveredRows==='function'?etaCoveredRows().length:0,
   badge:(document.querySelector('.gcov')||{}).textContent||'',
   listN:decisionList('short').length,
-  t1N:decisionList('short').filter(isT1).length}};
+  t1N:decisionList('short').filter(isT1).length,
+  /* ETA_HONEST — הסריקה שתפסה 30 מקומות אחרי ש"תיקנתי הכול".
+     כל פריט שיש לו אספקה משובצת: אף מחרוזת שלו — הסבר או פעולה —
+     לא רשאית להכריז שאין תאריך או להורות לבקש אחד. */
+  liars:(()=>{const BAD=[/אין תאריך אספקה בדוח/,/אין תאריך הגעה/,/אין תאריך בדוח/,
+      /^לבקש ETA$/,/לדרוש ETA/,/אין ETA/,/משלוח בלי תאריך אינו כיסוי/];
+    const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
+    return ALL.filter(r=>(r.etaQty||0)>0)
+      .filter(r=>txt(r).some(t=>BAD.some(re=>re.test(t))))
+      .map(r=>r.pn+': '+txt(r).filter(t=>BAD.some(re=>re.test(t))).join(' | '))})(),
+  scheduled:ALL.filter(r=>(r.etaQty||0)>0).length,
+  /* והכיוון ההפוך: בלי דוח, אסור שמשהו יטען שיש תאריך. */
+  ghosts:(()=>{const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
+    return ETA?[]:ALL.filter(r=>txt(r).some(t=>/שובצו לאספקה|משובצות ל-|מגיעות ב-/.test(t)))
+      .map(r=>r.pn)})()}};
 
 (async()=>{
  const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
@@ -216,6 +230,14 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     !cleared.loaded&&cleared.C.uns===8&&cleared.C.val===before.C.val
     &&cleared.listN===before.listN&&cleared.covered===0&&cleared.badge==='',
     `uns=${cleared.C.uns} רשימה=${cleared.listN} (היה ${before.listN})`);
+
+ // ── ETA_HONEST · אף מסך לא מכריז «אין תאריך» על פריט שיש לו תאריך ──
+ ok('יש פריטים משובצים לסרוק',after.scheduled>0,`${after.scheduled} פריטים עם אספקה משובצת`);
+ ok('אף הסבר או פעולה לא מכחישים תאריך שקיים',
+    after.liars.length===0,after.liars.slice(0,3).join('  //  '));
+ ok('ובכיוון ההפוך — בלי דוח אף מסך לא ממציא תאריך',
+    before.ghosts.length===0&&cleared.ghosts.length===0,
+    (before.ghosts.concat(cleared.ghosts)).slice(0,3).join(', '));
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
