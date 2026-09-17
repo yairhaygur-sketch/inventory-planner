@@ -2389,7 +2389,10 @@ let track='short', trackPicked=false;
 /* המצב קובע את המסלול, ולכן אין יותר החלפה אוטומטית מאחורי הגב */
 function autoTrack(){}
 function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
- const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'#c2740c':'var(--gray)';
+ /* #c2740c היה קשיח כאן — אותו צבע בשני הנושאים, ונופל בשניהם:
+    3.33 על --orgL בהיר ו-4.27 על --orgL כהה, מול דרישה של 4.5.
+    הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך. */
+ const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'var(--org)':'var(--gray)';
  return `background:${bg};color:${fg}`}
 let DL_CACHE={};
 /* אוזל החודש: צריכה משמעותית ברבעון, ומלאי פנוי שלא יחזיק חודש.
