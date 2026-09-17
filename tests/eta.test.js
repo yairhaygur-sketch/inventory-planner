@@ -29,12 +29,25 @@ const rows=[
  // אספקה גדולה מהרכש (13 מקרים בדוח האמיתי) — תקוע אפס, לא שלילי
  mk('ETA-OVER',{months:[3,3,3,3,3,3,3,3,3,3,3],free:0,po:4,cust:1,price:200}),
  // בלי רכש פתוח בכלל
- mk('ETA-NOPO',{months:[3,3,3,3,3,3,3,3,3,3,3],free:0,po:0,cust:1,price:600})];
+ mk('ETA-NOPO',{months:[3,3,3,3,3,3,3,3,3,3,3],free:0,po:0,cust:1,price:600}),
+ /* ETA_COVER · שכבה 2 — אפס לקוח ממתין, ולכן «כסף שלא יסופק» ולא כשל
+    שירות. קצב 10, מדף 2 ⇒ 8 יח׳ לא יסופקו לפי המדף בלבד. */
+ mk('T2-COVERED',{months:Array(11).fill(10),free:2,po:20,cust:0,price:700}),
+ mk('T2-LATE',{months:Array(11).fill(10),free:2,po:20,cust:0,price:700}),
+ mk('T2-PARTIAL',{months:Array(11).fill(10),free:2,po:20,cust:0,price:700}),
+ /* שכבה 1 עם אספקה בתוך החודש — חייב להישאר, ובאותו מספר בדיוק */
+ mk('T1-WITH-ETA',{months:Array(11).fill(10),free:0,po:20,cust:4,price:700})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/eta-zmrp.xlsx');
 
 const dplus=n=>{const d=new Date(Date.now()+n*864e5);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
+/* חודש הבסיס הוא החודש המלא האחרון, ולכן «סוף החודש» הוא סוף החודש
+   הנוכחי. שני התאריכים האלה נכונים בכל יום שבו הבדיקה תרוץ — dplus(7)
+   היה חוצה את סוף החודש אם היא תרוץ ב-25 בחודש. */
+const nowD=new Date();
+const inMonth=new Date(nowD.getFullYear(),nowD.getMonth()+1,0);   // היום האחרון של החודש
+const afterMonth=new Date(nowD.getFullYear(),nowD.getMonth()+2,15); // אמצע החודש הבא
 const ehdr=['אספקה','פריט','חומר','תיאור','כמות באספקה',"א'",'תארי.אספקה'];
 const erows=[
  ['4190000001','000010',RLM('ETA-PARTIAL'),'PARTIAL',2,'EA',dplus(7)],
@@ -44,13 +57,23 @@ const erows=[
  ['4190000004','000010',RLM('ETA-OVER'),'OVER',9,'EA',dplus(10)],
  ['4190000005','000010',RLM('NOT-IN-CATALOGUE'),'GHOST',5,'EA',dplus(10)],
  // שורה בלי תאריך — מוחרגת, ואסור שתפיל את הקריאה
- ['4190000006','000010',RLM('ETA-NONE'),'NODATE',7,'EA','']];
+ ['4190000006','000010',RLM('ETA-NONE'),'NODATE',7,'EA',''],
+ // ETA_COVER: מכסה במלואו בתוך החודש ⇒ יורד מהרשימה
+ ['4190000007','000010',RLM('T2-COVERED'),'T2COV',8,'EA',inMonth],
+ // אותה כמות בדיוק, אבל אחרי סוף החודש ⇒ אינו מכסה כלום
+ ['4190000008','000010',RLM('T2-LATE'),'T2LATE',8,'EA',afterMonth],
+ // מכסה חלקית ⇒ נשאר ברשימה, עם מספר קטן יותר
+ ['4190000009','000010',RLM('T2-PARTIAL'),'T2PART',3,'EA',inMonth],
+ // שכבה 1 עם אספקה בתוך החודש ⇒ חייב להישאר, בלי שינוי במספר
+ ['4190000010','000010',RLM('T1-WITH-ETA'),'T1ETA',20,'EA',inMonth]];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([ehdr,...erows]),'גיליון1');return wb})(),
  SD+'/eta-report.xlsx');
 
 const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
-  return {po:r.po,eta:r.etaQty,past:r.etaPast,first:r.etaFirst,stuck:r.stuck,has:r.etaHas}};
+  return {po:r.po,eta:r.etaQty,past:r.etaPast,first:r.etaFirst,stuck:r.stuck,has:r.etaHas,
+    month:r.etaMonth,gross:r.unsGross,uns:r.unsQty,val:Math.round(r.unsVal||0),t1:isT1(r),
+    inList:decisionList('short').some(x=>x.pn===r.pn)}};
  return {P:g('ETA-PARTIAL'),F:g('ETA-FULL'),T:g('ETA-PAST'),N:g('ETA-NONE'),
   O:g('ETA-OVER'),Z:g('ETA-NOPO'),
   loaded:!!ETA,parts:ETA?ETA.parts:0,rows:ETA?ETA.rows:0,units:ETA?ETA.units:0,undated:ETA?ETA.undated:0,
@@ -59,7 +82,13 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
   nSched:document.querySelectorAll('#tbl tbody td.sched').length,
   nOtw:document.querySelectorAll('#tbl tbody td.otw').length,
   chipHidden:document.getElementById('etachip').hidden,
-  chip:document.getElementById('etachip').textContent}};
+  chip:document.getElementById('etachip').textContent,
+  C:g('T2-COVERED'),L:g('T2-LATE'),PA:g('T2-PARTIAL'),W:g('T1-WITH-ETA'),
+  eom:typeof etaEom==='function'?etaEom():null,
+  covered:typeof etaCoveredRows==='function'?etaCoveredRows().length:0,
+  badge:(document.querySelector('.gcov')||{}).textContent||'',
+  listN:decisionList('short').length,
+  t1N:decisionList('short').filter(isT1).length}};
 
 (async()=>{
  const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
@@ -94,6 +123,10 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p2.setInputFiles('#fe',SD+'/eta-zmrp.xlsx');await p2.waitForTimeout(700);
  const wrong=await p2.evaluate(snap);
 
+ // ── שלב 6: הסרת הדוח — הכול חוזר בדיוק לאיפה שהיה ──
+ await p2.evaluate(()=>etaClear());await p2.waitForTimeout(600);
+ const cleared=await p2.evaluate(snap);
+
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 
  ok('בלי דוח ETA — עמודה אחת "בדרך", בדיוק כמו קודם',
@@ -105,11 +138,11 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     `eta=${before.P.eta} stuck=${before.P.stuck}`);
 
  ok('הדוח נקלט ומזוהה לפי הכותרת שלו',
-    after.loaded&&after.parts===5&&after.rows===6&&after.units===41,
+    after.loaded&&after.parts===9&&after.rows===10&&after.units===80,
     `מק״טים=${after.parts} שורות=${after.rows} יח׳=${after.units}`);
  ok('שורה בלי תאריך מוחרגת ולא מפילה את הקריאה',after.undated===1,`undated=${after.undated}`);
- ok('סימני כיוון RTL מוסרים — המק״טים מתחברים',after.hit===4,
-    `התחברו ${after.hit} מתוך 5 (אחד אינו בקטלוג — בכוונה)`);
+ ok('סימני כיוון RTL מוסרים — המק״טים מתחברים',after.hit===8,
+    `התחברו ${after.hit} מתוך 9 (אחד אינו בקטלוג — בכוונה)`);
 
  ok('משלוח חלקי: 18 ברכש, 5 משובצות, 13 תקועות',
     after.P.po===18&&after.P.eta===5&&after.P.stuck===13,
@@ -136,17 +169,53 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     &&!after.cols.includes('בדרך ⌛')&&after.nSched>0&&after.nOtw===0,
     `sched=${after.nSched} otw=${after.nOtw}`);
  ok('הצ׳יפ מציג את מספר המק״טים בדוח',
-    !after.chipHidden&&/310|5/.test(after.chip)&&/ETA/.test(after.chip),after.chip.trim());
+    !after.chipHidden&&/\b9\b/.test(after.chip)&&/ETA/.test(after.chip),after.chip.trim());
 
  ok('העלאת ZMRP מחדש אינה מוחקת את דוח ה-ETA',
     reload.loaded&&reload.P.eta===5&&reload.P.stuck===13&&reload.nSched>0,
     `loaded=${reload.loaded} eta=${reload.P.eta}`);
  ok('סדר הפוך — ETA לפני ZMRP — נותן בדיוק אותה תוצאה',
-    reverse.loaded&&reverse.P.eta===5&&reverse.P.stuck===13&&reverse.hit===4,
+    reverse.loaded&&reverse.P.eta===5&&reverse.P.stuck===13&&reverse.hit===8,
     `eta=${reverse.P.eta} stuck=${reverse.P.stuck} hit=${reverse.hit}`);
  ok('קובץ ZMRP שהועלה לשדה ה-ETA נדחה, והדוח הקיים נשאר',
-    wrong.loaded&&wrong.parts===5&&wrong.P.eta===5,
+    wrong.loaded&&wrong.parts===9&&wrong.P.eta===5,
     `parts=${wrong.parts}`);
+
+ // ── ETA_COVER · אספקה מתוארכת נחשבת כיסוי — בשכבה 2 בלבד ──
+ ok('בלי דוח: 8 יח׳ לא יסופקו לפי המדף בלבד',
+    before.C.uns===8&&before.C.gross===8&&before.C.inList,
+    `uns=${before.C.uns} gross=${before.C.gross}`);
+ ok('אספקה בתוך החודש מכסה — הפריט יורד מהרשימה',
+    after.C.month===8&&after.C.uns===0&&after.C.val===0&&!after.C.inList,
+    `month=${after.C.month} uns=${after.C.uns} ברשימה=${after.C.inList}`);
+ ok('אותה כמות אחרי סוף החודש אינה מכסה כלום',
+    after.L.month===0&&after.L.uns===8&&after.L.inList,
+    `eom=${after.eom} month=${after.L.month} uns=${after.L.uns}`);
+ ok('כיסוי חלקי מקטין ולא מוחק',
+    after.PA.month===3&&after.PA.uns===5&&after.PA.inList,
+    `month=${after.PA.month} uns=${after.PA.uns} (היה ${before.PA.uns})`);
+ ok('תאריך שעבר אינו מכסה — ETA-PAST נשאר עם הברוטו',
+    after.T.month===0&&after.T.uns===before.T.uns,
+    `month=${after.T.month} uns=${after.T.uns} (היה ${before.T.uns})`);
+ /* הבדיקה שמגינה על ההבטחה: שכבה 1 היא כשל שירות שכבר קרה, ותאריך
+    עתידי אינו מבטל אותו. המספר והכסף חייבים להישאר זהים בול. */
+ ok('שכבה 1 עם אספקה בתוך החודש — נשארת, ובאותו מספר בדיוק',
+    after.W.t1&&after.W.inList&&after.W.month===20
+    &&after.W.uns===before.W.uns&&after.W.val===before.W.val,
+    `month=${after.W.month} uns=${after.W.uns} (היה ${before.W.uns}) · כסף ${after.W.val} (היה ${before.W.val})`);
+ ok('מספר פריטי שכבה 1 לא השתנה',after.t1N===before.t1N,
+    `${before.t1N} → ${after.t1N}`);
+ ok('הרשימה התקצרה רק בשכבה 2',
+    after.listN===before.listN-1&&after.covered===1,
+    `${before.listN} → ${after.listN} · כוסו ${after.covered}`);
+ ok('הכותרת אומרת כמה ירדו — הרשימה לא מתקצרת בשקט',
+    /1/.test(after.badge)&&/כוסו/.test(after.badge),after.badge.trim()||'(אין תג)');
+ ok('הכיסוי שורד קובץ שגוי שהועלה לשדה',wrong.C.uns===0,`uns=${wrong.C.uns}`);
+ /* הסרת הדוח חייבת להחזיר את המצב בול — אחרת «כיסוי» הוא דלת חד-כיוונית. */
+ ok('הסרת הדוח מחזירה את המספרים במדויק',
+    !cleared.loaded&&cleared.C.uns===8&&cleared.C.val===before.C.val
+    &&cleared.listN===before.listN&&cleared.covered===0&&cleared.badge==='',
+    `uns=${cleared.C.uns} רשימה=${cleared.listN} (היה ${before.listN})`);
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
