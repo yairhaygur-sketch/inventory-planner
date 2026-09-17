@@ -1157,6 +1157,8 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 #tbl td.sched .mut,#tbl td.stk .mut{font-weight:400}
 #tbl[data-track="short"] td.sched{width:58px}
 #tbl[data-track="short"] td.stk{width:48px}
+.gcov{font-size:var(--f-sm);color:var(--grn);background:var(--grnL);border:1px solid var(--grn);
+ border-radius:8px;padding:1px 7px;margin-inline-start:8px;white-space:nowrap;cursor:help}
 #tbl tr.grp.cur td{padding-block:4px}
 #tbl td.need{color:var(--dim)}
 #tbl td.need.over{color:var(--org);font-weight:700}
@@ -1726,16 +1728,48 @@ function otwWhy(r){
 function otwHead(){return ETA
  ?'רכש פתוח. חלקו שובץ לאספקה עם תאריך — הפירוט במסך הבוקר, בעמודות «משובץ» ו«תקוע»'
  :'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי'}
+/* ============ ETA_COVER — אספקה מתוארכת נחשבת כיסוי בשכבה 2 ============
+   «כסף שלא יסופק החודש» הוא תחזית, ואספקה עם תאריך בתוך החודש היא
+   קלט לגיטימי לתחזית. לכן היא נספרת ככיסוי — ורק שם.
+
+   בשכבה 1 היא אינה נספרת, וזו אינה אי-עקביות אלא ההבדל בין שני
+   הדברים: שכבה 1 היא כשל שירות שכבר קרה — הלקוח ממתין והמדף ריק,
+   ותאריך עתידי אינו מבטל את זה. isT1() אינו נוגע ב-unsQty, ולכן
+   חברות בשכבה 1 והדירוג בתוכה אינם משתנים כאן כלל.
+
+   נמדד על הדוח האמיתי: 29 מתוך 48 פריטי שכבה 2 יורדים מהרשימה,
+   ו-USD 6,877 הופך ל-USD 2,301. השקל (ILS 291) אינו זז — הספקים
+   הישראליים אינם בדוח ה-ETA.
+
+   רק אספקה שתגיע עד סוף החודש נספרת. משלוח בנובמבר אינו מכסה חוסר
+   בספטמבר, ותאריך שכבר עבר אינו מכסה כלום. */
+/* רשימה שמתקצרת בשקט היא רשימה שאי אפשר לסמוך עליה. כל פריט שירד
+   בגלל ETA_COVER נספר ונאמר בכותרת השכבה, עם אפשרות לראות אותו. */
+function etaCoveredRows(){if(!ETA||!ALL)return [];
+ return ALL.filter(r=>!r.mark&&!r.isOD&&!r.isPDItem&&!isT1(r)
+   &&(r.unsGross||0)>0&&(r.unsQty||0)===0&&(r.etaMonth||0)>0)}
+function etaCovered(){const l=etaCoveredRows();if(!l.length)return '';
+ const names=l.slice(0,10).map(r=>`${r.pn} (${r.etaMonth} יח׳ עד ${etaShort(r.etaFirst)})`).join('\n');
+ const t=`${l.length} פריטים היו ברשימה לפי המלאי במדף, וירדו ממנה כי יש להם אספקה עם תאריך עד סוף החודש:\n\n`
+  +names+(l.length>10?`\n… ועוד ${l.length-10}`:'');
+ return `<span class="gcov" title="${esc(t)}">↓ ${l.length.toLocaleString('he-IL')} כוסו באספקה מתוארכת</span>`}
+function etaEom(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getMonth()+2);d.setDate(0);
+ return ymd(d)}
 function etaApply(list){
- const t=etaToday(),by=(ETA&&ETA.byPn)||null;
+ const t=etaToday(),eom=etaEom(),by=(ETA&&ETA.byPn)||null;
  for(const r of list){
   const ls=by?by[etaKey(r.pn)]:null;
+  let month=0;
   if(!ls){r.etaQty=0;r.etaPast=0;r.etaFirst=null;r.etaHas=false;
-   r.stuck=by?Math.max(0,r.po||0):0;continue}
-  let fut=0,past=0,first=null;
-  for(const [q,d] of ls){if(d<t){past+=q}else{fut+=q;if(!first)first=d}}
-  r.etaHas=true;r.etaQty=fut;r.etaPast=past;r.etaFirst=first;
-  r.stuck=Math.max(0,(r.po||0)-fut)}
+   r.stuck=by?Math.max(0,r.po||0):0}
+  else{let fut=0,past=0,first=null;
+   for(const [q,d] of ls){if(d<t){past+=q}else{fut+=q;if(!first)first=d;if(d<=eom)month+=q}}
+   r.etaHas=true;r.etaQty=fut;r.etaPast=past;r.etaFirst=first;
+   r.stuck=Math.max(0,(r.po||0)-fut)}
+  r.etaMonth=month;
+  const gross=r.unsGross!=null?r.unsGross:(r.unsQty||0);
+  r.unsQty=isT1(r)?gross:Math.max(0,gross-month);
+  r.unsVal=r.unsQty*(r.price||0)}
  return list}
 function etaAgeDays(){if(!ETA||!ETA.ts)return null;
  return Math.floor((Date.now()-ETA.ts)/864e5)}
@@ -1814,6 +1848,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        הזמנות רכש פתוחות, אפס תאריכי הגעה. ראה TODAY_RULE. */
     const unsQty=Math.max(0,rate-Math.max(0,free));
     const unsVal=unsQty*(price||0);
+    /* הערך ברוטו — מדף בלבד. etaApply דורס את unsQty/unsVal כשיש דוח
+       ETA, ומשחזר מכאן כשמסירים אותו. ראה ETA_COVER. */
+    const unsGross=unsQty;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=isODStatic?0:lowDemFloor(d12,price,currency);
     if(lowFloor){sugSS=Math.max(sugSS,lowFloor);sugROP=Math.max(sugROP,lowFloor)}
@@ -1846,7 +1883,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
-      unsQty,unsVal,
+      unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
       ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
@@ -2461,7 +2498,7 @@ function isT1(r){return (r.cust||0)>0&&shelfQty(r)<=0}
 function inToday(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(isT1(r)||(r.unsQty||0)>0)}
 const TGROUP=[
  ['t1','לקוח ממתין ואין מלאי','הזמנת לקוח פתוחה ואפס על המדף — כשל שירות שכבר קרה','var(--red)'],
- ['t2','כסף שלא יסופק החודש','הקצב החודשי גדול מהמלאי במדף — עדיין אין לקוח ממתין','var(--org)']];
+ ['t2','כסף שלא יסופק החודש','הקצב החודשי גדול ממה שיהיה זמין החודש — מדף ואספקה מתוארכת. עדיין אין לקוח ממתין','var(--org)']];
 /* מה שכותרת הקבוצה אומרת, השורה לא חוזרת עליו. נמדד על הדוח האמיתי:
    עמודת "סוג ההחלטה" החזיקה 4 ערכים שונים ב-48 שורות ועמודת "חומרה"
    שניים — וכל ערך כבר כתוב בכותרת שמעליו. שתיהן ירדו, והטקסט המשותף
@@ -3385,7 +3422,7 @@ function renderDecisions(rows){
    const units=list.reduce((t,r)=>t+(g==='t1'?(r.cust||0):Math.ceil(r.unsQty||0)),0),coll=GCOLL.has(g);
    body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
-     <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
+     <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>${g==='t2'?etaCovered():''}
      <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}`:'אין פריטים'}</span></td></tr>`);
    if(coll||!list.length)continue;
    /* בלוק מטבע בתוך השכבה. הדירוג הכספי קורה בתוך הבלוק בלבד —
