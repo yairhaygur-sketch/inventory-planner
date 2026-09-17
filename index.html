@@ -1725,6 +1725,14 @@ function otwWhy(r){
  return q>0&&st>0?`${q} יח׳ שובצו לאספקה (המוקדמת ${etaShort(r.etaFirst)}) ו-${st} יח׳ בלי שום תאריך`
   :q>0?`כל הכמות שובצה לאספקה — המוקדמת ${etaShort(r.etaFirst)}`
   :'אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה';}
+/* גם הפעולה המומלצת משתנה עם המידע. «לבקש ETA» על פריט שכבר יש לו
+   תאריך בדוח היא הוראה לעשות עבודה מיותרת. */
+function etaAct(r){
+ if(!ETA)return 'לבקש ETA';
+ const q=(r&&r.etaQty)||0,st=(r&&r.stuck)||0;
+ return q>0&&st>0?`לזרז את ${st} היחידות שלא שובצו לאספקה — ${q} כבר משובצות ל-${etaShort(r.etaFirst)}`
+  :q>0?`למסור ללקוח תאריך — ${q} יח׳ מגיעות ב-${etaShort(r.etaFirst)}`
+  :'לדרוש ETA — הפריט אינו מופיע בדוח האספקות';}
 function otwHead(){return ETA
  ?'רכש פתוח. חלקו שובץ לאספקה עם תאריך — הפירוט במסך הבוקר, בעמודות «משובץ» ו«תקוע»'
  :'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי'}
@@ -2015,13 +2023,22 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['err',`${it.free} יח׳ במלאי מול צריכה ${it.c3} יח׳ ברבעון — ${it.r3.toFixed(1)} לחודש`],
       d?['idea',`זוהתה אזילה ב${d.len>1?`${d.len} חודשים`:LABELS[d.i-1].name} — הקצב האמיתי גבוה מהמדווח, ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`]:null,
       it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה`]:null,
-      it.po>0?['warn',`${it.po} יח׳ בהזמנת רכש פתוחה — ${otwWhy(it)}. משלוח בלי תאריך אינו כיסוי ואינו נספר`]
+      /* ETA_HONEST — הזנב «משלוח בלי תאריך אינו כיסוי ואינו נספר» נשאר
+         רק כשאין דוח ETA. על פריט ששובץ במלואו הוא סתר את תחילת אותו
+         משפט; וגם כשיש כמות תקועה, «נספר» תלוי במסלול — שכבה 2 סופרת
+         אספקה מתוארכת, «אוזל החודש» לא. משפט שנכון במסלול אחד ושקרי
+         באחר אינו משפט. כשיש דוח, otwWhy נותן את המספרים והם מדברים. */
+      it.po>0?['warn',`${it.po} יח׳ בהזמנת רכש פתוחה — ${otwWhy(it)}`
+        +(ETA?'':'. משלוח בלי תאריך אינו כיסוי ואינו נספר')]
              :['err','אין הזמנת רכש פתוחה שתכסה את הפער'],
       (it.srvMissing||it.ltD<=0)?['warn','רמת שירות או זמן אספקה חסרים ב-SAP — אי אפשר לחשב ROP/SS, אבל החוסר עצמו אינו תלוי בהם']:null,
       paramGap?['idea',`נקודת ההזמנה ${it.rop} נמוכה מ-${it.sugROP} הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים`]:null
     ].filter(Boolean);
     it.act=[`להשלים ${gap} יח׳ כדי לכסות את החודש הקרוב`,
-      it.po>0?`לדרוש ETA ל-${it.po} היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה`:'לפתוח הזמנת רכש',
+      it.po>0?(ETA&&it.etaQty>0
+          ?`${it.etaQty} יח׳ משובצות ל-${etaShort(it.etaFirst)} — לצמצם את ההשלמה בהתאם`
+          :`לדרוש ETA ל-${it.po} היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה`)
+        :'לפתוח הזמנת רכש',
       paramGap?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`
               :((it.srvMissing||it.ltD<=0)?'להשלים רמת שירות וזמן אספקה ב-SAP':'נקודת ההזמנה תקינה'),
       d?(d.len>1?`לוודא ש-${d.len} החודשים האלה אכן היו חוסר ולא סגירת מוסך`:'לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך'):null
@@ -2031,8 +2048,12 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.miss=un;it.sev=un>0?2:1;it.cat='מעקב אספקה';
     it.why=[['warn',`מכוסה כמותית (לקוח ${it.cust} / רכש ${it.po}) אך מלאי בפועל אפס`],
       un>0?['err',`${un} יח׳ עדיין לא מכוסות גם אחרי הרכש הפתוח`]:['info','ההזמנה מכוסה במלואה ברכש — משימת מעקב, לא חשיפה כספית'],
-      ['info','אין תאריך אספקה בדוח — אם הרכש יתעכב, הפריט יחזור לרשימת החוסרים']];
-    it.act=['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];Q.follow.push(it);continue}
+      [(ETA&&it.etaQty>0)?'ok':'info',
+        otwWhy(it)+' — אם הרכש יתעכב, הפריט יחזור לרשימת החוסרים']];
+    it.act=(ETA&&it.etaQty>0)
+      ?[etaAct(it),'לבדוק Back Order על היתרה אצל היצרן']
+      :['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];
+    Q.follow.push(it);continue}
   if(isPD(it.mrp)){it.cat='רקע';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
     const pdEligible=it.d12>3&&it.price<=2000&&it.warranty<=0;
     it.why=[['info','סוג MRP = PD — פריט לפי הזמנה בלבד, ללא ניהול מלאי אוטומטי'],
@@ -2088,7 +2109,9 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.why=[['info',`כיסוי ממלאי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} — אבל ${it.po} יח׳ כבר בדרך`],
         ['ok',`עם הרכש הפתוח הכיסוי ${it.covA.toFixed(1)} חודשים — אין צורך ברכש יזום נוסף`],
         ['warn',otwWhy(it)+' — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
-      it.act=['לוודא מול הספק שהרכש אכן בדרך','לבקש ETA','לא לפתוח רכש נוסף בשלב זה'];
+      it.act=(ETA&&it.etaQty>0)
+        ?[etaAct(it),'לא לפתוח רכש נוסף בשלב זה']
+        :['לוודא מול הספק שהרכש אכן בדרך','לבקש ETA','לא לפתוח רכש נוסף בשלב זה'];
       Q.follow.push(it);continue}
     it.cat='מניעת חוסר';
     it.why=[['err',`כיסוי ${it.covA.toFixed(1)} חודשים${it.po>0?` (כולל ${it.po} יח׳ בדרך)`:''} מול זמן אספקה ${it.ltM.toFixed(1)} חודשים`]];
@@ -3313,8 +3336,15 @@ function renderCust(rows){
    for(const r of G.none)body.push(custRow(r,idx++))}
  for(const [sup,list] of G.sup){
   const t=custTotals(list),lt=list[0]&&list[0].ltD?`${list[0].ltD} ימ׳ אספקה · `:'';
+  /* הכותרת הזאת הכריזה «אין תאריך בדוח» גם כשנטען דוח ETA שבו חלק
+     מהפריטים כן משובצים. ראה ETA_HONEST. */
+  const nEta=ETA?list.filter(r=>(r.etaQty||0)>0).length:0;
+  const sub=!ETA?'אין תאריך בדוח · לדרוש ETA'
+    :nEta===0?'אף פריט אינו מופיע בדוח האספקות · לדרוש ETA'
+    :nEta===list.length?'לכולם יש תאריך אספקה'
+    :`${nEta} מתוך ${list.length} עם תאריך אספקה · לדרוש ETA לשאר`;
   if(head('cst:sup:'+sup,'var(--acc)',sup,list.length,
-      `${lt}הוזמן במלואו — אין תאריך בדוח · לדרוש ETA`,t.units,list))continue;
+      `${lt}הוזמן במלואו — ${sub}`,t.units,list))continue;
   for(const r of list)body.push(custRow(r,idx++))}
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
   `<tr><td colspan="${NCOL()}" class="empty">אין פריט עם הזמנת לקוח פתוחה שהמלאי הפנוי שלו אפס.</td></tr>`;
