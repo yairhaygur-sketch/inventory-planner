@@ -1127,6 +1127,20 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 
 /* עמודת "הדרישה" במסלול הפרמטרים — מסומנת כשהרצפה גבוהה ממנה */
 /* מסך הבוקר: ספק, גרף 11 החודשים והשווי — בשורה עצמה, בלי מגירה */
+/* שם ספק לטיני בתא RTL נחתך מההתחלה — «LYNK&CO GEELY GROUP» הופיע
+   כ«...K&CO GEELY», כלומר החלק המזהה הוא בדיוק מה שנעלם.
+   הפתרון אינו unicode-bidi על התא: הוא מזיז את התוכן ביחס לכותרת
+   העברית ושובר את יישור העמודות. <bdi> מבודד את כיוון המחרוזת בלבד.
+   הקיצוץ נעשה ב-JS ולא ב-CSS, כדי שלא יהיה ellipsis בצד הלא נכון;
+   השם המלא יושב ב-title. */
+#tbl[data-track="short"] td.sup,#tbl[data-track="short"] td.mdl{
+  color:var(--dim);font-size:var(--f-sm);white-space:nowrap}
+#tbl[data-track="short"] td.age{width:64px}
+/* פריסת טבלה אוטומטית מחלקת את השארית לעמודה עם הכי מעט לחץ — וזו
+   הייתה «שווי», שבלעה 172px בזמן שהתיאור נפל ל-601 והמגירה הפסיקה
+   לדחוף. width:100% על התיאור אומר במפורש מי סופג את השארית. */
+#tbl[data-track="short"] td.dsc{width:100%}
+#tbl[data-track="short"] td.val{width:86px}
 #tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
 #tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
 #tbl[data-track="short"] td.val{font-weight:700;white-space:nowrap}
@@ -2960,7 +2974,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return track==='short'?11:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:track==='applied'?7:8}
+function NCOL(){return track==='short'?12:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -3048,13 +3062,12 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער']
-  :track==='short'?['מק״ט','תיאור',
+  :track==='short'?['מק״ט','תיאור','ספק','דגם',
     '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
     '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
     'לקוח',
     '<span title="קצב חודשי פחות המלאי במדף — היחידות שלא יסופקו החודש">לא יסופק</span>',
     '<span title="היחידות שלא יסופקו כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
-    '<span title="הכמות שההחלטה אומרת">לרכוש</span>',
     '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
@@ -3257,14 +3270,15 @@ function renderDecisions(rows){
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
     body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
-     <td>${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
+     <td class="dsc">${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
+     <td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>
+     <td class="mdl" title="${esc(r.model||'')}"><bdi>${esc((r.model||'—').slice(0,15))}</bdi></td>
      <td class="cg">${sparkline(r)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
      <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח, ולכן אינו נספר ככיסוי">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
      <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
      <td class="num"><span class="stake qty">${Math.ceil(r.unsQty||0).toLocaleString('he-IL')}</span></td>
      <td class="num val">${money(r.unsVal||0,r.currency)}</td>
-     <td class="num">${(actQty(r)||Math.ceil(r.unsQty||0)).toLocaleString('he-IL')}</td>
      <td class="age">${ageTag(r)}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
