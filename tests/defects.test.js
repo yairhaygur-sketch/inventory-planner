@@ -38,6 +38,13 @@ const rows=[
  mk('DECLINE',{months:[2,2,3,2,3,20,25,22,24,23,25],free:40,rop:1,ss:0,lt:120}),
  // B2 · ספורדי: חודשי האפס הם היעדר ביקוש, לא אזילה
  mk('SPORADIC',{months:[0,0,10,0,0,0,0,10,0,0,10],free:200}),
+ // TODAY_RULE · שני הכשלים ההפוכים של הכלל הישן (miss>0)
+ //   A: מלאי על המדף שמכסה את החודש, אבל מתחת לנקודת ההזמנה ב-SAP.
+ //      הכלל הישן הכניס אותו לרשימת הבוקר. הוא לא חסר.
+ mk('TODAY-STOCKED',{months:[20,20,20,20,20,20,20,20,20,20,20],free:60,lt:120,rop:400,ss:200,price:80}),
+ //   B: אפס על המדף ולקוח ממתין, אבל יש רכש פתוח שמכסה "על הנייר".
+ //      הכלל הישן השאיר אותו בחוץ. רכש בלי ETA אינו כיסוי.
+ mk('TODAY-CUST-COVERED',{months:[1,1,0,1,1,0,1,1,0,1,1],free:0,po:50,cust:2,price:5000}),
  // B3 · גושי עם פיק בודד גדול. רצפת-הגנת-פיק הישנה נתנה לו ⌈0.5×30⌉=15
  //      בלי קשר לנוסחה — כולל על פריט שהכלי עצמו לא זיהה בו פיק.
  mk('LUMPY-PEAK',{months:[0,2,30,0,0,0,0,0,0,0,0],free:200,srv:50,rop:0,ss:0}),
@@ -80,6 +87,15 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
           runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
+          today:(()=>{const g=pn=>ALL.find(x=>x.pn===pn);
+            const A=g('TODAY-STOCKED'),B=g('TODAY-CUST-COVERED');
+            const list=decisionList('short');
+            const inList=pn=>list.some(x=>x.pn===pn);
+            return {aMiss:A.miss||0,aRop:A.rop,aFree:A.free,aRate:+A.rate.toFixed(1),
+              aIn:inList('TODAY-STOCKED'),aUns:A.unsQty,
+              bMiss:B.miss||0,bCust:B.cust,bFree:B.free,bPo:B.po,
+              bIn:inList('TODAY-CUST-COVERED'),bTier:tGroup(B),
+              marked:list.filter(x=>x.mark).length}})(),
           lumpy:(()=>{const r=ALL.find(x=>x.pn==='LUMPY-PEAK');
             return {peak:r.A.peak,pattern:r.A.pattern,spikes:r.A.spikes.length,
               ssStat:r.ssStat,ssMin:r.ssMin,sugSS:r.sugSS,halfPeak:Math.ceil(0.5*r.A.peak)}})(),
@@ -102,6 +118,16 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('ביקוש שטוח → סטיית תקן 0',o.clean.sd===0&&o.clean.sugSS===0);
  ok('חודש אזילה אינו מנפח את סטיית התקן',o.so.sd===0&&o.so.sugSS===0,
     `sd=${o.so.sd} SS=${o.so.sugSS} (לפני התיקון: 3.02 / 6)`);
+ // TODAY_RULE — מי נכנס לרשימת הבוקר ומי לא
+ ok('מלאי שמכסה את החודש אינו ברשימת הבוקר, גם מתחת לנקודת ההזמנה',
+    !o.today.aIn,
+    `מלאי ${o.today.aFree} · קצב ${o.today.aRate} · ROP ב-SAP ${o.today.aRop} · חסר לפי הכלל הישן ${o.today.aMiss}`);
+ ok('ובאמת אין לו מה שלא יסופק החודש',o.today.aUns===0,'לא יסופק '+o.today.aUns);
+ ok('לקוח ממתין ואפס על המדף נכנס — גם כשהרכש הפתוח "מכסה"',
+    o.today.bIn,
+    `לקוח ${o.today.bCust} · מדף ${o.today.bFree} · רכש ${o.today.bPo} · חסר לפי הכלל הישן ${o.today.bMiss}`);
+ ok('והוא בשכבה 1',o.today.bTier==='t1',o.today.bTier);
+ ok('פריט מסומן «טופל» אינו ברשימת הבוקר',o.today.marked===0,o.today.marked+' מסומנים');
  // B3 · פיק היסטורי אינו מקור עצמאי למלאי ביטחון
  ok('פיק גדול אינו מייצר מלאי ביטחון מחוץ לנוסחה',
     o.lumpy.sugSS<o.lumpy.halfPeak,

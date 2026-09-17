@@ -191,11 +191,16 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 // קבוצות בתוך "היום"
  await p.evaluate(()=>{GCOLL.clear();setMode('today')});await p.waitForTimeout(350);
  const g0=await p.evaluate(()=>({
-   groups:[...document.querySelectorAll('#tbl tbody tr.grp')].map(t=>t.dataset.g),
-   names:[...document.querySelectorAll('#tbl tbody tr.grp b')].map(t=>t.textContent),
-   counts:[...document.querySelectorAll('#tbl tbody tr.grp .gn')].map(t=>+t.textContent),
+   groups:[...document.querySelectorAll('#tbl tbody tr.grp:not(.cur)')].map(t=>t.dataset.g),
+   names:[...document.querySelectorAll('#tbl tbody tr.grp:not(.cur) b')].map(t=>t.textContent),
+   counts:[...document.querySelectorAll('#tbl tbody tr.grp:not(.cur) .gn')].map(t=>+t.textContent),
+   curBlocks:document.querySelectorAll('#tbl tbody tr.grp.cur').length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
- ok('שלוש קבוצות ב"היום"',g0.groups.join()==='wait,prevent,m1',g0.names.join(' · '));
+ /* שתי שכבות — TODAY_RULE. בתוך כל שכבה בלוק מטבע נפרד, ולכן הספירה
+    נעשית על כותרות השכבה בלבד ולא על כותרות המטבע. */
+ ok('שתי שכבות ב"היום"',g0.groups.join()==='t1,t2',g0.names.join(' · '));
+ ok('בתוך השכבה יש בלוקי מטבע — אין השוואה בין מטבעות',g0.curBlocks>=2,
+    g0.curBlocks+' בלוקים');
  ok('סכום הקבוצות = מספר הפריטים',g0.counts.reduce((a,b)=>a+b,0)===g0.rows,
     `${g0.counts.join('+')} = ${g0.rows}`);
  /* השורה שנלחצת חייבת להיות הפריט שנפתח בכרטיס — גם כשקבוצה מקופלת */
@@ -205,17 +210,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
            card:CURRENT_DETAIL&&CURRENT_DETAIL.pn.replace(/[\u200e\u200f]/g,'').trim()}},n);
  const a1=await align(4);await p.waitForTimeout(250);
  ok('לחיצה על שורה פותחת את הפריט הנכון',a1&&a1.row===a1.card,a1?`${a1.row} / ${a1.card}`:'—');
- await p.evaluate(()=>toggleGroup('m1'));await p.waitForTimeout(350);
+ await p.evaluate(()=>toggleGroup('t2'));await p.waitForTimeout(350);
  const g1=await p.evaluate(()=>({coll:document.querySelectorAll('#tbl tbody tr.grp.coll').length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
-   groups:document.querySelectorAll('#tbl tbody tr.grp').length,
+   groups:document.querySelectorAll('#tbl tbody tr.grp:not(.cur)').length,
    saved:JSON.parse(localStorage.getItem('planner_groups_v1')||'[]').join()}));
- ok('קיפול קבוצה מסתיר את שורותיה',g1.coll===1&&g1.rows<g0.rows&&g1.groups===3,
+ ok('קיפול קבוצה מסתיר את שורותיה',g1.coll===1&&g1.rows<g0.rows&&g1.groups===2,
     `${g1.rows} מתוך ${g0.rows} · ${g1.groups} כותרות`);
- ok('מצב הקיפול נשמר',g1.saved==='m1',g1.saved);
+ ok('מצב הקיפול נשמר',g1.saved==='t2',g1.saved);
  const a2=await align(2);await p.waitForTimeout(250);
  ok('ההתאמה שורה↔כרטיס נשמרת גם כשקבוצה מקופלת',a2&&a2.row===a2.card,a2?`${a2.row} / ${a2.card}`:'—');
- await p.evaluate(()=>toggleGroup('m1'));await p.waitForTimeout(300);
+ await p.evaluate(()=>toggleGroup('t2'));await p.waitForTimeout(300);
  const g2=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  ok('פתיחה מחזירה את כל השורות',g2===g0.rows,`${g2} מתוך ${g0.rows}`);
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
@@ -306,7 +311,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מתג הקיבוץ גלוי ב"היום"',gsegSeen);
  const byDec=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    grps:[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · ')}));
- ok('ברירת המחדל היא קיבוץ לפי החלטה',/מניעת חוסר/.test(byDec.grps),byDec.grps);
+ ok('ברירת המחדל היא קיבוץ לפי שכבה',/לקוח ממתין ואין מלאי/.test(byDec.grps),byDec.grps);
  await p.click('#gseg button[data-gb=supplier]');await p.waitForTimeout(700);
  const bySup=await p.evaluate(()=>{
   const gr=[...document.querySelectorAll('#tbl tr.grp.sup')];
@@ -343,8 +348,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('קיפול ספק מקפל את ההזמנה כולה',afterColl<bySup.rows,`${bySup.rows} → ${afterColl}`);
  await p.click('#tbl tr.grp.sup');await p.waitForTimeout(400);
  await p.click('#gseg button[data-gb=decision]');await p.waitForTimeout(600);
- ok('חזרה לקיבוץ לפי החלטה',
-   /מניעת חוסר/.test(await p.evaluate(()=>[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · '))));
+ ok('חזרה לקיבוץ לפי שכבה',
+   /לקוח ממתין ואין מלאי/.test(await p.evaluate(()=>[...document.querySelectorAll('#tbl tr.grp b')].map(x=>x.textContent).join(' · '))));
 
  /* ============ רצפת מלאי הביטחון ============
     sugSS = max(ssStat, ssMin), ו-ssMin הוא העמודה "מל.בט.מינ." מה-SAP.
@@ -471,7 +476,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const oc=await p.evaluate(()=>{
   const G={};for(const tr of document.querySelectorAll('#tbl tbody tr')){
    if(tr.classList.contains('grp')){G.cur=tr.textContent.trim();continue}}
-  const notes=[...document.querySelectorAll('#tbl td.note .ocat')].map(x=>x.textContent.trim());
+  const notes=[...document.querySelectorAll('#tbl tbody tr[data-i] .ocat')].map(x=>x.textContent.trim());
   return {shown:notes.length,uniq:[...new Set(notes)]}});
  ok('סיווג חריג נכתב בשורה ולא נבלע בכותרת',oc.shown>0,
    `${oc.shown} שורות · ${oc.uniq.join(' · ')}`);
