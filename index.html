@@ -1126,6 +1126,11 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 @media(max-width:1300px){.top .titleblock{display:none}}
 
 /* עמודת "הדרישה" במסלול הפרמטרים — מסומנת כשהרצפה גבוהה ממנה */
+/* מסך הבוקר: ספק, גרף 11 החודשים והשווי — בשורה עצמה, בלי מגירה */
+#tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
+#tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
+#tbl[data-track="short"] td.val{font-weight:700;white-space:nowrap}
+#tbl tr.grp.cur td{padding-block:4px}
 #tbl td.need{color:var(--dim)}
 #tbl td.need.over{color:var(--org);font-weight:700}
 /* .btn מגדיר display:flex ולכן דרס את [hidden] — הכפתורים המותנים
@@ -1663,6 +1668,12 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const tRatio=tPre>0?tRec/tPre:null;
     const trendF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
       ?Math.max(TREND_FLOOR,1+(tRatio-1)*TREND_DAMP):1;
+    /* ============ מסך הבוקר — מה לא יסופק החודש ============
+       זמינות = מה שעל המדף בלבד. רכש פתוח אינו נספר: בלי ETA אין לו
+       תאריך, ומשלוח בלי תאריך אינו כיסוי. נמדד על הדוח האמיתי — 823
+       הזמנות רכש פתוחות, אפס תאריכי הגעה. ראה TODAY_RULE. */
+    const unsQty=Math.max(0,rate-Math.max(0,free));
+    const unsVal=unsQty*(price||0);
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=isODStatic?0:lowDemFloor(d12,price,currency);
     if(lowFloor){sugSS=Math.max(sugSS,lowFloor);sugROP=Math.max(sugROP,lowFloor)}
@@ -1695,6 +1706,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
+      unsQty,unsVal,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
       ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
@@ -2287,10 +2299,29 @@ let mode='today';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
    הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
+/* ============ TODAY_RULE — שתי השכבות ============
+   הכלל הקודם היה `miss > 0` — הפער מול נקודת ההזמנה. נמדד על הדוח
+   האמיתי ונמצאו בו שני כשלים הפוכים:
+   · פריט עם 58 יח׳ על המדף נכנס לרשימה, כי הוא מתחת ל-ROP. הוא לא חסר.
+   · פריט בשווי ₪18,740 עם שני לקוחות ממתינים ואפס על המדף *לא* נכנס,
+     כי miss שלו אפס — הרכש הפתוח "כיסה" אותו. רכש בלי ETA אינו כיסוי.
+   לכן:
+     שכבה 1 — לקוח ממתין ואפס על המדף. כשל שירות שכבר קרה, לא תחזית.
+     שכבה 2 — מה שלא יסופק החודש: (קצב × חודש − מדף) × מחיר.
+   השכבה השנייה מאזנת שירות וכסף באותו מספר: היחידות הן השירות,
+   המחיר הוא הכסף. אין סף — 108 פריטים בדוח הנוכחי, וזה מכוון: סף
+   כספי היה מסתיר 72 פריטים דחופים מאחורי חתך שהכלי בחר לבד.
+   הדירוג בתוך כל שכבה הוא לפי שווי, בבלוקי מטבע — אין השוואה בין
+   מטבעות, כמו בכל מקום אחר בכלי. */
+function shelfQty(r){return Math.max(0,r.free||0)}
+function isT1(r){return (r.cust||0)>0&&shelfQty(r)<=0}
+/* unsQty מחושב ב-build ולכן אינו יודע על סימון «טופל» או על פריט לפי
+   דרישה — הכלל הישן (miss>0) קיבל את זה במתנה מ-classify, שמאפס miss.
+   כאן צריך לומר את זה במפורש, אחרת «טופל» מפסיק להסיר מהרשימה. */
+function inToday(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(isT1(r)||(r.unsQty||0)>0)}
 const TGROUP=[
- ['wait','לקוח ממתין','הזמנת לקוח ללא מלאי ובלי רכש פתוח — לפתוח הזמנת רכש בכמות החסרה','var(--red)'],
- ['prevent','מניעת חוסר','הכיסוי קצר מזמן האספקה — לפתוח רכש יזום להשלמה לנקודת ההזמנה','var(--org)'],
- ['m1','אוזל החודש','המלאי הפנוי לא מכסה את החודש הקרוב — להשלים את הכמות החסרה','var(--acc)']];
+ ['t1','לקוח ממתין ואין מלאי','הזמנת לקוח פתוחה ואפס על המדף — כשל שירות שכבר קרה','var(--red)'],
+ ['t2','כסף שלא יסופק החודש','הקצב החודשי גדול מהמלאי במדף — עדיין אין לקוח ממתין','var(--org)']];
 /* מה שכותרת הקבוצה אומרת, השורה לא חוזרת עליו. נמדד על הדוח האמיתי:
    עמודת "סוג ההחלטה" החזיקה 4 ערכים שונים ב-48 שורות ועמודת "חומרה"
    שניים — וכל ערך כבר כתוב בכותרת שמעליו. שתיהן ירדו, והטקסט המשותף
@@ -2315,15 +2346,16 @@ function majorCat(list){const c={};let top=null,n=0;
 /* הקיבוץ עונה על "מה אעשה", לא על "איך זה מסווג": פריט שהוא גם אזילה
    שזוהתה וגם חוסר של החודש הקרוב מקבל את החלטת הכמות, ולכן שייך
    ל"אוזל החודש" גם אם הסיווג שלו הוא "חשד אזילה". */
-function tGroup(r){if(!QF)return 'prevent';
- return (QF.waiting.includes(r)||QF.immediate.includes(r))?'wait':(isM1(r)?'m1':'prevent')}
+function tGroup(r){return isT1(r)?'t1':'t2'}
 const GC_KEY='planner_groups_v1';
 let GCOLL=new Set();try{GCOLL=new Set(JSON.parse(localStorage.getItem(GC_KEY)||'[]'))}catch(_){}
 function toggleGroup(g){GCOLL.has(g)?GCOLL.delete(g):GCOLL.add(g);
  try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}
  closeDetail();render()}
 function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
- for(const r of rows)(by[tGroup(r)]||by.prevent).push(r);return by}
+ for(const r of rows)(by[tGroup(r)]||by.t2).push(r);
+ for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
+ return by}
 function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
  return c.cur==='today'?decisionList(c.track):(QF.all||[]).filter(passColFilters)}
 function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
@@ -2359,7 +2391,8 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&QF.follow.includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='m1'?m1Rows(base)
-  :tr==='short'?base.filter(r=>r.miss>0).sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
+  :tr==='short'?base.filter(inToday)
+     .sort((a,b)=>(isT1(b)?1:0)-(isT1(a)?1:0)||cmpMoneyDesc(a,b,'unsVal'))
   :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>cmpMoneyDesc(a,b,TRACKKEY[tr]));
  return DL_CACHE[tr]=out}
 /* קו ה-80% חושב על סכום של דולרים ושקלים יחד — חיבור שאסור לפי
@@ -2609,8 +2642,10 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
 function tiles(){
  const t=document.getElementById('tabs');
  const sub=k=>{
-  if(k==='today'){const u=modeRows('today').reduce((x,r)=>x+(r.miss||0),0);
-   return u?`${u.toLocaleString('he-IL')} יח׳ חסרות`:''}
+  if(k==='today'){const l=modeRows('today');
+   const c=l.reduce((x,r)=>x+(isT1(r)?(r.cust||0):0),0);
+   const u=l.reduce((x,r)=>x+Math.ceil(r.unsQty||0),0);
+   return u||c?`${c?c.toLocaleString('he-IL')+' לקוח · ':''}${u.toLocaleString('he-IL')} לא יסופקו`:''}
   if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
    return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
   if(k==='catalog'){const cap=decisionList('cap');
@@ -3013,11 +3048,14 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער']
-  :track==='short'?['מק״ט','תיאור','מלאי',
+  :track==='short'?['מק״ט','תיאור',
+    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
     '<span title="רכש פתוח. אין ETA בדוח, ולכן אינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>',
-    'לקוח','חסר (יח׳)',
-    '<span title="נכתב רק כשהכמות לרכישה שונה מהחוסר — למשל השלמה לנקודת ההזמנה">לרכוש</span>','כיסוי',
-    '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>','הערה']
+    'לקוח',
+    '<span title="קצב חודשי פחות המלאי במדף — היחידות שלא יסופקו החודש">לא יסופק</span>',
+    '<span title="היחידות שלא יסופקו כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
+    '<span title="הכמות שההחלטה אומרת">לרכוש</span>',
+    '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר','<span title="רכש פתוח — מוצג למידע בלבד. אין ETA בדוח, ולכן אינו נספר ככיסוי">בדרך</span>']
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
@@ -3198,27 +3236,36 @@ function renderDecisions(rows){
  }
  else if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
-   const units=list.reduce((t,r)=>t+(r.miss||0),0),coll=GCOLL.has(g);
+   const units=list.reduce((t,r)=>t+(g==='t1'?(r.cust||0):Math.ceil(r.unsQty||0)),0),coll=GCOLL.has(g);
    body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
-     <span class="gu">${units?units.toLocaleString('he-IL')+' יח׳ חסרות':(list.length?'':'אין פריטים')}</span></td></tr>`);
+     <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}`:'אין פריטים'}</span></td></tr>`);
    if(coll||!list.length)continue;
+   /* בלוק מטבע בתוך השכבה. הדירוג הכספי קורה בתוך הבלוק בלבד —
+      אותה מדיניות כמו במסלול ההון הכלוא, ומאותה סיבה. */
+   const curN=new Set(list.map(curKey)).size;
    const maj=majorCat(list);
+   let blk=null;
    for(const r of list){if(idx>=lim)break;const i=idx++;
+    if(curN>1&&curKey(r)!==blk){blk=curKey(r);
+     const inBlk=list.filter(x=>curKey(x)===blk);
+     body.push(`<tr class="grp cur" data-g="${g}:${esc(blk)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
+       <b>${esc(curName(blk))}</b><span class="gn">${inBlk.length}</span>
+       <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
+       <span class="gu">${money(inBlk.reduce((t,x)=>t+(x.unsVal||0),0),blk)}</span></td></tr>`)}
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
-    const buy=actQty(r);
     body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
-     <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
+     <td>${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
+     <td class="cg">${sparkline(r)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
-     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
-     <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
-     <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
-     <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td>
-     <td class="age">${ageTag(r)}</td>
-     <td class="note">${(r.cat&&r.cat!==maj)?`<span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}${esc(groupNote(g,r))}</td></tr>`)}}
+     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — אין תאריך הגעה בדוח, ולכן אינו נספר ככיסוי">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
+     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
+     <td class="num"><span class="stake qty">${Math.ceil(r.unsQty||0).toLocaleString('he-IL')}</span></td>
+     <td class="num val">${money(r.unsVal||0,r.currency)}</td>
+     <td class="num">${(actQty(r)||Math.ceil(r.unsQty||0)).toLocaleString('he-IL')}</td>
+     <td class="age">${ageTag(r)}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -3326,7 +3373,7 @@ function renderDecisions(rows){
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
    :(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
-   :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+(r.miss||0),0).toLocaleString('he-IL')} יח׳ חסרות`
+   :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
  document.getElementById('phdSub').textContent=track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
