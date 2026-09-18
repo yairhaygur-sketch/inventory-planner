@@ -361,12 +361,21 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0},id);
  /* הניווט עבר לסרגל הטאבים. הכפתורים בכותרת הפאנל נשארו כסיכום כספי
     בתוך המסלול בלבד — ולכן נכנסים למסלול דרך הטאב, לא דרכם. */
- const navTo=async k=>{await p.evaluate(m=>[...document.querySelectorAll('#tabs .tab')]
-   .find(t=>t.dataset.m===m)?.click(),k)};
+ /* הרפורמה השאירה שני טאבים בלבד — ציר וקטלוג. המסלולים עצמם
+    (רצפת SS, מגמה, לקוח ממתין, יישום) לא בוטלו: הם נגישים דרך
+    setMode ודרך סינון בקטלוג. העוזר לוחץ על טאב כשיש, ונופל חזרה
+    ל-setMode כשאין — כי מה שנבדק כאן הוא המסלול, לא הטאב. */
+ const navTo=async k=>{await p.evaluate(m=>{
+   const t=[...document.querySelectorAll('#tabs .tab')].find(x=>x.dataset.m===m);
+   if(t)t.click();else setMode(m)},k)};
  const navSeen=k=>p.evaluate(m=>{const t=[...document.querySelectorAll('#tabs .tab')]
    .find(e=>e.dataset.m===m);return !!t&&t.getBoundingClientRect().width>0},k);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
- ok('ב"היום" מסלול "רצפת SS" נגיש מסרגל הטאבים',await navSeen('floor'));
+ /* היה: «נגיש מסרגל הטאבים». הסרגל צומצם לשניים ברפורמה, והמסלול
+    נשאר נגיש דרך setMode. מה שחשוב לא השתנה: שהוא קיים ומציג פריטים. */
+ ok('מסלול "רצפת SS" עדיין קיים ומציג פריטים',
+    await p.evaluate(()=>floorRows().length>0),
+    await p.evaluate(()=>floorRows().length+' פריטים'));
  ok('ב"היום" הסיכום הכספי של המסלול אינו מוצג',!(await seen('floorBtn')));
  await p.evaluate(()=>setMode('month'));await p.waitForTimeout(700);
  const fl=await p.evaluate(()=>({vis:!document.getElementById('floorBtn').hidden,
@@ -378,7 +387,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       שהפער שלהם חיובי" — בפיקסצ׳ר ייתכן שאין חפיפה כלל */
    expectOver:(()=>{const rows=currentRows().slice(0,300);
      return rows.filter(r=>ssFloorGap(r)>0).length})()}));
- ok('ב"החודש" המסלול עדיין נגיש מהטאבים',await navSeen('floor'));
+ ok('המסלול נגיש מ"החודש"',await p.evaluate(()=>{setMode('floor');return track==='floor'}));
  ok('עמודת "הדרישה" נוספה למסלול הפרמטרים',fl.heads.includes('הדרישה'),fl.heads.join(' · '));
  ok('הדרישה הסטטיסטית מוצגת גם כשהרצפה ניצחה',fl.need>0,fl.need+' שורות');
  ok('הסימון תואם בדיוק את הפריטים שהפער שלהם חיובי',

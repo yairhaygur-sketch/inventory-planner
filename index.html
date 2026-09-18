@@ -1162,14 +1162,14 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 /* ==================== TIMELINE — הציר ====================
    שתי רמות באותו מסך: הרצועה היא רמה 1 (אורח קורא אותה ב-10 שניות),
    והטבלה שמתחתיה היא רמה 2 (לוחצים על תחנה ומקבלים את הפריטים). */
-.line{display:flex;flex-direction:column;gap:0;padding:10px 12px 0;
+.line{display:flex;flex-direction:column;gap:0;padding:7px 12px 0;
   border-bottom:1px solid var(--line);background:var(--panel)}
 .line .lhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:9px}
 .line .lhd .n{font-size:26px;font-weight:700;line-height:1;color:var(--red);letter-spacing:-.02em}
 .line .lhd .t{font-size:var(--f-md);font-weight:700}
 .line .lhd .m{margin-inline-start:auto;font-size:var(--f-md);font-weight:700;color:var(--red)}
 .line .lhd .w{font-size:var(--f-sm);color:var(--dim)}
-.lstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:9px;align-items:stretch}
+.lstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:7px;align-items:stretch}
 .st{flex:0 0 auto;min-width:96px;border:1px solid var(--line);border-radius:10px;
   background:var(--panel);padding:7px 9px;cursor:pointer;text-align:start;
   font:inherit;color:inherit;display:flex;flex-direction:column;gap:3px}
@@ -1195,7 +1195,7 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .st.end .mv{color:var(--red)}
 /* השורה השלישית — הפרמטרים. המשלוח מכבה, הפרמטר מחזיר. */
 .lrec{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
-  padding:7px 0 9px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
+  padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
 .lrec b{color:var(--org);font-size:var(--f-md)}
 .lrec .why{color:var(--dim)}
 .lrec button{font:inherit;font-size:var(--f-sm);color:var(--accD);background:var(--accL);
@@ -2798,12 +2798,11 @@ function renderLine(){
  const m=LINE_M=lineModel();
  const sel=k=>LINE_SEL===k?'true':'false';
  const cur=curMonthLabel();
- /* ── רמה 1 ── */
- let h=`<div class="lhd">
-   <span class="n">${m.dry.length.toLocaleString('he-IL')}</span>
-   <span class="t">פריטים לא יחזיקו את ${cur.name}</span>
-   <span class="w">${m.waiting.length} מהם עם לקוח שכבר ממתין · ${m.waiting.reduce((a,r)=>a+(r.cust||0),0).toLocaleString('he-IL')} יח׳</span>
-   <span class="m">${lineMoney(m.dry)}</span></div>`;
+ /* ── רמה 1 ──
+    הכותרת הנפרדת ירדה: היא חזרה על כרטיס «היום» מילה במילה — אותו
+    מספר ואותו כסף — וגזלה 3% מגובה הרשימה, שזה מתחת לתקציב של 75%.
+    הרצועה מדברת בעצמה. */
+ let h='';
  if(!ETA){
   h+=`<div class="lrec"><b>אין דוח ETA</b><span class="why">בלי תאריכי אספקה אין ציר — העלה דוח ETA כדי לראות מה מכבה את ${m.dry.length} האלה.</span></div>`;
   el.innerHTML=h;return}
@@ -2812,7 +2811,8 @@ function renderLine(){
  h+=`<button class="st now" type="button" data-ls="now" aria-pressed="${sel('now')}">
    <span class="d">היום</span><span class="fx">${m.dry.length}</span>
    <span class="mv">${lineMoney(m.dry)}</span>
-   <span class="lf">לא יחזיקו את החודש</span></button>`;
+   <span class="lf">לא יחזיקו את ${cur.name}</span>
+   <span class="sh">${m.waiting.length} עם לקוח ממתין · ${m.waiting.reduce((a,r)=>a+(r.cust||0),0).toLocaleString('he-IL')} יח׳</span></button>`;
  for(const s of m.stations){
   const z=s.fixed.length===0;
   h+=`<button class="st" type="button" data-ls="${s.date}" aria-pressed="${sel(s.date)}"
