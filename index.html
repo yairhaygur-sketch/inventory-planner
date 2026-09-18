@@ -1159,6 +1159,66 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 #tbl[data-track="short"] td.stk{width:48px}
 .gcov{font-size:var(--f-sm);color:var(--grn);background:var(--grnL);border:1px solid var(--grn);
  border-radius:8px;padding:1px 7px;margin-inline-start:8px;white-space:nowrap;cursor:help}
+/* ==================== TIMELINE — הציר ====================
+   שתי רמות באותו מסך: הרצועה היא רמה 1 (אורח קורא אותה ב-10 שניות),
+   והטבלה שמתחתיה היא רמה 2 (לוחצים על תחנה ומקבלים את הפריטים). */
+.line{display:flex;flex-direction:column;gap:0;padding:7px 12px 0;
+  border-bottom:1px solid var(--line);background:var(--panel)}
+.line .lhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:9px}
+.line .lhd .n{font-size:26px;font-weight:700;line-height:1;color:var(--red);letter-spacing:-.02em}
+.line .lhd .t{font-size:var(--f-md);font-weight:700}
+.line .lhd .m{margin-inline-start:auto;font-size:var(--f-md);font-weight:700;color:var(--red)}
+.line .lhd .w{font-size:var(--f-sm);color:var(--dim)}
+.lstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:7px;align-items:stretch}
+.st{flex:0 0 auto;min-width:96px;border:1px solid var(--line);border-radius:10px;
+  background:var(--panel);padding:7px 9px;cursor:pointer;text-align:start;
+  font:inherit;color:inherit;display:flex;flex-direction:column;gap:3px}
+.st:hover{border-color:var(--accBorder);background:var(--accL)}
+.st:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.st[aria-pressed="true"]{border-color:var(--acc);background:var(--accL);
+  box-shadow:inset 0 -3px 0 var(--acc)}
+.st .d{font-size:var(--f-sm);font-weight:700;color:var(--ink)}
+.st .fx{font-size:19px;font-weight:700;line-height:1.05;color:var(--grn);
+  font-variant-numeric:tabular-nums}
+/* --neutral על לבן נותן 2.50 מול 3 הנדרשים לטקסט גדול. הוא נבחר
+   כי «לא כיבה כלום» אמור להיות שקט — אבל שקט שאי אפשר לקרוא הוא
+   באג, לא עיצוב. --dimmer עובר בשני הנושאים ועדיין מעומעם. */
+.st .fx.zero{color:var(--dimmer)}
+.st .mv{font-size:var(--f-sm);color:var(--grn);white-space:nowrap}
+.st .lf{font-size:var(--f-sm);color:var(--dim);white-space:nowrap}
+.st .sh{font-size:var(--f-xs,10px);color:var(--dimmer);white-space:nowrap}
+/* תחנת הפתיחה — המצב היום. אינה מכבה כלום, היא מה שצריך לכבות. */
+.st.now{border-color:var(--red);background:var(--redL)}
+.st.now .fx{color:var(--red)}
+.st.now[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--red)}
+/* תחנת הסיום — מה שאין לו שום מענה */
+.st.end{border-color:var(--red);background:var(--redL);margin-inline-start:6px}
+.st.end .fx{color:var(--red)}
+.st.end[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--red)}
+.st.end .mv{color:var(--red)}
+/* השורה השלישית — הפרמטרים. המשלוח מכבה, הפרמטר מחזיר. */
+.lrec{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
+.lrec b{color:var(--org);font-size:var(--f-md)}
+.lrec .why{color:var(--dim)}
+.lrec button{font:inherit;font-size:var(--f-sm);color:var(--accD);background:var(--accL);
+  border:1px solid var(--accBorder);border-radius:8px;padding:3px 9px;cursor:pointer;
+  margin-inline-start:auto}
+.lrec button:hover{border-color:var(--acc)}
+.lrec button[aria-pressed="true"]{background:var(--acc);color:var(--on-fill);border-color:var(--acc)}
+/* טיוטת המייל — פלט, לא תצוגה */
+.lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
+.lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
+.lmail .lmh span{color:var(--dim)}
+.lmail .lmh button{font:inherit;font-size:var(--f-sm);color:var(--accD);background:var(--accL);
+  border:1px solid var(--accBorder);border-radius:8px;padding:3px 9px;cursor:pointer}
+.lmail .lmh button:hover{border-color:var(--acc)}
+.lmail .lmh button+button{margin-inline-start:0}
+.lmail .lmh b+span{margin-inline-end:auto}
+.lmail textarea{width:100%;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-radius:8px;
+  padding:9px;background:var(--panel0);color:var(--ink);resize:vertical}
+@media(max-width:900px){.line .lhd .n{font-size:22px}.st{min-width:86px}}
 #tbl tr.grp.cur td{padding-block:4px}
 #tbl td.need{color:var(--dim)}
 #tbl td.need.over{color:var(--org);font-weight:700}
@@ -1312,6 +1372,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית">↘ <span class="fn" id="trendN">0</span> בירידה<span class="lbl" id="trendV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span> טופלו</button></div>
         <div class="ctop" id="ctop" hidden></div>
+        <div class="line" id="line" hidden></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -2449,30 +2510,35 @@ let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
-const TRACKS=[['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+const TRACKS=[['line','ציר הזמן'],['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
 /* ============ שלושת המצבים ============
    9 טאבים ו-4 מסלולים היו 13 יעדים לעבודה של 48 פריטים, ושניים מהיעדים
    ריקים לגמרי. המצב הוא שכבה מעל cur ו-track הקיימים: הוא בוחר אותם,
    ומנוע הרינדור ממשיך לעבוד בדיוק כפי שעבד. שום תצוגה לא הולכת לאיבוד —
    עודף, רקע, מסומנים ותנועות נגישים מתוך "הקטלוג". */
 const MODES=[
+ ['line','ציר הזמן','מה לא יחזיק את החודש, ומה מגיע כדי לכסות אותו','var(--critical)'],
  ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--critical)'],
  ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--steady)'],
- ['catalog','הקטלוג','לחפש ולבדוק — הון כלוא, מלאי מת, כל הפריטים','var(--calm)']];
+ ['catalog','הקטלוג','לחפש ולבדוק — כל הפריטים, סינון וחיפוש','var(--calm)']];
 /* ============ סרגל הניווט — שבעה מסלולים בשורה אחת ============
    נמדד לפני: ארבעת המסלולים האלה היו כפתורים עם hidden, וכל אחד נראה
    רק ממצב אחד — floor ו-trend מ«החודש», cust מ«היום», applied מ«החודש».
    כלומר כדי להגיע ל«רצפת SS» היה צריך לדעת מראש שהיא קיימת *ו* לעמוד
    במצב הנכון. הם שווים כסף ואי אפשר היה למצוא אותם.
    כאן הם טאבים קבועים עם ספירה, לפי סעיף 3ב במפרט. */
+/* ============ הניווט אחרי הרפורמה ============
+   היו שבעה מסלולים בשורה אחת, וכל אחד דרש לדעת מראש שהוא קיים וגם
+   מה הוא אומר. מתכנן חיצוני שהגיע להתרשם לא ידע מאיפה להתחיל, ובצדק:
+   לא הייתה נקודת כניסה, הייתה רשימת מגירות.
+
+   עכשיו יש שתיים. הציר הוא איפה שעובדים; הקטלוג הוא איפה שמחפשים.
+   כל מה שהיה מסלול נגיש משם — רצפת SS, מגמה, לקוח ממתין, יישום,
+   מסומנים — דרך הסינון בקטלוג. «הון כלוא» ירד מהמסך לפי החלטת
+   המתכנן: הוא לא הדבר שמחליטים עליו בבוקר. */
 const NAV=[
- ['today','היום','◷','var(--critical)'],
- ['month','החודש','▤','var(--steady)'],
- ['catalog','הקטלוג','☰','var(--calm)'],
- ['floor','רצפת SS','⚑','var(--high)'],
- ['trend','מגמה','↘','var(--trend)'],
- ['cust','לקוח ממתין','◉','var(--critical)'],
- ['applied','יישום','✓','var(--capital)']];
+ ['line','ציר הזמן','⏱','var(--critical)'],
+ ['catalog','הקטלוג','☰','var(--calm)']];
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 function navCount(k){
@@ -2482,8 +2548,11 @@ function navCount(k){
  if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
  if(k==='applied'){return {n:APPLIED?APPLIED.total:0,hot:0}}
+ /* הציר סופר את מי שאין לו שום מענה — לא את כל האוזלים. זה המספר
+    שדורש ממך פעולה היום; השאר כבר בדרך. */
+ if(k==='line'){const m=lineModel();return {n:m.stuck.length,hot:m.stuck.filter(r=>(r.cust||0)>0).length}}
  const r=modeRows(k);return {n:r.length,hot:hot(r)}}
-const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
+const MODESET={line:{cur:'today',track:'line'},today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
  /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
  done:{cur:'marked',track:'done'},
@@ -2495,7 +2564,7 @@ const MODESET={today:{cur:'today',track:'short'},month:{cur:'today',track:'month
  cust:{cur:'all',track:'cust'},
  /* מה יושם מאז ההעלאה הקודמת */
  applied:{cur:'all',track:'applied'}};
-let mode='today';
+let mode='line';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
    הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
@@ -2568,7 +2637,7 @@ function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
  document.body.classList.toggle('mode-applied',m==='applied');
  render()}
 const TRACKKEY={cap:'expCap'};
-let track='short', trackPicked=false;
+let track='line', trackPicked=false;
 /* "החלטות היום" הוא המסך הראשי. אם מסלול החוסרים ריק — ויכול להיות ריק
    לגמרי כשאין הזמנות לקוח ללא כיסוי — לא מציגים רשימה ריקה אלא עוברים
    למסלול שיש בו עבודה. ברגע שהמשתמש בוחר מסלול ידנית, הבחירה שלו קובעת. */
@@ -2580,6 +2649,207 @@ function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.
     הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך. */
  const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'var(--org)':'var(--gray)';
  return `background:${bg};color:${fg}`}
+/* ==================== TIMELINE — ציר של שבע תחנות ====================
+   הרפורמה: המק״ט מפסיק להיות ציר הארגון. הציר הוא הזמן.
+
+   מה שנמדד לפני הבנייה, ומה ששינה את הצורה:
+
+   ציר רציף של 90 יום אינו קיים. מתוך 7,569 פריטים רק 588 יכולים
+   לאזול בכלל (קצב > 0), ומתוכם 117 אוזלים בתוך 90 יום — 77 מהם כבר
+   היום. מסלול של 90 ימים היה ערימה ב«היום» ומסלול ריק אחריו.
+
+   אבל בצד ההיצע יש *שבעה תאריכים נבדלים* בדוח ה-ETA. הציר אינו רציף —
+   הוא שבע תחנות. שבע עמודות הן מסך; תשעים ימים הם גרף.
+
+   כל תחנה עונה על שאלה אחת: כמה מהשריפות של היום היא מכבה. נמדד על
+   הדוח האמיתי: 90 אוזלים → 15, 23, 13, 1, 0, 6, 1 → 59 מכובים,
+   ו-31 נשארים בלי שום מענה עד 18.11. כל החשיפה השקלית (₪13,139)
+   יושבת ב-31 האלה.
+
+   «יחזור» היא השורה השלישית, ושם חיים תיקוני הפרמטרים: המשלוח מכבה
+   את השריפה, הפרמטר מחזיר אותה. 61 מתוך 90 האוזלים הם כאלה. */
+
+/* אוזל = המדף לא מחזיק חודש. הסף שהמתכנן בחר.
+   סימון «טופל», פריטי OD ופריטי PD אינם על הציר — כמו בכל מסלול אחר. */
+function lineDry(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(r.rate||0)>0
+  &&Math.max(0,r.free||0)<(r.rate||0)}
+/* הכמות שחסרה כדי להחזיק את החודש — מהמדף בלבד.
+   ============ LINE_GROSS ============
+   כאן חייבים את הברוטו ולא את unsQty. אחרי ETA_COVER (סעיף 5ס) הערך
+   unsQty של פריט שכבר מכוסה באספקה מתוארכת הוא אפס — וזה נכון לשכבה
+   2, אבל הרסני לציר: הכסף שתחנה *מוציאה* מסיכון היה מתאפס בדיוק
+   בפריטים שהיא מכבה, והתחנה הייתה נראית ריקה. הציר מודד את הסיכון
+   כפי שהוא נראה מהמדף, ואז מראה מי מסיר אותו. */
+function lineNeed(r){return r.unsGross!=null?r.unsGross
+  :Math.max(0,(r.rate||0)-Math.max(0,r.free||0))}
+function lineVal(r){return lineNeed(r)*(r.price||0)}
+/* דירוג כספי על הברוטו, ובתוך המטבע בלבד — מדיניות BZ, כמו בכל מקום */
+function lineCmp(a,b){return (curPos(a)-curPos(b))||(lineVal(b)-lineVal(a))}
+/* הפרמטר יחזיר את השריפה: נקודת ההזמנה ב-SAP נמוכה מהמוצע */
+function lineRecurs(r){return (r.rop||0)<(r.sugROP||0)}
+
+/* התחנות: התאריכים הנבדלים בדוח ה-ETA, מהיום קדימה. */
+function lineStations(){
+ if(!ETA||!ETA.byPn)return [];
+ const t=etaToday(),s=new Set();
+ for(const k in ETA.byPn)for(const [q,d] of ETA.byPn[k])if(d>=t)s.add(d);
+ return [...s].sort()}
+
+/* המודל המלא. מוחזר כאובייקט אחד כדי שהרינדור לא יחשב כלום. */
+function lineModel(){
+ const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
+ const dry=base.filter(lineDry).sort(lineCmp);
+ const dates=lineStations();
+ const byPn=(ETA&&ETA.byPn)||{};
+ const upto=(r,d)=>{const ls=byPn[etaKey(r.pn)];if(!ls)return 0;
+   let n=0;for(const [q,dd] of ls)if(dd<=d)n+=q;return n};
+ const open=new Set(dry);
+ const stations=dates.map(d=>{
+  const fixed=[];
+  for(const r of open)if(upto(r,d)>=lineNeed(r))fixed.push(r);
+  fixed.forEach(r=>open.delete(r));
+  /* כמה יחידות ומק״טים נוחתים בתחנה בכלל — לא רק על האוזלים */
+  let units=0,pns=0;
+  for(const k in byPn){let u=0;for(const [q,dd] of byPn[k])if(dd===d)u+=q;
+   if(u>0){units+=u;pns++}}
+  return {date:d,fixed:fixed.sort(lineCmp),
+    units,pns,left:open.size}});
+ const stuck=[...open].sort(lineCmp);
+ return {dry,stations,stuck,
+   noPo:stuck.filter(r=>!(r.po>0)),
+   poNoDate:stuck.filter(r=>r.po>0),
+   recur:dry.filter(lineRecurs),
+   waiting:dry.filter(r=>(r.cust||0)>0)}}
+/* ============ רינדור הציר ============
+   LINE_SEL הוא הבחירה: 'now' (כל האוזלים), תאריך תחנה, 'stuck' (בלי
+   מענה) או 'recur' (יחזור בגלל פרמטר). ברירת המחדל היא 'stuck' —
+   מה שאין לו שום מענה הוא הדבר היחיד שדורש ממך פעולה היום. */
+let LINE_SEL='stuck', LINE_M=null;
+/* רמה 2 של הציר היא בדיוק מסך הבוקר: אותן עמודות, אותה חלוקה לשכבות,
+   אותה מגירה. מה שהשתנה הוא *מי* ברשימה — הבחירה על הרצועה. */
+function SHORTLIKE(){return track==='short'||(track==='line'&&LINE_SEL!=='recur')}
+/* «יחזור» אינו רשימת חוסרים אלא רשימת תיקונים ל-SAP, ולכן הוא מרונדר
+   בעמודות של מסלול הפרמטרים — ROP, SS, הדרישה, ומה לתקן. זה השדרוג
+   שהמתכנן ביקש: הפרמטר מפסיק להיות מסלול תחזוקה נפרד ונעשה הסיבה
+   שהציר ייראה אותו דבר בעוד חודשיים. */
+function FIXLIKE(){return track==='fix'||track==='month'
+  ||(track==='line'&&LINE_SEL==='recur')}
+const heDate=d=>{const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)};
+function lineMoney(list){return moneyMix(list,lineVal)}
+/* הפריטים שהבחירה מצביעה עליהם */
+function lineRows(){
+ const m=LINE_M||(LINE_M=lineModel());
+ if(LINE_SEL==='now')return m.dry;
+ if(LINE_SEL==='stuck')return m.stuck;
+ if(LINE_SEL==='recur')return m.recur;
+ const st=m.stations.find(s=>s.date===LINE_SEL);
+ return st?st.fixed:m.stuck}
+function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
+/* ============ פלט: טיוטת מייל לספק ============
+   הפעולה האמיתית מול 31 הפריטים שאין להם מענה היא מייל אחד לכל ספק,
+   לא 31 בירורים. הטקסט נבנה מהבחירה הנוכחית על הציר ומקובץ לפי ספק,
+   באנגלית — כי זה מה שנשלח ל-LYNK&CO ול-ZHONGTONG. */
+function lineMailText(){
+ const rows=lineRows();
+ if(!rows.length)return '';
+ const by={};
+ for(const r of rows){const s=r.supplier||'—';(by[s]=by[s]||[]).push(r)}
+ const out=[];
+ for(const [sup,list] of Object.entries(by).sort((a,b)=>b[1].length-a[1].length)){
+  const cust=list.reduce((a,r)=>a+(r.cust||0),0);
+  out.push('To: '+sup);
+  out.push('Subject: Delivery date request — '+list.length+' part numbers');
+  out.push('');
+  out.push('Dear team,');
+  out.push('');
+  out.push('We have open purchase orders with no confirmed delivery date for the parts below.');
+  if(cust>0)out.push('Of these, '+cust+' units are already committed to waiting customers.');
+  out.push('Please confirm the shipping date and quantity for each line.');
+  out.push('');
+  out.push('Part No.'.padEnd(20)+'On order'.padStart(9)+'  Scheduled'.padStart(11)+'  Customer waiting'.padStart(18));
+  for(const r of list){
+   out.push(String(r.pn).padEnd(20)
+    +String(r.po||0).padStart(9)
+    +String(r.etaQty||0).padStart(11)
+    +String(r.cust||0).padStart(18)
+    +'   '+String(r.desc||'').slice(0,38))}
+  out.push('');
+  out.push('Thank you,');
+  out.push('');
+  out.push('— — — — —');
+  out.push('')}
+ return out.join('\n')}
+function lineMailToggle(){
+ const box=document.getElementById('lmail');if(!box)return;
+ const open=box.hidden;
+ if(open){const t=lineMailText();
+  if(!t){toast('אין פריטים בבחירה הנוכחית');return}
+  box.querySelector('textarea').value=t}
+ box.hidden=!open;
+ const b=document.getElementById('lmailBtn');if(b)b.setAttribute('aria-pressed',open?'true':'false')}
+function lineMailCopy(){
+ const ta=document.querySelector('#lmail textarea');if(!ta)return;
+ ta.select();
+ let ok=false;try{ok=document.execCommand('copy')}catch(_){}
+ if(!ok&&navigator.clipboard){navigator.clipboard.writeText(ta.value).then(
+   ()=>toast('הטיוטה הועתקה ✓'),()=>toast('ההעתקה נחסמה — סמן והעתק ידנית'));return}
+ toast(ok?'הטיוטה הועתקה ✓':'ההעתקה נחסמה — סמן והעתק ידנית')}
+function renderLine(){
+ const el=document.getElementById('line');if(!el)return;
+ if(track!=='line'){el.hidden=true;return}
+ el.hidden=false;
+ const m=LINE_M=lineModel();
+ const sel=k=>LINE_SEL===k?'true':'false';
+ const cur=curMonthLabel();
+ /* ── רמה 1 ──
+    הכותרת הנפרדת ירדה: היא חזרה על כרטיס «היום» מילה במילה — אותו
+    מספר ואותו כסף — וגזלה 3% מגובה הרשימה, שזה מתחת לתקציב של 75%.
+    הרצועה מדברת בעצמה. */
+ let h='';
+ if(!ETA){
+  h+=`<div class="lrec"><b>אין דוח ETA</b><span class="why">בלי תאריכי אספקה אין ציר — העלה דוח ETA כדי לראות מה מכבה את ${m.dry.length} האלה.</span></div>`;
+  el.innerHTML=h;return}
+ /* ── הרצועה ── */
+ h+='<div class="lstrip">';
+ h+=`<button class="st now" type="button" data-ls="now" aria-pressed="${sel('now')}">
+   <span class="d">היום</span><span class="fx">${m.dry.length}</span>
+   <span class="mv">${lineMoney(m.dry)}</span>
+   <span class="lf">לא יחזיקו את ${cur.name}</span>
+   <span class="sh">${m.waiting.length} עם לקוח ממתין · ${m.waiting.reduce((a,r)=>a+(r.cust||0),0).toLocaleString('he-IL')} יח׳</span></button>`;
+ for(const s of m.stations){
+  const z=s.fixed.length===0;
+  h+=`<button class="st" type="button" data-ls="${s.date}" aria-pressed="${sel(s.date)}"
+     title="${s.units.toLocaleString('he-IL')} יח׳ ב-${s.pns} מק״טים נוחתות בתאריך הזה">
+   <span class="d">${heDate(s.date)}</span>
+   <span class="fx${z?' zero':''}">${z?'—':'▼'+s.fixed.length}</span>
+   <span class="mv">${z?'&nbsp;':lineMoney(s.fixed)}</span>
+   <span class="lf">נשארים ${s.left}</span>
+   <span class="sh">${s.units.toLocaleString('he-IL')} יח׳ · ${s.pns} מק״טים</span></button>`}
+ h+=`<button class="st end" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}">
+   <span class="d">אין מענה</span><span class="fx">${m.stuck.length}</span>
+   <span class="mv">${lineMoney(m.stuck)}</span>
+   <span class="lf">${m.poNoDate.length} רכש בלי תאריך · ${m.noPo.length} בלי רכש</span></button>`;
+ h+='</div>';
+ /* ── השורה השלישית: למה זה יחזור ── */
+ const pct=m.dry.length?Math.round(100*m.recur.length/m.dry.length):0;
+ h+=`<div class="lrec"><b>יחזור: ${m.recur.length} מתוך ${m.dry.length}</b>
+   <span class="why">נקודת ההזמנה ב-SAP נמוכה מהמוצע — המשלוח מכבה את השריפה, הפרמטר מחזיר אותה (${pct}%)</span>
+   <button type="button" data-ls="recur" aria-pressed="${sel('recur')}">הצג את ${m.recur.length} התיקונים</button>
+   <button type="button" id="lmailBtn" aria-pressed="false">✉ טיוטת מייל</button>
+   <button type="button" id="lxlsBtn">⭳ Excel</button></div>
+  <div class="lmail" id="lmail" hidden>
+   <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
+     <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
+     <button type="button" id="lmailCopy">העתק</button>
+     <button type="button" id="lmailClose">סגור</button></div>
+   <textarea spellcheck="false" dir="ltr" rows="14"></textarea></div>`;
+ el.innerHTML=h;
+ const mb=el.querySelector('#lmailBtn');if(mb)mb.onclick=lineMailToggle;
+ const xb=el.querySelector('#lxlsBtn');if(xb)xb.onclick=doExport;
+ const cb=el.querySelector('#lmailCopy');if(cb)cb.onclick=lineMailCopy;
+ const kb=el.querySelector('#lmailClose');if(kb)kb.onclick=lineMailToggle;
+ el.querySelectorAll('[data-ls]').forEach(b=>b.onclick=()=>lineSelect(b.dataset.ls));
+}
 let DL_CACHE={};
 /* אוזל החודש: צריכה משמעותית ברבעון, ומלאי פנוי שלא יחזיק חודש.
    רק ZM. פריטי PD נרכשים לפי הזמנה ואינם מנוהלים במלאי, ולכן "לא יכסה
@@ -2595,6 +2865,7 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&QF.follow.includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='m1'?m1Rows(base)
+  :tr==='line'?lineRows()
   :tr==='short'?base.filter(inToday)
      .sort((a,b)=>(isT1(b)?1:0)-(isT1(a)?1:0)||cmpMoneyDesc(a,b,'unsVal'))
   :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>cmpMoneyDesc(a,b,TRACKKEY[tr]));
@@ -3164,7 +3435,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return track==='short'?12:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:track==='applied'?7:8}
+function NCOL(){return SHORTLIKE()?12:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -3229,7 +3500,7 @@ function custGroups(rows){
  for(const l of by.values())l.sort((a,b)=>custVal(b)-custVal(a));
  const sup=[...by.entries()].sort((a,b)=>b[1].length-a[1].length);
  return {none,sup}}
-function decisionHead(){const cols=(track==='fix'||track==='month')
+function decisionHead(){const cols=FIXLIKE()
   ?['מק״ט','תיאור','ROP','SS',
     '<span title="Z × σ × √LT — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
     'זמן אספקה','מה לתקן']
@@ -3252,7 +3523,7 @@ function decisionHead(){const cols=(track==='fix'||track==='month')
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער']
-  :track==='short'?['מק״ט','תיאור','ספק','דגם',
+  :SHORTLIKE()?['מק״ט','תיאור','ספק','דגם',
     '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
     /* בלי דוח ETA אין במה לפצל — עמודה אחת, בדיוק כמו קודם. ראה ETA_SPLIT */
     ...(ETA?['<span title="יחידות מתוך הרכש הפתוח ששובצו לאספקה עם תאריך, והתאריך המוקדם מביניהן">משובץ</span>',
@@ -3408,12 +3679,12 @@ function renderDecisions(rows){
  document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
- const lim=(track==='fix'||track==='month')?300:Math.min(rows.length,Math.max(300,c.n+3));
+ const lim=FIXLIKE()?300:Math.min(rows.length,Math.max(300,c.n+3));
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  /* "לקוח ממתין" מרונדר בקבוצות משלו לפני כל שאר הענפים */
  if(track==='cust'){renderCust(rows);return}
  if(track==='applied'){renderApplied(rows);return}
- const grouped=track==='short';
+ const grouped=SHORTLIKE();
  const bySup=grouped&&groupBy==='supplier';
  const SG=bySup?supplierGroups(rows):null;
  const GB=(grouped&&!bySup)?groupRows(rows):null;
@@ -3522,7 +3793,7 @@ function renderDecisions(rows){
     <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
     <td class="num">${money(gap*(r.price||0),r.currency)}</td></tr>`);
    return}
-  if(track==='fix'||track==='month'){
+  if(FIXLIKE()){
    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
@@ -3557,7 +3828,7 @@ function renderDecisions(rows){
   if(cb&&above&&blkI===cb.n){const ck=curKey(r);
    body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
-   `<tr><td colspan="${NCOL()}" class="empty">${track==='short'
+   `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='floor'?'אין פריט שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
@@ -3585,9 +3856,9 @@ function renderDecisions(rows){
    ?`${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
    :track==='done'
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
-   :(track==='fix'||track==='month')?'ניתן לעדכן במרוכז ב-SAP'
+   :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
-   :track==='short'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
+   :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
  document.getElementById('phdSub').textContent=track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
@@ -3595,12 +3866,12 @@ function renderDecisions(rows){
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית · ממוין לפי שווי הפער · ההמלצה לא שונתה אוטומטית'
   :track==='done'
   ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
-  :(track==='fix'||track==='month')
+  :FIXLIKE()
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
-  :(track==='short'?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
+  :(SHORTLIKE()?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
-function render(){DL_CACHE={};autoTrack();tiles();kpis();markTabsOverflow();
+function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
  if(typeof syncTrendBtn==='function')syncTrendBtn();
@@ -4308,7 +4579,10 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
    לא תיאור של מה הכפתור «עושה» — תיאור של מה המספר סופר במציאות,
    ואיזו שאלה כדאי לשאול עליו. */
 const XP={
- /* ---- שבעת המסלולים ---- */
+ /* ---- הציר, והמסלולים שנשארו נגישים מתוך הקטלוג ---- */
+ 'nav-line':{t:'ציר הזמן',
+  see:'המסך הראשי. משמאל לימין: מה שלא יחזיק את החודש היום, ואחר כך כל תאריך אספקה שידוע לנו עליו מדוח ה-ETA. מתחת לכל תאריך — כמה מהחוסרים הוא מכבה, כמה כסף יוצא מסיכון, וכמה נשארים אחריו. הכרטיס השמאלי הוא מה שאין לו שום מענה עד המשלוח האחרון.',
+  chk:'התחל מהכרטיס השמאלי — «אין מענה». אלה הפריטים שאף משלוח ידוע לא מכסה, והם היחידים שדורשים ממך פעולה היום; כל השאר כבר בדרך. לחיצה על כל תחנה ממלאת את הטבלה למטה בפריטים שלה. השורה «יחזור» אומרת לכמה מהם נקודת ההזמנה ב-SAP נמוכה מהנדרש — כלומר כמה מהם יחזרו לכאן בעוד חודשיים גם אחרי שהמשלוח ינחת.'},
  'nav-today':{t:'היום',
   see:'פריטים שאם לא תיגע בהם היום, מישהו יישאר בלי חלק. שלוש קבוצות: לקוח שכבר הזמין ואין מה לתת לו, פריט שהכיסוי שלו קצר מזמן האספקה, ופריט שהמלאי הפנוי שלו לא מחזיק את החודש הקרוב.',
   chk:'התחל מהקבוצה העליונה — «לקוח ממתין». שם יש הזמנה אמיתית בצד השני. אם הקבוצה הזאת ריקה, אין דחוף אמיתי היום.'},
