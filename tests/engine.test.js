@@ -29,7 +29,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /* יעד ריק = תג שמראה 0. כזה לא אמור להופיע כלל. */
    tabsEmpty:   [...document.querySelectorAll('#tabs .tab .bdg')]
                   .filter(b=>b.textContent.trim()==='0').length,
-   tabsCore:    ['today','month','catalog']
+   tabsCore:    ['line','catalog']
                   .filter(k=>[...document.querySelectorAll('#tabs .tab')]
                     .some(t=>t.dataset.m===k)).length,
    trackStrip:  getComputedStyle(document.getElementById('track')).display,
@@ -47,9 +47,18 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('sellMissing הוסר',st.noSellMiss);
  ok('BE (מטבע FOB) נקרא ונשמר',st.hasCurrency);
  ok('BZ (מחיר FOB) הוא מקור המחיר',st.priceIsBZ>0,st.priceIsBZ+' פריטים עם מחיר');
- ok('מסלולים: short/m1/cap/fix',st.tracks==='short,m1,cap,fix',st.tracks);
- ok('שלושה מצבים: היום/החודש/קטלוג',st.modes==='today,month,catalog',st.modes);
- ok('ברירת מחדל = היום',st.modeDefault==='today'&&st.trackDefault==='short');
+ /* ============ הרפורמה: הציר הוא הכניסה ============
+    היו שבעה יעדים בסרגל, וכל אחד דרש לדעת מראש שהוא קיים וגם מה הוא
+    אומר. מתכנן חיצוני שניסה להפעיל את הכלי לא ידע מאיפה להתחיל, כי
+    לא הייתה נקודת כניסה — הייתה רשימת מגירות.
+
+    עכשיו שתיים: «ציר הזמן» הוא איפה שעובדים, «הקטלוג» איפה שמחפשים.
+    מה שהיה מסלול נפרד נגיש דרך סינון בקטלוג. «הון כלוא» ירד מהמסך
+    לפי החלטת המתכנן — הוא לא מה שמחליטים עליו בבוקר. */
+ ok('הציר הוא המסלול הראשון',/^line,/.test(st.tracks),st.tracks);
+ ok('הציר הוא המצב הראשון',/^line,/.test(st.modes),st.modes);
+ ok('ברירת מחדל = ציר הזמן',st.modeDefault==='line'&&st.trackDefault==='line',
+    st.modeDefault+' / '+st.trackDefault);
  /* היה: «ארבעה יעדים בסרגל במקום 11». הכלל ההוא נולד מכך ש-13 יעדים
     לעבודה של 48 פריטים היו יותר מדי, ושניים מהם היו ריקים. הוא צמצם
     נכון — אבל הוא צמצם את מה שנראה, לא את מה שקיים: ארבעת המסלולים
@@ -60,9 +69,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     מהנתונים, וזה בדיוק מה שהכלל הקודם ניסה להשיג. */
  ok('אין יעדים ריקים בסרגל',st.tabsEmpty===0,
     st.tabsShown+' יעדים · '+st.tabsEmpty+' ריקים');
- ok('שלושת המצבים תמיד בסרגל',st.tabsCore===3,st.tabsCore+' מתוך 3');
+ ok('שני היעדים תמיד בסרגל — ציר וקטלוג',st.tabsCore===2,st.tabsCore+' מתוך 2');
+ ok('הסרגל אינו חוזר לשבעה יעדים',st.tabsShown<=3,st.tabsShown+' יעדים');
  ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
- ok('לכל מצב יש תוכן',/today=[1-9]/.test(st.modeCounts)&&/month=[1-9]/.test(st.modeCounts)&&/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
+ ok('לכל מצב יש תוכן',/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
  ok('אזהרת DIAG על FOB בלבד',!/מחיר מכירה/.test(st.diag),st.diag.slice(0,90)||'(אין אזהרות)');
 
