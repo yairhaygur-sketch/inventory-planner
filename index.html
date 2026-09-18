@@ -1180,7 +1180,10 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .st .d{font-size:var(--f-sm);font-weight:700;color:var(--ink)}
 .st .fx{font-size:19px;font-weight:700;line-height:1.05;color:var(--grn);
   font-variant-numeric:tabular-nums}
-.st .fx.zero{color:var(--neutral)}
+/* --neutral על לבן נותן 2.50 מול 3 הנדרשים לטקסט גדול. הוא נבחר
+   כי «לא כיבה כלום» אמור להיות שקט — אבל שקט שאי אפשר לקרוא הוא
+   באג, לא עיצוב. --dimmer עובר בשני הנושאים ועדיין מעומעם. */
+.st .fx.zero{color:var(--dimmer)}
 .st .mv{font-size:var(--f-sm);color:var(--grn);white-space:nowrap}
 .st .lf{font-size:var(--f-sm);color:var(--dim);white-space:nowrap}
 .st .sh{font-size:var(--f-xs,10px);color:var(--dimmer);white-space:nowrap}
