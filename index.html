@@ -1159,6 +1159,45 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 #tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
 #tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
 #tbl[data-track="short"] td.val{font-weight:700;white-space:nowrap}
+/* ============ BREATHE — היררכיה בתוך השורה ============
+   נמדד על השורה החיה: כל 13 התאים ב-13px. בלי יוצא מן הכלל. המשקל
+   משתנה (400/700), הגודל לעולם לא. כלומר התיאור שקוראים והכסף
+   שמחליטים לפיו הם באותו גודל בדיוק כמו «דגם» ו«ותק».
+
+   שורה נושמת אינה רק מרווח — היא סדר קדימויות. שלוש רמות:
+     מה שקוראים      תיאור   17px/600
+     מה שמחליטים לפיו שווי    19px/700
+     מה שמאמתים בו    השאר    11.5px מעומעם
+
+   המחיר, נמדד ולא משוער - הספירה היא של tests/ui.test.js ב-1512x860:
+     לפני   ריפוד 5px   תיאור 13px  שורה 32px  ->  18 שורות גלויות
+     אחרי   ריפוד 8px   תיאור 17px  שורה 39px  ->  14 שורות גלויות
+   (על הראנר 13 - הכרום שם גבוה ב-8px. הבדיקה שומרת על גובה השורה,
+   שהוא ההחלטה, ומחזיקה את הספירה כרצפה בלבד. ראה 5צ.)
+     נפסל   ריפוד 11px  תיאור 19px  שורה 46px  ->  12 שורות גלויות
+   +22% אוויר תמורת ארבע שורות. 11px נבנה, נמדד וניתן - המחיר שלו הפך
+   לגלילה אמיתית. גם הכיוון ההפוך נפסל: 5px עם תיאור 19px מחזיר 16
+   שורות, אבל טקסט של 19px בקופסה של 34px הוא צפיפות בגופן אחר, לא
+   נשימה. מה שנושם כאן הוא ההפרש בין הרמות, והוא לא תלוי בריפוד.
+   העמודות לא ירדו — «ספק» ו«דגם» נשארו לפי בקשה מפורשת, והסלקטורים
+   (td.otw, td.zero, td.sched, td.num, td.val) נשארו כפי שהם כדי
+   שהבדיקות ימשיכו לבדוק את מה שהן נועדו לבדוק. */
+#tbl[data-track="short"] tbody tr[data-i] td,
+#tbl[data-track="line"] tbody tr[data-i] td{padding-block:8px}
+#tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{
+  font-size:17px;font-weight:600;letter-spacing:-.012em;line-height:1.25}
+#tbl[data-track="short"] td.val,#tbl[data-track="line"] td.val{
+  font-size:var(--f-lg);font-weight:700;letter-spacing:-.02em}
+/* הרמה השלישית — נוכחת לאימות, לא מתחרה על העין */
+#tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup,
+#tbl[data-track="short"] td.mdl,#tbl[data-track="line"] td.mdl,
+#tbl[data-track="short"] td.age,#tbl[data-track="line"] td.age,
+#tbl[data-track="short"] td.rnk,#tbl[data-track="line"] td.rnk{
+  font-size:var(--f-sm);color:var(--dimmer)}
+/* «תקוע» ו«לקוח» הם המספרים שמניעים פעולה — הם נשארים במלוא המשקל.
+   «מלאי» ו«משובץ» הם הקשר, ולכן יורדים רמה. */
+#tbl[data-track="short"] td.sched,#tbl[data-track="line"] td.sched{font-size:var(--f-sm)}
+#tbl[data-track="short"] td.stk,#tbl[data-track="line"] td.stk{font-size:var(--f-md)}
 /* ETA_SPLIT — «משובץ» הוא מידע מרגיע ולכן מעומעם; «תקוע» הוא מה
    שדורש פעולה ולכן נושא את צבע האזהרה. שתיהן צרות בכוונה: הרוחב
    שהן גוזלות בא מהתיאור, וזה הדבר היחיד במסך הזה שאסור לרעוב. */
