@@ -349,8 +349,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /* כלל החותם */
    merged,keepLocal:MARKS[k[0]].note,takeFile:MARKS[k[1]].note,added:!!MARKS[k[2]],
    stats:stateStats(blob)};});
- ok('קובץ המצב נושא רק את מה שהוחלט',
-   stt.keys==='planner_history_v1,planner_marks_v1,planner_params_v1'&&stt.noDisplay,stt.keys);
+ /* ============ החוזה של קובץ המצב, אחרי הפנקס ============
+    הכלל היה «מה שהוחלט בלבד», והוא נועד למנוע מצב שבו שחזור אצל עמית
+    דורס לו את התצוגה. זה עדיין הכלל — noDisplay שומר עליו.
+
+    מה שהורחב במודע: planner_ledger_v1. הפנקס הוא «מה שנמדד» ולא «מה
+    שהוחלט», והוא נכנס בכל זאת משתי סיבות — מדידה על אמינות ספק היא
+    עובדה שעמית צריך לרשת ולא העדפה אישית, וניקוי עוגיות אחד מוחק
+    חודשי תצפיות שאי אפשר לשחזר משום דוח. ראה סעיף 5פ. */
+ ok('קובץ המצב נושא החלטות ומדידות — ולעולם לא תצוגה',
+   stt.keys==='planner_history_v1,planner_ledger_v1,planner_marks_v1,planner_params_v1'
+   &&stt.noDisplay,stt.keys);
+ ok('הפנקס בגיבוי — חודשי תצפיות לא נמחקים בניקוי עוגיות',
+   /planner_ledger_v1/.test(stt.keys));
  ok('לקובץ יש חתימה וגרסה',stt.env);
  ok('קובץ שאינו של הכלי נדחה',
    !!stt.vBad&&!!stt.vAlien&&!!stt.vFuture&&stt.vOk===null,stt.vAlien||'');

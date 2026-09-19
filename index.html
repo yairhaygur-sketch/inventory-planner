@@ -335,7 +335,19 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     כלי שעובדים בו יומיום. וחשוב מזה: המפרט עצמו קובע שבטבלה צפופה
     ההיררכיה נוצרת מ*משקל* ולא מגודל. הגדלת הבסיס סותרת את הנימוק
     שלו. ההיררכיה כאן נבנית ממשקל, והיא לא עולה אף פיקסל. */
- --f-micro:10.5px; --f-base:13.5px; --f-num:28px; --f-hero:40px;
+ /* ============ הסולם, אחרי המדידה ============
+    נמדד על המסך החי: הטקסט הגדול ביותר בכלי כולו היה 19px, ו-63%
+    מהטקסט (380 אלמנטים מתוך 605) היה בגודל אחד בדיוק. מסך שבו הכול
+    באותו משקל אינו היררכיה אלא רעש — לעין אין לאן לנחות.
+
+    f-num ו-f-hero הוגדרו בעבר ומעולם לא היו בשימוש — אפס הופעות
+    בקובץ. הם מוחיים כאן במקום ליצור טוקן שלישי מתחרה. הערך של hero
+    עולה מ-40 ל-72: «מספר-גיבור ≥48px, אחד בדיוק למסך».
+
+    הסולם הישן נשאר בדיוק כפי שהוא. 480 בדיקות ומאות כללי CSS
+    נשענים עליו, והשינוי כאן הוא *מעליו* ולא בתוכו:
+      f-lg 19  →  f-num 30  →  f-hero 72     (יחס 1.58 ואז 2.4) */
+ --f-micro:10.5px; --f-base:13.5px; --f-num:30px; --f-hero:72px;
  --f-xs:10px; --f-sm:11.5px; --f-md:13px; --f-lg:19px; --f-xl:24px;
 
  /* ---- צורה ---- */
@@ -1206,7 +1218,73 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
   margin-inline-start:auto}
 .lrec button:hover{border-color:var(--acc)}
 .lrec button[aria-pressed="true"]{background:var(--acc);color:var(--on-fill);border-color:var(--acc)}
+/* ============ LINE_HERO — עיצוב ============ */
+/* גיבור ופסים זה לצד זה. בגרסה הראשונה הם היו מוערמים, והכרום עלה
+   מ-388px ל-463 — כלומר החמרתי בדיוק את המדד שביקרתי. */
+.lwrap{display:flex;align-items:flex-start;gap:26px;padding:6px 0 8px;flex-wrap:wrap}
+.lhero{display:flex;align-items:flex-start;gap:16px;flex:0 0 auto;max-width:46%}
+.lout{display:flex;gap:6px;align-self:flex-start;order:3;margin-inline-start:auto;padding-top:6px}
+.lout button{font:inherit;font-size:var(--f-sm);color:var(--accD);background:var(--accL);
+  border:1px solid var(--accBorder);border-radius:8px;padding:5px 11px;cursor:pointer;white-space:nowrap}
+.lout button:hover{border-color:var(--acc)}
+.lbars{flex:1 1 380px;min-width:300px;order:2}
+.bledg{margin-inline-start:auto;color:var(--dimmer);display:flex;align-items:center;gap:6px}
+.bledg b{color:var(--dim)}
+/* המספר-הגיבור. ספרות פרופורציונליות ולא tabular: בגדלים כאלה
+   tabular-nums נותן לכל ספרה את רוחב ה-0 ו«31» נראה רופף. */
+.lhero .hn{font:inherit;font-size:var(--f-hero);font-weight:700;line-height:.84;
+  letter-spacing:-.035em;color:var(--red);background:none;border:0;padding:0;cursor:pointer;
+  font-variant-numeric:proportional-nums}
+.lhero .hn:hover{color:var(--redD,#9c2d22)}
+.lhero .hn:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+.lhero .hn[aria-pressed="true"]{text-decoration:underline;text-decoration-thickness:3px;
+  text-underline-offset:7px}
+.lhero .ht{padding-top:5px;min-width:0}
+.lhero .ht b{display:block;font-size:var(--f-num);font-weight:700;line-height:1.14;
+  letter-spacing:-.012em}
+.lhero .ht span{display:block;font-size:var(--f-md);color:var(--dim);margin-top:5px}
+.lhero .hl{font:inherit;font-size:inherit;font-weight:700;color:var(--ink);background:none;
+  border:0;padding:0 1px;cursor:pointer;border-bottom:1px dashed var(--line2)}
+.lhero .hl:hover{color:var(--accD);border-bottom-color:var(--acc)}
+.lhero .hl.warn{color:var(--org)}
+.lhero .hl[aria-pressed="true"]{border-bottom:2px solid currentColor}
+
+/* פס אחד לכל מטבע — כלל BZ אוסר לחבר, וההפרדה היא שמראה את הסיפור */
+.lbars{padding-bottom:2px}
+.brow{display:flex;align-items:center;gap:11px;margin-bottom:7px}
+.brow .bcur{width:42px;font-size:var(--f-md);font-weight:700;color:var(--dim)}
+.btrack{flex:1;display:flex;height:30px;border-radius:5px;overflow:hidden;
+  background:var(--panel2);min-width:0}
+/* צבע אחד למשלוחים, גוון מודגש לגדולה, צבע מצב לְמה שאין לו מענה.
+   מרווח 2px בצבע המשטח בין מקטעים — מפרט הסימנים. */
+.bseg{height:100%;border:0;padding:0;cursor:pointer;background:var(--neutral);
+  border-inline-end:2px solid var(--panel);position:relative;min-width:2px}
+.bseg:last-child{border-inline-end:0}
+.bseg:hover{filter:brightness(.92)}
+.bseg:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.bseg.big{background:var(--acc)}
+.bseg.none{background:var(--red)}
+.bseg[aria-pressed="true"]{box-shadow:inset 0 -4px 0 rgba(0,0,0,.35)}
+.bseg b{position:absolute;inset-block:0;inset-inline-start:8px;display:flex;align-items:center;
+  color:var(--on-fill);font-size:var(--f-sm);font-weight:700;white-space:nowrap;pointer-events:none}
+.brow .btot{width:104px;text-align:end;font-size:var(--f-md);font-weight:700;
+  font-variant-numeric:tabular-nums}
+.bkey{display:flex;gap:16px;font-size:var(--f-sm);color:var(--dimmer);
+  margin-inline-start:53px;padding-bottom:2px}
+.bkey span{display:flex;align-items:center;gap:6px}
+.bkey i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.bkey .k1{background:var(--acc)}.bkey .k2{background:var(--neutral)}.bkey .k3{background:var(--red)}
+@media(max-width:1100px){.lhero .hn{font-size:48px}.lhero .ht b{font-size:var(--f-xl)}}
 /* טיוטת המייל — פלט, לא תצוגה */
+.lledg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
+.lledg b{color:var(--ink)}
+.lledg .why{color:var(--dim);margin-inline-end:auto}
+.lsup{border:1px solid var(--line);border-radius:8px;padding:1px 8px;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.lsup.ok{color:var(--grn);background:var(--grnL);border-color:var(--grn)}
+.lsup.mid{color:var(--org);background:var(--orgL);border-color:var(--org)}
+.lsup.bad{color:var(--red);background:var(--redL);border-color:var(--red)}
 .lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
 .lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
 .lmail .lmh span{color:var(--dim)}
@@ -2749,6 +2827,22 @@ function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
    הפעולה האמיתית מול 31 הפריטים שאין להם מענה היא מייל אחד לכל ספק,
    לא 31 בירורים. הטקסט נבנה מהבחירה הנוכחית על הציר ומקובץ לפי ספק,
    באנגלית — כי זה מה שנשלח ל-LYNK&CO ול-ZHONGTONG. */
+/* ============ שורת הפנקס ============
+   הכלי חייב לומר מה הוא יודע ומה עדיין לא. ביום הראשון אין מה למדוד,
+   וזו אמירה לגיטימית — «אני זוכר מהיום» עדיף על שתיקה שנראית כמו באג. */
+/* הפנקס יושב בשורת המקרא ולא בשורה משלו — הגובה יקר. התגים
+   הצבעוניים נשמרו: «1/1» ו«0/9» באותו אפור אינם אומרים אותו דבר. */
+function lineLedgerLine(){
+ const days=ledgerDays();
+ const sup=ALL&&ALL.length?ledgerBySupplier(ALL):[];
+ if(!sup.length)return days.length<=1
+  ?'פנקס: התחיל היום'
+  :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`;
+ return `<b>אמינות תאריכים</b> `+sup.slice(0,3).map(([s,k])=>{
+  const pct=Math.round(100*k.kept/k.n);
+  const cls=pct>=80?'ok':pct>=50?'mid':'bad';
+  return `<span class="lsup ${cls}" title="${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן · ${days.length} ימים בפנקס">`
+   +`<bdi>${esc(String(s).slice(0,16))}</bdi> ${k.kept}/${k.n}</span>`}).join('')}
 function lineMailText(){
  const rows=lineRows();
  if(!rows.length)return '';
@@ -2794,6 +2888,78 @@ function lineMailCopy(){
  if(!ok&&navigator.clipboard){navigator.clipboard.writeText(ta.value).then(
    ()=>toast('הטיוטה הועתקה ✓'),()=>toast('ההעתקה נחסמה — סמן והעתק ידנית'));return}
  toast(ok?'הטיוטה הועתקה ✓':'ההעתקה נחסמה — סמן והעתק ידנית')}
+/* ============ LINE_HERO — הגיבור והפסים ============
+   מה שהיה כאן: תשעה כרטיסים בשורה, כל אחד עם ארבעה מספרים. נמדד
+   כזר שנכנס לכלי בפעם הראשונה: 1,390 אלמנטים גלויים, 370 מספרים,
+   והטקסט הגדול ביותר בכל המסך 19px. לעין לא הייתה נקודת נחיתה.
+
+   המפרט של הצגת נתונים אומר שלושה דברים ששינו את הצורה:
+
+   «המספר האחד שדשבורד מוביל בו — מספר-גיבור ≥48px, אחד בדיוק לתצוגה.»
+   לכן 31 ב-72px, והוא היחיד מעל 30 במסך.
+
+   «מעל ~7 קטגוריות שכולן נושאות משמעות — טבלה, לא עוד צבעים.»
+   תשע תחנות אינן תשע זהויות. הן גודל על ציר זמן, ולכן צבע אחד
+   למשלוחים, גוון מודגש לתחנה הגדולה, וצבע מצב אחד למה שאין לו מענה.
+
+   «חלק-מתוך-שלם — פס מוערם, אופקי כשיש הרבה קטגוריות.»
+
+   ומה שכלל BZ הכריח: אסור לחבר מטבעות, ולכן *פס לכל מטבע*. דווקא
+   ההפרדה הזאת הראתה את מה שאף מסך לא אמר קודם — פס השקל אדום לכל
+   אורכו: ₪13,139 שאף תחנה אינה נוגעת בהם. */
+
+/* רוחב מקטע לפי כסף, בתוך המטבע בלבד */
+function lineCurBars(m){
+ const cur={};
+ const add=(c,k,v)=>{(cur[c]=cur[c]||{segs:{},tot:0}); cur[c].segs[k]=(cur[c].segs[k]||0)+v; cur[c].tot+=v};
+ for(const s of m.stations)for(const r of s.fixed)add(curKey(r),s.date,lineVal(r));
+ for(const r of m.stuck)add(curKey(r),'stuck',lineVal(r));
+ const order=Object.keys(cur).sort((a,b)=>(CURORDER&&CURORDER[a]!=null?CURORDER[a]:99)
+   -(CURORDER&&CURORDER[b]!=null?CURORDER[b]:99));
+ /* התחנה הגדולה מודגשת — «הדגשה» ולא «קטגוריאלי»: אחת בגוון המבטא
+    והשאר באפור. זו הצורה שהמפרט קורא לה הכי פחות מנוצלת. */
+ const big=m.stations.reduce((a,s)=>{const v=s.fixed.reduce((t,r)=>t+lineVal(r),0);
+   return v>a.v?{d:s.date,v}:a},{d:null,v:0}).d;
+ return {order,cur,big}}
+
+function renderHero(m){
+ const B=lineCurBars(m);
+ const sel=k=>LINE_SEL===k?'true':'false';
+ const cm=curMonthLabel();
+ let h=`<div class="lwrap"><div class="lhero">
+   <button class="hn" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}"
+     title="הפריטים שאף תחנה על הציר אינה מכסה — לחץ לראות אותם">${m.stuck.length.toLocaleString('he-IL')}</button>
+   <div class="ht">
+    <b>פריטים שאף משלוח ידוע לא מכסה</b>
+    <span>מתוך <button class="hl" type="button" data-ls="now" aria-pressed="${sel('now')}"
+       title="כל מי שהמדף שלו לא מחזיק את החודש">${m.dry.length}</button> שלא יחזיקו את ${cm.name}
+     · <button class="hl warn" type="button" data-ls="recur" aria-pressed="${sel('recur')}"
+       title="נקודת ההזמנה ב-SAP נמוכה מהמוצע — המשלוח מכבה, הפרמטר מחזיר">${m.recur.length} יחזרו</button>
+     ${m.poNoDate.length?`· ${m.poNoDate.length} עם רכש בלי תאריך`:''}</span>
+   </div></div>
+   <div class="lout"><!--OUT--></div>`;
+ if(!B.order.length)return h+'</div>';
+ h+='<div class="lbars">';
+ for(const c of B.order){
+  const o=B.cur[c], pct=v=>o.tot>0?(100*v/o.tot):0;
+  h+=`<div class="brow"><span class="bcur">${esc(curName(c))}</span><div class="btrack">`;
+  for(const s of m.stations){
+   const v=o.segs[s.date]||0; if(v<=0)continue;
+   const w=pct(v), lab=w>=11?`${heDate(s.date)} · ${money(v,c)}`:(w>=5?heDate(s.date):'');
+   h+=`<button class="bseg${s.date===B.big?' big':''}" type="button" data-ls="${s.date}"
+      aria-pressed="${sel(s.date)}" style="width:${w.toFixed(2)}%"
+      title="${heDate(s.date)} — ${money(v,c)} יוצאים מסיכון · ${s.fixed.length} פריטים">${lab?`<b>${lab}</b>`:''}</button>`}
+  const sv=o.segs.stuck||0;
+  if(sv>0){const w=pct(sv);
+   h+=`<button class="bseg none" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}"
+      style="width:${w.toFixed(2)}%" title="${money(sv,c)} שאף תחנה אינה מכסה">`
+    +`${w>=26?`<b>אין מענה — אף תחנה לא נוגעת בזה</b>`:(w>=9?`<b>${money(sv,c)}</b>`:'')}</button>`}
+  h+=`</div><span class="btot">${money(o.tot,c)}</span></div>`}
+ h+=`<div class="bkey"><span><i class="k1"></i>התחנה הגדולה</span>`
+  +`<span><i class="k2"></i>שאר המשלוחים</span>`
+  +`<span><i class="k3"></i>אין מענה עד ${heDate(m.stations.length?m.stations[m.stations.length-1].date:'')}</span>`
+  +`<span class="bledg">${lineLedgerLine()}</span></div>`;
+ return h+'</div></div>'}
 function renderLine(){
  const el=document.getElementById('line');if(!el)return;
  if(track!=='line'){el.hidden=true;return}
@@ -2809,40 +2975,17 @@ function renderLine(){
  if(!ETA){
   h+=`<div class="lrec"><b>אין דוח ETA</b><span class="why">בלי תאריכי אספקה אין ציר — העלה דוח ETA כדי לראות מה מכבה את ${m.dry.length} האלה.</span></div>`;
   el.innerHTML=h;return}
- /* ── הרצועה ── */
- h+='<div class="lstrip">';
- h+=`<button class="st now" type="button" data-ls="now" aria-pressed="${sel('now')}">
-   <span class="d">היום</span><span class="fx">${m.dry.length}</span>
-   <span class="mv">${lineMoney(m.dry)}</span>
-   <span class="lf">לא יחזיקו את ${cur.name}</span>
-   <span class="sh">${m.waiting.length} עם לקוח ממתין · ${m.waiting.reduce((a,r)=>a+(r.cust||0),0).toLocaleString('he-IL')} יח׳</span></button>`;
- for(const s of m.stations){
-  const z=s.fixed.length===0;
-  h+=`<button class="st" type="button" data-ls="${s.date}" aria-pressed="${sel(s.date)}"
-     title="${s.units.toLocaleString('he-IL')} יח׳ ב-${s.pns} מק״טים נוחתות בתאריך הזה">
-   <span class="d">${heDate(s.date)}</span>
-   <span class="fx${z?' zero':''}">${z?'—':'▼'+s.fixed.length}</span>
-   <span class="mv">${z?'&nbsp;':lineMoney(s.fixed)}</span>
-   <span class="lf">נשארים ${s.left}</span>
-   <span class="sh">${s.units.toLocaleString('he-IL')} יח׳ · ${s.pns} מק״טים</span></button>`}
- h+=`<button class="st end" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}">
-   <span class="d">אין מענה</span><span class="fx">${m.stuck.length}</span>
-   <span class="mv">${lineMoney(m.stuck)}</span>
-   <span class="lf">${m.poNoDate.length} רכש בלי תאריך · ${m.noPo.length} בלי רכש</span></button>`;
- h+='</div>';
- /* ── השורה השלישית: למה זה יחזור ── */
- const pct=m.dry.length?Math.round(100*m.recur.length/m.dry.length):0;
- h+=`<div class="lrec"><b>יחזור: ${m.recur.length} מתוך ${m.dry.length}</b>
-   <span class="why">נקודת ההזמנה ב-SAP נמוכה מהמוצע — המשלוח מכבה את השריפה, הפרמטר מחזיר אותה (${pct}%)</span>
-   <button type="button" data-ls="recur" aria-pressed="${sel('recur')}">הצג את ${m.recur.length} התיקונים</button>
-   <button type="button" id="lmailBtn" aria-pressed="false">✉ טיוטת מייל</button>
-   <button type="button" id="lxlsBtn">⭳ Excel</button></div>
-  <div class="lmail" id="lmail" hidden>
+ /* ── הגיבור והפסים. ראה LINE_HERO ── */
+ h+=renderHero(m);
+ h+=`<div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
      <button type="button" id="lmailCopy">העתק</button>
      <button type="button" id="lmailClose">סגור</button></div>
    <textarea spellcheck="false" dir="ltr" rows="14"></textarea></div>`;
+ h=h.replace('<!--OUT-->',
+  `<button type="button" id="lmailBtn" aria-pressed="false">✉ מייל</button>`
+  +`<button type="button" id="lxlsBtn">⭳ Excel</button>`);
  el.innerHTML=h;
  const mb=el.querySelector('#lmailBtn');if(mb)mb.onclick=lineMailToggle;
  const xb=el.querySelector('#lxlsBtn');if(xb)xb.onclick=doExport;
@@ -2937,6 +3080,86 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
    חתימת ההרצה מונעת ספירה כפולה: העלאה חוזרת של אותו קובץ מזוהה
    לפי חודש הבסיס, מספר הפריטים וסכום הצריכה, ומעדכנת את ההרצה
    האחרונה במקום ליצור חדשה. */
+/* ==================== הפנקס — מה הכלי זוכר ====================
+   עד כאן הכלי שכח. HIST שמר «כמה הרצות הפריט בתור», PARAMS שמר ארבע
+   תמונות של ROP/SS — ושתי אלה עונות על «האם ההמלצה יושמה». אבל שלוש
+   שאלות נשארו חסומות על אותו קיר:
+
+     האם התאריך של הספק אמין?      אין הבטחה מול ביצוע
+     מה סטיית התקן של זמן האספקה?  אין היסטוריית אספקות
+     האם הרכש הפתוח באמת נחת?      הפריט יצא מהתור ונמחק
+
+   שלושתן אותה שאלה: הכלי לא ראה את אתמול.
+
+   הפנקס שומר *תצפיות*, לא מסקנות. לכל יום: כמה רכש פתוח וכמה על המדף,
+   לפריטים שיש להם רכש פתוח או הבטחת אספקה. ההבטחות עצמן נשמרות פעם
+   אחת לכל דוח ETA נבדל, כי דוח מתחלף פעם בשבוע ולא פעמיים ביום.
+
+   מה שהפנקס *לא* עושה: הוא לא מכריע אם משלוח הגיע. הוא אומר «ההבטחה
+   הייתה 5 יח׳ ל-21.9; בין 20.9 ל-22.9 הרכש ירד ב-5 והמדף עלה ב-5».
+   ההכרעה היא של מי שקורא, כי po יורד גם בביטול הזמנה ו-free עולה
+   ויורד גם מצריכה. תצפית שאומרת מה נמדד עדיפה על מסקנה שמתחזה לוודאות.
+
+   תמונה אחת ליום קלנדרי — האחרונה. משלוח נוחת בתאריך, לא בשעה.
+   19KB ליום על הדוח האמיתי (836 פריטים), ולכן 180 יום ≈ 3.4MB. */
+const LEDG_KEY='planner_ledger_v1', LEDG_DAYS=180;
+let LEDGER={v:1,days:{},etas:{}};
+try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
+ if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
+function ledgerSave(){
+ try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
+ catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס */
+  const ks=Object.keys(LEDGER.days).sort();
+  if(ks.length>1){delete LEDGER.days[ks[0]];ledgerPrune();ledgerSave()}}}
+/* דוח ETA שאף יום לא מצביע עליו אינו נחוץ */
+function ledgerPrune(){
+ const ks=Object.keys(LEDGER.days).sort();
+ while(ks.length>LEDG_DAYS)delete LEDGER.days[ks.shift()];
+ const live=new Set(Object.values(LEDGER.days).map(d=>d.etaSig).filter(Boolean));
+ for(const s of Object.keys(LEDGER.etas))if(!live.has(s))delete LEDGER.etas[s]}
+function etaSig(){if(!ETA||!ETA.byPn)return '';
+ return ETA.parts+'·'+ETA.rows+'·'+ETA.units}
+/* נקרא אחרי build ואחרי etaApply, בכל טעינת ZMRP */
+function ledgerRecord(items){
+ const day=etaToday(), sig=etaSig();
+ const has=(ETA&&ETA.byPn)||{};
+ const it={};
+ for(const r of items){
+  if(!((r.po||0)>0||has[etaKey(r.pn)]||(r.cust||0)>0))continue;
+  it[r.pn]=[r.po|0,Math.max(0,r.free||0)|0]}
+ LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
+ if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
+ ledgerPrune();ledgerSave();
+ return {days:Object.keys(LEDGER.days).length}}
+const ledgerDays=()=>Object.keys(LEDGER.days).sort();
+/* ============ הבטחה מול ביצוע ============
+   לכל הבטחה שתאריכה עבר, ויש לנו יום לפניו ויום אחריו — מה נמדד.
+   מוחזרות תצפיות בלבד. */
+function ledgerPromises(){
+ const days=ledgerDays(), out=[];
+ if(days.length<2)return out;
+ for(const sig in LEDGER.etas){
+  const byPn=LEDGER.etas[sig].byPn||{};
+  for(const pn in byPn)for(const [q,d] of byPn[pn]){
+   const before=days.filter(x=>x<d).pop();
+   const after=days.filter(x=>x>=d)[0];
+   if(!before||!after)continue;
+   const a=(LEDGER.days[before].it||{})[pn], b=(LEDGER.days[after].it||{})[pn];
+   if(!a||!b)continue;
+   out.push({pn,q,date:d,before,after,
+     dPo:b[0]-a[0], dFree:b[1]-a[1]})}}
+ return out}
+/* סיכום לפי ספק — כמה מההבטחות שתאריכן עבר אכן ירדו מהרכש הפתוח */
+function ledgerBySupplier(items){
+ const byPn={};for(const r of items)byPn[r.pn]=r;
+ const g={};
+ for(const o of ledgerPromises()){
+  const r=byPn[o.pn];const s=(r&&r.supplier)||'—';
+  const k=g[s]=g[s]||{n:0,kept:0,units:0,keptUnits:0};
+  k.n++;k.units+=o.q;
+  /* «נחת» = הרכש הפתוח ירד לפחות בכמות שהובטחה */
+  if(-o.dPo>=o.q){k.kept++;k.keptUnits+=o.q}}
+ return Object.entries(g).sort((a,b)=>b[1].n-a[1].n)}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
 try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
@@ -3053,7 +3276,11 @@ function paramsReset(){PARAMS={runs:[]};saveParams()}
    מיזוג הוא רק הוספה ועדכון, לעולם לא מחיקה: סימון שנמחק מיוצג
    בהיעדרו, ואי אפשר להבדיל בין «נמחק» ל«מעולם לא היה». סימון שמחקת
    יכול לחזור ממיזוג, וזה כתוב במסך. */
-const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1'];
+/* הפנקס נוסף לגיבוי, וזו הרחבה מודעת של החוזה שכתוב מעליו. הקובץ
+   נשא עד כה «מה שהוחלט»; הפנקס הוא «מה שנמדד». הוא נכנס כי מדידה על
+   אמינות ספק אינה העדפה אישית — היא עובדה שעמית צריך לרשת, וכי ניקוי
+   עוגיות אחד מוחק חודשי תצפיות שאי אפשר לשחזר משום דוח. */
+const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1'];
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
@@ -4518,7 +4745,7 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
   catch(err){res={err:'לא ניתן לקרוא את הקובץ: '+err.message}}
   if(res.err){toast('⛔ '+res.err);e.target.value='';return}
   ETA=res;etaSave();etaChip();
-  if(ALL&&ALL.length){etaApply(ALL);apply();
+  if(ALL&&ALL.length){etaApply(ALL);ledgerRecord(ALL);apply();
    const hit=ALL.filter(r=>r.etaHas).length;
    toast('✓ דוח ETA — '+res.parts.toLocaleString('he-IL')+' מק״טים, '+hit.toLocaleString('he-IL')+' מהם בקטלוג');
    if(hit===0)toast('⚠ אף מק״ט מדוח ה-ETA לא נמצא בקטלוג — ודא שזה אותו מפעל');}
@@ -4549,6 +4776,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
   etaApply(ALL);
+  ledgerRecord(ALL);
   const futureDates=ALL.filter(x=>x.entFuture||x.saleFuture).length;
   const missingPrices=ALL.filter(x=>x.priceMissing).length;
   if(futureDates)DIAG.warn.push(`${futureDates} פריטים כוללים תאריך תנועה עתידי — התאריך הוחרג מחישובי גיל מלאי.`);
