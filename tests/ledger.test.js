@@ -68,7 +68,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
   return {days:ledgerDays().length,obs,sup:g,
     kept:obs.find(o=>o.pn==='LEDG-KEPT'),missed:obs.find(o=>o.pn==='LEDG-MISSED'),
     kb:+(JSON.stringify(LEDGER).length/1024).toFixed(1),
-    line:(document.querySelector('.lledg')||{}).textContent||''}});
+    /* הפנקס עבר משורה משלו לשורת המקרא של הפסים — הגובה יקר.
+       מה שנבדק לא השתנה: שהמסך מציג אמינות ולא «התחלנו היום». */
+    line:(document.querySelector('.bledg')||{}).textContent||'',
+    chips:document.querySelectorAll('.bledg .lsup').length}});
 
  // ── שרידות: הפנקס חייב לשרוד רענון וטעינה מחדש ──
  await p.reload();await p.waitForTimeout(400);
@@ -96,6 +99,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     late?`${late[1].kept}/${late[1].n}`:'לא נמצא');
  ok('המסך מציג אמינות ולא הודעת "התחלנו היום"',
     /אמינות/.test(d2.line)&&!/התחיל היום/.test(d2.line),d2.line.trim().slice(0,70));
+ /* «1/1» ו«0/9» באותו אפור אינם אומרים אותו דבר — הצבע נושא משמעות */
+ ok('לכל ספק תג צבעוני לפי העמידה בזמן',d2.chips===2,d2.chips+' תגים');
  ok('הפנקס שורד רענון',surv.days===2,`ימים ${surv.days}`);
  ok('הפנקס נכלל בגיבוי מצב העבודה',surv.inState);
  ok('הגודל סביר',d2.kb<50,d2.kb+'KB לשני ימים');

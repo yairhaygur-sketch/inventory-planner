@@ -1228,7 +1228,8 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
   border:1px solid var(--accBorder);border-radius:8px;padding:5px 11px;cursor:pointer;white-space:nowrap}
 .lout button:hover{border-color:var(--acc)}
 .lbars{flex:1 1 380px;min-width:300px;order:2}
-.bledg{margin-inline-start:auto;color:var(--dimmer)}
+.bledg{margin-inline-start:auto;color:var(--dimmer);display:flex;align-items:center;gap:6px}
+.bledg b{color:var(--dim)}
 /* המספר-הגיבור. ספרות פרופורציונליות ולא tabular: בגדלים כאלה
    tabular-nums נותן לכל ספרה את רוחב ה-0 ו«31» נראה רופף. */
 .lhero .hn{font:inherit;font-size:var(--f-hero);font-weight:700;line-height:.84;
@@ -2829,30 +2830,19 @@ function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
 /* ============ שורת הפנקס ============
    הכלי חייב לומר מה הוא יודע ומה עדיין לא. ביום הראשון אין מה למדוד,
    וזו אמירה לגיטימית — «אני זוכר מהיום» עדיף על שתיקה שנראית כמו באג. */
-/* טקסט בלבד — הפנקס יושב במקרא ולא בשורה משלו, כדי לא לגזול גובה */
+/* הפנקס יושב בשורת המקרא ולא בשורה משלו — הגובה יקר. התגים
+   הצבעוניים נשמרו: «1/1» ו«0/9» באותו אפור אינם אומרים אותו דבר. */
 function lineLedgerLine(){
  const days=ledgerDays();
  const sup=ALL&&ALL.length?ledgerBySupplier(ALL):[];
  if(!sup.length)return days.length<=1
   ?'פנקס: התחיל היום'
   :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`;
- return 'אמינות: '+sup.slice(0,3).map(([s,k])=>`${String(s).slice(0,14)} ${k.kept}/${k.n}`).join(' · ')}
-function lineLedger(){
- const days=ledgerDays();
- const sup=ALL&&ALL.length?ledgerBySupplier(ALL):[];
- if(!sup.length){
-  const t=days.length<=1
-   ?`הפנקס התחיל היום. אמינות הספקים תיפתח אחרי שיעברו תאריכי אספקה שנרשמו כאן.`
-   :`${days.length} ימים בפנקס · עדיין לא עבר תאריך אספקה עם יום לפניו ויום אחריו.`;
-  return `<div class="lledg"><b>פנקס</b><span class="why">${t}</span></div>`}
- const cells=sup.slice(0,4).map(([s,k])=>{
+ return `<b>אמינות תאריכים</b> `+sup.slice(0,3).map(([s,k])=>{
   const pct=Math.round(100*k.kept/k.n);
   const cls=pct>=80?'ok':pct>=50?'mid':'bad';
-  return `<span class="lsup ${cls}" title="${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן">`
-   +`<bdi>${esc(String(s).slice(0,18))}</bdi> ${k.kept}/${k.n}</span>`}).join('');
- return `<div class="lledg"><b>אמינות תאריכים</b>`
-  +`<span class="why">${days.length} ימים בפנקס · הבטחות שתאריכן עבר, וירדו מהרכש הפתוח</span>`
-  +cells+`</div>`}
+  return `<span class="lsup ${cls}" title="${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן · ${days.length} ימים בפנקס">`
+   +`<bdi>${esc(String(s).slice(0,16))}</bdi> ${k.kept}/${k.n}</span>`}).join('')}
 function lineMailText(){
  const rows=lineRows();
  if(!rows.length)return '';
