@@ -1169,14 +1169,21 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
      מה שמחליטים לפיו שווי    19px/700
      מה שמאמתים בו    השאר    11.5px מעומעם
 
-   המחיר שהמתכנן בחר לשלם במודע: 18 שורות גלויות יורדות ל-11.
+   המחיר, נמדד ולא משוער - הספירה היא של tests/ui.test.js ב-1512x860:
+     לפני   ריפוד 5px   תיאור 13px  שורה 32px  ->  18 שורות גלויות
+     אחרי   ריפוד 8px   תיאור 17px  שורה 39px  ->  14 שורות גלויות
+     נפסל   ריפוד 11px  תיאור 19px  שורה 46px  ->  12 שורות גלויות
+   +22% אוויר תמורת ארבע שורות. 11px נבנה, נמדד וניתן - המחיר שלו הפך
+   לגלילה אמיתית. גם הכיוון ההפוך נפסל: 5px עם תיאור 19px מחזיר 16
+   שורות, אבל טקסט של 19px בקופסה של 34px הוא צפיפות בגופן אחר, לא
+   נשימה. מה שנושם כאן הוא ההפרש בין הרמות, והוא לא תלוי בריפוד.
    העמודות לא ירדו — «ספק» ו«דגם» נשארו לפי בקשה מפורשת, והסלקטורים
    (td.otw, td.zero, td.sched, td.num, td.val) נשארו כפי שהם כדי
    שהבדיקות ימשיכו לבדוק את מה שהן נועדו לבדוק. */
 #tbl[data-track="short"] tbody tr[data-i] td,
-#tbl[data-track="line"] tbody tr[data-i] td{padding-block:11px}
+#tbl[data-track="line"] tbody tr[data-i] td{padding-block:8px}
 #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{
-  font-size:var(--f-lg);font-weight:600;letter-spacing:-.012em;line-height:1.25}
+  font-size:17px;font-weight:600;letter-spacing:-.012em;line-height:1.25}
 #tbl[data-track="short"] td.val,#tbl[data-track="line"] td.val{
   font-size:var(--f-lg);font-weight:700;letter-spacing:-.02em}
 /* הרמה השלישית — נוכחת לאימות, לא מתחרה על העין */
