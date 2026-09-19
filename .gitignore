@@ -4,6 +4,9 @@ tests/defects.xlsx
 tests/zmrp-demo-eta.xlsx
 tests/eta-zmrp.xlsx
 tests/eta-report.xlsx
+tests/ledger-d1.xlsx
+tests/ledger-d2.xlsx
+tests/ledger-eta.xlsx
 
 # פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
 design/*/*.html

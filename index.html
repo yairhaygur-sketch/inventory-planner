@@ -1207,6 +1207,15 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .lrec button:hover{border-color:var(--acc)}
 .lrec button[aria-pressed="true"]{background:var(--acc);color:var(--on-fill);border-color:var(--acc)}
 /* טיוטת המייל — פלט, לא תצוגה */
+.lledg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
+.lledg b{color:var(--ink)}
+.lledg .why{color:var(--dim);margin-inline-end:auto}
+.lsup{border:1px solid var(--line);border-radius:8px;padding:1px 8px;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.lsup.ok{color:var(--grn);background:var(--grnL);border-color:var(--grn)}
+.lsup.mid{color:var(--org);background:var(--orgL);border-color:var(--org)}
+.lsup.bad{color:var(--red);background:var(--redL);border-color:var(--red)}
 .lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
 .lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
 .lmail .lmh span{color:var(--dim)}
@@ -2749,6 +2758,25 @@ function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
    הפעולה האמיתית מול 31 הפריטים שאין להם מענה היא מייל אחד לכל ספק,
    לא 31 בירורים. הטקסט נבנה מהבחירה הנוכחית על הציר ומקובץ לפי ספק,
    באנגלית — כי זה מה שנשלח ל-LYNK&CO ול-ZHONGTONG. */
+/* ============ שורת הפנקס ============
+   הכלי חייב לומר מה הוא יודע ומה עדיין לא. ביום הראשון אין מה למדוד,
+   וזו אמירה לגיטימית — «אני זוכר מהיום» עדיף על שתיקה שנראית כמו באג. */
+function lineLedger(){
+ const days=ledgerDays();
+ const sup=ALL&&ALL.length?ledgerBySupplier(ALL):[];
+ if(!sup.length){
+  const t=days.length<=1
+   ?`הפנקס התחיל היום. אמינות הספקים תיפתח אחרי שיעברו תאריכי אספקה שנרשמו כאן.`
+   :`${days.length} ימים בפנקס · עדיין לא עבר תאריך אספקה עם יום לפניו ויום אחריו.`;
+  return `<div class="lledg"><b>פנקס</b><span class="why">${t}</span></div>`}
+ const cells=sup.slice(0,4).map(([s,k])=>{
+  const pct=Math.round(100*k.kept/k.n);
+  const cls=pct>=80?'ok':pct>=50?'mid':'bad';
+  return `<span class="lsup ${cls}" title="${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן">`
+   +`<bdi>${esc(String(s).slice(0,18))}</bdi> ${k.kept}/${k.n}</span>`}).join('');
+ return `<div class="lledg"><b>אמינות תאריכים</b>`
+  +`<span class="why">${days.length} ימים בפנקס · הבטחות שתאריכן עבר, וירדו מהרכש הפתוח</span>`
+  +cells+`</div>`}
 function lineMailText(){
  const rows=lineRows();
  if(!rows.length)return '';
@@ -2837,6 +2865,7 @@ function renderLine(){
    <button type="button" data-ls="recur" aria-pressed="${sel('recur')}">הצג את ${m.recur.length} התיקונים</button>
    <button type="button" id="lmailBtn" aria-pressed="false">✉ טיוטת מייל</button>
    <button type="button" id="lxlsBtn">⭳ Excel</button></div>
+  ${lineLedger()}
   <div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
@@ -2937,6 +2966,86 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
    חתימת ההרצה מונעת ספירה כפולה: העלאה חוזרת של אותו קובץ מזוהה
    לפי חודש הבסיס, מספר הפריטים וסכום הצריכה, ומעדכנת את ההרצה
    האחרונה במקום ליצור חדשה. */
+/* ==================== הפנקס — מה הכלי זוכר ====================
+   עד כאן הכלי שכח. HIST שמר «כמה הרצות הפריט בתור», PARAMS שמר ארבע
+   תמונות של ROP/SS — ושתי אלה עונות על «האם ההמלצה יושמה». אבל שלוש
+   שאלות נשארו חסומות על אותו קיר:
+
+     האם התאריך של הספק אמין?      אין הבטחה מול ביצוע
+     מה סטיית התקן של זמן האספקה?  אין היסטוריית אספקות
+     האם הרכש הפתוח באמת נחת?      הפריט יצא מהתור ונמחק
+
+   שלושתן אותה שאלה: הכלי לא ראה את אתמול.
+
+   הפנקס שומר *תצפיות*, לא מסקנות. לכל יום: כמה רכש פתוח וכמה על המדף,
+   לפריטים שיש להם רכש פתוח או הבטחת אספקה. ההבטחות עצמן נשמרות פעם
+   אחת לכל דוח ETA נבדל, כי דוח מתחלף פעם בשבוע ולא פעמיים ביום.
+
+   מה שהפנקס *לא* עושה: הוא לא מכריע אם משלוח הגיע. הוא אומר «ההבטחה
+   הייתה 5 יח׳ ל-21.9; בין 20.9 ל-22.9 הרכש ירד ב-5 והמדף עלה ב-5».
+   ההכרעה היא של מי שקורא, כי po יורד גם בביטול הזמנה ו-free עולה
+   ויורד גם מצריכה. תצפית שאומרת מה נמדד עדיפה על מסקנה שמתחזה לוודאות.
+
+   תמונה אחת ליום קלנדרי — האחרונה. משלוח נוחת בתאריך, לא בשעה.
+   19KB ליום על הדוח האמיתי (836 פריטים), ולכן 180 יום ≈ 3.4MB. */
+const LEDG_KEY='planner_ledger_v1', LEDG_DAYS=180;
+let LEDGER={v:1,days:{},etas:{}};
+try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
+ if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
+function ledgerSave(){
+ try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
+ catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס */
+  const ks=Object.keys(LEDGER.days).sort();
+  if(ks.length>1){delete LEDGER.days[ks[0]];ledgerPrune();ledgerSave()}}}
+/* דוח ETA שאף יום לא מצביע עליו אינו נחוץ */
+function ledgerPrune(){
+ const ks=Object.keys(LEDGER.days).sort();
+ while(ks.length>LEDG_DAYS)delete LEDGER.days[ks.shift()];
+ const live=new Set(Object.values(LEDGER.days).map(d=>d.etaSig).filter(Boolean));
+ for(const s of Object.keys(LEDGER.etas))if(!live.has(s))delete LEDGER.etas[s]}
+function etaSig(){if(!ETA||!ETA.byPn)return '';
+ return ETA.parts+'·'+ETA.rows+'·'+ETA.units}
+/* נקרא אחרי build ואחרי etaApply, בכל טעינת ZMRP */
+function ledgerRecord(items){
+ const day=etaToday(), sig=etaSig();
+ const has=(ETA&&ETA.byPn)||{};
+ const it={};
+ for(const r of items){
+  if(!((r.po||0)>0||has[etaKey(r.pn)]||(r.cust||0)>0))continue;
+  it[r.pn]=[r.po|0,Math.max(0,r.free||0)|0]}
+ LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
+ if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
+ ledgerPrune();ledgerSave();
+ return {days:Object.keys(LEDGER.days).length}}
+const ledgerDays=()=>Object.keys(LEDGER.days).sort();
+/* ============ הבטחה מול ביצוע ============
+   לכל הבטחה שתאריכה עבר, ויש לנו יום לפניו ויום אחריו — מה נמדד.
+   מוחזרות תצפיות בלבד. */
+function ledgerPromises(){
+ const days=ledgerDays(), out=[];
+ if(days.length<2)return out;
+ for(const sig in LEDGER.etas){
+  const byPn=LEDGER.etas[sig].byPn||{};
+  for(const pn in byPn)for(const [q,d] of byPn[pn]){
+   const before=days.filter(x=>x<d).pop();
+   const after=days.filter(x=>x>=d)[0];
+   if(!before||!after)continue;
+   const a=(LEDGER.days[before].it||{})[pn], b=(LEDGER.days[after].it||{})[pn];
+   if(!a||!b)continue;
+   out.push({pn,q,date:d,before,after,
+     dPo:b[0]-a[0], dFree:b[1]-a[1]})}}
+ return out}
+/* סיכום לפי ספק — כמה מההבטחות שתאריכן עבר אכן ירדו מהרכש הפתוח */
+function ledgerBySupplier(items){
+ const byPn={};for(const r of items)byPn[r.pn]=r;
+ const g={};
+ for(const o of ledgerPromises()){
+  const r=byPn[o.pn];const s=(r&&r.supplier)||'—';
+  const k=g[s]=g[s]||{n:0,kept:0,units:0,keptUnits:0};
+  k.n++;k.units+=o.q;
+  /* «נחת» = הרכש הפתוח ירד לפחות בכמות שהובטחה */
+  if(-o.dPo>=o.q){k.kept++;k.keptUnits+=o.q}}
+ return Object.entries(g).sort((a,b)=>b[1].n-a[1].n)}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
 try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
@@ -3053,7 +3162,11 @@ function paramsReset(){PARAMS={runs:[]};saveParams()}
    מיזוג הוא רק הוספה ועדכון, לעולם לא מחיקה: סימון שנמחק מיוצג
    בהיעדרו, ואי אפשר להבדיל בין «נמחק» ל«מעולם לא היה». סימון שמחקת
    יכול לחזור ממיזוג, וזה כתוב במסך. */
-const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1'];
+/* הפנקס נוסף לגיבוי, וזו הרחבה מודעת של החוזה שכתוב מעליו. הקובץ
+   נשא עד כה «מה שהוחלט»; הפנקס הוא «מה שנמדד». הוא נכנס כי מדידה על
+   אמינות ספק אינה העדפה אישית — היא עובדה שעמית צריך לרשת, וכי ניקוי
+   עוגיות אחד מוחק חודשי תצפיות שאי אפשר לשחזר משום דוח. */
+const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1'];
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
@@ -4518,7 +4631,7 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
   catch(err){res={err:'לא ניתן לקרוא את הקובץ: '+err.message}}
   if(res.err){toast('⛔ '+res.err);e.target.value='';return}
   ETA=res;etaSave();etaChip();
-  if(ALL&&ALL.length){etaApply(ALL);apply();
+  if(ALL&&ALL.length){etaApply(ALL);ledgerRecord(ALL);apply();
    const hit=ALL.filter(r=>r.etaHas).length;
    toast('✓ דוח ETA — '+res.parts.toLocaleString('he-IL')+' מק״טים, '+hit.toLocaleString('he-IL')+' מהם בקטלוג');
    if(hit===0)toast('⚠ אף מק״ט מדוח ה-ETA לא נמצא בקטלוג — ודא שזה אותו מפעל');}
@@ -4549,6 +4662,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
   etaApply(ALL);
+  ledgerRecord(ALL);
   const futureDates=ALL.filter(x=>x.entFuture||x.saleFuture).length;
   const missingPrices=ALL.filter(x=>x.priceMissing).length;
   if(futureDates)DIAG.warn.push(`${futureDates} פריטים כוללים תאריך תנועה עתידי — התאריך הוחרג מחישובי גיל מלאי.`);
