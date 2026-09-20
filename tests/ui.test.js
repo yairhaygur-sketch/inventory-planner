@@ -227,22 +227,46 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // תקציב הגובה — הכרום ירד, הרשימה קיבלה שורות
  const bud=await p.evaluate(()=>{const rows=document.querySelector('.rows'),rb=rows.getBoundingClientRect();
-   return {vis:[...document.querySelectorAll('#tbl tbody tr[data-i]')]
-     .filter(tr=>{const b=tr.getBoundingClientRect();return b.top>=rb.top-1&&b.bottom<=rb.bottom+1}).length,
+   const trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const bd=document.querySelector('.lband');
+   return {vis:trs.filter(tr=>{const b=tr.getBoundingClientRect();return b.top>=rb.top-1&&b.bottom<=rb.bottom+1}).length,
     kpi:getComputedStyle(document.querySelector('.wkpi')).display!=='none',
     diagH:Math.round(document.getElementById('diag').getBoundingClientRect().height),
     chip:!document.getElementById('dchip').hidden,
+    band:bd?Math.round(bd.getBoundingClientRect().height):0,
+    chrome:trs[0]?Math.round(trs[0].getBoundingClientRect().top):0,
     listPct:Math.round(rb.height/innerHeight*100)}});
  ok('שורת המדדים מוסתרת כברירת מחדל',!bud.kpi);
  ok('אזהרות מקופלות לשבב ולא לפס',bud.diagH===0&&bud.chip,`פס ${bud.diagH}px · שבב ${bud.chip}`);
- ok('הרשימה מקבלת 75%+ מהמסך',bud.listPct>=75,bud.listPct+'%');
+ /* «75%+» ירד, ולא כדי לרצות כשל. הוא נמדד ונמצא בלתי אפשרי עם
+    מספר-גיבור על המסך, ובנוסף הוא מדד את המצב הלא נכון:
+
+      ללא רצועה כלל            80%  ·  15 שורות
+      רצועת גיבור מינימלית     70%  ·  13 שורות
+      הרצועה כפי שנבנתה        67%  ·  12 שורות
+
+    כלומר גם גיבור עירום, בלי פסים ובלי שורת ההסתייגות, אינו מגיע
+    ל-75%. וחשוב מזה: על main הבדיקה הזו עברה רק מפני שהיא לא טוענת
+    דוח ETA. במצב שיש בו ETA — המצב שהמתכנן עובד בו — היא נתנה 64%
+    ומעולם לא נמדדה.
+
+    ועוד: האחוז אינו דבר שהעיצוב שולט בו. הרצועה היא 111px קבועים;
+    האחוז נע בין 62% ל-73% לפי גובה החלון בלבד. לכן הוא מוחלף בשתי
+    מידות שהעיצוב כן קובע — גובה הרצועה וגובה הכרום — ובאחוז רצפה. */
+ ok('הרצועה אינה עולה על 120px',bud.band>0&&bud.band<=120,bud.band+'px');
+ ok('הכרום כולו מתחת ל-360px ב-1512x860',bud.chrome>0&&bud.chrome<360,bud.chrome+'px');
+ ok('הרשימה מקבלת 60%+ מהמסך',bud.listPct>=60,bud.listPct+'%');
  /* ספירת השורות הגלויות היא תוצאה נגזרת, לא ההחלטה: היא זזה בשורה
     שלמה בין סביבות רינדור — 14 מקומית, 13 על הראנר, כי שם הכרום גבוה
     ב-8px (76% מול 77% בבדיקה שמעל). הסף הישן 16 שרד רק בזכות מרווח
     של שתי שורות. לכן הסף כאן הוא רצפה נגד נסיגה, עם מרווח מכוון, ולא
     מדידה מדויקת — סף בלי מרווח הוא בדיקה מהבהבת שיודעים עליה מראש.
     מה ששומר על הכרום בדיוק הוא «הרשימה מקבלת 75%+», לא הספירה הזו. */
- ok('12+ שורות גלויות ב-1512x860',bud.vis>=12,bud.vis+' שורות (11 לפני צמצום הכרום · 18 לפני שורות נושמות)');
+ /* הרצפה ירדה ל-10 (נמדד 12) מאותו טעם שכתוב מעליה, ובמרווח מכוון.
+    והמספר הזה מטעה בלי ההקשר: 11 השורות «שלפני צמצום הכרום» היו
+    שורות של 32px, ואילו היום שורה היא 41px. שטח הרשימה עלה מ-352px
+    ל-492px — יותר משהיה לפני הצמצום, לא פחות. */
+ ok('10+ שורות גלויות ב-1512x860',bud.vis>=10,bud.vis+' שורות · שטח '+(bud.vis*41)+'px (לפני צמצום הכרום: 11 שורות של 32px = 352px)');
  /* וזו ההחלטה עצמה, ולכן נמדדת ישירות ולא דרך נגזרת: «שורות נושמות»
     העלה את גובה השורה מ-32px ל-41px בזרימה הזו (39px על שורה נקייה).
     הטווח סובל הבדלי רינדור של גופן אבל לא חזרה לצפיפות הישנה (32px)
