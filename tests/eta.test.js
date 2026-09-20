@@ -116,9 +116,26 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p.waitForTimeout(1800);
  const before=await p.evaluate(snap);
 
+ /* ── SHELL_BAND ──
+    הבדיקה שהייתה תופסת את הבאג מלכתחילה. הגיבור נבנה כך שהוא מרונדר
+    רק כשיש דוח ETA: בלי הדוח renderLine החזיר הודעה בת שורה ויצא,
+    והטקסט הגדול במסך היה 19px. שום בדיקה לא הסתכלה על המצב הזה, כי
+    כולן טוענות ZMRP בלבד ואף אחת לא בדקה מה יש בראש המסך.
+    לכן נמדדים כאן *שני* המצבים, ובמפורש. */
+ const bandOf=()=>({band:(()=>{const e=document.querySelector('.lband');
+     return e?Math.round(e.getBoundingClientRect().height):0})(),
+   hero:Math.max(0,...[...document.querySelectorAll('.lband .hn')]
+     .map(e=>parseFloat(getComputedStyle(e).fontSize)||0)),
+   heroTxt:(document.querySelector('.lband .hn')||{}).textContent||'',
+   segs:document.querySelectorAll('.lband .bseg').length});
+ const bDry=await p.evaluate(bandOf);
+ const gapDry=await p.evaluate(()=>!!document.querySelector('.lband .hgap'));
+
  // ── שלב 2: דוח ה-ETA נטען בנפרד, אחרי ZMRP ──
  await p.setInputFiles('#fe',SD+'/eta-report.xlsx');await p.waitForTimeout(1200);
  const after=await p.evaluate(snap);
+ const bEta=await p.evaluate(bandOf);
+ const gapEta=await p.evaluate(()=>!!document.querySelector('.lband .hgap'));
 
  // ── שלב 3: ZMRP נטען מחדש. הדוח חייב לשרוד — זו כל הסיבה שהוא נשמר ──
  await p.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p.waitForTimeout(1800);
@@ -142,6 +159,17 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  const cleared=await p2.evaluate(snap);
 
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
+
+ /* ── SHELL_BAND — ראה ההערה בשלב 1 ── */
+ ok('בלי דוח ETA יש רצועה עם מספר-גיבור',bDry.band>0&&bDry.hero>=48,
+   `רצועה ${bDry.band}px · גיבור ${bDry.hero}px «${bDry.heroTxt}»`);
+ ok('ובלי ETA הפס מפצל בין «הוזמן» ל«לא הוזמן»',bDry.segs>0,bDry.segs+' מקטעים');
+ ok('והמסך אומר במפורש שאין דוח ETA',gapDry);
+ ok('עם דוח ETA הרצועה נשארת ומספר-הגיבור נשאר',bEta.band>0&&bEta.hero>=48,
+   `רצועה ${bEta.band}px · גיבור ${bEta.hero}px «${bEta.heroTxt}»`);
+ ok('שתי הרצועות באותו סדר גודל — אף מצב אינו «המצב העני»',
+   Math.abs(bEta.band-bDry.band)<=40,`${bDry.band}px בלי ETA · ${bEta.band}px עם`);
+ ok('ושורת «אין דוח ETA» נעלמת כשיש דוח',!gapEta);
 
  ok('בלי דוח ETA — עמודה אחת "בדרך", בדיוק כמו קודם',
     !before.loaded&&before.chipHidden&&before.nOtw>0&&before.nSched===0

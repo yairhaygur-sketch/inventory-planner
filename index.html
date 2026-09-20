@@ -317,6 +317,34 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  /* דיו על מילוי. מתהפך במצב כהה — ראה body.dark */
  --on-fill:#FFFFFF;
 
+ /* ---- SHELL: משטח מבני ----
+    הרצועה הכהה נושאת *מבנה*, לא *מצב*, ולכן היא אינה גוזלת אף צבע
+    סמנטי. זה גם מה שההפניה העיצובית עושה בפועל: הנייבי הוא הסרגל,
+    והענבר מודגש בה בדיוק פעם אחת. הענבר כאן נשאר --high («אוזל
+    החודש») ואינו הופך לצבע מותג: צבע שמסמן מצב אינו יכול לסמן גם
+    הדגשה, אחרת «מודגש» ו«בעייתי» נראים אותו דבר.
+    כל היחס נמדד מול הרצועה עצמה, לא מול הנייר. */
+ --shell:#14273F;
+ --shell-ink:#F4F7FA;    /* 14.03 */
+ --shell-dim:#9FB3CA;    /*  7.02 */
+ --shell-crit:#FF9384;   /*  7.01 */
+ --shell-warn:#F0B45E;   /*  8.19 */
+ --shell-acc:#7FB3E0;    /*  6.77 */
+ --shell-track:#2A3F5C;
+ --shell-mute:#8497AD;   /* דיו הרצועה עליה 5.04 — תוויות בתוך מקטע */
+ /* משטח הפקדים על הרצועה. אטום ולא rgba: שכבה שקופה-למחצה אי אפשר
+    לאמת — בודק הניגודיות עוצר עליה ומשווה טקסט מול שקיפות (1.00).
+    מה שאי אפשר למדוד, אי אפשר להבטיח. */
+ --shell-btn:#22384F; --shell-btn-h:#2C4762;   /* טקסט 11.18 / 8.94 */
+
+ /* ---- צורה: משטח שצף, לא מסגרת ----
+    --r היה מוגדר ולא היה בשימוש באף מקום (אפס הופעות). הוא מוחלף
+    בטוקן שבאמת נצרך. הרדיוס והצל חלים על הרצועה בלבד, ולא על
+    הווידג׳טים: הפריסה כאן היא מלוא-הרוחב, ולהפוך אותה לכרטיסים
+    צפים גוזל גובה מרשימת העבודה — וזה בדיוק המחיר שסירבנו לשלם. */
+ --r-card:12px;
+ --shadow-card:0 1px 2px rgba(11,21,34,.07),0 6px 18px rgba(11,21,34,.08);
+
  /* ---- שמות ישנים. אותם ערכים בדיוק, עד שהשימושים יוחלפו ---- */
  --bg:#F2F5F8; --panel:#FFFFFF; --panel2:#E9EEF4; --panel0:#F2F5F8;
  --dim:#5A6673; --dimmer:#636D7A; --soft:#5A6673; --line2:#EAEFF4;
@@ -369,6 +397,19 @@ body.dark{
 
  /* לבן על המילוי הבהיר נותן 2.98:1. דיו כהה נותן 6.31:1. ההיפוך מכוון. */
  --on-fill:#0E1217;
+
+ /* הרצועה במצב כהה בהירה מהרקע ולא כהה ממנו — משטח מורם. ההפרש
+    מהרקע הוא 1.31 בלבד, ולכן הגבול נשען גם על קו ולא על הצבע לבדו. */
+ --shell:#1C2B3E;
+ --shell-ink:#F4F7FA;    /* 13.34 */
+ --shell-dim:#9FB3CA;    /*  6.67 */
+ --shell-crit:#FF9384;   /*  6.66 */
+ --shell-warn:#F0B45E;
+ --shell-acc:#7FB3E0;
+ --shell-track:#31455F;
+ --shell-mute:#8497AD;
+ --shell-btn:#2A3E56; --shell-btn-h:#35506C;   /* טקסט 10.16 / 7.76 */
+ --shadow-card:0 1px 2px rgba(0,0,0,.42),0 6px 18px rgba(0,0,0,.34);
 
  --bg:#0E1217; --panel:#161B22; --panel2:#1D242D; --panel0:#0E1217;
  --dim:#98A3B0; --dimmer:#808B97; --soft:#98A3B0; --line2:#212932;
@@ -1290,14 +1331,17 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 
 /* פס אחד לכל מטבע — כלל BZ אוסר לחבר, וההפרדה היא שמראה את הסיפור */
 .lbars{padding-bottom:2px}
-.brow{display:flex;align-items:center;gap:11px;margin-bottom:7px}
+.brow{display:flex;align-items:center;gap:11px;margin-bottom:3px}
 .brow .bcur{width:42px;font-size:var(--f-md);font-weight:700;color:var(--dim)}
-.btrack{flex:1;display:flex;height:30px;border-radius:5px;overflow:hidden;
+.btrack{flex:1;display:flex;height:19px;border-radius:4px;overflow:hidden;
   background:var(--panel2);min-width:0}
 /* צבע אחד למשלוחים, גוון מודגש לגדולה, צבע מצב לְמה שאין לו מענה.
    מרווח 2px בצבע המשטח בין מקטעים — מפרט הסימנים. */
 .bseg{height:100%;border:0;padding:0;cursor:pointer;background:var(--neutral);
-  border-inline-end:2px solid var(--panel);position:relative;min-width:2px}
+  border-inline-end:2px solid var(--panel);position:relative;min-width:2px;
+  /* בלי זה תווית של מקטע צר בורחת אל המקטע השכן ונחתכת באמצע מספר —
+     נמדד «,659» במקום «₪34,659». מספר חתוך גרוע ממספר שאינו מוצג. */
+  overflow:hidden}
 .bseg:last-child{border-inline-end:0}
 .bseg:hover{filter:brightness(.92)}
 .bseg:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
@@ -1309,11 +1353,68 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 .brow .btot{width:104px;text-align:end;font-size:var(--f-md);font-weight:700;
   font-variant-numeric:tabular-nums}
 .bkey{display:flex;gap:16px;font-size:var(--f-sm);color:var(--dimmer);
-  margin-inline-start:53px;padding-bottom:2px}
+  margin-inline-start:53px;padding-bottom:0;line-height:1.2}
 .bkey span{display:flex;align-items:center;gap:6px}
 .bkey i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .bkey .k1{background:var(--acc)}.bkey .k2{background:var(--neutral)}.bkey .k3{background:var(--red)}
 @media(max-width:1100px){.lhero .hn{font-size:48px}.lhero .ht b{font-size:var(--f-xl)}}
+/* ============ SHELL_BAND — הרצועה המבנית ============
+   הממצא שהוליד אותה, נמדד: בלי דוח ETA לא היה במסך שום טקסט מעל
+   19px ואף פס, כי renderLine החליף את כל הגיבור בהודעה «אין דוח
+   ETA» בת שורה. כלומר מרכז הכובד של העיצוב היה תלוי בדוח שני
+   שנטען בנפרד — וביום רגיל, עם ZMRP בלבד, לעין לא היה לאן לנחות.
+   בניתי הירו שמופיע רק כשהתנאי הנוח מתקיים. זו טעות, לא פיצ׳ר.
+
+   הרצועה מופיעה בשני המצבים ונושאת את המספר שתמיד קיים. */
+.lband{background:var(--shell);border-radius:var(--r-card);box-shadow:var(--shadow-card);
+  padding:10px 14px 8px;margin-block-end:6px}
+body.dark .lband{border:1px solid #2B3B50}
+.lband .lwrap{padding:0;row-gap:0}  /* 26px של flex-gap בין שורות, שאין להם מה להפריד */
+.lband .lhero .hn{color:var(--shell-crit)}
+.lband .lhero .hn:hover{color:#FFB3A7}
+.lband .lhero .hn:focus-visible{outline-color:var(--shell-acc)}
+.lband .lhero .ht b{color:var(--shell-ink)}
+.lband .lhero .ht span{color:var(--shell-dim)}
+.lband .lhero .hl{color:var(--shell-ink);border-bottom-color:rgba(244,247,250,.3)}
+.lband .lhero .hl:hover{color:var(--shell-acc);border-bottom-color:var(--shell-acc)}
+.lband .lhero .hl.warn{color:var(--shell-warn)}
+.lband .btrack{background:var(--shell-track)}
+/* המרווח בין מקטעים בצבע הרצועה — אותו כלל «מרווח בצבע המשטח»,
+   רק שהמשטח כאן הוא הרצועה ולא הנייר. */
+.lband .bseg{background:var(--shell-mute);border-inline-end-color:var(--shell)}
+.lband .bseg.big{background:var(--shell-acc)}
+.lband .bseg.none{background:var(--shell-crit)}
+.lband .bseg:focus-visible{outline-color:var(--shell-ink)}
+/* תווית בתוך מקטע: דיו הרצועה על מילוי בהיר. לבן על #7FB3E0 נותן
+   2.0 ונופל; הדיו הכהה נותן 6.77 ומעלה על כל אחד מהמילויים. */
+.lband .bseg b{color:var(--shell)}
+.lband .brow .bcur{color:var(--shell-dim)}
+.lband .brow .btot{color:var(--shell-ink)}
+.lband .bkey{color:var(--shell-dim)}
+.lband .bkey .k1{background:var(--shell-acc)}
+.lband .bkey .k2{background:var(--shell-mute)}
+.lband .bkey .k3{background:var(--shell-crit)}
+.lband .bledg{color:var(--shell-dim)}
+.lband .bledg b{color:var(--shell-ink)}
+.lband .lout button,.lband .lout .hup{font:inherit;font-size:var(--f-sm);font-weight:700;
+  color:var(--shell-ink);background:var(--shell-btn);border:1px solid var(--shell-btn-h);
+  border-radius:8px;padding:5px 11px;cursor:pointer;white-space:nowrap;display:inline-block}
+.lband .lout button:hover,.lband .lout .hup:hover{background:var(--shell-btn-h);
+  border-color:var(--shell-acc)}
+.lband .lout .hup input{display:none}
+/* המצב שאין בו ETA: הגיבור זהה, ומתחתיו אמירה מפורשת על מה שאינו
+   ידוע. «אני לא יודע על אף משלוח» עדיף על מספר שמתחזה לוודאות. */
+.lband .hgap{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;
+  /* order:4 ו-100% — אחרת הוא פריט flex עם order 0, נדחף בין הגיבור
+     לפסים ושובר אותם לשתי שורות. נמדד: 165px במקום 108. */
+  order:4;flex:1 0 100%;
+  margin-top:4px;padding-top:4px;line-height:1.2;
+  border-top:1px solid rgba(244,247,250,.14);font-size:var(--f-sm);color:var(--shell-dim)}
+.lband .hgap b{color:var(--shell-warn);font-weight:700}
+.lband .hgap .hk{display:flex;align-items:center;gap:6px}
+.lband .hgap i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.lband .hgap .k2{background:var(--shell-mute)}
+.lband .hgap .k3{background:var(--shell-crit)}
 /* טיוטת המייל — פלט, לא תצוגה */
 .lledg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
   padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
@@ -2859,6 +2960,8 @@ function lineRows(){
  if(LINE_SEL==='now')return m.dry;
  if(LINE_SEL==='stuck')return m.stuck;
  if(LINE_SEL==='recur')return m.recur;
+ /* «בלי שום רכש» — הבחירה שנפתחת מהפס של היום שאין בו ETA */
+ if(LINE_SEL==='nopo')return m.noPo;
  const st=m.stations.find(s=>s.date===LINE_SEL);
  return st?st.fixed:m.stuck}
 function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
@@ -2965,11 +3068,11 @@ function renderHero(m){
  const B=lineCurBars(m);
  const sel=k=>LINE_SEL===k?'true':'false';
  const cm=curMonthLabel();
- let h=`<div class="lwrap"><div class="lhero">
+ let h=`<div class="lband"><div class="lwrap"><div class="lhero">
    <button class="hn" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}"
      title="הפריטים שאף תחנה על הציר אינה מכסה — לחץ לראות אותם">${m.stuck.length.toLocaleString('he-IL')}</button>
    <div class="ht">
-    <b>פריטים שאף משלוח ידוע לא מכסה</b>
+    <b>אף משלוח ידוע לא מכסה</b>
     <span>מתוך <button class="hl" type="button" data-ls="now" aria-pressed="${sel('now')}"
        title="כל מי שהמדף שלו לא מחזיק את החודש">${m.dry.length}</button> שלא יחזיקו את ${cm.name}
      · <button class="hl warn" type="button" data-ls="recur" aria-pressed="${sel('recur')}"
@@ -2977,14 +3080,14 @@ function renderHero(m){
      ${m.poNoDate.length?`· ${m.poNoDate.length} עם רכש בלי תאריך`:''}</span>
    </div></div>
    <div class="lout"><!--OUT--></div>`;
- if(!B.order.length)return h+'</div>';
+ if(!B.order.length)return h+'</div></div>';
  h+='<div class="lbars">';
  for(const c of B.order){
   const o=B.cur[c], pct=v=>o.tot>0?(100*v/o.tot):0;
   h+=`<div class="brow"><span class="bcur">${esc(curName(c))}</span><div class="btrack">`;
   for(const s of m.stations){
    const v=o.segs[s.date]||0; if(v<=0)continue;
-   const w=pct(v), lab=w>=11?`${heDate(s.date)} · ${money(v,c)}`:(w>=5?heDate(s.date):'');
+   const w=pct(v), lab=w>=17?`${heDate(s.date)} · ${money(v,c)}`:(w>=7?heDate(s.date):'');
    h+=`<button class="bseg${s.date===B.big?' big':''}" type="button" data-ls="${s.date}"
       aria-pressed="${sel(s.date)}" style="width:${w.toFixed(2)}%"
       title="${heDate(s.date)} — ${money(v,c)} יוצאים מסיכון · ${s.fixed.length} פריטים">${lab?`<b>${lab}</b>`:''}</button>`}
@@ -2992,11 +3095,69 @@ function renderHero(m){
   if(sv>0){const w=pct(sv);
    h+=`<button class="bseg none" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}"
       style="width:${w.toFixed(2)}%" title="${money(sv,c)} שאף תחנה אינה מכסה">`
-    +`${w>=26?`<b>אין מענה — אף תחנה לא נוגעת בזה</b>`:(w>=9?`<b>${money(sv,c)}</b>`:'')}</button>`}
+    +`${w>=34?`<b>אין מענה — אף תחנה לא נוגעת בזה</b>`:(w>=16?`<b>${money(sv,c)}</b>`:'')}</button>`}
   h+=`</div><span class="btot">${money(o.tot,c)}</span></div>`}
  h+=`<div class="bkey"><span><i class="k1"></i>התחנה הגדולה</span>`
   +`<span><i class="k2"></i>שאר המשלוחים</span>`
   +`<span><i class="k3"></i>אין מענה עד ${heDate(m.stations.length?m.stations[m.stations.length-1].date:'')}</span>`
+  +`<span class="bledg">${lineLedgerLine()}</span></div>`;
+ return h+'</div></div></div>'}
+
+/* ============ SHELL_HERO — הגיבור ביום שאין ETA ============
+   בלי דוח ETA אין תחנות, ולכן אין ציר — וזה נכון. מה שלא נכון היה
+   להחליף בגלל זה את כל הגיבור בהודעה בת שורה.
+
+   המספר שתמיד קיים הוא מי שהמדף שלו לא יחזיק את החודש. הפילוח היחיד
+   שאפשר בלי תאריכים הוא «הוזמן» מול «לא הוזמן כלום», והוא בדיוק
+   ההחלטה שנשארת פתוחה: על מה עוד לא עשיתי שום דבר. שתי הקבוצות זרות
+   זו לזו, ולכן הפס הוא חלק-מתוך-שלם אמיתי ולא ערימה של חפיפות.
+
+   הדגשה ולא קטגוריאלי: «בלי רכש» נושא את צבע המצב, «הוזמן» מעומעם. */
+function heroDryBars(m){
+ const cur={};
+ const add=(c,k,v)=>{const o=(cur[c]=cur[c]||{po:0,none:0,tot:0});o[k]+=v;o.tot+=v};
+ for(const r of m.dry)add(curKey(r),((r.po||0)>0?'po':'none'),lineVal(r));
+ const order=Object.keys(cur).sort((a,b)=>(CURORDER&&CURORDER[a]!=null?CURORDER[a]:99)
+   -(CURORDER&&CURORDER[b]!=null?CURORDER[b]:99));
+ return {order,cur}}
+function renderHeroDry(m){
+ const cm=curMonthLabel(),B=heroDryBars(m),sel=k=>LINE_SEL===k?'true':'false';
+ const nNone=m.noPo.length;
+ let h=`<div class="lband"><div class="lwrap"><div class="lhero">
+   <button class="hn" type="button" data-ls="now" aria-pressed="${sel('now')}"
+     title="כל מי שהמדף שלו לא מחזיק את החודש — לחץ לראות אותם">${m.dry.length.toLocaleString('he-IL')}</button>
+   <div class="ht">
+    <b>לא יחזיקו את ${esc(cm.name)}</b>
+    <span><button class="hl" type="button" data-ls="nopo" aria-pressed="${sel('nopo')}"
+       title="אוזלים ואין להם שום הזמנת רכש פתוחה">${nNone.toLocaleString('he-IL')}</button> בלי שום רכש פתוח`
+  +(m.waiting.length?` · <button class="hl warn" type="button" data-ls="now" aria-pressed="false"
+       title="מהאוזלים, כמה כבר עם לקוח שממתין">${m.waiting.length}</button> עם לקוח ממתין`:'')
+  +(m.recur.length?` · <button class="hl" type="button" data-ls="recur" aria-pressed="${sel('recur')}"
+       title="נקודת ההזמנה ב-SAP נמוכה מהמוצע — גם אחרי שיסופק, הפריט יחזור">${m.recur.length}</button> יחזרו מפרמטר`:'')
+  +`</span></div></div>
+   <div class="lout"><!--OUT--><label class="hup" for="fe" title="בלי דוח ETA אין תאריכי אספקה ואין ציר זמן">⭱ דוח ETA</label></div>`;
+ if(B.order.length){
+  h+='<div class="lbars">';
+  for(const c of B.order){
+   const o=B.cur[c],pct=v=>o.tot>0?(100*v/o.tot):0;
+   h+=`<div class="brow"><span class="bcur">${esc(curName(c))}</span><div class="btrack">`;
+   if(o.po>0){const w=pct(o.po);
+    h+=`<button class="bseg" type="button" data-ls="now" aria-pressed="false"
+       style="width:${w.toFixed(2)}%" title="${money(o.po,c)} שכבר הוזמנו — בלי דוח ETA אין להם תאריך">`
+     +`${w>=32?`<b>הוזמן, בלי תאריך — ${money(o.po,c)}</b>`:(w>=16?`<b>${money(o.po,c)}</b>`:'')}</button>`}
+   if(o.none>0){const w=pct(o.none);
+    h+=`<button class="bseg none" type="button" data-ls="nopo" aria-pressed="${sel('nopo')}"
+       style="width:${w.toFixed(2)}%" title="${money(o.none,c)} שאין להם שום רכש פתוח">`
+     +`${w>=32?`<b>לא הוזמן כלום — ${money(o.none,c)}</b>`:(w>=16?`<b>${money(o.none,c)}</b>`:'')}</button>`}
+   h+=`</div><span class="btot">${money(o.tot,c)}</span></div>`}
+  h+='</div>'}
+ /* שורה אחת נושאת שלושה דברים: מה שאינו ידוע, המקרא, והפנקס.
+    המקרא כאן מיותר כשורה נפרדת — שני המקטעים מתויגים בתוך הפס
+    עצמו — ושורה שנייה עולה 16px, שהם שליש משורת נתונים. */
+ h+=`<div class="hgap"><b>אין דוח ETA</b><span>הכלי אינו יודע על אף משלוח — `
+  +`«הוזמן» אינו אומר «מכוסה».</span>`
+  +(B.order.length?`<span class="hk"><i class="k2"></i>כבר הוזמן</span>`
+   +`<span class="hk"><i class="k3"></i>לא הוזמן כלום</span>`:'')
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div>'}
 function renderLine(){
@@ -3010,12 +3171,9 @@ function renderLine(){
     הכותרת הנפרדת ירדה: היא חזרה על כרטיס «היום» מילה במילה — אותו
     מספר ואותו כסף — וגזלה 3% מגובה הרשימה, שזה מתחת לתקציב של 75%.
     הרצועה מדברת בעצמה. */
- let h='';
- if(!ETA){
-  h+=`<div class="lrec"><b>אין דוח ETA</b><span class="why">בלי תאריכי אספקה אין ציר — העלה דוח ETA כדי לראות מה מכבה את ${m.dry.length} האלה.</span></div>`;
-  el.innerHTML=h;return}
- /* ── הגיבור והפסים. ראה LINE_HERO ── */
- h+=renderHero(m);
+ /* ── הגיבור. שני המצבים מרנדרים רצועה, ולא רק זה שיש בו ETA ──
+    הקוד כאן החזיר קודם lrec בת שורה ויצא. ראה SHELL_BAND. */
+ let h=ETA?renderHero(m):renderHeroDry(m);
  h+=`<div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
