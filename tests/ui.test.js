@@ -274,6 +274,52 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const rowH=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
    return tr?Math.round(tr.getBoundingClientRect().height):0});
  ok('שורה נושמת — גובה 36-44px',rowH>=36&&rowH<=44,rowH+'px (32px לפני שורות נושמות)');
+
+ /* ── NOPRICE ──
+    כל סכום בכלי הוא רצפה: פריט בלי מחיר FOB תורם 0. נמדד לפני שנבנה —
+    בדוח האמיתי זה פריט אחד מתוך 7,569, ולכן המונה מותנה ולא קבוע:
+    מספר שתמיד אפס הוא רעש, ובמסך הזה נלחמנו על כל אלמנט.
+    הבדיקה עוברת במפורש לציר הזמן: הרצועה קיימת ב-DOM גם כשהיא מוסתרת,
+    ו-querySelector מוצא אותה — לכן נמדדת נראות ולא קיום. */
+ const modeBefore=await p.evaluate(()=>mode);
+ /* הסייג חייב להופיע גם במצב «היום», לא רק בציר — שם הפוטר הוא
+    הסכום היחיד על המסך, והוא זה שצריך לומר שהוא רצפה. */
+ const footToday=await p.evaluate(()=>({txt:document.getElementById('pgR').textContent,
+   n:[...document.querySelectorAll('#tbl tbody tr[data-i]')]
+     .filter(tr=>(QF.all[+tr.dataset.i]||{}).priceMissing).length}));
+ ok('הסייג מופיע גם בפוטר של «היום»',/בלי מחיר/.test(footToday.txt),footToday.txt.slice(-34));
+ await p.evaluate(()=>setMode('line'));await p.waitForTimeout(500);
+ const npx=await p.evaluate(()=>{
+   const c=document.querySelector('.nopx');
+   const vis=!!(c&&c.offsetParent!==null);
+   const dry=lineModel().dry;
+   return {n:dry.filter(r=>r.priceMissing).length,chip:vis,txt:c?c.textContent.trim():'',
+     foot:document.getElementById('pgR').textContent}});
+ ok('המונה סופר את הרשימה שמוצגת ולא את הדוח',(npx.n>0)===npx.chip,
+   `${npx.n} בלי מחיר · שבב גלוי ${npx.chip}`);
+ if(npx.n){
+   ok('השבב אומר שהסכום רצפה',/רצפה/.test(npx.txt)&&npx.txt.includes(String(npx.n)),npx.txt);
+   ok('גם הפוטר נושא את הסייג',npx.foot.includes('בלי מחיר'),npx.foot.slice(-34));
+   await p.click('.nopx');await p.waitForTimeout(450);
+   const after=await p.evaluate(()=>({sel:LINE_SEL,track,
+     shown:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+     pressed:document.querySelector('.nopx').getAttribute('aria-pressed')}));
+   ok('לחיצה מציגה בדיוק את מי שאינו מכומת',after.sel==='noprice'&&after.shown===npx.n,
+     `${after.shown} מתוך ${npx.n} · track=${after.track}`);
+   ok('והשבב מסומן כלחוץ',after.pressed==='true');
+   await p.evaluate(()=>lineSelect('stuck'));await p.waitForTimeout(400);
+ }
+ /* הכיוון ההפוך: אין חסרי מחיר → אין שבב ואין «0» בפוטר */
+ const clean=await p.evaluate(()=>{
+   const saved=(QF&&QF.all?QF.all:[]).map(r=>r.priceMissing);
+   (QF&&QF.all?QF.all:[]).forEach(r=>r.priceMissing=false);LINE_M=null;render();
+   const c=document.querySelector('.nopx');
+   const out={chip:!!(c&&c.offsetParent!==null),foot:document.getElementById('pgR').textContent};
+   (QF&&QF.all?QF.all:[]).forEach((r,i)=>r.priceMissing=saved[i]);LINE_M=null;render();
+   return out});
+ ok('בלי חסרי מחיר — המונה נעלם ואינו מציג אפס',!clean.chip&&!/בלי מחיר/.test(clean.foot),
+   clean.foot.slice(-34));
+ await p.evaluate(m=>setMode(m),modeBefore);await p.waitForTimeout(400);
  await p.click('#dchip');await p.waitForTimeout(300);
  const dOpen=await p.evaluate(()=>Math.round(document.getElementById('diag').getBoundingClientRect().height));
  ok('לחיצה על השבב פותחת את פירוט האזהרות',dOpen>0,dOpen+'px');

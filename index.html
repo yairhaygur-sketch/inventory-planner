@@ -1415,6 +1415,13 @@ body.dark .lband{border:1px solid #2B3B50}
 .lband .hgap i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .lband .hgap .k2{background:var(--shell-mute)}
 .lband .hgap .k3{background:var(--shell-crit)}
+/* מונה מה שאינו מכומת. מעוצב כפקד ולא כטקסט, כי הוא מוביל לרשימה. */
+.nopx{font:inherit;font-size:var(--f-sm);font-weight:700;cursor:pointer;
+  background:var(--shell-btn);color:var(--shell-warn);
+  border:1px solid var(--shell-btn-h);border-radius:7px;padding:1px 8px;white-space:nowrap}
+.nopx:hover{border-color:var(--shell-warn)}
+.nopx[aria-pressed="true"]{background:var(--shell-warn);color:var(--shell)}
+.nopx:focus-visible{outline:2px solid var(--shell-ink);outline-offset:2px}
 /* טיוטת המייל — פלט, לא תצוגה */
 .lledg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
   padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
@@ -1668,6 +1675,22 @@ function sumBy(list,val){const by={};
    את התוצאה דרך esc() — אז המשתמש ראה «$1.0M<span class="more">+2</span>»
    כטקסט על המסך. הענף הוסר ולא תוקן: פונקציה שמחזירה טקסט בכל מקרה
    אי אפשר לשבור ככה שוב. הוא גם הסתיר שני מטבעות מאחורי «+2». */
+/* ============ NOPRICE — כמה מהרשימה הזו אינם מכומתים ============
+   כל סכום בכלי הוא *רצפה*: פריט בלי מחיר FOB תורם 0 למספר. עד היום
+   הכלי אמר את זה פעם אחת, כאזהרה גלובלית בצ׳יפ, ולא ליד הכסף עצמו.
+
+   נמדד לפני שנבנה, על שני הדוחות האמיתיים: פריט אחד מתוך 7,569 בלי
+   מחיר FOB. ה-19% שהיו כתובים בסעיף 1 של DECISION-RULES הם של עמודת
+   *הגיבוי* «מח.ממצ.ניד», לא של העמודה שהכלי מחשב לפיה.
+
+   ולכן המונה מותנה ולא קבוע: מספר שתמיד אפס הוא רעש, ובמסך הזה כבר
+   נלחמנו על כל אלמנט. הוא שותק כשאין מה לומר, ומדבר כשיש. וחשוב
+   מזה — הוא סופר את *הרשימה שמוצגת*, לא את הדוח כולו: המספר שמעניין
+   הוא כמה מתוך הסכום שמולך אינו מכומת. */
+const noPriceN=list=>(list||[]).reduce((n,r)=>n+(r&&r.priceMissing?1:0),0);
+/* טקסט בלבד, לעולם לא HTML — moneyMix נשבר פעם אחת בדיוק ככה. */
+const noPriceTxt=list=>{const n=noPriceN(list);
+ return n?` · ${n.toLocaleString('he-IL')} בלי מחיר`:''};
 const moneyMix=(list,val,short)=>{const e=sumBy(list,val);
  const f=short?moneyShort:money;
  if(!e.length)return f(0,'ILS');
@@ -2962,6 +2985,8 @@ function lineRows(){
  if(LINE_SEL==='recur')return m.recur;
  /* «בלי שום רכש» — הבחירה שנפתחת מהפס של היום שאין בו ETA */
  if(LINE_SEL==='nopo')return m.noPo;
+ /* מי שאינו מכומת — נפתח מהמונה ברצועה */
+ if(LINE_SEL==='noprice')return m.dry.filter(r=>r.priceMissing);
  const st=m.stations.find(s=>s.date===LINE_SEL);
  return st?st.fixed:m.stuck}
 function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
@@ -3100,8 +3125,16 @@ function renderHero(m){
  h+=`<div class="bkey"><span><i class="k1"></i>התחנה הגדולה</span>`
   +`<span><i class="k2"></i>שאר המשלוחים</span>`
   +`<span><i class="k3"></i>אין מענה עד ${heDate(m.stations.length?m.stations[m.stations.length-1].date:'')}</span>`
+  +lineNoPrice(m.dry)
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div></div>'}
+/* שבב המונה — מופיע רק כשיש מה לספור, ומוביל לרשימה שמאחוריו */
+function lineNoPrice(list){
+ const n=noPriceN(list);if(!n)return '';
+ const sel=LINE_SEL==='noprice'?'true':'false';
+ return `<button class="nopx" type="button" data-ls="noprice" aria-pressed="${sel}"`
+  +` title="פריט בלי מחיר FOB תורם 0 לסכום — כל סכום במסך הזה הוא רצפה, לא הערכה מלאה">`
+  +`⌀ ${n.toLocaleString('he-IL')} בלי מחיר — הסכום רצפה</button>`}
 
 /* ============ SHELL_HERO — הגיבור ביום שאין ETA ============
    בלי דוח ETA אין תחנות, ולכן אין ציר — וזה נכון. מה שלא נכון היה
@@ -3158,6 +3191,7 @@ function renderHeroDry(m){
   +`«הוזמן» אינו אומר «מכוסה».</span>`
   +(B.order.length?`<span class="hk"><i class="k2"></i>כבר הוזמן</span>`
    +`<span class="hk"><i class="k3"></i>לא הוזמן כלום</span>`:'')
+  +lineNoPrice(m.dry)
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div>'}
 function renderLine(){
@@ -3532,7 +3566,7 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
   {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:uTxt(waiting),
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
   {l:'מניעת חוסר',n:pr.length,m:uTxt(pr),cls:'warn'},
-  {l:'הון לשחרור',n:capList.length,m:moneyMix(capList,r=>r.expCap),cls:''},
+  {l:'הון לשחרור',n:capList.length,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
   {l:'עדכון פרמטרים',n:fixList.length,m:'איכות נתונים',cls:''}];
  document.getElementById('kpis').innerHTML=K.map(k=>k.cls==='burn'
   ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div></div>`
@@ -4023,7 +4057,7 @@ function renderCust(rows){
   body.push(`<tr class="grp${coll?' coll':''}" data-g="${esc(key)}"><td colspan="${NCOL()}" style="--gc:${color}">
    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
    <span class="gn">${n}</span><span class="gs">${esc(sub)}</span>
-   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}</span></td></tr>`);
+   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}${noPriceTxt(list)}</span></td></tr>`);
   return coll};
  if(G.none.length){
   const t=custTotals(G.none);
@@ -4125,7 +4159,7 @@ function renderDecisions(rows){
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
      <span class="gn">${list.length}</span>
      <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
-     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}</span></td></tr>`);
+     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
    if(coll)continue;
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -4148,7 +4182,7 @@ function renderDecisions(rows){
    body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>${g==='t2'?etaCovered():''}
-     <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}`:'אין פריטים'}</span></td></tr>`);
+     <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}${noPriceTxt(list)}`:'אין פריטים'}</span></td></tr>`);
    if(coll||!list.length)continue;
    /* בלוק מטבע בתוך השכבה. הדירוג הכספי קורה בתוך הבלוק בלבד —
       אותה מדיניות כמו במסלול ההון הכלוא, ומאותה סיבה. */
@@ -4274,7 +4308,9 @@ function renderDecisions(rows){
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
- document.getElementById('pgR').textContent=track==='floor'
+ /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
+ const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
+ document.getElementById('pgR').textContent=(track==='floor'
    ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
    :track==='trend'
    ?`${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
@@ -4283,7 +4319,7 @@ function renderDecisions(rows){
    :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
-   :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
+   :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  document.getElementById('phdSub').textContent=track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
   :track==='trend'
