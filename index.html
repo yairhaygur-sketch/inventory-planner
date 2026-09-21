@@ -1415,6 +1415,13 @@ body.dark .lband{border:1px solid #2B3B50}
 .lband .hgap i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .lband .hgap .k2{background:var(--shell-mute)}
 .lband .hgap .k3{background:var(--shell-crit)}
+/* מונה מה שאינו מכומת. מעוצב כפקד ולא כטקסט, כי הוא מוביל לרשימה. */
+.nopx{font:inherit;font-size:var(--f-sm);font-weight:700;cursor:pointer;
+  background:var(--shell-btn);color:var(--shell-warn);
+  border:1px solid var(--shell-btn-h);border-radius:7px;padding:1px 8px;white-space:nowrap}
+.nopx:hover{border-color:var(--shell-warn)}
+.nopx[aria-pressed="true"]{background:var(--shell-warn);color:var(--shell)}
+.nopx:focus-visible{outline:2px solid var(--shell-ink);outline-offset:2px}
 /* טיוטת המייל — פלט, לא תצוגה */
 .lledg{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
   padding:5px 0 6px;border-top:1px dashed var(--line);font-size:var(--f-sm)}
@@ -1668,6 +1675,22 @@ function sumBy(list,val){const by={};
    את התוצאה דרך esc() — אז המשתמש ראה «$1.0M<span class="more">+2</span>»
    כטקסט על המסך. הענף הוסר ולא תוקן: פונקציה שמחזירה טקסט בכל מקרה
    אי אפשר לשבור ככה שוב. הוא גם הסתיר שני מטבעות מאחורי «+2». */
+/* ============ NOPRICE — כמה מהרשימה הזו אינם מכומתים ============
+   כל סכום בכלי הוא *רצפה*: פריט בלי מחיר FOB תורם 0 למספר. עד היום
+   הכלי אמר את זה פעם אחת, כאזהרה גלובלית בצ׳יפ, ולא ליד הכסף עצמו.
+
+   נמדד לפני שנבנה, על שני הדוחות האמיתיים: פריט אחד מתוך 7,569 בלי
+   מחיר FOB. ה-19% שהיו כתובים בסעיף 1 של DECISION-RULES הם של עמודת
+   *הגיבוי* «מח.ממצ.ניד», לא של העמודה שהכלי מחשב לפיה.
+
+   ולכן המונה מותנה ולא קבוע: מספר שתמיד אפס הוא רעש, ובמסך הזה כבר
+   נלחמנו על כל אלמנט. הוא שותק כשאין מה לומר, ומדבר כשיש. וחשוב
+   מזה — הוא סופר את *הרשימה שמוצגת*, לא את הדוח כולו: המספר שמעניין
+   הוא כמה מתוך הסכום שמולך אינו מכומת. */
+const noPriceN=list=>(list||[]).reduce((n,r)=>n+(r&&r.priceMissing?1:0),0);
+/* טקסט בלבד, לעולם לא HTML — moneyMix נשבר פעם אחת בדיוק ככה. */
+const noPriceTxt=list=>{const n=noPriceN(list);
+ return n?` · ${n.toLocaleString('he-IL')} בלי מחיר`:''};
 const moneyMix=(list,val,short)=>{const e=sumBy(list,val);
  const f=short?moneyShort:money;
  if(!e.length)return f(0,'ILS');
@@ -1745,14 +1768,43 @@ const ROP_MIN_ACT=1;
    איפוס» מתרככות ל«הורד ל-1», ו-60 פריטים שב-SAP יושב עליהם 0 מקבלים
    שורה חדשה «העלה ל-1» — מהם 8 יבשים היום עם לקוח ממתין. */
 const LOWDEM_MAX=3;
-const LOWDEM_CHEAP={USD:50,ILS:200,EUR:50};
-/* מחזיר את רצפת המדיניות (1) או 0. מחיר חסר או מטבע לא מוכר — אין רצפה,
-   כי אי אפשר להחליט «זול» בלי מחיר. */
+/* ============ LOWDEM_TIERS — מדרגות זמינות לפי מחיר ============
+   הכלל הקודם היה בינארי: מתחת ל-50$ → רצפה 1, אחרת 0. הוא ענה על
+   השאלה «להחזיק או לא» ולא על «כמה», ובכך החמיץ את מה שקובע זמינות
+   בפועל — **זמן האספקה**. עם 120 יום, רצפה של 1 על פריט שנצרך שלוש
+   פעמים בשנה משאירה את המדף ריק שני שלישים מהשנה אחרי הצריכה הראשונה.
+
+   נמדד על הדוח האמיתי, 881 מועמדים (ZM · פעיל · צריכה 1-3 · עם מחיר):
+     חודשי כיסוי ממוצעים    8.9  →  11.8
+     פריטים שמקבלים רצפה     533 →  640
+     מתוכם באפס מדף היום     43
+
+   הסף אינו אחוזון אלא ערך מוחלט, כי ההחלטה היא על **הון כלוא בפועל**:
+   ₪200 הם ₪200. הספים מקבילים בשער (כ-3.7) ולא מנורמלים להתפלגות —
+   חציון ה-USD כאן הוא 26.47$ וחציון ה-ILS 370₪, כלומר פריטי השקל
+   בקבוצה הזו פשוט יקרים יותר, וזו עובדה ולא עיוות שצריך לתקן.
+
+   הרצפה = min(תקרה, max(רצפת המדרגה, צריכה שנתית)).
+   «רצפת המדרגה» היא מה שעונה על הבקשה המפורשת: בורג שנצרך **פעם
+   אחת** מקבל 3 ולא 1 — כי 3 ברגים עולים פחות מהמתנה אחת של 120 יום.
+
+   מה שהכלי אינו יודע ולכן אינו שוקל: MOQ ואריזה. פריט שנמכר בשקית
+   של 50 לא יוזמן ב-3. ראה «מה עדיין לא פתור». */
+const LOWDEM_BANDS=[
+ {id:'A',name:'זניח',  thr:{USD:10,EUR:10,ILS:40},  min:3,cap:5},
+ {id:'B',name:'זול',   thr:{USD:30,EUR:28,ILS:110}, min:2,cap:3},
+ {id:'C',name:'בינוני',thr:{USD:80,EUR:75,ILS:300}, min:1,cap:2}];
+/* המדרגה שהפריט נופל בה, או null. מחיר חסר או מטבע לא מוכר — אין
+   מדרגה, כי אי אפשר להחליט «זול» בלי מחיר. */
+function lowDemBand(price,currency){
+ if(!(price>0))return null;
+ const c=String(currency||'').trim().toUpperCase();
+ for(const b of LOWDEM_BANDS){const t=b.thr[c];if(t!=null&&price<t)return b}
+ return null}
 function lowDemFloor(d12,price,currency){
  if(!(d12>=1&&d12<=LOWDEM_MAX))return 0;
- if(!(price>0))return 0;
- const t=LOWDEM_CHEAP[String(currency||'').trim().toUpperCase()];
- return (t!=null&&price<t)?1:0}
+ const b=lowDemBand(price,currency);if(!b)return 0;
+ return Math.min(b.cap,Math.max(b.min,Math.ceil(d12)))}
 /* ============ ריסון מגמת ירידה ============
    הקצב הוא ממוצע שטוח של שישה חודשים, והוא מוקרן קדימה על פני זמן
    אספקה שלם — לפריט מסין, ארבעה חודשים. כשהביקוש ירד *בתוך* אותם
@@ -1812,7 +1864,12 @@ function curMonthLabel(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getM
   return {name:HEB[d.getMonth()],short:HEB[d.getMonth()].slice(0,3),yy:String(d.getFullYear()).slice(2)}}
 const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור חומר2','תיאור חומר'],status:['סטטוס חומר'],statusTxt:['תיאור'],
  mrp:['סוג MRP'],abc:['ABC'],srv:['רמת שרות'],ss:['מלאי בטחון'],rop:['נק.הז.מחדש'],lt:['אספ.מתוכנ.'],ltAdd:['זמ.עב.קבלת'],
- ssMin:['מל.בט.מינ.'],price:['מחיר FOB','מח.ממצ.ניד'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
+ /* FOB בלבד. הגיבוי ל"מח.ממצ.ניד" הוסר בהחלטת המתכנן: הכלי עובד
+    במונחי FOB, ומחיר ממוצע נייד אינו אותו דבר. נמדד לפני ההסרה —
+    בפיקסצ'רים העמודה הזו אינה קיימת כלל, ובדוח האמיתי FOB מלא
+    ב-7,568 מתוך 7,569. כלומר הנתיב הזה לא היה בשימוש בשום קובץ,
+    אבל הוא כן יכול היה לייצר מספר שאינו FOB עם תווית מטבע FOB. */
+ ssMin:['מל.בט.מינ.'],price:['מחיר FOB'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
  po:['הז. רכש'],transfer:['בהעברה'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],
  matType:['סוג חומר'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
@@ -1837,10 +1894,10 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   DIAG.moves={salesCol:idxToCol(m.sales),entriesCol:idxToCol(m.entries),
     salesHdr:CLEAN(n[m.sales]!=null?n[m.sales]:''),entriesHdr:CLEAN(n[m.entries]!=null?n[m.entries]:''),
     salesByName:fSales>=0,entriesByName:fEnt>=0};
-  /* BZ ("מחיר FOB") הוא מקור האמת הפיננסי היחיד. אם הוא חסר, החישוב נופל
-     ל-"מח.ממצ.ניד" הישן — וזה חייב להיאמר, לא לקרות בשקט. */
-  if(m.price>=0&&n.indexOf('מחיר FOB')<0)
-    DIAG.warn.push('עמודת "מחיר FOB" (BZ) לא נמצאה — החישוב הכספי נופל ל-"מח.ממצ.ניד". BZ הוא מקור האמת המאושר.');
+  /* BZ ("מחיר FOB") הוא מקור האמת הפיננסי היחיד, ואין לו תחליף.
+     בלעדיו אין כסף בכלל — וזה חייב להיאמר בקול, לא להיראות כמו אפס. */
+  if(m.price<0)
+    DIAG.warn.push('עמודת "מחיר FOB" לא נמצאה — אין חישוב כספי בשום מסך. הכלי עובד במונחי FOB בלבד; מחיר ממוצע נייד אינו תחליף.');
   if(m.currency<0)DIAG.warn.push('עמודת "מטבע FOB" (BE) לא נמצאה — המטבע לא יוצג.');
   if(m.transfer<0)DIAG.warn.push('עמודת "בהעברה" (CK) לא נמצאה — מלאי בהעברה לא ייכלל בכיסוי.');
   const annualFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
@@ -2140,6 +2197,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const unsGross=unsQty;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=isODStatic?0:lowDemFloor(d12,price,currency);
+    const lowBand=isODStatic?null:(lowFloor?lowDemBand(price,currency):null);
     if(lowFloor){sugSS=Math.max(sugSS,lowFloor);sugROP=Math.max(sugROP,lowFloor)}
     /* ROP_MIN_ACT — לא מציעים להוריד נוכחות מינימלית שהמתכנן קבע */
     if(!isODStatic){
@@ -2173,7 +2231,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -2475,19 +2533,18 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     const tgt=`נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS}`;
     it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
             ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר'],
-            it.lowFloor?['info',`ההמלצה אינה אפס אלא ${it.lowFloor}: ${money(it.price,it.currency)} ליחידה — יחידה אחת על המדף זולה מהמתנה של ${Math.round(it.ltD)} יום`]:null].filter(Boolean);
+            it.lowFloor?['info',`ההמלצה אינה אפס אלא ${it.lowFloor}: ${money(it.price,it.currency)} ליחידה (מדרגת «${it.lowBand?it.lowBand.name:''}») — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)}, פחות מהמתנה של ${Math.round(it.ltD)} יום`]:null].filter(Boolean);
     it.act=[`לשנות ${tgt}`,
             'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
     Q.quality.push(it);continue}}
   /* ============ הצד השני של אותה מדיניות ============
-     פריט זול בלהקת 1–3 שב-SAP יושב עליו אפס. הכלי המליץ עד היום אפס גם
-     הוא, ולכן השורה לא הופיעה בכלל. נמדד: 60 פריטים כאלה בדוח האמיתי,
-     8 מהם יבשים היום עם לקוח ממתין. ראה LOWDEM_CHEAP. */
+     פריט זול בלהקת 1–3 שב-SAP יושב עליו אפס, או שיושבת עליו רצפה
+     רדודה מדי למדרגה שלו. ראה LOWDEM_TIERS. */
   if(it.lowFloor&&it.rate<=0&&!it.isPDItem&&!it.isOD&&(it.rop<it.sugROP||it.ss<it.sugSS)){
    it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
-   it.why=[['warn',`אין נוכחות מינימלית: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
+   it.why=[['warn',`נוכחות רדודה מדי: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
            ['info',`${it.d12} יח׳ ב-11 חודשים — מעט מדי לחישוב סטטיסטי, אבל לא אפס`],
-           ['idea',`${money(it.price,it.currency)} ליחידה · אספקה ${Math.round(it.ltD)} יום — יחידה אחת על המדף עולה פחות מהמתנה`],
+           ['idea',`${money(it.price,it.currency)} ליחידה · מדרגת «${it.lowBand?it.lowBand.name:''}» · אספקה ${Math.round(it.ltD)} יום — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)} ומכסים את השנה`],
            it.free<=0?['err','מלאי פנוי אפס — הפריט חשוף עכשיו']:null].filter(Boolean);
    it.act=[`לקבוע נקודת הזמנה ${it.sugROP} ומלאי ביטחון ${it.sugSS}`,
            'אם המדיניות לפריט היא לפי דרישה — לשנות סוג MRP במקום להשאיר אפס'];
@@ -2962,6 +3019,8 @@ function lineRows(){
  if(LINE_SEL==='recur')return m.recur;
  /* «בלי שום רכש» — הבחירה שנפתחת מהפס של היום שאין בו ETA */
  if(LINE_SEL==='nopo')return m.noPo;
+ /* מי שאינו מכומת — נפתח מהמונה ברצועה */
+ if(LINE_SEL==='noprice')return m.dry.filter(r=>r.priceMissing);
  const st=m.stations.find(s=>s.date===LINE_SEL);
  return st?st.fixed:m.stuck}
 function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
@@ -3100,8 +3159,16 @@ function renderHero(m){
  h+=`<div class="bkey"><span><i class="k1"></i>התחנה הגדולה</span>`
   +`<span><i class="k2"></i>שאר המשלוחים</span>`
   +`<span><i class="k3"></i>אין מענה עד ${heDate(m.stations.length?m.stations[m.stations.length-1].date:'')}</span>`
+  +lineNoPrice(m.dry)
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div></div>'}
+/* שבב המונה — מופיע רק כשיש מה לספור, ומוביל לרשימה שמאחוריו */
+function lineNoPrice(list){
+ const n=noPriceN(list);if(!n)return '';
+ const sel=LINE_SEL==='noprice'?'true':'false';
+ return `<button class="nopx" type="button" data-ls="noprice" aria-pressed="${sel}"`
+  +` title="פריט בלי מחיר FOB תורם 0 לסכום — כל סכום במסך הזה הוא רצפה, לא הערכה מלאה">`
+  +`⌀ ${n.toLocaleString('he-IL')} בלי מחיר — הסכום רצפה</button>`}
 
 /* ============ SHELL_HERO — הגיבור ביום שאין ETA ============
    בלי דוח ETA אין תחנות, ולכן אין ציר — וזה נכון. מה שלא נכון היה
@@ -3158,6 +3225,7 @@ function renderHeroDry(m){
   +`«הוזמן» אינו אומר «מכוסה».</span>`
   +(B.order.length?`<span class="hk"><i class="k2"></i>כבר הוזמן</span>`
    +`<span class="hk"><i class="k3"></i>לא הוזמן כלום</span>`:'')
+  +lineNoPrice(m.dry)
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div>'}
 function renderLine(){
@@ -3532,7 +3600,7 @@ function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.exc
   {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:uTxt(waiting),
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
   {l:'מניעת חוסר',n:pr.length,m:uTxt(pr),cls:'warn'},
-  {l:'הון לשחרור',n:capList.length,m:moneyMix(capList,r=>r.expCap),cls:''},
+  {l:'הון לשחרור',n:capList.length,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
   {l:'עדכון פרמטרים',n:fixList.length,m:'איכות נתונים',cls:''}];
  document.getElementById('kpis').innerHTML=K.map(k=>k.cls==='burn'
   ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div></div>`
@@ -4023,7 +4091,7 @@ function renderCust(rows){
   body.push(`<tr class="grp${coll?' coll':''}" data-g="${esc(key)}"><td colspan="${NCOL()}" style="--gc:${color}">
    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
    <span class="gn">${n}</span><span class="gs">${esc(sub)}</span>
-   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}</span></td></tr>`);
+   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}${noPriceTxt(list)}</span></td></tr>`);
   return coll};
  if(G.none.length){
   const t=custTotals(G.none);
@@ -4125,7 +4193,7 @@ function renderDecisions(rows){
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
      <span class="gn">${list.length}</span>
      <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
-     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}</span></td></tr>`);
+     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
    if(coll)continue;
    for(const r of list){if(idx>=lim)break;const i=idx++;
     const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -4148,7 +4216,7 @@ function renderDecisions(rows){
    body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>${g==='t2'?etaCovered():''}
-     <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}`:'אין פריטים'}</span></td></tr>`);
+     <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}${noPriceTxt(list)}`:'אין פריטים'}</span></td></tr>`);
    if(coll||!list.length)continue;
    /* בלוק מטבע בתוך השכבה. הדירוג הכספי קורה בתוך הבלוק בלבד —
       אותה מדיניות כמו במסלול ההון הכלוא, ומאותה סיבה. */
@@ -4274,7 +4342,9 @@ function renderDecisions(rows){
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
- document.getElementById('pgR').textContent=track==='floor'
+ /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
+ const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
+ document.getElementById('pgR').textContent=(track==='floor'
    ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
    :track==='trend'
    ?`${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
@@ -4283,7 +4353,7 @@ function renderDecisions(rows){
    :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
-   :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`;
+   :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  document.getElementById('phdSub').textContent=track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
   :track==='trend'

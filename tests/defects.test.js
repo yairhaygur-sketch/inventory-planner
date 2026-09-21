@@ -31,6 +31,14 @@ const rows=[
  //      הקטנת המלאי לבדה לא תחזיק כי SAP יזמין בחזרה
  mk('SLOW-BAD-ROP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:2,y1:0,y2:0,free:198,rop:6,ss:0,price:0.18}),
  mk('SLOW-OK-ROP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:2,y1:0,y2:0,free:198,rop:1,ss:0,price:0.18}),
+ // C5 · צריכה בודדת (יחידה אחת בשנה) ומחיר זניח — בורג/קליפס.
+ //      המדרגה חייבת לתת לו את רצפת המדרגה ולא 1. ראה LOWDEM_TIERS.
+ mk('LOW-ONE-A',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,price:2,lt:120}),
+ // C6 · שלוש מדרגות, אותה צריכה בדיוק — רק המחיר משתנה
+ mk('TIER-A',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:9,lt:120}),
+ mk('TIER-B',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:29,lt:120}),
+ mk('TIER-C',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:79,lt:120}),
+ mk('TIER-OUT',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:0,rop:0,ss:0,price:81,lt:120}),
  // C3 · אותו מחיר בדיוק בשני מטבעות — הסף לכל מטבע בנפרד, בלי המרה
  mk('LOW-150-ILS',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'ILS'}),
  mk('LOW-150-USD',{months:[0,0,1,0,0,0,1,0,0,0,0],y0:2,y1:2,y2:2,free:3,rop:200,ss:80,price:150,cur:'USD'}),
@@ -86,6 +94,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
      act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),actN:(r.act||[]).length,paramFix:r.paramFix,why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
           runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
+          oneA:g('LOW-ONE-A'),tA:g('TIER-A'),tB:g('TIER-B'),tC:g('TIER-C'),tOut:g('TIER-OUT'),
           dec:g('DECLINE'),spor:g('SPORADIC'),edge:g('EDGE-ONLY'),
           today:(()=>{const g=pn=>ALL.find(x=>x.pn===pn);
             const A=g('TODAY-STOCKED'),B=g('TODAY-CUST-COVERED');
@@ -172,15 +181,33 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  // C · ביקוש זעום עם פרמטרים גבוהים ב-SAP
  ok('פריט 2 יח׳/שנה עם ROP=200 אינו "תקין"',o.low.cat!=='תקין',o.low.cat);
  ok('ומוצע לו אפס',o.low.sugROP===0&&o.low.sugSS===0&&/ל-0/.test(o.low.act),o.low.act);
- // C1–C3 · רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP
- ok('פריט זול באותה להקה מקבל רצפה של 1 ולא אפס',
-    o.cheap.sugROP===1&&o.cheap.sugSS===1,`sugROP=${o.cheap.sugROP} sugSS=${o.cheap.sugSS} (לפני: 0/0)`);
- ok('וההמלצה אומרת את המספר החדש',/ל-1/.test(o.cheap.act),o.cheap.act);
+ /* C1–C6 · מדרגות זמינות לפי מחיר — ראה LOWDEM_TIERS.
+    הכלל הקודם היה בינארי (מתחת ל-50$ → 1, אחרת 0) וענה על «להחזיק או
+    לא» ולא על «כמה». עם זמן אספקה 120 יום, רצפה של 1 על פריט שנצרך
+    שלוש פעמים בשנה משאירה את המדף ריק שני שלישים מהשנה.
+    הרצפה = min(תקרה, max(רצפת המדרגה, צריכה שנתית)). */
+ ok('פריט זול בלהקה מקבל את רצפת המדרגה ולא 1',
+    o.cheap.sugROP===3&&o.cheap.sugSS===3,`sugROP=${o.cheap.sugROP} sugSS=${o.cheap.sugSS} (לפני: 1/1, ולפני כן 0/0)`);
+ ok('וההמלצה אומרת את המספר החדש',/ל-3/.test(o.cheap.act),o.cheap.act);
  ok('ההסבר מנמק במחיר וללא המרת מטבע',/\$5/.test(o.cheap.acts+o.cheap.why),o.cheap.why);
+ ok('ההסבר נוקב בשם המדרגה',/מדרגת/.test(o.cheap.why+o.cheap.acts),o.cheap.why);
  ok('פריט זול בלי נוכחות ב-SAP מקבל שורת עבודה',
     o.cheap0.cat==='עדכון פרמטרים'&&o.cheap0.q==='quality',`${o.cheap0.q} · ${o.cheap0.cat} (לפני: תקין)`);
- ok('וההחלטה היא לקבוע 1',/לקבוע נקודת הזמנה 1/.test(o.cheap0.act),o.cheap0.act);
- ok('150 ש"ח נחשב זול — מתחת לסף ה-ILS',o.ils150.lowFloor===1,`lowFloor=${o.ils150.lowFloor}`);
+ ok('וההחלטה היא לקבוע 3',/לקבוע נקודת הזמנה 3/.test(o.cheap0.act),o.cheap0.act);
+ /* הבקשה המפורשת: «פריטים עם צריכה בודדת עם FOB נמוך, אני רוצה
+    להחזיק במלאי». יחידה אחת בשנה ב-2$ — הרצפה היא 3, לא 1. */
+ ok('צריכה בודדת במחיר זניח מקבלת 3 ולא 1',
+    o.oneA.sugROP===3&&o.oneA.sugSS===3,`d12=1 · $2 → sugROP=${o.oneA.sugROP}`);
+ /* אותה צריכה בדיוק (2 יח׳), רק המחיר משתנה — כל מדרגה ותשובתה */
+ ok('מדרגה A ($9) → 3',o.tA.sugROP===3,`sugROP=${o.tA.sugROP}`);
+ ok('מדרגה B ($29) → 2',o.tB.sugROP===2,`sugROP=${o.tB.sugROP}`);
+ ok('מדרגה C ($79) → 2',o.tC.sugROP===2,`sugROP=${o.tC.sugROP}`);
+ ok('מעל הסף ($81) → 0, אין רצפה',o.tOut.lowFloor===0&&o.tOut.sugROP===0,
+    `lowFloor=${o.tOut.lowFloor} sugROP=${o.tOut.sugROP}`);
+ ok('הרצפה עולה כשהמחיר יורד, ולעולם לא להפך',
+    o.tA.sugROP>=o.tB.sugROP&&o.tB.sugROP>=o.tC.sugROP&&o.tC.sugROP>o.tOut.sugROP,
+    `${o.tA.sugROP} ≥ ${o.tB.sugROP} ≥ ${o.tC.sugROP} > ${o.tOut.sugROP}`);
+ ok('150 ש"ח נופל במדרגת ILS ומקבל 2',o.ils150.lowFloor===2,`lowFloor=${o.ils150.lowFloor}`);
  ok('150 דולר אינו זול — מעל סף ה-USD',o.usd150.lowFloor===0&&o.usd150.sugROP===0,
     `lowFloor=${o.usd150.lowFloor} sugROP=${o.usd150.sugROP}`);
  ok('אותו מספר, שני מטבעות, שתי תשובות — אין המרה',
