@@ -1835,7 +1835,12 @@ function curMonthLabel(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getM
   return {name:HEB[d.getMonth()],short:HEB[d.getMonth()].slice(0,3),yy:String(d.getFullYear()).slice(2)}}
 const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור חומר2','תיאור חומר'],status:['סטטוס חומר'],statusTxt:['תיאור'],
  mrp:['סוג MRP'],abc:['ABC'],srv:['רמת שרות'],ss:['מלאי בטחון'],rop:['נק.הז.מחדש'],lt:['אספ.מתוכנ.'],ltAdd:['זמ.עב.קבלת'],
- ssMin:['מל.בט.מינ.'],price:['מחיר FOB','מח.ממצ.ניד'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
+ /* FOB בלבד. הגיבוי ל"מח.ממצ.ניד" הוסר בהחלטת המתכנן: הכלי עובד
+    במונחי FOB, ומחיר ממוצע נייד אינו אותו דבר. נמדד לפני ההסרה —
+    בפיקסצ'רים העמודה הזו אינה קיימת כלל, ובדוח האמיתי FOB מלא
+    ב-7,568 מתוך 7,569. כלומר הנתיב הזה לא היה בשימוש בשום קובץ,
+    אבל הוא כן יכול היה לייצר מספר שאינו FOB עם תווית מטבע FOB. */
+ ssMin:['מל.בט.מינ.'],price:['מחיר FOB'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
  po:['הז. רכש'],transfer:['בהעברה'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],
  matType:['סוג חומר'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
@@ -1860,10 +1865,10 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   DIAG.moves={salesCol:idxToCol(m.sales),entriesCol:idxToCol(m.entries),
     salesHdr:CLEAN(n[m.sales]!=null?n[m.sales]:''),entriesHdr:CLEAN(n[m.entries]!=null?n[m.entries]:''),
     salesByName:fSales>=0,entriesByName:fEnt>=0};
-  /* BZ ("מחיר FOB") הוא מקור האמת הפיננסי היחיד. אם הוא חסר, החישוב נופל
-     ל-"מח.ממצ.ניד" הישן — וזה חייב להיאמר, לא לקרות בשקט. */
-  if(m.price>=0&&n.indexOf('מחיר FOB')<0)
-    DIAG.warn.push('עמודת "מחיר FOB" (BZ) לא נמצאה — החישוב הכספי נופל ל-"מח.ממצ.ניד". BZ הוא מקור האמת המאושר.');
+  /* BZ ("מחיר FOB") הוא מקור האמת הפיננסי היחיד, ואין לו תחליף.
+     בלעדיו אין כסף בכלל — וזה חייב להיאמר בקול, לא להיראות כמו אפס. */
+  if(m.price<0)
+    DIAG.warn.push('עמודת "מחיר FOB" לא נמצאה — אין חישוב כספי בשום מסך. הכלי עובד במונחי FOB בלבד; מחיר ממוצע נייד אינו תחליף.');
   if(m.currency<0)DIAG.warn.push('עמודת "מטבע FOB" (BE) לא נמצאה — המטבע לא יוצג.');
   if(m.transfer<0)DIAG.warn.push('עמודת "בהעברה" (CK) לא נמצאה — מלאי בהעברה לא ייכלל בכיסוי.');
   const annualFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
