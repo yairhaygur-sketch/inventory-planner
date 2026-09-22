@@ -5166,46 +5166,67 @@ function syncGseg(){const g=document.getElementById('gseg');if(!g)return;
 document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
 /* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
-document.getElementById('doneBtn').onclick=()=>setMode(mode==='done'?'today':'done');
-document.getElementById('floorBtn').onclick=()=>setMode(mode==='floor'?'month':'floor');
-/* ============ הכפתורים האלה אינם ניווט יותר ============
-   סרגל הטאבים נושא את הניווט לשבעת המסלולים. מה שנשאר לכפתור הוא
-   מה שטאב לא יכול לשאת: הסכום הכספי. לכן הוא מופיע *בתוך* המסלול
-   בלבד — סיכום בהקשר, לא דלת. זו ההחלטה שהמתכנן קיבל ב-14.9:
-   «הספירה עוזרת לבחור לאן ללכת, הסכום עוזר להחליט מה לעשות בפנים». */
+document.getElementById('doneBtn').onclick=()=>jumpTo('done','today');
+/* ============ הכפתור הוא דלת מבחוץ וסיכום מבפנים ============
+   ההחלטה מ-14.9 עומדת במלואה: «הספירה עוזרת לבחור לאן ללכת, הסכום
+   עוזר להחליט מה לעשות בפנים». מה שלא מומש אז הוא הצד הראשון —
+   הכפתור היה `hidden` אלא אם כבר היית *בתוך* המסלול, ולכן הספירה
+   מעולם לא עזרה לבחור לאן ללכת. היא הופיעה רק אחרי שכבר בחרת.
+
+   ההנמקה שנכתבה שם הייתה «סרגל הטאבים נושא את הניווט». נמדד: TRACKS
+   נושא חמישה מסלולים — line · short · m1 · cap · fix — ואין ביניהם
+   אף אחד מהחמישה האלה. יתרה מזו, בתוך cust/floor/trend/applied/done
+   הסרגל נמחק ומוסתר (`innerHTML=''` ו-`display:none`). כלומר לא
+   הייתה שום דלת, לא בכפתור ולא בטאב: רק מי שידע להקליד את הביטוי
+   המדויק בשאילתה החופשית הגיע לשם. על הדוח האמיתי זה 81 פריטי
+   «לקוח ממתין», 409 «מעל הדרישה» ו-182 «בירידה» שאיש לא ראה.
+
+   הכלל עכשיו הוא זה שכבר נעול בכלי על מונה «בלי מחיר»: שותק כשאין
+   מה לומר, מדבר כשיש. מחוץ למסלול — ספירה בלבד, וזו הדלת. בתוכו —
+   ספירה *וסכום*, וזה הסיכום. אחד עשר פחות משמונה עשרה: על הדוח
+   האמיתי שלושה כפתורים מופיעים, לא חמישה, כי applied ו-done אפס. */
+let JUMPFROM=null;
+/* היציאה מחזירה לאן שהיית, לא ל«היום» קבוע — אחרת כניסה מהקטלוג
+   הייתה זורקת אותך למסך אחר לגמרי בלחיצה שנייה. */
+function jumpTo(k,fallback){
+ if(mode===k){const back=JUMPFROM||fallback;JUMPFROM=null;setMode(back);return}
+ JUMPFROM=mode;setMode(k)}
+/* מחזיר true כשהכפתור פעיל (אנחנו בתוך המסלול) — שם, ורק שם, נוסף הסכום. */
+function syncJump(b,k,n){
+ const inside=mode===k;
+ b.hidden=!(n>0);
+ b.classList.toggle('on',inside);
+ return inside}
+document.getElementById('floorBtn').onclick=()=>jumpTo('floor','month');
 function syncFloorBtn(){const b=document.getElementById('floorBtn');if(!b)return;
  const rows=floorRows(),t=floorTotals(rows);
- b.hidden=mode!=='floor';
- b.classList.toggle('on',mode==='floor');
+ const inside=syncJump(b,'floor',t.n);
  document.getElementById('floorN').textContent=t.n.toLocaleString('he-IL');
- document.getElementById('floorV').textContent=' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}
-document.getElementById('apBtn').onclick=()=>setMode(mode==='applied'?'month':'applied');
+ document.getElementById('floorV').textContent=inside?' · '+moneyMix(rows,r=>ssFloorGap(r)*(r.price||0)):''}
+document.getElementById('apBtn').onclick=()=>jumpTo('applied','month');
 function syncApBtn(){const b=document.getElementById('apBtn');if(!b)return;
- const A=APPLIED,on=!!A&&A.total>0&&mode==='applied';
+ const A=APPLIED,on=!!A&&A.total>0;
  b.hidden=!on;if(!on)return;
  b.classList.toggle('on',mode==='applied');
  document.getElementById('apN').textContent=A.done.toLocaleString('he-IL');
  document.getElementById('apV').textContent=` מתוך ${A.total.toLocaleString('he-IL')}`;
  b.title=`מתוך ${A.total} ההמלצות בהעלאה הקודמת${A.days?` (לפני ${A.days} ימים)`:''}: `+
   `${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו`}
-document.getElementById('custBtn').onclick=()=>setMode(mode==='cust'?'today':'cust');
+document.getElementById('custBtn').onclick=()=>jumpTo('cust','today');
 function syncCustBtn(){const b=document.getElementById('custBtn');if(!b)return;
  const rows=(QF&&QF.all?QF.all:[]).filter(custWaiting),t=custTotals(rows);
- b.hidden=mode!=='cust';
- b.classList.toggle('on',mode==='cust');
+ const inside=syncJump(b,'cust',t.n);
  document.getElementById('custN').textContent=t.n.toLocaleString('he-IL');
- document.getElementById('custV').textContent=' · '+moneyMix(rows,custVal)}
-document.getElementById('trendBtn').onclick=()=>setMode(mode==='trend'?'month':'trend');
+ document.getElementById('custV').textContent=inside?' · '+moneyMix(rows,custVal):''}
+document.getElementById('trendBtn').onclick=()=>jumpTo('trend','month');
 function syncTrendBtn(){const b=document.getElementById('trendBtn');if(!b)return;
  const rows=trendRows(),t=trendTotals(rows);
- b.hidden=mode!=='trend';
- b.classList.toggle('on',mode==='trend');
+ const inside=syncJump(b,'trend',t.n);
  document.getElementById('trendN').textContent=t.n.toLocaleString('he-IL');
- document.getElementById('trendV').textContent=' · '+moneyMix(rows,r=>trendGap(r)*(r.price||0))}
+ document.getElementById('trendV').textContent=inside?' · '+moneyMix(rows,r=>trendGap(r)*(r.price||0)):''}
 function syncDoneBtn(){const b=document.getElementById('doneBtn');if(!b)return;
  const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
- b.hidden=mode!=='done';
- b.classList.toggle('on',mode==='done');
+ syncJump(b,'done',n);
  document.getElementById('doneN').textContent=n}
 /* הכפתור מראה אם המסילה פתוחה וכמה סינונים פעילים בפועל */
 function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
