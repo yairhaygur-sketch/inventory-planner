@@ -1432,6 +1432,9 @@ body.dark .lband{border:1px solid #2B3B50}
 .lsup.ok{color:var(--grn);background:var(--grnL);border-color:var(--grn)}
 .lsup.mid{color:var(--org);background:var(--orgL);border-color:var(--org)}
 .lsup.bad{color:var(--red);background:var(--redL);border-color:var(--red)}
+/* «מוסק» — נאמר במפורש שזו הסקה ולא תצפית, ולכן מעומעם ובלי מסגרת */
+.lseed{color:var(--dimmer);font-size:var(--f-sm);margin-inline-start:6px;white-space:nowrap}
+.lband .lseed{color:var(--shell-dim)}
 .lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
 .lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
 .lmail .lmh span{color:var(--dim)}
@@ -2009,7 +2012,10 @@ function etaParse(wb){
   const a=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,blankrows:false,defval:''});
   const h=etaFindHeader(a);if(!h)continue;
   const ix={pn:h.hdr.indexOf('חומר'),qty:h.hdr.indexOf('כמות באספקה'),
-   date:h.hdr.indexOf('תארי.אספקה'),dlv:h.hdr.indexOf('אספקה')};
+   date:h.hdr.indexOf('תארי.אספקה'),dlv:h.hdr.indexOf('אספקה'),
+   /* «מסמך רכש» נוסף לדוח מאוחר יותר. דוח בלי העמודה עדיין נטען —
+      היא מעשירה את זהות ההבטחה ואינה תנאי לקליטה. */
+   po:h.hdr.indexOf('מסמך רכש')};
   const byPn={};let rows=0,units=0,undated=0;
   for(const r of a.slice(h.at+1)){
    const pn=etaKey(r[ix.pn]);if(!pn)continue;
@@ -2020,11 +2026,12 @@ function etaParse(wb){
     if(mm){let y=+mm[3];if(y<100)y+=2000;d=ymd(new Date(y,(+mm[2])-1,+mm[1]))}
     else if(/^\d{4}-\d{2}-\d{2}/.test(s))d=s.slice(0,10)}
    if(!d){undated++;continue}
-   (byPn[pn]=byPn[pn]||[]).push([q,d,CLEAN(r[ix.dlv])]);
+   (byPn[pn]=byPn[pn]||[]).push([q,d,CLEAN(r[ix.dlv]),ix.po>=0?CLEAN(r[ix.po]):'']);
    rows++;units+=q}
   if(!rows)return {err:'הקובץ זוהה כדוח ETA אבל אין בו שורה אחת עם כמות ותאריך'};
   for(const k in byPn)byPn[k].sort((x,y)=>x[1]<y[1]?-1:x[1]>y[1]?1:0);
-  return {byPn,rows,units,undated,parts:Object.keys(byPn).length,ts:Date.now()}}
+  const hasPo=ix.po>=0;
+  return {byPn,rows,units,undated,hasPo,parts:Object.keys(byPn).length,ts:Date.now()}}
  return {err:'לא זוהתה שורת כותרות של דוח ETA (נדרשות "חומר", "כמות באספקה", "תארי.אספקה")'}}
 /* ============ ETA_SPLIT — "בדרך" אינו מספר אחד ============
    עד כאן הרכש הפתוח הוצג כגוש אחד בלי תאריך, והמתכנן הסיק ממנו שהפריט
@@ -3033,17 +3040,34 @@ function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
    וזו אמירה לגיטימית — «אני זוכר מהיום» עדיף על שתיקה שנראית כמו באג. */
 /* הפנקס יושב בשורת המקרא ולא בשורה משלו — הגובה יקר. התגים
    הצבעוניים נשמרו: «1/1» ו«0/9» באותו אפור אינם אומרים אותו דבר. */
+/* שני מקורות ראיה, ולא מערבבים ביניהם:
+     תצפית — שני ימי פנקס שמקיפים את התאריך. חזקה, ואיטית לצבור.
+     הסקה  — דוח ETA היסטורי מול הרכש הפתוח של היום. מיידית, חלשה יותר.
+   כשיש תצפיות הן מוצגות; אחרת מוצגת ההסקה ומסומנת ככזו. */
 function lineLedgerLine(){
  const days=ledgerDays();
  const sup=ALL&&ALL.length?ledgerBySupplier(ALL):[];
- if(!sup.length)return days.length<=1
+ const tag=(s,kept,n,cls,title)=>`<span class="lsup ${cls}" title="${title}">`
+  +`<bdi>${esc(String(s).slice(0,16))}</bdi> ${kept}/${n}</span>`;
+ if(sup.length)
+  return `<b>אמינות תאריכים</b> `+sup.slice(0,3).map(([s,k])=>{
+   const pct=Math.round(100*k.kept/k.n);
+   return tag(s,k.kept,k.n,pct>=80?'ok':pct>=50?'mid':'bad',
+    `${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן · ${days.length} ימים בפנקס · נמדד על שני ימים`)}).join('');
+ const sd=ALL&&ALL.length?ledgerSeed(ALL):null;
+ if(sd){
+  const ent=Object.entries(sd.bySup).sort((a,b)=>b[1].units-a[1].units);
+  return `<b>אמינות מוסקת</b> `+ent.slice(0,3).map(([s,k])=>{
+   const pct=Math.round(100*k.landed/k.n);
+   return tag(s,k.landed,k.n,pct>=80?'ok':pct>=50?'mid':'bad',
+    `${k.landedU.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שתאריכן עבר כבר אינן ברכש הפתוח.\n`
+    +`זו הסקה מתמונה אחת ולא תצפית על שני ימים: הכלי משווה את הרכש הפתוח בדוח ZMRP לשורות בדוח ה-ETA.\n`
+    +`${sd.murky} מק״טים לא מוסברים — הפער גדל ככל שהדוחות אינם מאותו יום.`)}).join('')
+   +`<span class="lseed" title="${sd.pns.toLocaleString('he-IL')} מק״טים עם הבטחה שתאריכה עבר · נחת ${sd.landed} · איחור ${sd.late} · לא מוסבר ${sd.murky}">`
+   +`מוסק מ-${sd.units.toLocaleString('he-IL')} יח׳${sd.murky?` · ${sd.murky} לא מוסברים`:''}</span>`}
+ return days.length<=1
   ?'פנקס: התחיל היום'
-  :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`;
- return `<b>אמינות תאריכים</b> `+sup.slice(0,3).map(([s,k])=>{
-  const pct=Math.round(100*k.kept/k.n);
-  const cls=pct>=80?'ok':pct>=50?'mid':'bad';
-  return `<span class="lsup ${cls}" title="${k.keptUnits.toLocaleString('he-IL')} מתוך ${k.units.toLocaleString('he-IL')} יח׳ שהובטחו ירדו מהרכש הפתוח בזמן · ${days.length} ימים בפנקס">`
-   +`<bdi>${esc(String(s).slice(0,16))}</bdi> ${k.kept}/${k.n}</span>`}).join('')}
+  :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`}
 function lineMailText(){
  const rows=lineRows();
  if(!rows.length)return '';
@@ -3414,6 +3438,39 @@ function ledgerPromises(){
    out.push({pn,q,date:d,before,after,
      dPo:b[0]-a[0], dFree:b[1]-a[1]})}}
  return out}
+/* ============ LEDGER_SEED — היסטוריה מדוח אחד ============
+   הפנקס הרגיל דורש *שני* ימים שמקיפים את תאריך ההבטחה, ולכן ביום
+   הראשון הוא מחזיר אפס. דוח ETA היסטורי עוקף את זה: הוא מכיל הבטחות
+   שתאריכן כבר עבר, והרכש הפתוח הנוכחי משמש כ«אחרי».
+
+   הכלל, שאומת על הדוחות האמיתיים:
+     רכש פתוח == יחידות עתידיות      ->  העבר נחת
+     רכש פתוח == עתידיות + שעברו     ->  הכול עדיין פתוח (איחור)
+     כל דבר אחר                      ->  חלקי / לא מוסבר
+
+   נמדד: 828 מק״טים בשני הדוחות. 739 «נחת» · 16 «איחור» · 73 לא מוסבר.
+   22,495 יחידות שתאריכן עבר, במקום אפס.
+
+   **זו הסקה, לא תצפית.** ledgerPromises מודד שני ימים ורואה את השינוי
+   בפועל; כאן יש תמונה אחת של הרכש הפתוח ומסקנה ממנה. שני מקורות
+   הראיה נשמרים בנפרד ומסומנים, כי הם אינם שווי ערך.
+
+   ודלי «לא מוסבר» הוא מדד הסחף בעצמו: כשה-ZMRP וה-ETA מאותו יום הוא
+   מתכנס לאפס. 73 מתוך 828 היו 13 ימי הפרש בין הקבצים שנבדקו. */
+function ledgerSeed(items){
+ if(!ETA||!ETA.byPn)return null;
+ const near=(a,b)=>Math.abs(a-b)<0.01;
+ const o={landed:0,landedU:0,late:0,lateU:0,murky:0,murkyU:0,pns:0,units:0,bySup:{}};
+ for(const r of items){
+  const past=r.etaPast||0; if(!(past>0))continue;
+  const po=r.po||0, fut=r.etaQty||0;
+  const v=near(po,fut)?'landed':near(po,fut+past)?'late':'murky';
+  o.pns++;o.units+=past;o[v]++;o[v+'U']+=past;
+  const s=r.supplier||'—';
+  const k=o.bySup[s]=o.bySup[s]||{n:0,units:0,landed:0,landedU:0};
+  k.n++;k.units+=past;
+  if(v==='landed'){k.landed++;k.landedU+=past}}
+ return o.pns?o:null}
 /* סיכום לפי ספק — כמה מההבטחות שתאריכן עבר אכן ירדו מהרכש הפתוח */
 function ledgerBySupplier(items){
  const byPn={};for(const r of items)byPn[r.pn]=r;

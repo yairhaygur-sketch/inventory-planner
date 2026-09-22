@@ -70,6 +70,27 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([ehdr,...erows]),'גיליון1');return wb})(),
  SD+'/eta-report.xlsx');
 
+/* ============ LEDGER_SEED — דוח ETA היסטורי ============
+   דוח עם «מסמך רכש» ועם שורות שתאריכן כבר עבר. הפנקס הרגיל דורש שני
+   ימים שמקיפים את התאריך; כאן הרכש הפתוח של היום משמש כ«אחרי».
+   שלושת המקרים בנויים במפורש מול הרכש הפתוח שב-eta-zmrp:
+     ETA-FULL    po=10 · עתיד 10 · עבר 25  ->  po==עתיד          -> נחת
+     ETA-PAST    po=12 · עתיד  0 · עבר 12  ->  po==עתיד+עבר      -> איחור
+     ETA-PARTIAL po=18 · עתיד  5 · עבר  7  ->  לא זה ולא זה      -> לא מוסבר
+   ו-T1-WITH-ETA נשאר עתידי בלבד, ולכן אינו נספר כלל. */
+const hhdr=['אספקה','פריט','חומר','תיאור','מסמך רכש','כמות באספקה',"א'",'תארי.אספקה'];
+const hrows=[
+ ['4190100001','000010',RLM('ETA-FULL'),'FULL','4500100001',10,'EA',dplus(14)],
+ ['4190100002','000010',RLM('ETA-FULL'),'FULL','4500100002',15,'EA',dplus(-40)],
+ ['4190100003','000010',RLM('ETA-FULL'),'FULL','4500100002',10,'EA',dplus(-70)],
+ ['4190100004','000010',RLM('ETA-PAST'),'PAST','4500100003',12,'EA',dplus(-30)],
+ ['4190100005','000010',RLM('ETA-PARTIAL'),'PARTIAL','4500100004',5,'EA',dplus(21)],
+ ['4190100006','000010',RLM('ETA-PARTIAL'),'PARTIAL','4500100005',7,'EA',dplus(-55)],
+ ['4190100007','000010',RLM('T1-WITH-ETA'),'T1ETA','4500100006',20,'EA',inMonth]];
+XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([hhdr,...hrows]),'גיליון1');return wb})(),
+ SD+'/eta-hist.xlsx');
+
 const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
   return {po:r.po,eta:r.etaQty,past:r.etaPast,first:r.etaFirst,stuck:r.stuck,has:r.etaHas,
     month:r.etaMonth,gross:r.unsGross,uns:r.unsQty,val:Math.round(r.unsVal||0),t1:isT1(r),
@@ -158,6 +179,28 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p2.evaluate(()=>etaClear());await p2.waitForTimeout(600);
  const cleared=await p2.evaluate(snap);
 
+ /* ── שלב 7: LEDGER_SEED — דוח היסטורי מול הרכש הפתוח ── */
+ const p3=await ctx.newPage();p3.on('pageerror',e=>errs.push('p3: '+e.message));
+ await p3.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+ await p3.evaluate(()=>{localStorage.removeItem('planner_eta_v1');
+   localStorage.removeItem('planner_ledger_v1')});
+ await p3.reload();await p3.waitForTimeout(300);
+ await p3.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p3.waitForTimeout(1800);
+ const seedBefore=await p3.evaluate(()=>({sd:ledgerSeed(ALL),line:lineLedgerLine()}));
+ await p3.setInputFiles('#fe',SD+'/eta-hist.xlsx');await p3.waitForTimeout(1500);
+ const seed=await p3.evaluate(()=>{const sd=ledgerSeed(ALL);
+   const g=pn=>{const r=ALL.find(x=>x.pn===pn)||{};
+     return {po:r.po|0,fut:r.etaQty|0,past:r.etaPast|0}};
+   return {hasPo:!!(ETA&&ETA.hasPo),
+     sd:sd&&{pns:sd.pns,units:sd.units,landed:sd.landed,landedU:sd.landedU,
+       late:sd.late,lateU:sd.lateU,murky:sd.murky,murkyU:sd.murkyU},
+     full:g('ETA-FULL'),past:g('ETA-PAST'),part:g('ETA-PARTIAL'),t1:g('T1-WITH-ETA'),
+     line:lineLedgerLine(),
+     seeded:document.querySelector('.lseed')?document.querySelector('.lseed').textContent:''}});
+ /* דוח בלי «מסמך רכש» — העמודה אינה תנאי לקליטה */
+ await p3.setInputFiles('#fe',SD+'/eta-report.xlsx');await p3.waitForTimeout(1200);
+ const noPoCol=await p3.evaluate(()=>({hasPo:!!(ETA&&ETA.hasPo),rows:ETA&&ETA.rows}));
+
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 
  /* ── SHELL_BAND — ראה ההערה בשלב 1 ── */
@@ -170,6 +213,36 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  ok('שתי הרצועות באותו סדר גודל — אף מצב אינו «המצב העני»',
    Math.abs(bEta.band-bDry.band)<=40,`${bDry.band}px בלי ETA · ${bEta.band}px עם`);
  ok('ושורת «אין דוח ETA» נעלמת כשיש דוח',!gapEta);
+
+ /* ── LEDGER_SEED ──
+    הפנקס הרגיל דורש שני ימים שמקיפים את תאריך ההבטחה, ולכן ביום
+    הראשון הוא מחזיר אפס. דוח ETA היסטורי עוקף את זה: הרכש הפתוח של
+    היום משמש כ«אחרי». זו הסקה ולא תצפית, והמסך אומר את זה. */
+ ok('«מסמך רכש» נקלט כשהוא קיים',seed.hasPo);
+ ok('ודוח בלי העמודה עדיין נטען במלואו',!noPoCol.hasPo&&noPoCol.rows>0,
+   `hasPo=${noPoCol.hasPo} · ${noPoCol.rows} שורות`);
+ ok('בלי הבטחות שעברו — אין זריעה בכלל',!seedBefore.sd);
+ ok('שורת הפנקס אז אומרת שהוא התחיל היום',/התחיל היום/.test(seedBefore.line),seedBefore.line);
+ ok('הזריעה מוצאת את שלושת המקרים',
+   !!seed.sd&&seed.sd.landed===1&&seed.sd.late===1&&seed.sd.murky===1,
+   seed.sd?`נחת ${seed.sd.landed} · איחור ${seed.sd.late} · לא מוסבר ${seed.sd.murky}`:'אין');
+ ok('«נחת» — רכש פתוח שווה ליחידות העתידיות',
+   seed.full.po===seed.full.fut&&seed.full.past===25&&seed.sd.landedU===25,
+   `po=${seed.full.po} עתיד=${seed.full.fut} עבר=${seed.full.past}`);
+ ok('«איחור» — רכש פתוח שווה לעבר ועתיד יחד',
+   seed.past.po===seed.past.fut+seed.past.past&&seed.sd.lateU===12,
+   `po=${seed.past.po} עתיד=${seed.past.fut} עבר=${seed.past.past}`);
+ ok('«לא מוסבר» — לא תואם לאף אחד משניהם',
+   seed.part.po!==seed.part.fut&&seed.part.po!==seed.part.fut+seed.part.past&&seed.sd.murkyU===7,
+   `po=${seed.part.po} עתיד=${seed.part.fut} עבר=${seed.part.past}`);
+ ok('פריט שכל הבטחותיו עתידיות אינו נספר',seed.t1.past===0&&seed.sd.pns===3,
+   `עבר=${seed.t1.past} · נספרו ${seed.sd.pns} מק״טים`);
+ ok('הסכום הוא של היחידות שעברו בלבד',seed.sd.units===44,`${seed.sd.units} יח׳ (25+12+7)`);
+ /* ההבחנה שאסור לטשטש: הסקה אינה תצפית */
+ ok('המסך אומר «מוסקת» ולא «אמינות תאריכים»',
+   /אמינות מוסקת/.test(seed.line)&&!/אמינות תאריכים/.test(seed.line),
+   seed.line.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,90));
+ ok('ומציין כמה לא מוסברים',/לא מוסבר/.test(seed.seeded),seed.seeded);
 
  ok('בלי דוח ETA — עמודה אחת "בדרך", בדיוק כמו קודם',
     !before.loaded&&before.chipHidden&&before.nOtw>0&&before.nSched===0
