@@ -442,12 +442,22 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     החלטה שעולה כסף, והוא חייב להיות גלוי. */
  const seen=id=>p.evaluate(i=>{const e=document.getElementById(i);
    return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0},id);
- /* הניווט עבר לסרגל הטאבים. הכפתורים בכותרת הפאנל נשארו כסיכום כספי
-    בתוך המסלול בלבד — ולכן נכנסים למסלול דרך הטאב, לא דרכם. */
- /* הרפורמה השאירה שני טאבים בלבד — ציר וקטלוג. המסלולים עצמם
-    (רצפת SS, מגמה, לקוח ממתין, יישום) לא בוטלו: הם נגישים דרך
-    setMode ודרך סינון בקטלוג. העוזר לוחץ על טאב כשיש, ונופל חזרה
-    ל-setMode כשאין — כי מה שנבדק כאן הוא המסלול, לא הטאב. */
+ /* ============ DOORS · תיקון להנחה שהייתה כאן ============
+    כאן היה כתוב «נכנסים למסלול דרך הטאב, לא דרכם», ושהמסלולים
+    נגישים «דרך setMode ודרך סינון בקטלוג». נמדד, ושתי הרגליים
+    התגלו כחלשות:
+
+      · TRACKS נושא חמישה מסלולים — line · short · m1 · cap · fix.
+        אף אחד מ-cust/floor/trend/applied/done אינו ביניהם, ובתוכם
+        סרגל הטאבים אף נמחק ומוסתר. אין טאב להיכנס דרכו.
+      · setMode אינה דלת למשתמש, היא פונקציה.
+      · סינון בקטלוג *כן* עובד: cust≥1 ו-free≤0 מחזיר בדיוק את
+        אותם 81 פריטים. אבל זו דלת בלי שם, שתי עמודות עומק,
+        ורק למי שכבר יודע מה הוא מחפש. המתכנן שאל «לאן זה נעלם».
+
+    הכלל החדש מיישם את החלטת 14.9 במלואה ולא סותר אותה: «הספירה
+    עוזרת לבחור לאן ללכת, הסכום עוזר להחליט מה לעשות בפנים» —
+    ולכן מחוץ למסלול ספירה בלבד, ובתוכו ספירה וסכום. */
  const navTo=async k=>{await p.evaluate(m=>{
    const t=[...document.querySelectorAll('#tabs .tab')].find(x=>x.dataset.m===m);
    if(t)t.click();else setMode(m)},k)};
@@ -459,7 +469,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מסלול "רצפת SS" עדיין קיים ומציג פריטים',
     await p.evaluate(()=>floorRows().length>0),
     await p.evaluate(()=>floorRows().length+' פריטים'));
- ok('ב"היום" הסיכום הכספי של המסלול אינו מוצג',!(await seen('floorBtn')));
+ /* היה: `ok('ב"היום" הסיכום הכספי של המסלול אינו מוצג',!(await seen('floorBtn')))`
+    — הכפתור נדרש להיות מוסתר לגמרי מחוץ למסלול. זה מה שהפך אותו
+    לדלת מתה. עכשיו הוא גלוי מחוץ למסלול, אבל בלי סכום: הסכום הוא
+    מה שנשאר בלעדי למסלול עצמו, וזו הייתה כוונת ההחלטה. */
+ const flOut=await p.evaluate(()=>{const e=document.getElementById('floorBtn');
+   return {seen:!!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0,
+     txt:(e.textContent||'').replace(/\s+/g,' ').trim(),n:floorRows().length}});
+ ok('ב"היום" הכפתור מוצג כדלת — ספירה בלי סכום',
+    flOut.n>0&&flOut.seen&&!/[$€₪]/.test(flOut.txt),flOut.txt);
  await p.evaluate(()=>setMode('month'));await p.waitForTimeout(700);
  const fl=await p.evaluate(()=>({vis:!document.getElementById('floorBtn').hidden,
    txt:document.getElementById('floorBtn').textContent.trim(),
@@ -769,6 +787,69 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('אף מטבע לא נדחק אל מחוץ לרשימה המרונדרת',cap.shown.length===cap.curs.length,
    `מוצגים ${cap.shown.join(', ')} · קיימים ${cap.curs.join(', ')}`);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);
+
+ /* ============ DOORS · המסכים שלא הייתה אליהם דלת ============
+    cust · floor · trend · applied · done אינם בסרגל הטאבים (TRACKS
+    נושא line/short/m1/cap/fix), והכפתור שלהם היה `hidden` אלא אם
+    כבר היית בתוכם — כלומר הדרך היחידה פנימה הייתה להקליד את הביטוי
+    המדויק בשאילתה החופשית. הבדיקה נועלת את שלושת הכללים. */
+ const doorVis=()=>['custBtn','floorBtn','trendBtn','apBtn','doneBtn']
+   .filter(id=>{const e=document.getElementById(id);return !!e&&e.offsetParent!==null});
+ const doorTxt=id=>{const e=document.getElementById(id);
+   return e&&e.offsetParent!==null?(e.textContent||'').replace(/\s+/g,' ').trim():''};
+ const doorN=()=>({cust:custRows().length,floor:floorRows().length,trend:trendRows().length,
+   done:(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0});
+
+ await p.evaluate(()=>setMode('line'));await p.waitForTimeout(500);
+ const dOut=await p.evaluate(()=>({vis:['custBtn','floorBtn','trendBtn','apBtn','doneBtn']
+    .filter(id=>{const e=document.getElementById(id);return !!e&&e.offsetParent!==null}),
+   cust:(e=>e&&e.offsetParent!==null?(e.textContent||'').replace(/\s+/g,' ').trim():'')(document.getElementById('custBtn')),
+   n:{cust:custRows().length,floor:floorRows().length,trend:trendRows().length}}));
+ ok('הכפתור גלוי מחוץ למסלול כשיש מה למצוא — זו הדלת',
+    dOut.n.cust>0?dOut.vis.includes('custBtn'):!dOut.vis.includes('custBtn'),
+    `גלויים: ${dOut.vis.join(', ')||'אין'} · לקוח ממתין=${dOut.n.cust}`);
+ ok('מחוץ למסלול — ספירה בלבד, בלי סכום',
+    dOut.n.cust>0&&!/[$€₪]/.test(dOut.cust),dOut.cust||'(מוסתר)');
+ ok('כפתור בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
+    !dOut.vis.includes('doneBtn')&&!dOut.vis.includes('apBtn'),
+    dOut.vis.join(', '));
+
+ await p.click('#custBtn');await p.waitForTimeout(900);
+ const dIn=await p.evaluate(()=>({mode,track,
+   txt:(document.getElementById('custBtn').textContent||'').replace(/\s+/g,' ').trim(),
+   on:document.getElementById('custBtn').classList.contains('on'),
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   n:custRows().length,
+   allZeroFree:custRows().every(r=>r.free<=0),
+   ignoresPo:custRows().some(r=>r.po>0)}));
+ ok('לחיצה מבחוץ נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
+    `mode=${dIn.mode} track=${dIn.track}`);
+ ok('בתוך המסלול הכפתור מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
+ ok('המסלול מציג בדיוק את הפריטים שנספרו',dIn.rows===dIn.n,`${dIn.rows} שורות · ${dIn.n} נספרו`);
+ /* הכלל הפשוט שהמתכנן ביקש: הזמנת לקוח מול מלאי פנוי אפס. מלאי
+    בדרך אינו מנוכה — פריט עם רכש פתוח נשאר ברשימה. */
+ ok('הכלל הוא «הזמנה מול מדף אפס» — בלי לנכות מלאי בדרך',
+    dIn.allZeroFree&&dIn.ignoresPo,
+    `כולם באפס מדף=${dIn.allZeroFree} · יש ביניהם עם רכש פתוח=${dIn.ignoresPo}`);
+
+ await p.click('#custBtn');await p.waitForTimeout(900);
+ ok('לחיצה שנייה חוזרת למסלול שממנו נכנסת',
+    (await p.evaluate(()=>mode))==='line',await p.evaluate(()=>mode));
+
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(700);
+ await p.click('#floorBtn');await p.waitForTimeout(900);
+ const backFrom=await p.evaluate(()=>mode);
+ await p.click('#floorBtn');await p.waitForTimeout(900);
+ ok('היציאה מחזירה לאן שהיית ולא למסך קבוע',
+    backFrom==='floor'&&(await p.evaluate(()=>mode))==='catalog',
+    `catalog → ${backFrom} → ${await p.evaluate(()=>mode)}`);
+
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const dBud=await p.evaluate(()=>{const r=document.querySelector('.rows');
+   return {chrome:r?Math.round(r.getBoundingClientRect().top):0,
+     vis:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+ ok('הדלתות לא שברו את תקציב הגובה',dBud.chrome>0&&dBud.chrome<360,dBud.chrome+'px');
+
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
  await b.close();console.log(out.join('\n'));
