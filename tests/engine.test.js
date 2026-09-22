@@ -364,7 +364,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    btnVis:btn.offsetParent!==null,btnOn:btn.classList.contains('on'),
    sub:document.getElementById('phdSub').textContent,
    trackStrip:getComputedStyle(document.getElementById('track')).display}});
- ok('כותרות המסלול תואמות למספר התאים',tv.nth===tv.cells&&tv.nth===8,tv.nth+' / '+tv.cells);
+ /* היה 8. עמודת «הגעה» נוספה לכל ארבע הדלתות (ראה DOOR_ETA), ולכן 9.
+    המספר הקשיח נשאר כדי שאיבוד עמודה בטעות ייתפס — ההשוואה
+    nth===cells לבדה עוברת גם כששתיהן נופלות יחד. */
+ ok('כותרות המסלול תואמות למספר התאים',tv.nth===tv.cells&&tv.nth===9,tv.nth+' / '+tv.cells);
  ok('אין גלישה אופקית במסלול המגמה',!tv.over);
  ok('כפתור המגמה נראה ומסומן',tv.btnVis&&tv.btnOn);
  ok('רצועת המסלולים מוסתרת',tv.trackStrip==='none',tv.trackStrip);

@@ -1492,6 +1492,8 @@ body.dark .lband{border:1px solid #2B3B50}
    את ההדגשה בעמודת «פער». */
 #tbl td.tup{color:var(--dim);font-family:var(--num);white-space:nowrap}
 #tbl td.tup .cap{color:var(--org);font-weight:700;margin-inline-start:3px}
+#tbl td .cov{color:var(--grn);font-weight:700;margin-inline-start:4px}
+#tbl td.sched i.stk{color:var(--dim);font-style:normal;margin-inline-start:4px}
 #riseBtn.on{background:var(--accL);border-color:var(--acc);color:var(--acc);font-weight:700}
 #riseBtn .fn{font-family:var(--num);font-weight:700}
 #custBtn.on{background:var(--redL);border-color:var(--red);color:var(--red);font-weight:700}
@@ -2137,6 +2139,39 @@ function etaAct(r){
  return q>0&&st>0?`לזרז את ${st} היחידות שלא שובצו לאספקה — ${q} כבר משובצות ל-${etaShort(r.etaFirst)}`
   :q>0?`למסור ללקוח תאריך — ${q} יח׳ מגיעות ב-${etaShort(r.etaFirst)}`
   :'לדרוש ETA — הפריט אינו מופיע בדוח האספקות';}
+/* ============ DOOR_ETA — תא אחד לכל ארבע הדלתות ============
+   ארבעה תאים שונים הם ארבע אמיתות שיסתעפו. זה אחד, והוא עונה על
+   שאלה אחת: מה הכלי יודע על ההגעה של הפריט הזה.
+
+   נמדד על הדוח האמיתי, וההוספה אינה אחידה:
+     לקוח ממתין  81 · 30 עם תאריך · 49 רכש בלי תאריך · 3 בלי רכש
+     בירידה     182 · 40 עם תאריך — 2,661 יח׳, $45,454 נוחתים לתוך
+                       ביקוש יורד. המספר הכספי הגדול בכלי.
+     בעלייה      96 · 37 עם משלוח שסוגר את הפער · 59 חשופים לגמרי
+     מעל הדרישה 409 · 197 עם רכש — אבל התאריך אינו משנה את השאלה
+
+   ההחלטה של המתכנן: שום דבר לא יורד מהרשימה בגלל משלוח מכסה.
+   «אני חייב לראות הכל.» לכן התא מסמן ולעולם אינו מסנן. */
+function doorEtaHead(){
+ if(!ETA)return 'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה לאף שורה';
+ const a=etaAgeDays();
+ return 'מה ידוע על ההגעה: כמות משובצת והתאריך המוקדם, או ⌛ לרכש בלי שום תאריך'
+  +(a!=null?` · הדוח בן ${a===0?'פחות מיום':a+' ימים'}`:'')
+  +(a!=null&&a>7?' — ככל שהוא ישן יותר, «יש תאריך» שווה פחות':'')}
+function doorEtaCell(r){
+ const po=r.po||0;
+ if(!ETA)return `<td class="num otw" title="${esc(po>0?po+' יח׳ ברכש פתוח — לא נטען דוח ETA, ואין תאריך הגעה':'אין רכש פתוח')}">`
+  +(po>0?`${po.toLocaleString('he-IL')}<i>⌛</i>`:'<span class="mut">—</span>')+'</td>';
+ const q=r.etaQty||0,st=r.stuck||0,past=r.etaPast||0;
+ if(q>0)return `<td class="num sched" title="${esc(`${q} יח׳ משובצות לאספקה · המוקדמת ${etaShort(r.etaFirst)}`
+   +(st>0?` · ועוד ${st} יח׳ ברכש בלי שום תאריך`:'')
+   +(past>0?` · ${past} יח׳ היו אמורות להגיע והתאריך עבר`:''))}">`
+   +`${q.toLocaleString('he-IL')}<i>·${etaShort(r.etaFirst)}</i>`
+   +(st>0?`<i class="stk">+${st}⌛</i>`:'')+'</td>';
+ if(st>0)return `<td class="num otw" title="${esc(`${st} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
+   +(past>0?` · ${past} יח׳ הובטחו לתאריך שכבר עבר`:''))}">`
+   +`${st.toLocaleString('he-IL')}<i>⌛</i></td>`;
+ return `<td class="num" title="${esc(po>0?'כל הרכש הפתוח משובץ ואין יחידות עתידיות':'אין רכש פתוח')}"><span class="mut">—</span></td>`}
 function otwHead(){return ETA
  ?'רכש פתוח. חלקו שובץ לאספקה עם תאריך — הפירוט במסך הבוקר, בעמודות «משובץ» ו«תקוע»'
  :'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי'}
@@ -4056,7 +4091,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return SHORTLIKE()?12:track==='done'?6:track==='floor'?8:track==='trend'?8:track==='rise'?8:track==='cust'?8:track==='applied'?7:8}
+function NCOL(){return SHORTLIKE()?12:track==='done'?6:track==='floor'?9:track==='trend'?9:track==='rise'?9:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -4098,6 +4133,21 @@ function riseTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=riseGap(r);units+=g;
   const c=curKey(r);cur[c]=(cur[c]||0)+g*(r.price||0)}
  return {n:rows.length,units,cur}}
+/* ============ DOOR_ETA · שתי ההצלבות שהמדידה מצאה ============
+   בירידה × ETA: 40 פריטים · 2,661 יח׳ · $45,454 — סחורה שכבר הוזמנה,
+   התאריך שלה קיים, והביקוש נפל מתחת למה שהיא נבנתה עליו.
+
+   ההחלטה של המתכנן: הזמנת רכש שנפתחה אינה ניתנת לדחייה או לביטול.
+   לכן זו *תחזית עודף* ולא רשימת פעולה — הניסוח אומר «כבר בדרך»
+   ולא «לבטל». להציג פעולה שאי אפשר לבצע הוא רעש.
+
+   בעלייה × ETA: 37 מתוך 96 כבר נושאים משלוח שסוגר את הפער.
+   הם *מסומנים ואינם יורדים*: «אני חייב לראות הכל». וגם לגופו של
+   עניין — ROP הוא פרמטר קבוע ולא כמות; משלוח פותר את המחזור הזה
+   ומשאיר את הנקודה נמוכה למחזור הבא. */
+function trendIncoming(rows){const l=(rows||[]).filter(r=>(r.etaQty||0)>0);
+ return {n:l.length,units:l.reduce((a,r)=>a+r.etaQty,0),list:l}}
+function riseCovered(r){return (r.etaQty||0)>0&&(r.etaQty||0)>=riseGap(r)}
 function trendTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=trendGap(r);units+=g;
   const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
@@ -4138,7 +4188,7 @@ function decisionHead(){const cols=FIXLIKE()
   :track==='floor'?['מק״ט','תיאור',
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
     '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
-    'פער','שווי הפער','צריכה 12ח׳']
+    'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 12ח׳']
   :track==='applied'?['מק״ט','תיאור',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">מלאי ביטחון</span>',
@@ -4146,19 +4196,20 @@ function decisionHead(){const cols=FIXLIKE()
   :track==='cust'?['מק״ט','תיאור',
     '<span title="כמות בהז.פ — הזמנת לקוח פתוחה, בניכוי כמות חסומה למשלוח">ממתין</span>',
     '<span title="סה״כ מלאי. המלאי הפנוי הוא אפס בכל שורה כאן — מלאי שמופיע כאן קיים פיזית אך אינו זמין">במלאי</span>',
-    `<span title="${otwHead()}">בדרך ⌛</span>`,
+    `<span title="${esc(doorEtaHead())}">הגעה</span>`,
     'זמן אספקה','שווי ההזמנה']
   :track==='rise'?['מק״ט','תיאור',
     '<span title="שלושת החודשים האחרונים מול השלושה שלפניהם. נמדד רק כשהרבעון הקודם נושא 3 יחידות לפחות — «פי 2» על 2 מול 1 הוא רעש">מגמה</span>',
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מוגבר בחצי מהעלייה שנמדדה, עד תקרה של 1.4">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המוגבר. מספר מייעץ — הכלי אינו מרים את ההמלצה לבד">ROP מוצע</span>',
     '<span title="בכמה יחידות נקודת ההזמנה מפגרת אחרי הביקוש שנמדד">פער</span>',
+    `<span title="${esc(doorEtaHead())}">הגעה</span>`,
     '<span title="מלאי פנוי. אדום = כבר מתחת לנקודת ההזמנה הנוכחית">מלאי</span>']
   :track==='trend'?['מק״ט','תיאור',
     '<span title="שלושת החודשים האחרונים מול השלושה שלפניהם, בתוך חלון הקצב עצמו">מגמה</span>',
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
-    'פער','שווי הפער']
+    'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`]
   :SHORTLIKE()?['מק״ט','תיאור','ספק','דגם',
     '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
     /* בלי דוח ETA אין במה לפצל — עמודה אחת, בדיוק כמו קודם. ראה ETA_SPLIT */
@@ -4226,7 +4277,7 @@ function custRow(r,i){
   <td>${hlMark(r.desc.slice(0,36),SQ)}</td>
   <td class="num"><span class="stake qty">${r.cust.toLocaleString('he-IL')}</span></td>
   <td class="num${stock>0?' held':''}"${stock>0?` title="${stock} יח׳ קיימות פיזית אך המלאי הפנוי אפס — הקצאה, חסימה או בדיקה"`:''}>${stock>0?stock.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-  <td class="num otw">${(r.po+(r.transfer||0))>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — ${otwWhy(r)}">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>
+  ${doorEtaCell(r)}
   <td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
   <td class="num">${money(custVal(r),r.currency)}</td></tr>`}
 function renderCust(rows){
@@ -4259,7 +4310,13 @@ function renderCust(rows){
  const noneT=custTotals(G.none), supN=rows.length-G.none.length;
  document.getElementById('pgL').textContent=`מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
  document.getElementById('pgR').textContent=
-  `${t.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(rows,custVal)} · ${G.none.length} ללא רכש (${moneyMix(G.none,custVal)}) · ${supN} ממתינים ל-ETA`;
+  /* «78 ממתינים ל-ETA» הפך לשקר ברגע שנוספה עמודת ההגעה: ל-30 מהם
+     יש תאריך. הפוטר אומר עכשיו את שלושת המצבים כפי שהם. */
+  (()=>{const dated=rows.filter(r=>(r.etaQty||0)>0).length;
+    return `${t.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(rows,custVal)}`
+     +` · ${G.none.length} ללא רכש (${moneyMix(G.none,custVal)})`
+     +(ETA?` · ${dated} עם תאריך · ${(supN-dated).toLocaleString('he-IL')} ברכש בלי תאריך`
+          :` · ${supN} ברכש — לא נטען דוח ETA`)})();
  document.getElementById('phdSub').textContent=
   'הזמנת לקוח פתוחה מול מלאי פנוי אפס · הקטע האדום הוא היחיד שדורש הזמנת רכש · השאר מקובצים לפי ספק כי הפעולה היא דרישת ETA';
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
@@ -4417,6 +4474,7 @@ function renderDecisions(rows){
     <td class="num">${need.toLocaleString('he-IL')}</td>
     <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
     <td class="num">${money(gap*(r.price||0),r.currency)}</td>
+    ${doorEtaCell(r)}
     <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td></tr>`);
    return}
   if(track==='rise'){const gap=riseGap(r),pc=risePct(r);
@@ -4427,7 +4485,8 @@ function renderDecisions(rows){
     <td class="num tup">↑${pc}%${r.riseF>=TREND_CEIL?`<span class="cap" title="העלייה שנמדדה גדולה מהתקרה — ההגברה נחתכה ב-1.4, בדיוק כמו שהריסון נעצר ב-0.6. עמודת הקצב מראה את מה שהוחל בפועל.">⊤</span>`:''}</td>
     <td class="num">${fmt1(r.rate)}<span class="sug">→${fmt1(r.rateU)}</span></td>
     <td class="num">${r.sugROP.toLocaleString('he-IL')}<span class="sug">→${r.sugROPU.toLocaleString('he-IL')}</span></td>
-    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
+    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span>${riseCovered(r)?`<span class="cov" title="${esc(`משלוח מתוארך של ${r.etaQty} יח׳ סוגר את הפער הזה — למחזור הזה. נקודת ההזמנה עצמה נשארת נמוכה, ולכן הפריט נשאר ברשימה.`)}">✓</span>`:''}</td>
+    ${doorEtaCell(r)}
     <td class="num${low?' miss':''}">${low?`<span class="neg">${r.free.toLocaleString('he-IL')}</span>`:r.free.toLocaleString('he-IL')}</td></tr>`);
    return}
   if(track==='trend'){const gap=trendGap(r),pc=trendPct(r);
@@ -4438,7 +4497,8 @@ function renderDecisions(rows){
     <td class="num">${fmt1(r.rate)}<span class="sug">→${fmt1(r.rateT)}</span></td>
     <td class="num">${r.sugROP.toLocaleString('he-IL')}<span class="sug">→${r.sugROPT.toLocaleString('he-IL')}</span></td>
     <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
-    <td class="num">${money(gap*(r.price||0),r.currency)}</td></tr>`);
+    <td class="num">${money(gap*(r.price||0),r.currency)}</td>
+    ${doorEtaCell(r)}</tr>`);
    return}
   if(FIXLIKE()){
    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
@@ -4502,8 +4562,14 @@ function renderDecisions(rows){
  const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
  document.getElementById('pgR').textContent=(track==='floor'
    ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+   :track==='rise'
+   ?(()=>{const cov=rows.filter(riseCovered);
+      return `${rows.reduce((a,r)=>a+riseGap(r),0).toLocaleString('he-IL')} יח׳ שנקודת ההזמנה מפגרת אחריהן · ${moneyMix(rows,r=>riseGap(r)*(r.price||0))}`
+       +(cov.length?` · ${cov.length.toLocaleString('he-IL')} מהן נסגרות על ידי משלוח שכבר בדרך — למחזור הזה בלבד`:'')})()
    :track==='trend'
-   ?`${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
+   ?(()=>{const inc=trendIncoming(rows);
+      return `${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
+       +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
    :track==='done'
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
    :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
@@ -4511,9 +4577,11 @@ function renderDecisions(rows){
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  document.getElementById('phdSub').textContent=track==='floor'
-  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער'
+  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
   :track==='trend'
-  ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית · ממוין לפי שווי הפער · ההמלצה לא שונתה אוטומטית'
+  ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
+  :track==='rise'
+  ?'הביקוש עלה בתוך חלון הקצב ונקודת ההזמנה מפגרת אחריו · מספר מייעץ, ההמלצה לא שונתה · ✓ = משלוח בדרך סוגר את הפער למחזור הזה, והפריט נשאר ברשימה'
   :track==='done'
   ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
   :FIXLIKE()

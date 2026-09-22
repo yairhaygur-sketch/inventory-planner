@@ -861,6 +861,55 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      vis:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
  ok('הדלתות לא שברו את תקציב הגובה',dBud.chrome>0&&dBud.chrome<360,dBud.chrome+'px');
 
+/* ============ DOOR_ETA · ה-ETA בכל ארבע הדלתות ============
+    תא אחד משותף, ארבע דלתות. נבדק כאן ולא ב-eta.test.js, כי שם
+    הפיקסצ'ר הוא 10 פריטים ואין בו אף שורת רצפה, מגמה או עלייה —
+    שלוש מהבדיקות היו עוברות על אפס שורות ולא אומרות דבר. */
+ await p.setInputFiles('#fe',SD+'/zmrp-demo-eta.xlsx');await p.waitForTimeout(1400);
+ const doors=[];
+ for(const m of ['cust','floor','trend','rise']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(800);
+  doors.push(await p.evaluate(k=>{
+   const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const heads=[...document.querySelectorAll('#tbl thead th')];
+   const w=document.querySelector('.rows');
+   const model=k==='cust'?custRows():k==='floor'?floorRows():k==='trend'?trendRows():riseRows();
+   return {k,heads:heads.length,cells:rows.length?rows[0].querySelectorAll('td').length:0,
+     hasEtaHead:heads.some(h=>/הגעה/.test(h.textContent)),
+     etaCells:document.querySelectorAll('#tbl td.sched, #tbl td.otw').length,
+     withPo:model.filter(r=>(r.po||0)>0).length,
+     dated:model.filter(r=>(r.etaQty||0)>0).length,
+     n:rows.length,model:model.length,
+     ovf:w?w.scrollWidth-w.clientWidth:0,
+     pgR:(document.getElementById('pgR').textContent||'').trim()}},m))}
+ const D=Object.fromEntries(doors.map(d=>[d.k,d]));
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+
+ ok('כל ארבע הדלתות פופולטיות בפיקסצ׳ר',
+    doors.every(d=>d.model>0),doors.map(d=>d.k+':'+d.model).join(' · '));
+ ok('לכל ארבע הדלתות יש עמודת הגעה',
+    doors.every(d=>d.hasEtaHead),doors.filter(d=>!d.hasEtaHead).map(d=>d.k).join(',')||'כולן');
+ ok('הכותרות תואמות למספר התאים בכל דלת',
+    doors.every(d=>d.heads===d.cells),
+    doors.map(d=>`${d.k} ${d.heads}/${d.cells}`).join(' · '));
+ ok('אין גלישה אופקית באף דלת',doors.every(d=>d.ovf<=1),
+    doors.map(d=>d.k+' '+d.ovf+'px').join(' · '));
+ /* הכלל שהמתכנן קבע: שום דבר לא יורד מהרשימה בגלל משלוח מכסה. */
+ ok('שום דלת לא מסננת פריטים בגלל ה-ETA',
+    doors.every(d=>d.n===d.model),
+    doors.map(d=>`${d.k} ${d.n}/${d.model}`).join(' · '));
+ ok('תא ההגעה מופיע לכל פריט עם רכש פתוח',
+    doors.every(d=>d.etaCells>=d.withPo),
+    doors.map(d=>`${d.k} ${d.etaCells}≥${d.withPo}`).join(' · '));
+ ok('בירידה — הפוטר אומר מה כבר בדרך לתוך הירידה',
+    D.trend.dated>0&&/כבר בדרך לתוך הביקוש היורד/.test(D.trend.pgR),
+    `${D.trend.dated} עם תאריך · ${D.trend.pgR.slice(-60)}`);
+ ok('בעלייה — הפוטר אומר כמה נסגרות במשלוח שכבר בדרך',
+    D.rise.dated>0&&/נסגרות על ידי משלוח שכבר בדרך/.test(D.rise.pgR),
+    `${D.rise.dated} עם תאריך · ${D.rise.pgR.slice(-60)}`);
+ ok('לקוח ממתין — הפוטר מפריד בין «עם תאריך» ל«בלי»',
+    /עם תאריך/.test(D.cust.pgR)&&/בלי תאריך/.test(D.cust.pgR),D.cust.pgR.slice(-60));
+
  /* ============ RISE · המסלול העולה על המסך ============ */
  await p.evaluate(()=>setMode('rise'));await p.waitForTimeout(700);
  const up=await p.evaluate(()=>{
