@@ -1534,6 +1534,7 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
+    <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך.">☎<span class="lbl"> דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה">⇅<span class="lbl"> מצב עבודה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים">🌙<span class="lbl"> מצב כהה</span></button>
     <button class="btn" id="xpBtn" aria-pressed="false" title="מצב הסבר — לחיצה על כל כפתור תסביר מה הוא מראה ומה לבדוק, במקום להפעיל אותו">?<span class="lbl"> הסבר</span></button>
@@ -4954,6 +4955,165 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  const dstr=new Date().toISOString().slice(0,10);
  XLSX.writeFile(wb,`Inventory_${cur}_${dstr}.xlsx`);
  toast(`יוצאו ${currentRows().length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
+/* ============ EXPEDITE — דוח הזירוז מול הספקים ============
+   הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
+   דחיפות ומיון לפי ימי פיגור. נמדד על הדוח האמיתי (7,569 פריטים,
+   823 עם רכש פתוח) ונפל: הדלי "המדף נגמר לפני ההגעה" הוא 41 פריטים
+   עם חציון פער של יומיים, כי לרוב הרכש הפתוח אין בכלל תאריך להשוות
+   אליו. מה שכן גדול הוא אחר לגמרי — 541 פריטים, 8,074 יח׳, בלי שום
+   תאריך אספקה. הדוח הזה בנוי סביב מה שנמצא, לא סביב מה שתוכנן.
+
+   ומה שהכלי עושה כאן ואקסל לא — הוא מוריד מהרשימה. 145 פריטים
+   בדוח האמיתי תאריכם עבר; ב-128 מהם הכמות כבר ירדה מהרכש הפתוח,
+   כלומר הסחורה נחתה. רשימת "מאחרים" נאיבית (תאריך שעבר + רכש פתוח)
+   הייתה 88% רעש. מי שמתקשר על 128 משלוחים שכבר הגיעו שורף את
+   האמינות שלו מול הספק. הם לא נמחקים — הם בגיליון נפרד, עם הסיבה. */
+const EXP_ASK={
+ late   :{k:'late',   t:'איפה זה?',          o:1},
+ partial:{k:'partial',t:'מה הגיע ומה לא?',   o:2},
+ nodate :{k:'nodate', t:'תן תאריך',          o:3},
+ pull   :{k:'pull',   t:'להקדים',            o:4},
+ noorder:{k:'noorder',t:'אין הזמנה בכלל',    o:5}};
+const EXP_URGN=['','לקוח ממתין','מדף אפס','אוזל לפני ההגעה','מעקב'];
+/* ימים עד שהמדף מתרוקן בקצב הנוכחי. null כשאין קצב — פריט בלי צריכה
+   אינו "אוזל", והשאלה מתי הוא נגמר חסרת מובן. */
+function expRunout(r){if(!(r.rate>0))return null;
+ return Math.floor(Math.max(0,r.free||0)/r.rate*30)}
+function expEtaIn(r){if(!r.etaFirst)return null;
+ const a=new Date(etaToday()+'T00:00:00'),b=new Date(r.etaFirst+'T00:00:00');
+ return Math.round((b-a)/864e5)}
+function expLate(r){const d=expEtaIn(r);return d==null?null:-d}
+/* המדף נגמר לפני שהמשלוח מגיע. שתי הצלעות חייבות להיות ידועות. */
+function expGap(r){const ro=expRunout(r),e=expEtaIn(r);
+ return (ro==null||e==null)?null:(e>ro?e-ro:null)}
+/* ללא דוח ETA כל הרכש הפתוח הוא "בלי תאריך" — אבל זה משפט על הכלי
+   ולא על הספק, ולכן האזהרה בראש הגיליון אומרת זאת במפורש. */
+function expStuck(r){return ETA?(r.stuck||0):Math.max(0,r.po||0)}
+function expUrg(r){if(r.cust>0&&(r.free||0)<=0)return 1;
+ if((r.free||0)<=0&&r.rate>0)return 2;
+ if(expGap(r)!=null)return 3;return 4}
+/* מספרי מסמכי הרכש מדוח ה-ETA — מה שמצטטים לספק. זה מה ש«מסמך רכש»
+   נתן בסוף; הוא לא היה מפתח לשרשרת ההחלפה, והוא כן הידית של הדוח. */
+function expPo(r){const ls=(ETA&&ETA.byPn)?ETA.byPn[etaKey(r.pn)]:null;
+ if(!ls)return '';const s=new Set();
+ for(const e of ls){const p=e[3];if(p)s.add(p)}
+ return [...s].join(', ')}
+function expediteRows(){
+ const near=(a,b)=>Math.abs(a-b)<0.01,t=etaToday();
+ const rows=[],landed=[];
+ for(const r of (ALL||[])){
+  if(r.mark)continue;
+  const po=r.po||0,cust=r.cust||0,free=r.free||0;
+  if(!(po>0)&&!(cust>0&&free<=0))continue;
+  const fut=r.etaQty||0,past=r.etaPast||0,stuck=expStuck(r);
+  let ask=null,qty=0;
+  if(po<=0){ask=EXP_ASK.noorder;qty=cust}
+  /* הכמות שהובטחה בעבר כבר ירדה מהרכש הפתוח — הסחורה נחתה, ואין על מה
+     להתקשר. חריג אחד: לקוח שעדיין ממתין מול מדף ריק. אז מה שנחת נצרך
+     לפני שהגיע אליו, והבקשה אינה «איפה זה» אלא «הקדם את המשלוח הבא».
+     נמדד על הדוח האמיתי — 3 מתוך 128. בלי החריג הם היו נופלים מהדוח
+     דווקא בגלל שמשלוח קודם הגיע. */
+  else if(past>0&&near(po,fut)){
+   if(!(cust>0&&free<=0)){landed.push(r);continue}
+   ask=EXP_ASK.pull;qty=fut}
+  else if(past>0&&near(po,fut+past)){ask=EXP_ASK.late;qty=past}
+  else if(past>0){ask=EXP_ASK.partial;qty=Math.max(0,po-fut)}
+  else if(stuck>0){ask=EXP_ASK.nodate;qty=stuck}
+  /* יש תאריך והוא לפני האזילה — לכאורה מכוסה. «לכאורה» כי חישוב
+     האזילה הוא לפי קצב ממוצע, והוא אינו אומר דבר על הזמנת הלקוח
+     הספציפית שיושבת עכשיו מול מדף ריק. הזמנה בשם היא עובדה; קצב הוא
+     ממוצע. פריט אחד בדיוק בדוח האמיתי נפל בין השניים. */
+  else if(fut>0&&(expGap(r)!=null||(cust>0&&free<=0))){ask=EXP_ASK.pull;qty=fut}
+  else continue;
+  rows.push({r,ask,qty,urg:expUrg(r)})}
+ rows.sort((a,b)=>a.urg-b.urg||custVal(b.r)-custVal(a.r)||b.qty-a.qty
+  ||String(a.r.pn).localeCompare(b.r.pn));
+ return {rows,landed}}
+const EXPCOLS=[
+ ['ספק',      x=>x.r.supplier],
+ ['מק״ט',     x=>x.r.pn],
+ ['תיאור',    x=>x.r.desc],
+ ['הבקשה',    x=>x.ask.t],
+ ['דחיפות',   x=>EXP_URGN[x.urg]],
+ ['יח׳ לזירוז',x=>x.qty],
+ ['תאריך שהובטח',x=>x.r.etaFirst?etaShort(x.r.etaFirst):(x.r.etaPast>0?'עבר':'')],
+ ['ימי פיגור', x=>{const d=expLate(x.r);return d!=null&&d>0?d:''}],
+ ['אוזל בעוד (ימים)',x=>{const d=expRunout(x.r);return d==null?'':d}],
+ ['פער עד ההגעה',x=>{const g=expGap(x.r);return g==null?'':g}],
+ ['מלאי פנוי', x=>x.r.free],
+ ['רכש פתוח',  x=>x.r.po],
+ ['יח׳ עם תאריך',x=>x.r.etaQty||0],
+ ['לקוח ממתין',x=>x.r.cust||0],
+ ['שווי הזמנת הלקוח',x=>custVal(x.r)?Math.round(custVal(x.r)):''],
+ ['מטבע',     x=>x.r.currency||''],
+ ['חודשי כיסוי',x=>x.r.cov==null?'':+x.r.cov.toFixed(1)],
+ ['זמן אספקה (ימים)',x=>x.r.ltD||''],
+ ['מסמכי רכש',x=>expPo(x.r)],
+ ['דגם',      x=>x.r.model],
+ ['ABC',      x=>x.r.abc||''],
+ ['סוג MRP',  x=>x.r.mrp]];
+/* גיליון אחד לכל ספק אינו הדוח — שיחה אחת לכל ספק היא. הסיכום הוא
+   סדר היום: מי, כמה, ומה לבקש ממנו. */
+function expSupplierAoa(rows){
+ const by={};
+ for(const x of rows){const s=x.r.supplier||'ללא ספק';
+  const o=by[s]=by[s]||{n:0,q:0,cw:[],k:{}};
+  o.n++;o.q+=x.qty;o.k[x.ask.k]=(o.k[x.ask.k]||0)+1;
+  if(x.r.cust>0&&(x.r.free||0)<=0)o.cw.push(x.r)}
+ const ks=Object.keys(EXP_ASK);
+ const hdr=['ספק','פריטים','יח׳ לזירוז','לקוח ממתין','שווי הזמנות הלקוח',
+  ...ks.map(k=>EXP_ASK[k].t)];
+ const body=Object.entries(by)
+  .sort((a,b)=>b[1].cw.length-a[1].cw.length||b[1].q-a[1].q)
+  .map(([s,o])=>[s,o.n,o.q,o.cw.length,
+   o.cw.length?moneyMix(o.cw,r=>custVal(r)):'',
+   ...ks.map(k=>o.k[k]||0)]);
+ return [hdr,...body]}
+function expLandedAoa(landed){
+ const hdr=['ספק','מק״ט','תיאור','יח׳ שהובטחו ועברו','רכש פתוח','יח׳ עם תאריך','למה לא ברשימה'];
+ const body=landed.map(r=>[r.supplier,r.pn,r.desc,r.etaPast||0,r.po||0,r.etaQty||0,
+  'הכמות שהובטחה כבר ירדה מהרכש הפתוח — הסחורה נחתה']);
+ return [hdr,...body]}
+/* שורות האזהרה נכתבות לתוך הגיליון ולא רק ל-toast: הקובץ נשלח
+   הלאה, וקובץ שיצא מההקשר שלו חייב לשאת את הסייגים שלו. */
+function expNotes(rows,landed){
+ const n=[];
+ if(!ETA)n.push('⚠ לא נטען דוח ETA. «תן תאריך» כאן פירושו שהכלי אינו יודע תאריך — לא שהספק לא נתן אחד.');
+ else{const a=etaAgeDays();
+  if(a!=null&&a>7)n.push(`⚠ דוח ה-ETA בן ${a} ימים. ככל שהוא ישן יותר, כך יותר משלוחים כבר נחתו והרשימה מנפחת.`);}
+ if(landed.length)n.push(`${landed.length.toLocaleString('he-IL')} פריטים שתאריכם עבר הוסרו מהרשימה — הכמות שלהם כבר ירדה מהרכש הפתוח. הם בגיליון «נחתו — לא לרדוף».`);
+ const np=noPriceN(rows.map(x=>x.r));
+ if(np)n.push(`${np.toLocaleString('he-IL')} פריטים בלי מחיר FOB — שווי הזמנת הלקוח שלהם אפס, וכל סכום בדוח הוא רצפה.`);
+ const noRef=rows.reduce((a,x)=>a+(expPo(x.r)?0:1),0);
+ if(noRef)n.push(`${noRef.toLocaleString('he-IL')} מתוך ${rows.length.toLocaleString('he-IL')} השורות בלי מספר מסמך רכש — הוא מגיע מדוח ה-ETA בלבד, ולספק שאינו מופיע שם אין מה לצטט.`);
+ n.push('הדוח נבנה על כל הקטלוג ואינו מושפע מהסינון שעל המסך.');
+ return n}
+function doExpedite(){
+ if(!ALL||!ALL.length){toast('אין נתונים — העלה דוח ZMRP');return}
+ const {rows,landed}=expediteRows();
+ if(!rows.length){toast('אין מה לזרז — אין רכש פתוח פתוח לבירור ואין לקוח שממתין');return}
+ const wb=XLSX.utils.book_new();
+ const notes=expNotes(rows,landed);
+ const sup=expSupplierAoa(rows);
+ const head=[[`דוח זירוז · ${fmtDate(new Date())}`],
+  [`${rows.length.toLocaleString('he-IL')} פריטים · ${rows.reduce((a,x)=>a+x.qty,0).toLocaleString('he-IL')} יח׳ · ${sup.length-1} ספקים`],
+  ...notes.map(t=>[t]),[]];
+ const sws=XLSX.utils.aoa_to_sheet([...head,...sup]);
+ sws['!cols']=[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},
+  ...Object.keys(EXP_ASK).map(()=>({wch:15}))];
+ XLSX.utils.book_append_sheet(wb,sws,'לפי ספק');
+ const aoa=[EXPCOLS.map(c=>c[0]),...rows.map(x=>EXPCOLS.map(c=>{
+  let v;try{v=c[1](x)}catch(_){v=''}return v==null?'':v}))];
+ const ws=XLSX.utils.aoa_to_sheet(aoa);
+ ws['!cols']=EXPCOLS.map((c,i)=>({wch:i===0?30:(i===2?30:(i===18?22:13))}));
+ ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa.length-1,c:EXPCOLS.length-1}})};
+ XLSX.utils.book_append_sheet(wb,ws,'לזירוז');
+ if(landed.length){const lws=XLSX.utils.aoa_to_sheet(expLandedAoa(landed));
+  lws['!cols']=[{wch:30},{wch:18},{wch:30},{wch:18},{wch:12},{wch:14},{wch:52}];
+  XLSX.utils.book_append_sheet(wb,lws,'נחתו — לא לרדוף')}
+ XLSX.writeFile(wb,`Expedite_${new Date().toISOString().slice(0,10)}.xlsx`);
+ toast(`דוח זירוז: ${rows.length.toLocaleString('he-IL')} פריטים אצל ${sup.length-1} ספקים`
+  +(landed.length?` · ${landed.length} שכבר נחתו הורדו`:'')+' ✓')}
 /* wireDrag() הוגדר ומעולם לא נקרא, ולכן כפתורי ה-✕ על כותרות הווידג'טים
    מעולם לא חוברו. הם היו מוסתרים ב-CSS אז איש לא הבחין. */
 document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
@@ -5025,6 +5185,7 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
  const n=FDEF.reduce((t,[k])=>t+(SEL[k]&&SEL[k].size?1:0),0);
  b.classList.toggle('on',open||n>0);
  b.innerHTML='☰ סינון'+(n?` <span class="fn">${n}</span>`:'')}
+document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
@@ -5185,6 +5346,9 @@ const XP={
  'top-export':{t:'ייצוא לאקסל',
   see:'מוריד את מה שמוצג כרגע על המסך, אחרי הסינון והמיון, כקובץ אקסל.',
   chk:'מייצא את התצוגה הנוכחית ולא את כל הקטלוג. אם אתה רוצה הכול — עבור ל«הקטלוג» ונקה סינונים לפני.'},
+ 'top-expedite':{t:'דוח זירוז',
+  see:'מוריד קובץ אקסל של כל מה שפתוח מול הספקים — רכש בלי תאריך, תאריך שעבר והכמות עדיין פתוחה, ולקוח שממתין מול מדף ריק. גיליון ראשון הוא סדר היום לפי ספק; גיליון שני הוא השורות עצמן.',
+  chk:'גיליון שלישי «נחתו — לא לרדוף» הוא מה שהכלי הוריד מהרשימה: תאריך שעבר אבל הכמות כבר ירדה מהרכש הפתוח. בדוח האמיתי זה 128 מתוך 145 — רשימת מאחרים נאיבית היא ברובה רעש.'},
  'top-state':{t:'מצב עבודה',
   see:'גיבוי והעברה של מה שהחלטת — סימונים, היסטוריה, המלצות קודמות. לא של איך המסך נראה.',
   chk:'השתמש בזה כשאתה עובר למחשב אחר. בלי זה הזיכרון נשאר בדפדפן הזה בלבד.'},
@@ -5257,7 +5421,7 @@ function xpSet(on){XPON=on;document.body.classList.toggle('xp',on);
  const btn=document.getElementById('xpBtn');if(!btn)return;
  btn.onclick=()=>xpSet(!XPON);
  /* הצמדת מפתחות לכפתורים הקבועים */
- const map={filtBtn:'top-filter',exportXls:'top-export',stBtn:'top-state',
+ const map={filtBtn:'top-filter',exportXls:'top-export',expXls:'top-expedite',stBtn:'top-state',
    darkToggle:'top-dark',wmBtn:'top-widgets',saveView:'top-save',resetView:'top-reset',
    floorBtn:'sum-floor',custBtn:'sum-cust',trendBtn:'sum-trend',apBtn:'sum-applied',
    doneBtn:'sum-done',gseg:'q-group',histChip:'q-hist',nlq:'nlq'};
