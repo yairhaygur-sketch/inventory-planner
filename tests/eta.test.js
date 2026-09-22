@@ -287,8 +287,8 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
 
  /* «משובץ» שונה שמו ל«מכוסה» ומציג את מה שנוחת עד סוף החודש
     בלבד — ראה SHORT_ANSWER. הפיצול לשני תאים לא השתנה. */
- ok('עם דוח — "בדרך" מתפצל ל"מכוסה" ו"תקוע"',
-    after.cols.includes('מכוסה')&&after.cols.includes('תקוע')
+ ok('עם דוח — "בדרך" מתפצל ל"מכוסה" ו"ללא תאריך"',
+    after.cols.includes('מכוסה')&&after.cols.includes('ללא תאריך')
     &&!after.cols.includes('בדרך ⌛')&&after.nSched>0&&after.nOtw===0,
     `sched=${after.nSched} otw=${after.nOtw}`);
  ok('הצ׳יפ מציג את מספר המק״טים בדוח',
@@ -376,7 +376,9 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     PA:m('T2-PARTIAL'),W:m('T1-WITH-ETA'),
     ovf:w?w.scrollWidth-w.clientWidth:0}});
  ok('הכותרת נושאת את ארבע התשובות',
-    /מכוסה/.test(ans.heads)&&/נשאר/.test(ans.heads)&&/הפעולה הבאה/.test(ans.heads),ans.heads);
+    /מכוסה/.test(ans.heads)&&/חוסר חזוי/.test(ans.heads)&&/הפעולה הבאה/.test(ans.heads)
+    /* «דרישת לקוח» מופרדת מ«חוסר חזוי» — עובדה מול תחזית */
+    &&/דרישת לקוח/.test(ans.heads),ans.heads);
  ok('לכל שורה יש פעולה — לא תווית סיווג',
     ans.nAct===ans.nRows&&ans.nRows>0,`${ans.nAct} / ${ans.nRows}`);
  /* «מכוסה» הוא מה שנוחת עד סוף החודש, לא כל העתיד המתוארך. */
