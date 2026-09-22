@@ -148,17 +148,23 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
  ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
  ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
- /* מסילת הסינון פתוחה כברירת מחדל — תשעת הסינונים בשימוש יומיומי.
-    היא נקפלת ונפתחת, והמצב נשמר. הבדיקה הקודמת כאן קיבעה בטעות
-    שהמסילה מוסתרת; זו הייתה רגרסיה, לא כוונה. */
- ok('הרשימה חולקת את הגריד עם מסילת הסינון',dr.cols===2,dr.cols+' עמודות');
- ok('מסילת הסינון פתוחה כברירת מחדל',dr.railW>150,`רוחב מסילה ${dr.railW}`);
- ok('תשעת הסינונים קיימים',
-   9===await p.evaluate(()=>document.querySelectorAll('.wfilters .ddbtn').length));
+ /* המסילה מקופלת בפתיחה לפי החלטת המתכנן, ולכן הגריד הוא עמודה
+    אחת עד שפותחים אותה. הבדיקה שמסילה *פתוחה* חולקת את הגריד
+    עברה למטה, אחרי שהכפתור פותח אותה. */
+ ok('בלי מסילה הרשימה מקבלת את כל הרוחב',dr.cols===1,dr.cols+' עמודות');
+ /* היה: «מסילת הסינון פתוחה כברירת מחדל». המתכנן הכריע אחרת —
+    220px שעומדים ריקים ברוב הבקרים. עכשיו היא מקופלת בפתיחה,
+    והסינונים הפעילים מוצגים כשבבים מעל הטבלה כדי שסינון שנשכח
+    פתוח לא ייעלם מהעין. */
+ ok('מסילת הסינון מקופלת כברירת מחדל',dr.railW===0,`רוחב מסילה ${dr.railW}`);
  const railVis=()=>p.evaluate(()=>{const r=document.querySelector('.wfilters');
    return !!r&&r.offsetParent!==null});
  ok('כפתור «סינון» בסרגל העליון גלוי',
    await p.evaluate(()=>{const b=document.getElementById('filtBtn');return !!b&&b.offsetParent!==null}));
+ await p.click('#filtBtn');await p.waitForTimeout(350);
+ ok('הכפתור פותח את המסילה',await railVis());
+ ok('תשעת הסינונים קיימים',
+   9===await p.evaluate(()=>document.querySelectorAll('.wfilters .ddbtn').length));
  await p.click('.wfilters .whead .wx');await p.waitForTimeout(350);
  ok('✕ מקפל את המסילה',!(await railVis()));
  ok('הקיפול משחרר את עמודת הרשת',
@@ -179,7 +185,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      w:Math.round(d.width),txt:document.getElementById('detail').innerText.length,
      rowsW:document.querySelector('.rows').clientWidth}});
  ok('לחיצה על שורה פותחת את המגירה',dop.open&&dop.onScreen&&dop.txt>50,`רוחב ${dop.w}`);
- ok('המגירה מרחפת ואינה מכווצת את הרשימה',dop.rowsW===dr.rowsW,`${dop.rowsW} מול ${dr.rowsW}`);
+ /* dr נמדד כשהמסילה עוד הייתה פתוחה בשלב שלפני; מה שנבדק כאן הוא
+     שהמגירה עצמה אינה מכווצת, ולכן ההשוואה היא לפני/אחרי פתיחתה. */
+ const rowsBefore=await p.evaluate(()=>document.querySelector('.rows').clientWidth);
+ ok('המגירה מרחפת ואינה מכווצת את הרשימה',
+    Math.abs(dop.rowsW-rowsBefore)<=1,`${dop.rowsW} מול ${rowsBefore}`);
  await p.keyboard.press('Escape');await p.waitForTimeout(300);
  const dcl=await p.evaluate(()=>({open:document.body.classList.contains('dopen'),
    sel:document.querySelectorAll('#tbl tbody tr.sel').length}));
@@ -273,7 +283,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ולא את גרסת ה-11px שנפסלה (48px בזרימה הזו). */
  const rowH=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
    return tr?Math.round(tr.getBoundingClientRect().height):0});
- ok('שורה נושמת — גובה 36-44px',rowH>=36&&rowH<=44,rowH+'px (32px לפני שורות נושמות)');
+ /* היה: «שורה נושמת — גובה 36-44px». המתכנן הכריע הפוך: «למעתד,
+     צפיפות טובה היא יתרון». הטווח החדש נועל את הכיוון ההפוך —
+     ושומר רצפה, כדי ששורה לא תיצמד עד כדי חוסר קריאות. */
+ ok('שורה צפופה — גובה 28-36px',rowH>=28&&rowH<=36,
+    rowH+'px (44px בגרסת «שורות נושמות»)');
 
  /* ── NOPRICE ──
     כל סכום בכלי הוא רצפה: פריט בלי מחיר FOB תורם 0. נמדד לפני שנבנה —
@@ -566,14 +580,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const zero=document.querySelector('#tbl td.zero');
   const gs=n=>{const e=document.querySelector(n);return e?getComputedStyle(e):null};
   const so=gs('#tbl td.otw'),sz=gs('#tbl td.zero'),sn=gs('#tbl tbody tr[data-i] td.num');
-  return {heads:h, hasStock:h.includes('מלאי'), hasCust:h.includes('לקוח'),
+  return {heads:h, hasStock:h.includes('מלאי'), hasCust:h.includes('דרישת לקוח'),
     hasOtw:h.some(x=>x.indexOf('בדרך')===0),
     otwMarked:!!otw&&/⌛/.test(otw.textContent),
     otwTitleHasEta:!!otw&&/אין תאריך הגעה/.test(otw.getAttribute('title')||''),
     otwDim:so&&sn?so.color!==sn.color:false,
     zeroRed:!!sz&&sz.fontWeight>=600}});
  ok('עמודת מלאי קיימת',dec.hasStock,dec.heads.join(' · '));
- ok('עמודת לקוח ממתין קיימת',dec.hasCust);
+ /* «לקוח» נקרא עכשיו «דרישת לקוח», כדי להפריד עובדה מתחזית. */
+ ok('עמודת דרישת הלקוח קיימת',dec.hasCust,dec.heads.join(' · '));
  ok('עמודת "בדרך" קיימת',dec.hasOtw);
  ok('"בדרך" מסומן ⌛ ולא נקרא ככיסוי',dec.otwMarked);
  ok('ההסבר אומר במפורש שאין ETA',dec.otwTitleHasEta);
@@ -676,8 +691,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('שורת הכותרת נשארת בשורה אחת גם כשהמגירה דוחפת',dwHead.h<=48,
    `${dwHead.h}px · ${dwHead.chips} שבבים ב-${dwHead.avail}px`+
    (dwHead.tall.length?` · נשברו: ${dwHead.tall.join(', ')}`:''));
+ /* שש הדלתות הן ילד אחד (.doors) ולא שישה, ולכן מניין הילדים
+     ירד. מה שנבדק לא השתנה: הרמז יורד, והשאר נשאר. */
  ok('רמז המקלדת יורד בזמן הדחיפה, שאר השבבים נשארים',
-   !dwHead.kbd&&dwHead.chips>=4,dwHead.chips+' שבבים');
+   !dwHead.kbd&&dwHead.chips>=3,dwHead.chips+' שבבים');
  /* *אם* היא דוחפת תלוי בנתונים — כמה רחב התיאור בדוח הזה — ולכן זו
     אינה תכונה שכדאי לקבע בבדיקה. מה שכן חייב להתקיים בכל מצב ובכל
     רוחב הוא האינווריאנטה: כשדוחפת אין חפיפה ואין גלישה, וכשלא דוחפת
@@ -812,14 +829,58 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     dOut.n.cust>0&&!/[$€₪]/.test(dOut.cust),dOut.cust||'(מוסתר)');
  /* הכיתוב המלא מוסתר מחוץ למסלול, וזה מה שמאפשר לשש הדלתות לשבת
     בשורה אחת. בלי זה הן דרסו את קיבוץ הקבוצות ואת שבב ההשוואה. */
- const dLbl=await p.evaluate(()=>({
-   outHidden:[...document.querySelectorAll('.doors .btn:not(.on) .dl')]
-     .every(e=>e.offsetParent===null),
-   nOut:document.querySelectorAll('.doors .btn:not(.on) .dl').length,
-   phdH:Math.round(document.querySelector('#w_queue .phd').getBoundingClientRect().height)}));
- ok('הכיתוב המלא מופיע רק בדלת הפעילה',dLbl.outHidden&&dLbl.nOut>0,
-    dLbl.nOut+' כיתובים מוסתרים');
+ /* הכיתובים חוזרים כברירת מחדל; fitDoors מקפל רק אם השורה נשברת.
+    מה שנעול הוא שני הקצוות: כשיש מקום — שם מלא ולא סמל בלבד;
+    ובכל מקרה — שורה אחת. */
+ const dLbl=await p.evaluate(()=>{
+   const phd=document.querySelector('#w_queue .phd');
+   const vis=[...document.querySelectorAll('.doors .btn')].filter(b=>!b.hidden);
+   const shown=vis.filter(b=>{const d=b.querySelector('.dl');return d&&d.offsetParent!==null});
+   return {n:vis.length,shown:shown.length,
+     compact:document.getElementById('doors').classList.contains('compact'),
+     names:shown.map(b=>b.textContent.replace(/\s+/g,' ').trim()),
+     phdH:Math.round(phd.getBoundingClientRect().height)}});
+ ok('הדלתות נושאות שם ולא סמל בלבד',
+    dLbl.compact?dLbl.shown===0:dLbl.shown===dLbl.n,
+    dLbl.compact?`מקופל (${dLbl.n} דלתות)`:dLbl.names.join(' · '));
  ok('ושורת הכותרת נשארת בשורה אחת עם הדלתות',dLbl.phdH<=48,dLbl.phdH+'px');
+ /* ============ UX_PASS · מה שהמתכנן הכריע ============ */
+ const ux=await p.evaluate(()=>{
+  const band=document.querySelector('.lband'),rows=document.querySelector('.rows');
+  const trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+  const rh=trs.length?trs[0].getBoundingClientRect().height:0;
+  const flags=[...document.querySelectorAll('.doors .btn,#bulkBtn')]
+    .filter(e=>e.offsetParent!==null&&/⚑/.test(e.textContent));
+  return {bandH:Math.round(band?band.getBoundingClientRect().height:0),
+    mini:!!band&&band.classList.contains('mini'),
+    hasToggle:!!document.getElementById('bandx'),
+    rowH:Math.round(rh),
+    listPct:Math.round((rows?rows.getBoundingClientRect().height:0)/innerHeight*100),
+    flagUses:flags.length,
+    nopxVisible:(e=>!!e&&e.offsetParent!==null)(document.querySelector('.nopx')),
+    tabs:[...document.querySelectorAll('#tabs .tab')].map(t=>t.textContent.replace(/\s+/g,' ').trim())}});
+ ok('הרצועה מקופלת בפתיחה, עם כפתור לפתוח',
+    ux.mini&&ux.hasToggle&&ux.bandH<90,`${ux.bandH}px · מקופלת ${ux.mini}`);
+ /* הסייג «כל סכום כאן הוא רצפה» אינו מתקפל עם הרצועה. */
+ ok('מונה «בלי מחיר» נשאר גלוי גם ברצועה מקופלת',ux.nopxVisible);
+ ok('הרשימה מקבלת יותר מ-65% מהמסך',ux.listPct>=65,ux.listPct+'%');
+ /* הדגל ⚑ סימן גם סימון קבוצתי וגם מסלול פרמטרים, שניהם על המסך
+    בו-זמנית. עכשיו הוא שייך לסימון בלבד. */
+ ok('הדגל ⚑ משמש למשמעות אחת בלבד',ux.flagUses<=1,ux.flagUses+' שימושים גלויים');
+ ok('המסך הראשי נקרא «לטיפול היום»',
+    ux.tabs.some(t=>/לטיפול היום/.test(t))&&!ux.tabs.some(t=>/ציר הזמן/.test(t)),
+    ux.tabs.join(' | '));
+ /* משפט הפעולה הוא הדבר הראשון בכרטיס, לפני ההסברים. */
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
+ const card=await p.evaluate(()=>{
+  const d=document.getElementById('detail');
+  const act=d.querySelector('.oact'),secs=[...d.querySelectorAll('.sec h3')].map(h=>h.textContent.trim());
+  return {hasAct:!!act&&act.offsetParent!==null,
+    actTxt:act?act.textContent.replace(/\s+/g,' ').trim().slice(0,60):'',
+    order:secs,
+    actBeforeWhy:secs.indexOf('מה לעשות')>=0&&secs.indexOf('מה לעשות')<secs.indexOf('מה מצדיק את זה')}});
+ ok('בראש הכרטיס משפט פעולה אחד',card.hasAct,card.actTxt);
+ ok('«מה לעשות» לפני «מה מצדיק את זה»',card.actBeforeWhy,card.order.join(' → '));
  ok('כפתור בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
     !dOut.vis.includes('doneBtn')&&!dOut.vis.includes('apBtn'),
     dOut.vis.join(', '));
@@ -835,7 +896,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('לחיצה מבחוץ נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
     `mode=${dIn.mode} track=${dIn.track}`);
  ok('בתוך המסלול הכפתור מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
- ok('ובתוכו הכיתוב המלא חוזר',/לקוח ממתין/.test(dIn.txt),dIn.txt);
+ ok('ובתוכו הכיתוב המלא חוזר',/לקוחות ממתינים/.test(dIn.txt),dIn.txt);
  ok('המסלול מציג בדיוק את הפריטים שנספרו',dIn.rows===dIn.n,`${dIn.rows} שורות · ${dIn.n} נספרו`);
  /* הכלל הפשוט שהמתכנן ביקש: הזמנת לקוח מול מלאי פנוי אפס. מלאי
     בדרך אינו מנוכה — פריט עם רכש פתוח נשאר ברשימה. */

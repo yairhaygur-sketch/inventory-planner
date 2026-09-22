@@ -136,11 +136,27 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
    מה שכן יש הוא כותרת המשנה — 891px גמישים באותה שורה. היא האלמנט
    שאמור להתכווץ, ולכן היא נחתכת בשלוש נקודות במקום לדחוף. */
 .doors{display:flex;align-items:center;gap:8px;margin-inline-start:auto;flex:0 0 auto}
-/* מחוץ למסלול נשארים הסמל והספירה בלבד. הכיתוב המלא והסכום מופיעים
-   בדלת הפעילה, וה-title נושא את ההסבר תמיד. זה מה שמאפשר לשש דלתות
-   לשבת בשורה אחת בלי לדרוס את קיבוץ הקבוצות ואת שבב ההשוואה —
-   הכיתובים הם 70px כל אחד, וכל רצועה נפרדת נפסלה על תקציב הגובה. */
-.doors .btn:not(.on) .dl{display:none}
+/* ============ הכיתוב נשאר, אלא אם באמת אין מקום ============
+   הכיתובים הוסתרו כאן תמיד, כדי ששש דלתות ייכנסו לשורה אחת. נמדד
+   על הדוח האמיתי: מופיעות *ארבע* דלתות (יושמו וטופלו באפס), והן
+   נכנסות עם הכיתוב המלא ועוד 58px פנויים. כלומר החיתוך נעשה בגלל
+   הפיקסצ'ר ולא בגלל המציאות, והמחיר היה סמל שצריך לזכור.
+
+   עכשיו זה נמדד בזמן ריצה: fitDoors מחזיר את הכיתובים כברירת מחדל,
+   ומוריד אותם רק אם שורת הכותרת באמת נשברת. .compact מתווסף מ-JS. */
+.doors .di{margin-inline-end:5px}
+/* משפט הפעולה — הדבר הראשון בכרטיס. כחול = ניווט ובחירה, ולכן
+   הוא לא כחול: הוא המלצה, והמלצה מקבלת את צבע הדיו הרגיל על
+   רקע מודגש. אדום וכתום שמורים לחוסר ולסיכון. */
+.oact{display:flex;align-items:baseline;gap:8px;margin:0 12px 10px;
+  padding:9px 12px;border-radius:9px;background:var(--accL);
+  border-inline-start:4px solid var(--acc);font-size:13.5px;line-height:1.45}
+.oact .oactk{font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  color:var(--acc);white-space:nowrap}
+.oact b{font-weight:700;color:var(--ink)}
+.chips.inline{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;align-items:center;min-width:0}
+.chips.inline .chip{font-size:var(--f-sm);padding:2px 7px;white-space:nowrap}
+.doors.compact .btn:not(.on) .dl{display:none}
 .doors.off{display:none}
 /* הדלתות ישבו באותה שורה עם הכותרת ורמזי המקלדת, ובלי flex-wrap הן
    דרסו זו את זו כשנוספה השישית — קליק על «מעל הדרישה» נחת על «לקוח
@@ -374,7 +390,7 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 
  /* ---- שמות ישנים. אותם ערכים בדיוק, עד שהשימושים יוחלפו ---- */
  --bg:#F2F5F8; --panel:#FFFFFF; --panel2:#E9EEF4; --panel0:#F2F5F8;
- --dim:#5A6673; --dimmer:#636D7A; --soft:#5A6673; --line2:#EAEFF4;
+ --dim:#4A5763; --dimmer:#52606D; --soft:#5A6673; --line2:#EAEFF4;
  --acc:#1F5C8B; --accD:#0F3A5A; --accL:#E6EEF5; --accBorder:#BDD3E5;
  --red:#C0392B; --redL:#FBECEA; --redInk:#FDF2F0;
  --org:#A35905; --orgL:#FEF4E7;
@@ -439,7 +455,7 @@ body.dark{
  --shadow-card:0 1px 2px rgba(0,0,0,.42),0 6px 18px rgba(0,0,0,.34);
 
  --bg:#0E1217; --panel:#161B22; --panel2:#1D242D; --panel0:#0E1217;
- --dim:#98A3B0; --dimmer:#808B97; --soft:#98A3B0; --line2:#212932;
+ --dim:#A9B4C0; --dimmer:#9AA5B2; --soft:#A9B4C0; --line2:#212932;
  --acc:#5B9BD1; --accD:#8FBCE3; --accL:#16283A; --accBorder:#31465C;
  --red:#E06A5E; --redL:#2E1614; --redInk:#0E1217;
  --org:#E0A055; --orgL:#2F2213;
@@ -1222,7 +1238,46 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 /* פריסת טבלה אוטומטית מחלקת את השארית לעמודה עם הכי מעט לחץ — וזו
    הייתה «שווי», שבלעה 172px בזמן שהתיאור נפל ל-601 והמגירה הפסיקה
    לדחוף. width:100% על התיאור אומר במפורש מי סופג את השארית. */
-#tbl[data-track="short"] td.dsc{width:100%}
+#tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{
+  width:100%;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ============ עמודת הפעולה, ומי סופג את המחיר ============
+   «דגם» ירד (113px) ו«הפעולה הבאה» נכנסה. ברירת המחדל של .act1 היא
+   min-width:180px, ובמסלול החוסרים זה דחף את הטבלה 46px נוספים מעבר
+   ל-63 שכבר גלשו. כאן העמודה נושאת ציווי ולא הסבר, ולכן היא צרה
+   יותר — והתיאור, שממילא נחתך ב-24 תווים, סופג את השארית.
+   שני המסלולים: SHORTLIKE כולל גם את «ציר הזמן», וכלל שנכתב
+   ל-short בלבד פשוט לא חל במסך שנפתח כברירת מחדל. */
+#tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{
+  min-width:0;max-width:170px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:var(--f-sm);color:var(--soft)}
+/* במסכים צרים התיאור והפעולה מתכווצים יחד. הם שני האלמנטים היחידים
+   בשורה שהם טקסט חופשי, ולכן הם היחידים שיש בהם מה לוותר —
+   כל השאר מספרים, וכל פיקסל שנחתך מהם הוא ספרה שנעלמת. */
+#tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:130px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1280px){
+ #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:150px}
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:100px}
+ #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:100px}}
+@media(max-width:1180px){
+ #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:92px}
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:66px}
+ #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:70px}
+ /* הגרף הקטן הוא האחרון שמוותר — הוא מה שמאפשר לזהות דפוס בלי
+    לפתוח פריט. אבל ב-1180 גם הוא מתכווץ, אחרת הטבלה גולשת. */
+ #tbl[data-track="short"] td.cg{width:74px}
+ #tbl[data-track="short"] td.cg .spark{width:66px}}
+/* ============ תחת דחיפת המגירה ============
+   updatePush דוחף רק אם הטבלה עדיין *נכנסת* אחרי הדחיפה. עמודת
+   הפעולה הוסיפה רוחב, הטבלה הפסיקה להיכנס, והמגירה חזרה לכסות
+   במקום לדחוף. אותן תקרות של מסך צר חלות גם כאן — הדחיפה מקטינה
+   את הרוחב הזמין בדיוק כמו מסך קטן יותר. */
+body.push #tbl[data-track="short"] td.dsc,body.push #tbl[data-track="line"] td.dsc,
+body.probing #tbl[data-track="short"] td.dsc,body.probing #tbl[data-track="line"] td.dsc{max-width:150px}
+body.push #tbl[data-track="short"] td.act1,body.push #tbl[data-track="line"] td.act1,
+body.probing #tbl[data-track="short"] td.act1,body.probing #tbl[data-track="line"] td.act1{max-width:100px}
+body.push #tbl[data-track="short"] td.sup,body.push #tbl[data-track="line"] td.sup,
+body.probing #tbl[data-track="short"] td.sup,body.probing #tbl[data-track="line"] td.sup{max-width:100px}
 #tbl[data-track="short"] td.val{width:86px}
 #tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
 #tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
@@ -1250,10 +1305,19 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
    העמודות לא ירדו — «ספק» ו«דגם» נשארו לפי בקשה מפורשת, והסלקטורים
    (td.otw, td.zero, td.sched, td.num, td.val) נשארו כפי שהם כדי
    שהבדיקות ימשיכו לבדוק את מה שהן נועדו לבדוק. */
+/* ============ DENSITY — היפוך מכוון של BREATHE ============
+   BREATHE נתן לשורה 8px ריפוד ותיאור ב-17px, כדי שתהיה היררכיה
+   פנימית. המתכנן הכריע אחרת: «למעתד, צפיפות טובה היא יתרון».
+   נמדד מה זה קונה: גובה שורה יורד מ-44 ל-34px, והרשימה עוברת
+   מ-39 שורות ל-50 באותו מסך בדיוק. 11 שורות — יותר מכל מה
+   שקיפול הרצועה היה נותן (3).
+
+   ההיררכיה לא מבוטלת, היא מתכווצת: התיאור נשאר הטקסט הכבד ביותר
+   בשורה (15px/600 מול 13px של השדות המשניים), רק בלי האוויר. */
 #tbl[data-track="short"] tbody tr[data-i] td,
-#tbl[data-track="line"] tbody tr[data-i] td{padding-block:8px}
+#tbl[data-track="line"] tbody tr[data-i] td{padding-block:4px}
 #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{
-  font-size:17px;font-weight:600;letter-spacing:-.012em;line-height:1.25}
+  font-size:15px;font-weight:600;letter-spacing:-.008em;line-height:1.2}
 #tbl[data-track="short"] td.val,#tbl[data-track="line"] td.val{
   font-size:var(--f-lg);font-weight:700;letter-spacing:-.02em}
 /* הרמה השלישית — נוכחת לאימות, לא מתחרה על העין */
@@ -1269,7 +1333,13 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 /* ETA_SPLIT — «משובץ» הוא מידע מרגיע ולכן מעומעם; «תקוע» הוא מה
    שדורש פעולה ולכן נושא את צבע האזהרה. שתיהן צרות בכוונה: הרוחב
    שהן גוזלות בא מהתיאור, וזה הדבר היחיד במסך הזה שאסור לרעוב. */
-#tbl td.sched{color:var(--dimmer);font-weight:400;white-space:nowrap}
+/* ============ תפקיד לכל צבע ============
+   אדום = חוסר קיים · כתום = סיכון צפוי או מה שחייבים לברר ·
+   כחול = בחירה וניווט · ירוק = מצב שאומת.
+   אספקה מתוכננת אינה אף אחד מהארבעה: היא עובדה ניטרלית שעדיין
+   לא קרתה. לכן היא בצבע הטקסט הרגיל ולא בירוק — ירוק היה אומר
+   «נפתר», והיא לא פתרה כלום עד שהיא נוחתת. */
+#tbl td.sched{color:var(--soft);font-weight:600;white-space:nowrap}
 #tbl td.sched i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.75}
 #tbl td.stk{color:var(--org);font-weight:700;white-space:nowrap}
 #tbl td.stk i{font-style:normal;font-size:9px;margin-inline-start:1px;opacity:.7;font-weight:400}
@@ -1462,6 +1532,26 @@ body.dark .lband{border:1px solid #2B3B50}
 /* «מוסק» — נאמר במפורש שזו הסקה ולא תצפית, ולכן מעומעם ובלי מסגרת */
 .lseed{color:var(--dimmer);font-size:var(--f-sm);margin-inline-start:6px;white-space:nowrap}
 .lband .lseed{color:var(--shell-dim)}
+/* מקופלת: נשארים הכותרת והמספרים, יורדים הפסים, הפילוח והכפתורים. */
+.lband{position:relative}
+.lband .bandx{position:absolute;inset-block-start:6px;inset-inline-start:8px;z-index:2;
+  background:var(--shell-btn);color:var(--shell-dim);border:1px solid var(--shell-track);
+  border-radius:6px;font-size:11px;line-height:1;padding:3px 6px;cursor:pointer}
+.lband .bandx:hover{background:var(--shell-btn-h);color:var(--shell-ink)}
+.lband.mini{padding:6px 14px}
+.lband.mini .brow,.lband.mini .lout,.lband.mini .lrec,
+.lband.mini .btrack,.lband.mini .lseg{display:none}
+/* ============ מה שאינו מתקפל ============
+   שורת התחתית (.hgap / .bkey) נשארת, אבל רק הסייגים שבה: «בלי
+   מחיר» ואמינות התאריכים. מונה שאומר «כל סכום כאן הוא רצפה» אינו
+   קישוט שמתקפל — סכום בלי הסייג שלו הוא סכום שקרי, וזה בדיוק
+   הכלל שכבר נעול בכלי (NOPRICE). המקרא והפילוח כן מתקפלים. */
+.lband.mini .hgap,.lband.mini .bkey{margin:0;padding:0;border:0;gap:8px;
+  flex:0 0 auto;order:0}
+.lband.mini .hgap>span:not(.bledg),.lband.mini .bkey>span:not(.bledg){display:none}
+.lband.mini .nopx{display:inline-block}
+.lband.mini .bledg{display:inline}
+.lband.mini .lhero{gap:10px}
 .lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
 .lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
 .lmail .lmh span{color:var(--dim)}
@@ -1493,6 +1583,9 @@ body.dark .lband{border:1px solid #2B3B50}
 #tbl td.tup{color:var(--dim);font-family:var(--num);white-space:nowrap}
 #tbl td.tup .cap{color:var(--org);font-weight:700;margin-inline-start:3px}
 #tbl td .cov{color:var(--grn);font-weight:700;margin-inline-start:4px}
+/* ⊘ אומר «קיים אך אינו מנוכה». הוא חייב להיראות שונה מ-✓ שאומר «סגור». */
+#tbl td .nodeduct{color:var(--org);font-weight:700;margin-inline-start:3px}
+#tbl td .chain{color:var(--dimmer);font-style:normal;font-size:.85em;margin-inline-end:3px;white-space:nowrap}
 #tbl td.sched i.stk{color:var(--dim);font-style:normal;margin-inline-start:4px}
 #riseBtn.on{background:var(--accL);border-color:var(--acc);color:var(--acc);font-weight:700}
 #riseBtn .fn{font-family:var(--num);font-weight:700}
@@ -1626,17 +1719,18 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
+          <span class="chips inline" id="chipsTop"></span>
           <span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
-          <span class="doors" id="doors"><button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP">✔ <span class="fn" id="apN">0</span><span class="dl"> יושמו</span><span class="lbl" id="apV"></span></button>
-          <button class="btn" id="custBtn" hidden title="הזמנת לקוח פתוחה מול מלאי פנוי אפס — חוצה את כל הסיווגים">👤 <span class="fn" id="custN">0</span><span class="dl"> לקוח ממתין</span><span class="lbl" id="custV"></span></button>
-          <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית">⚑ <span class="fn" id="floorN">0</span><span class="dl"> מעל הדרישה</span><span class="lbl" id="floorV"></span></button>
-          <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית">↘ <span class="fn" id="trendN">0</span><span class="dl"> בירידה</span><span class="lbl" id="trendV"></span></button>
-          <button class="btn" id="riseBtn" hidden title="פריטים שהביקוש שלהם עלה בתוך חלון הקצב — נקודת ההזמנה מפגרת אחריו. מספר מייעץ: הכלי אינו מרים את ההמלצה לבד">↗ <span class="fn" id="riseN">0</span><span class="dl"> בעלייה</span><span class="lbl" id="riseV"></span></button>
-          <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון">✓ <span class="fn" id="doneN">0</span><span class="dl"> טופלו</span></button></span>
+          <span class="doors" id="doors"><button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP"><span class="di">✔</span><span class="fn" id="apN">0</span><span class="dl"> יושמו ב-SAP</span><span class="lbl" id="apV"></span></button>
+          <button class="btn" id="custBtn" hidden title="הזמנת לקוח פתוחה מול מלאי פנוי אפס — חוצה את כל הסיווגים"><span class="di">👤</span><span class="fn" id="custN">0</span><span class="dl"> לקוחות ממתינים</span><span class="lbl" id="custV"></span></button>
+          <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית"><span class="di">▲</span><span class="fn" id="floorN">0</span><span class="dl"> מעל רצפת הביטחון</span><span class="lbl" id="floorV"></span></button>
+          <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית"><span class="di">↘</span><span class="fn" id="trendN">0</span><span class="dl"> ביקוש יורד</span><span class="lbl" id="trendV"></span></button>
+          <button class="btn" id="riseBtn" hidden title="פריטים שהביקוש שלהם עלה בתוך חלון הקצב — נקודת ההזמנה מפגרת אחריו. מספר מייעץ: הכלי אינו מרים את ההמלצה לבד"><span class="di">↗</span><span class="fn" id="riseN">0</span><span class="dl"> ביקוש עולה</span><span class="lbl" id="riseV"></span></button>
+          <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון"><span class="di">✓</span><span class="fn" id="doneN">0</span><span class="dl"> טופלו</span></button></span>
           </div>
         <div class="ctop" id="ctop" hidden></div>
         <div class="line" id="line" hidden></div>
@@ -2107,6 +2201,63 @@ function etaParse(wb){
    אינו כיסוי, והוא בדיוק מה שצריך לבלוט. */
 /* שתי התאים של מסך הבוקר. בלי דוח ETA — תא אחד, זהה לקודם. */
 function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)}
+/* ============ SHORT_ANSWER — ארבע תשובות בכל שורת חוסר ============
+   «מה חסר עכשיו, מה מכוסה באספקה מתוארכת, מה נשאר, ומה הפעולה הבאה.»
+   שלוש מהארבע היו חסרות או מטעות, ונמדד בדיוק איך:
+
+   1. «משובץ» הראה את *כל* העתיד המתוארך, ולא את מה שמכסה החודש.
+      6608239778C90: משובץ 69 — אבל רק 34 נוחתות עד סוף החודש.
+      13 שורות בדוח האמיתי שבהן שני המספרים שונים.
+
+   2. «חסר» לא הוצג כלל. הוצג רק «לא יסופק», שהוא התוצאה.
+
+   3. הפעולה לא הוצגה בשורה בכלל — רק תווית הסיווג, שממילא חוזרת
+      בכותרת הקבוצה.
+
+   והתוצאה על המסך הייתה משפט שנקרא כשטות: «משובץ 69 · לא יסופק 10 ·
+   להשלים 11 יח׳». 69 בדרך, ובכל זאת להזמין עוד?
+
+   ההסבר קיים בכלל ETA_COVER: 60 מתוך 80 השורות הן שכבה 1 — כשל
+   שירות שכבר קרה — ושם תאריך עתידי אינו מנוכה. 26 השורות שיש להן
+   כיסוי מתוארך בתוך החודש הן *כולן* שכבה 1. הכלל נכון; מה שחסר
+   היה שהמסך יאמר אותו. עכשיו הוא אומר: ⊘ ליד הכיסוי, והסיבה בשורה. */
+function shortCovered(r){
+ const m=r.etaMonth||0,fut=r.etaQty||0,t1=isT1(r);
+ if(!ETA)return `<td class="num otw" title="${esc('לא נטען דוח ETA — אין תאריך הגעה לאף יחידה')}"><span class="mut">—</span></td>`;
+ if(m<=0)return `<td class="num" title="${esc(fut>0
+   ?`${fut} יח׳ משובצות לאספקה, אבל כולן אחרי סוף החודש — אינן מכסות את החוסר הזה`
+   :'אין אספקה מתוארכת שנוחתת עד סוף החודש')}"><span class="mut">—</span></td>`;
+ /* ⊘ אינו קישוט: הוא ההבדל בין «מכוסה» ל«מנוכה». */
+ return `<td class="num sched" title="${esc(`${m} יח׳ נוחתות עד סוף החודש`
+   +(fut>m?` · מתוך ${fut} משובצות בסך הכל, היתר אחרי סוף החודש`:'')
+   +(r.etaFirst?` · המוקדמת ${etaShort(r.etaFirst)}`:'')
+   +(t1?' · אינן מנוכות: לקוח כבר ממתין מול מדף ריק, וכשל שירות שקרה אינו מתבטל בתאריך עתידי':''))}">`
+   +`${m.toLocaleString('he-IL')}${t1?'<span class="nodeduct">⊘</span>':''}</td>`}
+/* «נשאר» נושא את החשבון עצמו כשהוא אינו טריוויאלי. */
+function shortLeft(r){
+ const gross=Math.ceil(r.unsGross!=null?r.unsGross:(r.unsQty||0));
+ const left=Math.ceil(r.unsQty||0),m=r.etaMonth||0;
+ const chain=(m>0&&left<gross)?`<i class="chain">${gross}−${Math.min(m,gross)}→</i>`:'';
+ return `<td class="num" title="${esc(m>0&&left===gross
+   ?`${gross} יח׳ חסרות · ${m} מגיעות החודש ואינן מנוכות (ראה עמודת «מכוסה»)`
+   :m>0?`${gross} יח׳ חסרות פחות ${Math.min(m,gross)} שמגיעות החודש`
+   :`${gross} יח׳ חסרות · אין אספקה מתוארכת עד סוף החודש`)}">`
+   +chain+`<span class="stake qty">${left.toLocaleString('he-IL')}</span></td>`}
+/* העמודה נושאת את הציווי; ה-title נושא את המשפט המלא.
+   «להשלים 5 יח׳ כדי לכסות את החודש הקרוב» הוא 38 תווים, והחלק
+   שמניע פעולה הוא ששת הראשונים. הנימוק אינו נמחק — הוא עובר
+   ל-tooltip, שם הוא נקרא כשצריך אותו ולא גוזל 180 פיקסלים תמיד. */
+function shortAct(r){
+ const full=((r.act||[])[0]||'').trim();
+ if(!full)return '';
+ const cut=full.split(' — ')[0].split(' כדי ')[0].trim();
+ return cut.length>34?cut.slice(0,33)+'…':cut}
+function stuckCell(r){
+ const st=r.stuck||0,tr=r.transfer>0?` · ${r.transfer} יח׳ בהעברה פנימית (לא נספרות כאן)`:'';
+ return `<td class="num stk" title="${esc((st>0
+   ?`${st} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
+   :(r.po>0?'כל הרכש הפתוח משובץ לאספקה':'אין רכש פתוח'))+tr)}">`
+  +(st>0?st.toLocaleString('he-IL'):'<span class="mut">—</span>')+'</td>'}
 function etaCells(r){
  const po=(r.po||0)+(r.transfer||0);
  if(!ETA)return `<td class="num otw">${po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי">${po.toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>`;
@@ -2755,7 +2906,10 @@ const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
    ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
    81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
-const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis'],sizes:{}};
+/* מסילת הסינון מקופלת בפתיחה. היא 220px רוחב שעומדים ריקים ברוב
+   הבקרים, וכפתור «סינון» פותח אותה ברגע שצריך. הסינונים הפעילים
+   אינם נעלמים איתה — הם עוברים לשבבים מעל הטבלה. */
+const DEFAULT_LAYOUT={order:['kpis','filters','queue','detail'],hidden:['kpis','filters'],sizes:{}};
 let LAYOUT=JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
 try{const s=JSON.parse(localStorage.getItem(LAY_KEY));if(s&&Array.isArray(s.order))LAYOUT={order:s.order.slice(),hidden:(s.hidden||[]).slice(),sizes:s.sizes&&typeof s.sizes==='object'?s.sizes:{}}}catch(_){}
 if(!LAYOUT.sizes)LAYOUT.sizes={};
@@ -2893,14 +3047,14 @@ let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
-const TRACKS=[['line','ציר הזמן'],['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+const TRACKS=[['line','אספקות צפויות'],['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
 /* ============ שלושת המצבים ============
    9 טאבים ו-4 מסלולים היו 13 יעדים לעבודה של 48 פריטים, ושניים מהיעדים
    ריקים לגמרי. המצב הוא שכבה מעל cur ו-track הקיימים: הוא בוחר אותם,
    ומנוע הרינדור ממשיך לעבוד בדיוק כפי שעבד. שום תצוגה לא הולכת לאיבוד —
    עודף, רקע, מסומנים ותנועות נגישים מתוך "הקטלוג". */
 const MODES=[
- ['line','ציר הזמן','מה לא יחזיק את החודש, ומה מגיע כדי לכסות אותו','var(--critical)'],
+ ['line','לטיפול היום','חוסר צפוי לפי קצב הצריכה, ומה מגיע כדי לכסות אותו','var(--critical)'],
  ['today','היום','לפעול עכשיו — לקוח ממתין, מניעת חוסר, אוזל החודש','var(--critical)'],
  ['month','החודש','לתכנן — פרמטרים, המלצות MRP, מעקב אספקה','var(--steady)'],
  ['catalog','הקטלוג','לחפש ולבדוק — כל הפריטים, סינון וחיפוש','var(--calm)']];
@@ -2920,7 +3074,7 @@ const MODES=[
    מסומנים — דרך הסינון בקטלוג. «הון כלוא» ירד מהמסך לפי החלטת
    המתכנן: הוא לא הדבר שמחליטים עליו בבוקר. */
 const NAV=[
- ['line','ציר הזמן','⏱','var(--critical)'],
+ ['line','לטיפול היום','⏱','var(--critical)'],
  ['catalog','הקטלוג','☰','var(--calm)']];
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
@@ -2974,7 +3128,7 @@ function isT1(r){return (r.cust||0)>0&&shelfQty(r)<=0}
 function inToday(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(isT1(r)||(r.unsQty||0)>0)}
 const TGROUP=[
  ['t1','לקוח ממתין ואין מלאי','הזמנת לקוח פתוחה ואפס על המדף — כשל שירות שכבר קרה','var(--red)'],
- ['t2','כסף שלא יסופק החודש','הקצב החודשי גדול ממה שיהיה זמין החודש — מדף ואספקה מתוארכת. עדיין אין לקוח ממתין','var(--org)']];
+ ['t2','חוסר צפוי — כמות ושווי FOB','הקצב החודשי גדול ממה שיהיה זמין החודש — מדף ואספקה מתוארכת. תחזית, ועדיין אין לקוח ממתין','var(--org)']];
 /* מה שכותרת הקבוצה אומרת, השורה לא חוזרת עליו. נמדד על הדוח האמיתי:
    עמודת "סוג ההחלטה" החזיקה 4 ערכים שונים ב-48 שורות ועמודת "חומרה"
    שניים — וכל ערך כבר כתוב בכותרת שמעליו. שתיהן ירדו, והטקסט המשותף
@@ -3253,13 +3407,13 @@ function renderHero(m){
  const B=lineCurBars(m);
  const sel=k=>LINE_SEL===k?'true':'false';
  const cm=curMonthLabel();
- let h=`<div class="lband"><div class="lwrap"><div class="lhero">
+ let h=`<div class="lband${BAND_OPEN?'':' mini'}">${bandToggle()}<div class="lwrap"><div class="lhero">
    <button class="hn" type="button" data-ls="stuck" aria-pressed="${sel('stuck')}"
      title="הפריטים שאף תחנה על הציר אינה מכסה — לחץ לראות אותם">${m.stuck.length.toLocaleString('he-IL')}</button>
    <div class="ht">
     <b>אף משלוח ידוע לא מכסה</b>
     <span>מתוך <button class="hl" type="button" data-ls="now" aria-pressed="${sel('now')}"
-       title="כל מי שהמדף שלו לא מחזיק את החודש">${m.dry.length}</button> שלא יחזיקו את ${cm.name}
+       title="המדף לא מכסה את הצריכה הצפויה לחודש הזה — תחזית לפי הקצב">${m.dry.length}</button> בחוסר צפוי ב${cm.name}
      · <button class="hl warn" type="button" data-ls="recur" aria-pressed="${sel('recur')}"
        title="נקודת ההזמנה ב-SAP נמוכה מהמוצע — המשלוח מכבה, הפרמטר מחזיר">${m.recur.length} יחזרו</button>
      ${m.poNoDate.length?`· ${m.poNoDate.length} עם רכש בלי תאריך`:''}</span>
@@ -3316,17 +3470,17 @@ function heroDryBars(m){
 function renderHeroDry(m){
  const cm=curMonthLabel(),B=heroDryBars(m),sel=k=>LINE_SEL===k?'true':'false';
  const nNone=m.noPo.length;
- let h=`<div class="lband"><div class="lwrap"><div class="lhero">
+ let h=`<div class="lband${BAND_OPEN?'':' mini'}">${bandToggle()}<div class="lwrap"><div class="lhero">
    <button class="hn" type="button" data-ls="now" aria-pressed="${sel('now')}"
      title="כל מי שהמדף שלו לא מחזיק את החודש — לחץ לראות אותם">${m.dry.length.toLocaleString('he-IL')}</button>
    <div class="ht">
-    <b>לא יחזיקו את ${esc(cm.name)}</b>
+    <b>חוסר צפוי ב${esc(cm.name)}</b>
     <span><button class="hl" type="button" data-ls="nopo" aria-pressed="${sel('nopo')}"
        title="אוזלים ואין להם שום הזמנת רכש פתוחה">${nNone.toLocaleString('he-IL')}</button> בלי שום רכש פתוח`
   +(m.waiting.length?` · <button class="hl warn" type="button" data-ls="now" aria-pressed="false"
        title="מהאוזלים, כמה כבר עם לקוח שממתין">${m.waiting.length}</button> עם לקוח ממתין`:'')
   +(m.recur.length?` · <button class="hl" type="button" data-ls="recur" aria-pressed="${sel('recur')}"
-       title="נקודת ההזמנה ב-SAP נמוכה מהמוצע — גם אחרי שיסופק, הפריט יחזור">${m.recur.length}</button> יחזרו מפרמטר`:'')
+       title="נקודת ההזמנה ב-SAP נמוכה מהמוצע — גם אחרי שיסופק, הפריט יחזור. נדרשת בדיקה של הפרמטר">${m.recur.length}</button> נדרש לבדוק נקודת הזמנה`:'')
   +`</span></div></div>
    <div class="lout"><!--OUT--><label class="hup" for="fe" title="בלי דוח ETA אין תאריכי אספקה ואין ציר זמן">⭱ דוח ETA</label></div>`;
  if(B.order.length){
@@ -3354,6 +3508,22 @@ function renderHeroDry(m){
   +lineNoPrice(m.dry)
   +`<span class="bledg">${lineLedgerLine()}</span></div>`;
  return h+'</div></div>'}
+/* ============ הרצועה מתקפלת ============
+   119px = 14% מהמסך, ובבוקר הראשון היא מעניינת. אחרי עשר דקות
+   צריך שורות. מקופלת היא 34px ומשאירה את המשפט האחד שכן נדרש
+   כל הזמן — כמה פריטים וכמה כסף.
+
+   נמדד מה זה קונה: 3 שורות. זה לא הרבה, וזו בדיוק הסיבה שהיא
+   מתקפלת ולא נמחקת — ובצירוף הצפיפות (11 שורות) זה 14. */
+const BAND_KEY='planner_band_v1';
+let BAND_OPEN=false;
+try{BAND_OPEN=localStorage.getItem(BAND_KEY)==='1'}catch(_){}
+function bandToggle(){
+ return `<button type="button" class="bandx" id="bandx" aria-expanded="${BAND_OPEN}"`
+  +` title="${BAND_OPEN?'לקפל את הרצועה ולהרוויח שורות':'לפתוח את הרצועה — פילוח מלא וסכומים'}">`
+  +`${BAND_OPEN?'▲':'▼'}</button>`}
+function bandSet(v){BAND_OPEN=v;try{localStorage.setItem(BAND_KEY,v?'1':'0')}catch(_){}
+ renderLine();fitDoors()}
 function renderLine(){
  const el=document.getElementById('line');if(!el)return;
  if(track!=='line'){el.hidden=true;return}
@@ -3378,6 +3548,7 @@ function renderLine(){
   `<button type="button" id="lmailBtn" aria-pressed="false">✉ מייל</button>`
   +`<button type="button" id="lxlsBtn">⭳ Excel</button>`);
  el.innerHTML=h;
+ const bx=el.querySelector('#bandx');if(bx)bx.onclick=()=>bandSet(!BAND_OPEN);
  const mb=el.querySelector('#lmailBtn');if(mb)mb.onclick=lineMailToggle;
  const xb=el.querySelector('#lxlsBtn');if(xb)xb.onclick=doExport;
  const cb=el.querySelector('#lmailCopy');if(cb)cb.onclick=lineMailCopy;
@@ -3457,7 +3628,11 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
    if(f.values&&f.values.size)o.push(`<div class="chip"><b>${lbl}:</b>${f.values.size} ערכים<span data-cf="${c}">✕</span></div>`);
    if(f.min!=null||f.max!=null)o.push(`<div class="chip"><b>${lbl}:</b>${f.min!=null?f.min:'…'}–${f.max!=null?f.max:'…'}<span data-cf="${c}">✕</span></div>`);});
  document.getElementById('chips').innerHTML=o.join('');
- document.querySelectorAll('#chips .chip span').forEach(s=>s.onclick=()=>{
+ /* אותם שבבים בדיוק, מעל הטבלה — כדי שסינון פעיל יישאר גלוי גם
+    כשהמסילה מקופלת. סינון שנשכח פתוח ואינו נראה הוא מלכודת. */
+ const top=document.getElementById('chipsTop');
+ if(top){top.innerHTML=o.join('');top.hidden=!o.length}
+ document.querySelectorAll('#chips .chip span,#chipsTop .chip span').forEach(s=>s.onclick=()=>{
    if(s.dataset.cf){delete colFilters[s.dataset.cf]}else{SEL[s.dataset.k].delete(s.dataset.v)}apply()});}
 /* ============ זיכרון בין הרצות ============
    עד היום כל העלאה התחילה מאפס: אי אפשר היה לדעת אם 48 הפריטים
@@ -4210,15 +4385,17 @@ function decisionHead(){const cols=FIXLIKE()
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`]
-  :SHORTLIKE()?['מק״ט','תיאור','ספק','דגם',
-    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
-    /* בלי דוח ETA אין במה לפצל — עמודה אחת, בדיוק כמו קודם. ראה ETA_SPLIT */
-    ...(ETA?['<span title="יחידות מתוך הרכש הפתוח ששובצו לאספקה עם תאריך, והתאריך המוקדם מביניהן">משובץ</span>',
-             '<span title="רכש פתוח שלא שובץ לשום אספקה — אין לו תאריך ואינו נספר ככיסוי">תקוע</span>']
+  /* ארבע התשובות, משמאל לימין בסדר השאלה: חסר · מכוסה · נשאר · פעולה.
+     «דגם» ירד כדי לפנות את המקום לפעולה — הוא בכרטיס הפריט. */
+  :SHORTLIKE()?['מק״ט','תיאור','ספק',
+    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>',
+    '<span title="מלאי פנוי על המדף עכשיו — עובדה">מלאי</span>','<span title="דרישת לקוח פתוחה — עובדה מה-SAP, לא תחזית">דרישת לקוח</span>',
+    ...(ETA?['<span title="יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין">מכוסה</span>',
+             '<span title="רכש פתוח שלא שובץ לשום אספקה — עובדה מהדוח, לא תחזית. אינו נספר ככיסוי">ללא תאריך</span>']
            :['<span title="רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>']),
-    'לקוח',
-    '<span title="קצב חודשי פחות המלאי במדף — היחידות שלא יסופקו החודש">לא יסופק</span>',
-    '<span title="היחידות שלא יסופקו כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
+    '<span title="תחזית: הקצב החודשי פחות המדף, פחות מה שמכוסה. אינו דרישת לקוח — זו העמודה «לקוח»">חוסר חזוי</span>',
+    '<span title="היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
+    '<span title="הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים">הפעולה הבאה</span>',
     '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר',`<span title="מוצג למידע בלבד ואינו נספר ככיסוי. ${otwHead()}">בדרך</span>`]
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
@@ -4436,13 +4613,13 @@ function renderDecisions(rows){
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td class="dsc">${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
      <td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>
-     <td class="mdl" title="${esc(r.model||'')}"><bdi>${esc((r.model||'—').slice(0,15))}</bdi></td>
      <td class="cg">${sparkline(r)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     ${etaCells(r)}
      <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-     <td class="num"><span class="stake qty">${Math.ceil(r.unsQty||0).toLocaleString('he-IL')}</span></td>
+     ${ETA?shortCovered(r)+stuckCell(r):etaCells(r)}
+     ${shortLeft(r)}
      <td class="num val">${money(r.unsVal||0,r.currency)}</td>
+     <td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>
      <td class="age">${ageTag(r)}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
@@ -4587,7 +4764,8 @@ function renderDecisions(rows){
   :FIXLIKE()
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
-  :(SHORTLIKE()?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
+  :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
+    :'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
@@ -4599,6 +4777,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
     כשכל הדלתות סגורות (דוח בלי מגמות, בלי לקוח ממתין ובלי רצפות). */
  {const d=document.getElementById('doors');
   if(d)d.classList.toggle('off',![...d.children].some(b=>!b.hidden));}
+ fitDoors();
  if(typeof syncApBtn==='function')syncApBtn();
  setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
@@ -4884,6 +5063,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
   <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>
   ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
   <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
+ ${(()=>{const a=(r.act||[])[0];return a
+   ?`<div class="oact"><span class="oactk">הפעולה</span><b>${esc(a)}</b></div>`:''})()}
  ${decisionBlock(r)}
  <div class="dtabs" id="dtabs">
   <button class="dt on" data-dt="why" data-xp="dt-why">החלטה</button>
@@ -4892,10 +5073,15 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  </div>
  <div class="opad">
   <div class="col">
+   <!-- ============ סדר הקריאה בכרטיס ============
+        משפט פעולה אחד בראש, מתחתיו מה שמצדיק אותו, ורק אחר כך
+        ההסברים וההיסטוריה. קודם היה הפוך: «למה הפריט ברשימה»
+        פתח, והפעולה ישבה אחרי ההיסטוריה — כלומר הדבר היחיד
+        שמבקשים ממך לעשות היה האחרון שראית. -->
+   <div class="sec" data-dt="why"><h3>מה לעשות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
+   <div class="sec" data-dt="why"><h3>מה מצדיק את זה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
    ${anomHTML?`<div class="sec" data-dt="why"><h3>חריגות בהיסטוריה</h3>${anomHTML}</div>`:''}
-   <div class="sec" data-dt="why"><h3>למה הפריט ברשימה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
    <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
-   <div class="sec" data-dt="why"><h3>פעולות מומלצות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
    <div class="sec" data-dt="data"><h3>נתוני מקור</h3><div class="kv">
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
@@ -5341,6 +5527,17 @@ document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFilt
 /* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
 document.getElementById('riseBtn').onclick=()=>jumpTo('rise','month');
+/* שורת הכותרת חייבת להישאר בשורה אחת (גובה<=48px, נעול בבדיקה).
+   מודדים: מחזירים כיתובים, ואם נשברה — מקפלים. שתי מדידות, בלי
+   ניחוש ובלי לקבע מספר קסם שיתיישן כשייווסף כיתוב. */
+function fitDoors(){
+ const d=document.getElementById('doors');if(!d)return;
+ const phd=d.closest('.phd');if(!phd)return;
+ d.classList.remove('compact');
+ if(phd.getBoundingClientRect().height>48||phd.scrollWidth>phd.clientWidth+1)
+  d.classList.add('compact')}
+window.addEventListener('resize',()=>{clearTimeout(window.__fdt);
+ window.__fdt=setTimeout(fitDoors,120)});
 function syncRiseBtn(){const b=document.getElementById('riseBtn');if(!b)return;
  const rows=riseRows(),t=riseTotals(rows);
  const inside=syncJump(b,'rise',t.n);
