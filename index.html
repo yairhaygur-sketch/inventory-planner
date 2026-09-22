@@ -4998,6 +4998,23 @@ function expPo(r){const ls=(ETA&&ETA.byPn)?ETA.byPn[etaKey(r.pn)]:null;
  if(!ls)return '';const s=new Set();
  for(const e of ls){const p=e[3];if(p)s.add(p)}
  return [...s].join(', ')}
+/* ============ שובר השוויון בערימה ============
+   527 מתוך 633 השורות בדוח האמיתי הן דחיפות 4, ובתוכן היה מיון לפי
+   כמות בלבד — כלומר כמעט ללא מיון. נמדד מה כבר יש ביד כדי למיין
+   אותן, על 541 פריטי «תן תאריך»:
+
+     293 כבר באפס מדף · 261 עם צריכה בשנה · 358 עם תאריך כניסה
+     אחרון, חציון 275 יום · 171 שטוחים לגמרי.
+     זונגטונג לבד: 131 פריטים לא ראו כניסה מעל שנה, 209 מעל חצי שנה.
+
+   לכן גיל הכניסה האחרונה הוא שובר השוויון. הוא אינו גיל ההזמנה —
+   פריט שלא נכנס 275 יום יכול לשאת הזמנה שנפתחה בשבוע שעבר. שני
+   המדדים עונים על שתי שאלות: גיל כניסה אומר מה כואב, גיל הזמנה
+   אומר על מי להתלונן. דוח זירוז הוא רשימת כאב, ולכן זה המתאים.
+
+   פריט בלי תאריך כניסה כלל יורד לסוף — היעדר תאריך אינו ותק. */
+function expDry(r){const a=r&&r.entAge;return a==null?-1:a}
+const EXP_STALE=365;
 function expediteRows(){
  const near=(a,b)=>Math.abs(a-b)<0.01,t=etaToday();
  const rows=[],landed=[];
@@ -5026,7 +5043,8 @@ function expediteRows(){
   else if(fut>0&&(expGap(r)!=null||(cust>0&&free<=0))){ask=EXP_ASK.pull;qty=fut}
   else continue;
   rows.push({r,ask,qty,urg:expUrg(r)})}
- rows.sort((a,b)=>a.urg-b.urg||custVal(b.r)-custVal(a.r)||b.qty-a.qty
+ rows.sort((a,b)=>a.urg-b.urg||custVal(b.r)-custVal(a.r)
+  ||expDry(b.r)-expDry(a.r)||b.qty-a.qty
   ||String(a.r.pn).localeCompare(b.r.pn));
  return {rows,landed}}
 const EXPCOLS=[
@@ -5046,6 +5064,7 @@ const EXPCOLS=[
  ['לקוח ממתין',x=>x.r.cust||0],
  ['שווי הזמנת הלקוח',x=>custVal(x.r)?Math.round(custVal(x.r)):''],
  ['מטבע',     x=>x.r.currency||''],
+ ['ימים מכניסה אחרונה',x=>x.r.entAge==null?'':x.r.entAge],
  ['חודשי כיסוי',x=>x.r.cov==null?'':+x.r.cov.toFixed(1)],
  ['זמן אספקה (ימים)',x=>x.r.ltD||''],
  ['מסמכי רכש',x=>expPo(x.r)],
@@ -5057,16 +5076,23 @@ const EXPCOLS=[
 function expSupplierAoa(rows){
  const by={};
  for(const x of rows){const s=x.r.supplier||'ללא ספק';
-  const o=by[s]=by[s]||{n:0,q:0,cw:[],k:{}};
+  const o=by[s]=by[s]||{n:0,q:0,cw:[],k:{},stale:0,dry:[]};
   o.n++;o.q+=x.qty;o.k[x.ask.k]=(o.k[x.ask.k]||0)+1;
-  if(x.r.cust>0&&(x.r.free||0)<=0)o.cw.push(x.r)}
+  if(x.r.cust>0&&(x.r.free||0)<=0)o.cw.push(x.r);
+  const d=expDry(x.r);if(d>=0){o.dry.push(d);if(d>EXP_STALE)o.stale++}}
  const ks=Object.keys(EXP_ASK);
+ /* «לא ראו כניסה מעל שנה» הוא המשפט שאפשר להגיד לספק בלי דוח הזמנות:
+    על זונגטונג הוא 131 מתוך 469. חציון מוצג רק כשיש על מה — ספק עם
+    שלושה פריטים וחציון אינו מודד דבר. */
  const hdr=['ספק','פריטים','יח׳ לזירוז','לקוח ממתין','שווי הזמנות הלקוח',
-  ...ks.map(k=>EXP_ASK[k].t)];
+  'לא ראו כניסה מעל שנה','חציון ימים מכניסה',...ks.map(k=>EXP_ASK[k].t)];
+ const med=a=>{if(a.length<5)return '';const v=[...a].sort((x,y)=>x-y);
+  return v[Math.floor(v.length/2)]};
  const body=Object.entries(by)
-  .sort((a,b)=>b[1].cw.length-a[1].cw.length||b[1].q-a[1].q)
+  .sort((a,b)=>b[1].cw.length-a[1].cw.length||b[1].stale-a[1].stale||b[1].q-a[1].q)
   .map(([s,o])=>[s,o.n,o.q,o.cw.length,
    o.cw.length?moneyMix(o.cw,r=>custVal(r)):'',
+   o.stale,med(o.dry),
    ...ks.map(k=>o.k[k]||0)]);
  return [hdr,...body]}
 function expLandedAoa(landed){
@@ -5084,6 +5110,8 @@ function expNotes(rows,landed){
  if(landed.length)n.push(`${landed.length.toLocaleString('he-IL')} פריטים שתאריכם עבר הוסרו מהרשימה — הכמות שלהם כבר ירדה מהרכש הפתוח. הם בגיליון «נחתו — לא לרדוף».`);
  const np=noPriceN(rows.map(x=>x.r));
  if(np)n.push(`${np.toLocaleString('he-IL')} פריטים בלי מחיר FOB — שווי הזמנת הלקוח שלהם אפס, וכל סכום בדוח הוא רצפה.`);
+ const flat=rows.reduce((a,x)=>a+(expDry(x.r)<0&&!(x.r.cust>0)&&!(x.r.d12>0)?1:0),0);
+ if(flat)n.push(`${flat.toLocaleString('he-IL')} שורות בלי תאריך כניסה, בלי לקוח ובלי צריכה — אין בכלי שום אות למיין אותן לפיו. הן בתחתית הרשימה.`);
  const noRef=rows.reduce((a,x)=>a+(expPo(x.r)?0:1),0);
  if(noRef)n.push(`${noRef.toLocaleString('he-IL')} מתוך ${rows.length.toLocaleString('he-IL')} השורות בלי מספר מסמך רכש — הוא מגיע מדוח ה-ETA בלבד, ולספק שאינו מופיע שם אין מה לצטט.`);
  n.push('הדוח נבנה על כל הקטלוג ואינו מושפע מהסינון שעל המסך.');
@@ -5099,7 +5127,7 @@ function doExpedite(){
   [`${rows.length.toLocaleString('he-IL')} פריטים · ${rows.reduce((a,x)=>a+x.qty,0).toLocaleString('he-IL')} יח׳ · ${sup.length-1} ספקים`],
   ...notes.map(t=>[t]),[]];
  const sws=XLSX.utils.aoa_to_sheet([...head,...sup]);
- sws['!cols']=[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},
+ sws['!cols']=[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},{wch:20},{wch:18},
   ...Object.keys(EXP_ASK).map(()=>({wch:15}))];
  XLSX.utils.book_append_sheet(wb,sws,'לפי ספק');
  const aoa=[EXPCOLS.map(c=>c[0]),...rows.map(x=>EXPCOLS.map(c=>{

@@ -19,7 +19,8 @@ const D=n=>{const d=new Date(Date.now()-n*864e5);
 const mk=(pn,o)=>{const m=o.months,y=m.reduce((a,b)=>a+b,0);
  return [pn,'פריט '+pn,'Test '+pn,o.sup||'ספק א',  '01','פעיל','ND','A',95,
   0,0,o.lt||30,2,0,o.price!=null?o.price:100,'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
-  'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',y,y,y,0,...m,D(10),D(60)]};
+  'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',y,y,y,0,...m,D(10),
+  o.ent===null?'':D(o.ent==null?60:o.ent)]};
 const T=Array(11).fill(10);   // קצב 10 לחודש
 const NOR=[0,0,2,0,0,0,0,0,0,0,0]; // d12=2 ⇒ קצב אפס, «אוזל בעוד» חסר מובן
 const rows=[
@@ -31,7 +32,16 @@ const rows=[
  mk('EXP-ONTIME-CW',{months:NOR,free:0,po:6, cust:3,price:700}),
  mk('EXP-PULL'     ,{months:T,free:5, po:20,cust:0,price:250}),
  mk('EXP-NOORDER'  ,{months:T,free:0, po:0, cust:4,price:600}),
- mk('EXP-OK'       ,{months:T,free:50,po:10,cust:0,price:150})];
+ mk('EXP-OK'       ,{months:T,free:50,po:10,cust:0,price:150}),
+ /* שלושה זהים לחלוטין בדחיפות ובכמות, ונבדלים רק בגיל הכניסה
+    האחרונה. מדף 100 בקצב 10 ⇒ אינם אפס מדף ואין להם תאריך להשוות
+    אליו ⇒ שלושתם דחיפות 4, בדיוק הערימה שבה היה מיון לפי כמות בלבד. */
+ mk('EXP-DRY-OLD'  ,{months:T,free:100,po:5,cust:0,price:100,ent:900}),
+ mk('EXP-DRY-MID'  ,{months:T,free:100,po:5,cust:0,price:100,ent:200}),
+ mk('EXP-DRY-NONE' ,{months:T,free:100,po:5,cust:0,price:100,ent:null}),
+ /* שטוח לגמרי: אין כניסה, אין לקוח, אין צריכה. אין בכלי שום אות
+    למיין אותו לפיו — 174 כאלה בדוח האמיתי, והוא אומר זאת. */
+ mk('EXP-FLAT'     ,{months:Array(11).fill(0),free:100,po:5,cust:0,price:100,ent:null})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/expedite-zmrp.xlsx');
@@ -62,7 +72,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  SD+'/expedite-eta.xlsx');
 
 const snap=()=>{const {rows,landed}=expediteRows();
- const by={};for(const x of rows)by[x.r.pn]={ask:x.ask.k,urg:x.urg,qty:x.qty,po:expPo(x.r)};
+ const by={};for(const x of rows)by[x.r.pn]={ask:x.ask.k,urg:x.urg,qty:x.qty,po:expPo(x.r),dry:x.r.entAge};
  const sup=expSupplierAoa(rows);
  return {by,n:rows.length,pns:rows.map(x=>x.r.pn),
   landed:landed.map(r=>r.pn),
@@ -208,6 +218,35 @@ const snap=()=>{const {rows,landed}=expediteRows();
   ok('גיליון הנחיתות קיים בקובץ',!!book.land&&book.land.length===2,
      book.land?(book.land.length-1)+' שורות':'אין');
   ok('שם הקובץ נושא תאריך',/^Expedite_\d{4}-\d{2}-\d{2}\.xlsx$/.test(book.fname),book.fname)}
+
+
+ // ── שובר השוויון: גיל הכניסה האחרונה בתוך אותה דחיפות ──
+ const iOf=pn=>wet.order.indexOf(pn);
+ ok('שלושת פריטי הערימה זהים בדחיפות ובכמות',
+    ['EXP-DRY-OLD','EXP-DRY-MID','EXP-DRY-NONE'].every(pn=>A[pn]&&A[pn].urg===4&&A[pn].qty===5),
+    ['EXP-DRY-OLD','EXP-DRY-MID','EXP-DRY-NONE'].map(pn=>pn+':'+(A[pn]?A[pn].urg+'/'+A[pn].qty:'חסר')).join(' '));
+ ok('היבש יותר זמן קודם — 900 יום לפני 200',
+    iOf('EXP-DRY-OLD')<iOf('EXP-DRY-MID'),
+    'OLD@'+iOf('EXP-DRY-OLD')+' MID@'+iOf('EXP-DRY-MID')
+    +' ('+A['EXP-DRY-OLD'].dry+' מול '+A['EXP-DRY-MID'].dry+' יום)');
+ ok('פריט בלי תאריך כניסה יורד לסוף — היעדר תאריך אינו ותק',
+    A['EXP-DRY-NONE'].dry==null&&iOf('EXP-DRY-NONE')>iOf('EXP-DRY-MID'),
+    'NONE@'+iOf('EXP-DRY-NONE')+' dry='+String(A['EXP-DRY-NONE'].dry));
+ ok('העמודה «ימים מכניסה אחרונה» בדוח',
+    wet.cols.includes('ימים מכניסה אחרונה'),wet.cols.join(' | '));
+ ok('הסיכום סופר כמה לא ראו כניסה מעל שנה',
+    wet.supHdr[5]==='לא ראו כניסה מעל שנה'
+    &&wet.supBody.reduce((a,r)=>a+r[5],0)===1,
+    wet.supBody.map(r=>r[0]+':'+r[5]).join(' · '));
+ ok('חציון נכתב רק כשיש על מה — ספק עם פחות מ-5 שורות אינו מדווח חציון',
+    wet.supBody.every(r=>r[1]>=5?r[6]!=='':r[6]===''),
+    wet.supBody.map(r=>r[0]+' n='+r[1]+' med='+String(r[6])).join(' · '));
+ ok('והדוח אומר כמה שורות אין לו במה למיין',
+    wet.notes.some(t=>/^1 שורות/.test(t)&&/אין בכלי שום אות למיין/.test(t)),
+    wet.notes.find(t=>/למיין/.test(t))||'(אין)');
+ ok('והשטוח באמת בתחתית הרשימה',
+    iOf('EXP-FLAT')===wet.order.length-1,
+    'FLAT@'+iOf('EXP-FLAT')+' מתוך '+wet.order.length);
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
