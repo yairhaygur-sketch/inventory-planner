@@ -810,6 +810,16 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     `גלויים: ${dOut.vis.join(', ')||'אין'} · לקוח ממתין=${dOut.n.cust}`);
  ok('מחוץ למסלול — ספירה בלבד, בלי סכום',
     dOut.n.cust>0&&!/[$€₪]/.test(dOut.cust),dOut.cust||'(מוסתר)');
+ /* הכיתוב המלא מוסתר מחוץ למסלול, וזה מה שמאפשר לשש הדלתות לשבת
+    בשורה אחת. בלי זה הן דרסו את קיבוץ הקבוצות ואת שבב ההשוואה. */
+ const dLbl=await p.evaluate(()=>({
+   outHidden:[...document.querySelectorAll('.doors .btn:not(.on) .dl')]
+     .every(e=>e.offsetParent===null),
+   nOut:document.querySelectorAll('.doors .btn:not(.on) .dl').length,
+   phdH:Math.round(document.querySelector('#w_queue .phd').getBoundingClientRect().height)}));
+ ok('הכיתוב המלא מופיע רק בדלת הפעילה',dLbl.outHidden&&dLbl.nOut>0,
+    dLbl.nOut+' כיתובים מוסתרים');
+ ok('ושורת הכותרת נשארת בשורה אחת עם הדלתות',dLbl.phdH<=48,dLbl.phdH+'px');
  ok('כפתור בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
     !dOut.vis.includes('doneBtn')&&!dOut.vis.includes('apBtn'),
     dOut.vis.join(', '));
@@ -825,6 +835,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('לחיצה מבחוץ נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
     `mode=${dIn.mode} track=${dIn.track}`);
  ok('בתוך המסלול הכפתור מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
+ ok('ובתוכו הכיתוב המלא חוזר',/לקוח ממתין/.test(dIn.txt),dIn.txt);
  ok('המסלול מציג בדיוק את הפריטים שנספרו',dIn.rows===dIn.n,`${dIn.rows} שורות · ${dIn.n} נספרו`);
  /* הכלל הפשוט שהמתכנן ביקש: הזמנת לקוח מול מלאי פנוי אפס. מלאי
     בדרך אינו מנוכה — פריט עם רכש פתוח נשאר ברשימה. */
@@ -849,6 +860,84 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {chrome:r?Math.round(r.getBoundingClientRect().top):0,
      vis:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
  ok('הדלתות לא שברו את תקציב הגובה',dBud.chrome>0&&dBud.chrome<360,dBud.chrome+'px');
+
+/* ============ DOOR_ETA · ה-ETA בכל ארבע הדלתות ============
+    תא אחד משותף, ארבע דלתות. נבדק כאן ולא ב-eta.test.js, כי שם
+    הפיקסצ'ר הוא 10 פריטים ואין בו אף שורת רצפה, מגמה או עלייה —
+    שלוש מהבדיקות היו עוברות על אפס שורות ולא אומרות דבר. */
+ await p.setInputFiles('#fe',SD+'/zmrp-demo-eta.xlsx');await p.waitForTimeout(1400);
+ const doors=[];
+ for(const m of ['cust','floor','trend','rise']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(800);
+  doors.push(await p.evaluate(k=>{
+   const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const heads=[...document.querySelectorAll('#tbl thead th')];
+   const w=document.querySelector('.rows');
+   const model=k==='cust'?custRows():k==='floor'?floorRows():k==='trend'?trendRows():riseRows();
+   return {k,heads:heads.length,cells:rows.length?rows[0].querySelectorAll('td').length:0,
+     hasEtaHead:heads.some(h=>/הגעה/.test(h.textContent)),
+     etaCells:document.querySelectorAll('#tbl td.sched, #tbl td.otw').length,
+     withPo:model.filter(r=>(r.po||0)>0).length,
+     dated:model.filter(r=>(r.etaQty||0)>0).length,
+     n:rows.length,model:model.length,
+     ovf:w?w.scrollWidth-w.clientWidth:0,
+     pgR:(document.getElementById('pgR').textContent||'').trim()}},m))}
+ const D=Object.fromEntries(doors.map(d=>[d.k,d]));
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+
+ ok('כל ארבע הדלתות פופולטיות בפיקסצ׳ר',
+    doors.every(d=>d.model>0),doors.map(d=>d.k+':'+d.model).join(' · '));
+ ok('לכל ארבע הדלתות יש עמודת הגעה',
+    doors.every(d=>d.hasEtaHead),doors.filter(d=>!d.hasEtaHead).map(d=>d.k).join(',')||'כולן');
+ ok('הכותרות תואמות למספר התאים בכל דלת',
+    doors.every(d=>d.heads===d.cells),
+    doors.map(d=>`${d.k} ${d.heads}/${d.cells}`).join(' · '));
+ ok('אין גלישה אופקית באף דלת',doors.every(d=>d.ovf<=1),
+    doors.map(d=>d.k+' '+d.ovf+'px').join(' · '));
+ /* הכלל שהמתכנן קבע: שום דבר לא יורד מהרשימה בגלל משלוח מכסה. */
+ ok('שום דלת לא מסננת פריטים בגלל ה-ETA',
+    doors.every(d=>d.n===d.model),
+    doors.map(d=>`${d.k} ${d.n}/${d.model}`).join(' · '));
+ ok('תא ההגעה מופיע לכל פריט עם רכש פתוח',
+    doors.every(d=>d.etaCells>=d.withPo),
+    doors.map(d=>`${d.k} ${d.etaCells}≥${d.withPo}`).join(' · '));
+ ok('בירידה — הפוטר אומר מה כבר בדרך לתוך הירידה',
+    D.trend.dated>0&&/כבר בדרך לתוך הביקוש היורד/.test(D.trend.pgR),
+    `${D.trend.dated} עם תאריך · ${D.trend.pgR.slice(-60)}`);
+ ok('בעלייה — הפוטר אומר כמה נסגרות במשלוח שכבר בדרך',
+    D.rise.dated>0&&/נסגרות על ידי משלוח שכבר בדרך/.test(D.rise.pgR),
+    `${D.rise.dated} עם תאריך · ${D.rise.pgR.slice(-60)}`);
+ ok('לקוח ממתין — הפוטר מפריד בין «עם תאריך» ל«בלי»',
+    /עם תאריך/.test(D.cust.pgR)&&/בלי תאריך/.test(D.cust.pgR),D.cust.pgR.slice(-60));
+
+ /* ============ RISE · המסלול העולה על המסך ============ */
+ await p.evaluate(()=>setMode('rise'));await p.waitForTimeout(700);
+ const up=await p.evaluate(()=>{
+  const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+  const heads=[...document.querySelectorAll('#tbl thead th')];
+  const w=document.querySelector('.rows');
+  return {mode,track,n:rows.length,model:riseRows().length,
+    heads:heads.length,cells:rows.length?rows[0].querySelectorAll('td').length:0,
+    btnTxt:(document.getElementById('riseBtn').textContent||'').replace(/\s+/g,' ').trim(),
+    on:document.getElementById('riseBtn').classList.contains('on'),
+    trackBar:(e=>e?getComputedStyle(e).display:'')(document.getElementById('track')),
+    overflow:w?w.scrollWidth-w.clientWidth:0,
+    /* הסימון ⊤ מופיע בדיוק על השורות שנחתכו בתקרה, ולא על אחרות */
+    capMarks:document.querySelectorAll('#tbl td.tup .cap').length,
+    capRows:riseRows().filter(r=>r.riseF>=1.4).length,
+    arrowUp:rows.length?/↑/.test(rows[0].querySelector('td.tup').textContent):false}});
+ ok('מסלול העלייה מרנדר את כל השורות',up.n===up.model&&up.n>0,`${up.n} / ${up.model}`);
+ ok('כותרות «בעלייה» תואמות למספר התאים',up.heads===up.cells,`${up.heads} / ${up.cells}`);
+ ok('אין גלישה אופקית ב«בעלייה»',up.overflow<=1,up.overflow+'px');
+ ok('כפתור «בעלייה» נראה ומסומן, והסכום נוסף רק בפנים',
+    up.on&&/יח׳/.test(up.btnTxt)&&/[$€₪]/.test(up.btnTxt),up.btnTxt);
+ ok('רצועת המסלולים מוסתרת',up.trackBar==='none',up.trackBar);
+ ok('החץ מצביע למעלה',up.arrowUp);
+ /* התקרה חייבת להיות נראית: «↑6000%» ליד קצב שהוגבר פי 1.4 בלבד
+    נקרא כסתירה, ולכן השורה נושאת ⊤ שמסביר שההגברה נחתכה. */
+ ok('כל שורה שנחתכה בתקרה נושאת את סימון ⊤ — ורק היא',
+    up.capMarks===up.capRows&&up.capRows>0,`${up.capMarks} סימונים · ${up.capRows} נחתכו`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
 
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
