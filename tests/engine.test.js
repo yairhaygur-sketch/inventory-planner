@@ -297,6 +297,61 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מסלול המגמה קיים בנתוני הבדיקה',tr.damped>0&&tr.nRows>0,
    'מרוסנים '+tr.damped+' · במסלול '+tr.nRows);
 
+ /* ============ RISE_ASYM · הצד העולה אינו ראי של היורד ============
+    הירידה חסומה מטבעה (יחס ב-[0,0.9), רצפה 0.6); העלייה אינה חסומה
+    בכלום. בדוח האמיתי יש פריט עם יחס 61, ונוסחה סימטרית הייתה
+    מקפיצה לו את נקודת ההזמנה מ-531 ל-10,451 — 90% מכל היחידות
+    בפריט אחד. שני השערים נועלים בדיוק את זה. */
+ const up=await p.evaluate(()=>{
+  const bad=[];let boosted=0,ceilBroke=0,monotone=0,odLeak=0,thinLeak=0,ropDown=0,touched=0;
+  for(const r of ALL){
+   /* ההמלצה עצמה לא זזה — זו כל הנקודה */
+   if(r.riseF>1&&r.sugROP!==Math.max(r.sugSS,Math.ceil(r.rate*r.ltM+r.sugSS))&&r.lowFloor===0
+      &&r.rop!==1&&r.ss!==1)touched++;
+   if(r.riseF>1){boosted++;
+    if(r.riseF>1.4+1e-9)ceilBroke++;
+    if(!(r.rateU>r.rate))monotone++;
+    if(r.isOD)odLeak++;
+    if(r.tPre<3)thinLeak++;
+    const want=Math.min(1.4,1+(r.tRatio-1)*0.5);
+    if(Math.abs(r.riseF-want)>1e-9)bad.push(r.pn);
+    /* ROP מוגבר לעולם לא מתחת למקורי */
+    if(r.sugROPU<r.sugROP)ropDown++}}
+  const rows=riseRows();
+  return {boosted,ceilBroke,monotone,odLeak,thinLeak,ropDown,bad:bad.slice(0,4),
+    nRows:rows.length,allGap:rows.every(r=>riseGap(r)>0),
+    /* השער הדק: פריט עם יחס עולה אך מכנה קטן מ-3 אינו מוגבר כלל */
+    thinBlocked:ALL.filter(r=>r.tRatio!=null&&r.tRatio>1.1&&r.tPre<3&&r.riseF===1).length,
+    /* הסף: יחס בין 1 ל-1.1 אינו מגמה */
+    trigOK:ALL.every(r=>!(r.tRatio!=null&&r.tRatio<=1.1&&r.riseF>1)),
+    /* ומעל הכול: trendF לא נגוע */
+    trendUntouched:ALL.every(r=>!(r.trendF>1)),
+    maxGap:rows.length?Math.max(...rows.map(riseGap)):0}});
+ ok('ההגברה היא חצי מהעלייה, עד תקרת 1.4',up.bad.length===0,up.bad.join(',')||'—');
+ ok('התקרה 1.4 לא נשברת — הראי של הרצפה 0.6',up.ceilBroke===0,'חרגו: '+up.ceilBroke);
+ ok('קצב מוגבר תמיד גדול מהקצב',up.monotone===0);
+ ok('הגברה פועלת רק מעל הסף 1.1',up.trigOK);
+ ok('המכנה חייב לשאת 3 יחידות — «פי 2» על 1 אינו מגמה',
+    up.thinLeak===0&&up.thinBlocked>0,
+    'דלפו: '+up.thinLeak+' · נחסמו: '+up.thinBlocked);
+ ok('פריט לפי דרישה אינו מוגבר',up.odLeak===0);
+ ok('ROP מוגבר לעולם לא נמוך מהמוצע',up.ropDown===0);
+ ok('כל שורה במסלול העלייה נושאת פער חיובי',up.allGap,up.nRows+' שורות');
+ ok('מסלול העלייה קיים בנתוני הבדיקה',up.boosted>0&&up.nRows>0,
+   'מוגברים '+up.boosted+' · במסלול '+up.nRows);
+ /* המיון חי ב-currentRows ולא ב-riseRows, ולכן הוא נמדד במסלול עצמו. */
+ await p.evaluate(()=>setMode('rise'));await p.waitForTimeout(500);
+ const upSort=await p.evaluate(()=>{const rows=currentRows();
+   return {n:rows.length,
+     sorted:rows.every((r,i)=>i===0||riseGap(rows[i-1])>=riseGap(r)),
+     first:rows.length?riseGap(rows[0]):0,last:rows.length?riseGap(rows[rows.length-1]):0}});
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
+ ok('ממוין לפי הפער ביחידות — סיכון מדף ולא הון משתחרר',
+    upSort.sorted&&upSort.n>0,`${upSort.n} שורות · ${upSort.first} → ${upSort.last}`);
+ /* הבדיקה שמגינה על ההחלטה: הצד העולה מייעץ ואינו משנה דבר. */
+ ok('ההמלצה עצמה אינה זזה — trendF לא נגוע והקצב לא הוגבר',
+    up.trendUntouched,'הוגברו דרך trendF: '+(up.trendUntouched?0:'יש'));
+
  /* המסלול על המסך */
  await p.evaluate(()=>setMode('trend'));await p.waitForTimeout(500);
  const tv=await p.evaluate(()=>{
