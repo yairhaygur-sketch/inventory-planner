@@ -64,6 +64,9 @@ const erows=[
  ['4190000008','000010',RLM('T2-LATE'),'T2LATE',8,'EA',afterMonth],
  // מכסה חלקית ⇒ נשאר ברשימה, עם מספר קטן יותר
  ['4190000009','000010',RLM('T2-PARTIAL'),'T2PART',3,'EA',inMonth],
+ /* משלוח שני, אחרי סוף החודש: כך «משובץ» תמיד גדול מ«מכוסה» ואפשר
+    לנעול שהתא מציג את מה שמכסה החודש ולא את כל העתיד. */
+ ['4190000011','000020',RLM('T2-PARTIAL'),'T2PART',4,'EA',afterMonth],
  // שכבה 1 עם אספקה בתוך החודש ⇒ חייב להישאר, בלי שינוי במספר
  ['4190000010','000010',RLM('T1-WITH-ETA'),'T1ETA',20,'EA',inMonth]];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
@@ -253,7 +256,10 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     `eta=${before.P.eta} stuck=${before.P.stuck}`);
 
  ok('הדוח נקלט ומזוהה לפי הכותרת שלו',
-    after.loaded&&after.parts===9&&after.rows===10&&after.units===80,
+    /* 11 שורות ולא 10: נוספה אספקה שנייה ל-T2-PARTIAL אחרי סוף
+       החודש, כדי ש«משובץ» יהיה תמיד גדול מ«מכוסה». 9 מק״טים —
+       שתי השורות שייכות לאותו פריט. */
+    after.loaded&&after.parts===9&&after.rows===11&&after.units===84,
     `מק״טים=${after.parts} שורות=${after.rows} יח׳=${after.units}`);
  ok('שורה בלי תאריך מוחרגת ולא מפילה את הקריאה',after.undated===1,`undated=${after.undated}`);
  ok('סימני כיוון RTL מוסרים — המק״טים מתחברים',after.hit===8,
@@ -279,8 +285,10 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     after.O.eta===9&&after.O.stuck===0,`eta=${after.O.eta} stuck=${after.O.stuck}`);
  ok('בלי רכש פתוח — תקוע אפס',after.Z.stuck===0,`stuck=${after.Z.stuck}`);
 
- ok('עם דוח — "בדרך" מתפצל ל"משובץ" ו"תקוע"',
-    after.cols.includes('משובץ')&&after.cols.includes('תקוע')
+ /* «משובץ» שונה שמו ל«מכוסה» ומציג את מה שנוחת עד סוף החודש
+    בלבד — ראה SHORT_ANSWER. הפיצול לשני תאים לא השתנה. */
+ ok('עם דוח — "בדרך" מתפצל ל"מכוסה" ו"תקוע"',
+    after.cols.includes('מכוסה')&&after.cols.includes('תקוע')
     &&!after.cols.includes('בדרך ⌛')&&after.nSched>0&&after.nOtw===0,
     `sched=${after.nSched} otw=${after.nOtw}`);
  ok('הצ׳יפ מציג את מספר המק״טים בדוח',
@@ -339,6 +347,53 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  ok('ובכיוון ההפוך — בלי דוח אף מסך לא ממציא תאריך',
     before.ghosts.length===0&&cleared.ghosts.length===0,
     (before.ghosts.concat(cleared.ghosts)).slice(0,3).join(', '));
+
+ /* ============ SHORT_ANSWER · ארבע תשובות בכל שורת חוסר ============
+    T2-PARTIAL הוא המקרה היחיד בפיקסצ'ר שבו הכיסוי *כן* מנוכה:
+    שכבה 2, כיסוי 3 מתוך 8. שם, ורק שם, מוצגת שרשרת החשבון.
+    T1-WITH-ETA הוא ההפך: מכוסה 20, ואינו מנוכה כלל. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(700);
+ const ans=await p.evaluate(()=>{
+  const heads=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+  const cellOf=pn=>{const tr=rows.find(x=>x.textContent.includes(pn));
+    return tr?{cov:tr.querySelector('td.sched, td.otw'),
+      chain:tr.querySelector('td .chain'),nod:tr.querySelector('td .nodeduct'),
+      act:tr.querySelector('td.act1')}:null};
+  const pa=cellOf('T2-PARTIAL'),t1=cellOf('T1-WITH-ETA');
+  const m=pn=>{const r=ALL.find(x=>x.pn===pn);return r?{month:r.etaMonth,fut:r.etaQty,
+    gross:Math.ceil(r.unsGross!=null?r.unsGross:r.unsQty),left:Math.ceil(r.unsQty||0),t1:isT1(r)}:null};
+  const w=document.querySelector('.rows');
+  return {heads:heads.join('|'),
+    nAct:rows.filter(tr=>{const a=tr.querySelector('td.act1');
+      return a&&a.textContent.trim()&&a.textContent.trim()!=='—'}).length,
+    nRows:rows.length,
+    paChain:pa&&pa.chain?pa.chain.textContent.trim():null,
+    paCov:pa&&pa.cov?pa.cov.textContent.trim():null,
+    paNod:!!(pa&&pa.nod),
+    t1Cov:t1&&t1.cov?t1.cov.textContent.trim():null,
+    t1Nod:!!(t1&&t1.nod),t1Chain:!!(t1&&t1.chain),
+    PA:m('T2-PARTIAL'),W:m('T1-WITH-ETA'),
+    ovf:w?w.scrollWidth-w.clientWidth:0}});
+ ok('הכותרת נושאת את ארבע התשובות',
+    /מכוסה/.test(ans.heads)&&/נשאר/.test(ans.heads)&&/הפעולה הבאה/.test(ans.heads),ans.heads);
+ ok('לכל שורה יש פעולה — לא תווית סיווג',
+    ans.nAct===ans.nRows&&ans.nRows>0,`${ans.nAct} / ${ans.nRows}`);
+ /* «מכוסה» הוא מה שנוחת עד סוף החודש, לא כל העתיד המתוארך. */
+ ok('«מכוסה» מציג את מה שמכסה החודש ולא את כל העתיד',
+    ans.paCov===String(ans.PA.month)&&ans.PA.fut>ans.PA.month,
+    `מוצג ${ans.paCov} · מכסה ${ans.PA.month} · משובץ ${ans.PA.fut}`);
+ ok('כיסוי שמנוכה — שרשרת החשבון מוצגת בתא «נשאר»',
+    ans.paChain===`${ans.PA.gross}−${ans.PA.month}→`&&ans.PA.left<ans.PA.gross,
+    `${ans.paChain} (חסר ${ans.PA.gross} · נשאר ${ans.PA.left})`);
+ ok('וכיסוי שמנוכה אינו נושא ⊘',!ans.paNod);
+ /* שכבה 1: הכיסוי קיים, אינו מנוכה, והמסך אומר זאת. */
+ ok('שכבה 1 — הכיסוי מוצג ונושא ⊘',
+    ans.t1Nod&&ans.t1Cov===String(ans.W.month)+'⊘',`${ans.t1Cov} · ⊘=${ans.t1Nod}`);
+ ok('ובשכבה 1 אין שרשרת — כי לא נוכה דבר',
+    !ans.t1Chain&&ans.W.left===ans.W.gross,
+    `חסר ${ans.W.gross} · נשאר ${ans.W.left} · מכוסה ${ans.W.month}`);
+ ok('מסלול החוסרים אינו גולש אופקית',ans.ovf<=20,ans.ovf+'px');
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));

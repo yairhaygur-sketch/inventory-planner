@@ -1222,7 +1222,29 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 /* פריסת טבלה אוטומטית מחלקת את השארית לעמודה עם הכי מעט לחץ — וזו
    הייתה «שווי», שבלעה 172px בזמן שהתיאור נפל ל-601 והמגירה הפסיקה
    לדחוף. width:100% על התיאור אומר במפורש מי סופג את השארית. */
-#tbl[data-track="short"] td.dsc{width:100%}
+#tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{
+  width:100%;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ============ עמודת הפעולה, ומי סופג את המחיר ============
+   «דגם» ירד (113px) ו«הפעולה הבאה» נכנסה. ברירת המחדל של .act1 היא
+   min-width:180px, ובמסלול החוסרים זה דחף את הטבלה 46px נוספים מעבר
+   ל-63 שכבר גלשו. כאן העמודה נושאת ציווי ולא הסבר, ולכן היא צרה
+   יותר — והתיאור, שממילא נחתך ב-24 תווים, סופג את השארית.
+   שני המסלולים: SHORTLIKE כולל גם את «ציר הזמן», וכלל שנכתב
+   ל-short בלבד פשוט לא חל במסך שנפתח כברירת מחדל. */
+#tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{
+  min-width:0;max-width:170px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;font-size:var(--f-sm);color:var(--soft)}
+/* במסכים צרים התיאור והפעולה מתכווצים יחד. הם שני האלמנטים היחידים
+   בשורה שהם טקסט חופשי, ולכן הם היחידים שיש בהם מה לוותר —
+   כל השאר מספרים, וכל פיקסל שנחתך מהם הוא ספרה שנעלמת. */
+@media(max-width:1280px){
+ #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:186px}
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:124px}}
+@media(max-width:1180px){
+ #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:128px}
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:96px}
+ #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:90px;
+   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 #tbl[data-track="short"] td.val{width:86px}
 #tbl[data-track="short"] td.cg{width:100px;padding-block:2px}
 #tbl[data-track="short"] td.cg .spark{height:20px;width:92px;margin-block:1px}
@@ -1493,6 +1515,9 @@ body.dark .lband{border:1px solid #2B3B50}
 #tbl td.tup{color:var(--dim);font-family:var(--num);white-space:nowrap}
 #tbl td.tup .cap{color:var(--org);font-weight:700;margin-inline-start:3px}
 #tbl td .cov{color:var(--grn);font-weight:700;margin-inline-start:4px}
+/* ⊘ אומר «קיים אך אינו מנוכה». הוא חייב להיראות שונה מ-✓ שאומר «סגור». */
+#tbl td .nodeduct{color:var(--org);font-weight:700;margin-inline-start:3px}
+#tbl td .chain{color:var(--dimmer);font-style:normal;font-size:.85em;margin-inline-end:3px;white-space:nowrap}
 #tbl td.sched i.stk{color:var(--dim);font-style:normal;margin-inline-start:4px}
 #riseBtn.on{background:var(--accL);border-color:var(--acc);color:var(--acc);font-weight:700}
 #riseBtn .fn{font-family:var(--num);font-weight:700}
@@ -2107,6 +2132,63 @@ function etaParse(wb){
    אינו כיסוי, והוא בדיוק מה שצריך לבלוט. */
 /* שתי התאים של מסך הבוקר. בלי דוח ETA — תא אחד, זהה לקודם. */
 function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)}
+/* ============ SHORT_ANSWER — ארבע תשובות בכל שורת חוסר ============
+   «מה חסר עכשיו, מה מכוסה באספקה מתוארכת, מה נשאר, ומה הפעולה הבאה.»
+   שלוש מהארבע היו חסרות או מטעות, ונמדד בדיוק איך:
+
+   1. «משובץ» הראה את *כל* העתיד המתוארך, ולא את מה שמכסה החודש.
+      6608239778C90: משובץ 69 — אבל רק 34 נוחתות עד סוף החודש.
+      13 שורות בדוח האמיתי שבהן שני המספרים שונים.
+
+   2. «חסר» לא הוצג כלל. הוצג רק «לא יסופק», שהוא התוצאה.
+
+   3. הפעולה לא הוצגה בשורה בכלל — רק תווית הסיווג, שממילא חוזרת
+      בכותרת הקבוצה.
+
+   והתוצאה על המסך הייתה משפט שנקרא כשטות: «משובץ 69 · לא יסופק 10 ·
+   להשלים 11 יח׳». 69 בדרך, ובכל זאת להזמין עוד?
+
+   ההסבר קיים בכלל ETA_COVER: 60 מתוך 80 השורות הן שכבה 1 — כשל
+   שירות שכבר קרה — ושם תאריך עתידי אינו מנוכה. 26 השורות שיש להן
+   כיסוי מתוארך בתוך החודש הן *כולן* שכבה 1. הכלל נכון; מה שחסר
+   היה שהמסך יאמר אותו. עכשיו הוא אומר: ⊘ ליד הכיסוי, והסיבה בשורה. */
+function shortCovered(r){
+ const m=r.etaMonth||0,fut=r.etaQty||0,t1=isT1(r);
+ if(!ETA)return `<td class="num otw" title="${esc('לא נטען דוח ETA — אין תאריך הגעה לאף יחידה')}"><span class="mut">—</span></td>`;
+ if(m<=0)return `<td class="num" title="${esc(fut>0
+   ?`${fut} יח׳ משובצות לאספקה, אבל כולן אחרי סוף החודש — אינן מכסות את החוסר הזה`
+   :'אין אספקה מתוארכת שנוחתת עד סוף החודש')}"><span class="mut">—</span></td>`;
+ /* ⊘ אינו קישוט: הוא ההבדל בין «מכוסה» ל«מנוכה». */
+ return `<td class="num sched" title="${esc(`${m} יח׳ נוחתות עד סוף החודש`
+   +(fut>m?` · מתוך ${fut} משובצות בסך הכל, היתר אחרי סוף החודש`:'')
+   +(r.etaFirst?` · המוקדמת ${etaShort(r.etaFirst)}`:'')
+   +(t1?' · אינן מנוכות: לקוח כבר ממתין מול מדף ריק, וכשל שירות שקרה אינו מתבטל בתאריך עתידי':''))}">`
+   +`${m.toLocaleString('he-IL')}${t1?'<span class="nodeduct">⊘</span>':''}</td>`}
+/* «נשאר» נושא את החשבון עצמו כשהוא אינו טריוויאלי. */
+function shortLeft(r){
+ const gross=Math.ceil(r.unsGross!=null?r.unsGross:(r.unsQty||0));
+ const left=Math.ceil(r.unsQty||0),m=r.etaMonth||0;
+ const chain=(m>0&&left<gross)?`<i class="chain">${gross}−${Math.min(m,gross)}→</i>`:'';
+ return `<td class="num" title="${esc(m>0&&left===gross
+   ?`${gross} יח׳ חסרות · ${m} מגיעות החודש ואינן מנוכות (ראה עמודת «מכוסה»)`
+   :m>0?`${gross} יח׳ חסרות פחות ${Math.min(m,gross)} שמגיעות החודש`
+   :`${gross} יח׳ חסרות · אין אספקה מתוארכת עד סוף החודש`)}">`
+   +chain+`<span class="stake qty">${left.toLocaleString('he-IL')}</span></td>`}
+/* העמודה נושאת את הציווי; ה-title נושא את המשפט המלא.
+   «להשלים 5 יח׳ כדי לכסות את החודש הקרוב» הוא 38 תווים, והחלק
+   שמניע פעולה הוא ששת הראשונים. הנימוק אינו נמחק — הוא עובר
+   ל-tooltip, שם הוא נקרא כשצריך אותו ולא גוזל 180 פיקסלים תמיד. */
+function shortAct(r){
+ const full=((r.act||[])[0]||'').trim();
+ if(!full)return '';
+ const cut=full.split(' — ')[0].split(' כדי ')[0].trim();
+ return cut.length>34?cut.slice(0,33)+'…':cut}
+function stuckCell(r){
+ const st=r.stuck||0,tr=r.transfer>0?` · ${r.transfer} יח׳ בהעברה פנימית (לא נספרות כאן)`:'';
+ return `<td class="num stk" title="${esc((st>0
+   ?`${st} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
+   :(r.po>0?'כל הרכש הפתוח משובץ לאספקה':'אין רכש פתוח'))+tr)}">`
+  +(st>0?st.toLocaleString('he-IL'):'<span class="mut">—</span>')+'</td>'}
 function etaCells(r){
  const po=(r.po||0)+(r.transfer||0);
  if(!ETA)return `<td class="num otw">${po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי">${po.toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>`;
@@ -4210,15 +4292,17 @@ function decisionHead(){const cols=FIXLIKE()
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`]
-  :SHORTLIKE()?['מק״ט','תיאור','ספק','דגם',
-    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>','מלאי',
-    /* בלי דוח ETA אין במה לפצל — עמודה אחת, בדיוק כמו קודם. ראה ETA_SPLIT */
-    ...(ETA?['<span title="יחידות מתוך הרכש הפתוח ששובצו לאספקה עם תאריך, והתאריך המוקדם מביניהן">משובץ</span>',
+  /* ארבע התשובות, משמאל לימין בסדר השאלה: חסר · מכוסה · נשאר · פעולה.
+     «דגם» ירד כדי לפנות את המקום לפעולה — הוא בכרטיס הפריט. */
+  :SHORTLIKE()?['מק״ט','תיאור','ספק',
+    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>',
+    '<span title="מלאי פנוי על המדף עכשיו">מלאי</span>','לקוח',
+    ...(ETA?['<span title="יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין">מכוסה</span>',
              '<span title="רכש פתוח שלא שובץ לשום אספקה — אין לו תאריך ואינו נספר ככיסוי">תקוע</span>']
            :['<span title="רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>']),
-    'לקוח',
-    '<span title="קצב חודשי פחות המלאי במדף — היחידות שלא יסופקו החודש">לא יסופק</span>',
-    '<span title="היחידות שלא יסופקו כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
+    '<span title="מה שנשאר חסר אחרי הכיסוי. כשהחשבון אינו טריוויאלי הוא מוצג בתא עצמו">נשאר</span>',
+    '<span title="היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
+    '<span title="הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים">הפעולה הבאה</span>',
     '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר',`<span title="מוצג למידע בלבד ואינו נספר ככיסוי. ${otwHead()}">בדרך</span>`]
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
@@ -4436,13 +4520,13 @@ function renderDecisions(rows){
      <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
      <td class="dsc">${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
      <td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>
-     <td class="mdl" title="${esc(r.model||'')}"><bdi>${esc((r.model||'—').slice(0,15))}</bdi></td>
      <td class="cg">${sparkline(r)}</td>
      <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     ${etaCells(r)}
      <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-     <td class="num"><span class="stake qty">${Math.ceil(r.unsQty||0).toLocaleString('he-IL')}</span></td>
+     ${ETA?shortCovered(r)+stuckCell(r):etaCells(r)}
+     ${shortLeft(r)}
      <td class="num val">${money(r.unsVal||0,r.currency)}</td>
+     <td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>
      <td class="age">${ageTag(r)}</td></tr>`)}}
  }
  else view.forEach((r,i)=>{
@@ -4587,7 +4671,8 @@ function renderDecisions(rows){
   :FIXLIKE()
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
-  :(SHORTLIKE()?'חוסרים מול הביקוש — ממוין לפי חומרה ואז לפי הכמות החסרה':'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
+  :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
+    :'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
  wireCopy()}
 function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
