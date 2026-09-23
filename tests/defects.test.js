@@ -96,6 +96,15 @@ const rows=[
     יושבים 1/1. ⌈0+0⌉=0, ו-ROP_MIN_ACT מחזיק אותם על 1. הבדיקה הזו
     ישבה קודם על הדוח הסינתטי, שבו היא הפכה ריקה אחרי תיקון הרצפה. */
  mk('ROPMIN-KEEP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:5,rop:1,ss:1,ssMin:0,price:200,lt:120}),
+ /* ============ הרצפה מול המלצת הקטנת המלאי ============
+    מלאי איטי גדול, צריכה 1 יח׳ בשלוש שנים, ומחיר שמעמיד רצפת
+    מדיניות של 3. «כמה להשאיר» נגזר קודם מהקצב התלת-שנתי בלבד —
+    ⌈(1/36)×24⌉ = 1 — ולכן ההמלצה הייתה להקטין ל-1, מתחת לרצפה
+    שהכלי עצמו מחשב. */
+ mk('FLOOR-SLOW',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:200,rop:0,ss:0,price:5,lt:120,saleAgo:120,entAgo:400}),
+ /* אותו מבנה, אבל ב-SAP כבר יושבים פרמטרים מעל הרצפה — אסור שייכנס
+    להערה החדשה, כדי שהיא לא תהפוך לרעש על כל שורת מלאי איטי. */
+ mk('FLOOR-SLOW-OK',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:200,rop:9,ss:9,price:5,lt:120,saleAgo:120,entAgo:400}),
  mk('SSF-NOSTOCK',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,status:'04',stx:'גמר המלאי'}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
@@ -152,6 +161,32 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
             document.getElementById('modalwrap').classList.remove('open');
             o.violations=ALL.filter(x=>!x.isOD&&!x.noStock&&x.ssMin>0&&x.sugSS<x.ssMin).map(x=>x.pn);
             o['ROPMIN-KEEP']=pick('ROPMIN-KEEP');
+            /* ============ הפער מול SAP — האם מישהו מדווח עליו ============ */
+            const note=/רצפת המדיניות לביקוש זעום אומרת|רצפת ssMin שהוגדרה ב-SAP אומרת/;
+            const act=/לעדכן מלאי ביטחון ל-|לעדכן נקודת הזמנה ל-/;
+            const detail=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+              return {cat:r.cat,sev:r.sev,stock:r.stock,free:r.free,sugSS:r.sugSS,sugROP:r.sugROP,
+                ss:r.ss,rop:r.rop,excessQty:r.excessQty,paramFix:!!r.paramFix,
+                keepsFloor:r.stock-(r.excessQty||0),
+                noted:(r.why||[]).some(w=>note.test(w[1])),
+                acted:(r.act||[]).some(a=>act.test(a)),
+                why:(r.why||[]).map(w=>w[1]).join(' | '),acts:(r.act||[]).join(' | ')}};
+            o.slow=detail('FLOOR-SLOW');o.slowOk=detail('FLOOR-SLOW-OK');
+            /* פער שאיש לא מדווח עליו — חייב להיות ריק */
+            /* paramFix הוא הסמן של הכלי עצמו ל«השורה הזו נושאת החלטת
+               פרמטר» — לא חשוב איזה רונג שם אותו, חשוב שמישהו שם. */
+            o.unreported=ALL.filter(x=>!x.isOD&&!x.noStock&&x.rate<=0&&x.sugSS>0
+              &&(x.ss<x.sugSS||x.rop<x.sugROP)&&!x.paramFix)
+              .map(x=>`${x.pn} [${x.cat}] ss ${x.ss}→${x.sugSS} rop ${x.rop}→${x.sugROP}`);
+            /* המלצת הקטנה שיורדת מתחת לרצפה — חייב להיות ריק */
+            o.cutsBelow=ALL.filter(x=>(x.excessQty||0)>0&&x.stock-(x.excessQty||0)<(x.sugSS||0))
+              .map(x=>`${x.pn}: מלאי ${x.stock} − ${x.excessQty} < רצפה ${x.sugSS}`);
+            /* סתירה על אותה שורה: «אין פעולה נדרשת» לצד המלצת פרמטר */
+            o.contradict=ALL.filter(x=>(x.act||[]).includes('אין פעולה נדרשת')
+              &&(x.act||[]).some(a=>act.test(a))).map(x=>x.pn);
+            /* «SAP לא יחזיר» נאמר רק כשנקודת ההזמנה באמת מתחת לרצפה */
+            o.falseAlarm=ALL.filter(x=>(x.why||[]).some(w=>/הכרית לא תשוחזר|לא יזמין את הפריט מעצמו/.test(w[1]))
+              &&!(x.rop<x.sugROP)).map(x=>`${x.pn} rop ${x.rop} ≥ ${x.sugROP}`);
             o.ropFormula=ALL.filter(x=>!x.isOD&&x.sugROP<Math.ceil(x.dLT+x.sugSS)).map(x=>x.pn);
             return o})(),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
@@ -369,6 +404,26 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
    ok('נוכחות מינימלית — בלי רצפה ובלי קצב, ROP ו-SS נשארים 1 ולא 0',
       K&&K.sugROP===1&&K.sugSS===1&&K.ssStat===0&&K.ssMinEff===0&&K.lowFloor===0,
       K?`ssStat=${K.ssStat} ssMin=${K.ssMinEff} מדיניות=${K.lowFloor} → SS=${K.sugSS} ROP=${K.sugROP}`:'לא נמצא');}
+ // ============ הפער מול SAP — 350 הפריטים ששתקו ============
+ ok('המלצת הקטנת המלאי נעצרת ברצפה ולא באפס',
+    F.slow&&F.slow.keepsFloor===F.slow.sugSS&&F.slow.sugSS>0,
+    F.slow?`מלאי ${F.slow.stock} · להקטין ${F.slow.excessQty} · נשאר ${F.slow.keepsFloor} · רצפה ${F.slow.sugSS} (לפני התיקון נשארה 1)`:'לא נמצא');
+ ok('ואותה שורה אומרת גם מה לעשות עם הפרמטר',
+    F.slow&&F.slow.noted&&F.slow.acted&&F.slow.paramFix,
+    F.slow?F.slow.acts:'לא נמצא');
+ /* «ההערה» היא שורת ה-why של הרונג החדש. הפריט הזה כן מקבל החלטת
+    פרמטר — מהרונג ההפוך, «הפרמטר שמחזיר את המלאי» — וזה בדיוק הנכון. */
+ ok('פריט שהפרמטרים שלו כבר מעל הרצפה אינו מקבל את ההערה החדשה',
+    F.slowOk&&!F.slowOk.noted,
+    F.slowOk?`ss ${F.slowOk.ss}→${F.slowOk.sugSS} rop ${F.slowOk.rop}→${F.slowOk.sugROP} · ${F.slowOk.acts}`:'לא נמצא');
+ ok('אין פער בין הרצפה ל-SAP שאיש אינו מדווח עליו',
+    F.unreported.length===0,F.unreported.slice(0,5).join(' · '));
+ ok('אין המלצת הקטנה שמורידה מתחת לרצפה',
+    F.cutsBelow.length===0,F.cutsBelow.slice(0,5).join(' · '));
+ ok('אין שורה שאומרת «אין פעולה נדרשת» לצד המלצת פרמטר',
+    F.contradict.length===0,F.contradict.join(' · '));
+ ok('«הכרית לא תשוחזר» נאמר רק כשנקודת ההזמנה מתחת לרצפה',
+    F.falseAlarm.length===0,F.falseAlarm.slice(0,5).join(' · '));
  ok('רצפת ssMin שהוגדרה אינה נחתכת לאף פריט מנוהל־מלאי',
      F.violations.length===0,F.violations.join(' · '));
   ok('ROP לעולם אינו נמוך מ-⌈ביקוש בזמן האספקה + SS⌉',

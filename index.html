@@ -2825,7 +2825,14 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       `לבדוק שוב בעוד ${Math.max(0,Math.ceil((DEAD_DAYS-(it.entAge||0))/30))} חודשים`];
     Q.passive.push(it);continue}
   if(it.slow3y&&it.stock>0){
-    const keep=Math.ceil(it.rate3y*SLOW_MONTHS), over=Math.max(0,it.stock-keep);
+    /* ============ ההקטנה נעצרת ברצפה, לא באפס ============
+       «כמה להשאיר» נגזר מהקצב התלת-שנתי בלבד, והתעלם מרצפת מלאי
+       הביטחון שהכלי עצמו מחשב. נמדד על הדוח האמיתי: ב-102 פריטים
+       ההקטנה המוצעת ירדה *מתחת* לרצפה — 1062031500 החזיק 199 יח׳,
+       הכלי אמר «להקטין ב-198» (נשארת 1), והרצפה שלו היא 3. מי שהיה
+       מבצע היה יורד מתחת לכרית שהוא עצמו אישר.
+       רצפה מאושרת היא חסם תחתון על מה שנשאר על המדף. */
+    const keep=Math.max(Math.ceil(it.rate3y*SLOW_MONTHS),it.sugSS||0), over=Math.max(0,it.stock-keep);
     it.excessQty=over;it.expCap=over*it.price;it.sev=1;it.cat='מלאי איטי';
     it.why=[['warn',`צריכה ${it.cons3y} יח׳ בלבד ב-3 שנים · כיסוי ${it.cov3y.toFixed(0)} חודשים בקצב הזה`],
       ['info',`מעל ${SLOW_MONTHS} חודשי כיסוי יושבות ${over} יח׳ בשווי ${money(it.expCap,it.currency)}`],
@@ -2953,6 +2960,44 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
   it.act=[...(it.act||[]),
     `לעדכן נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS} — אחרת המלאי יחזור`].slice(0,4)}
+ /* ============ הצד ההפוך: הפרמטר שלא יחזיר את המלאי ============
+    הרונג שמעל מטפל בפרמטר שגבוה מדי — SAP יזמין בחזרה. זה הצד השני
+    בדיוק: הפרמטר *נמוך* מהרצפה שהכלי מחשב, ולכן SAP לא יחזיר את
+    הפריט בכלל. עד כה איש לא אמר את זה: רונג המלאי האיטי רץ קודם
+    ועושה continue, ורונג הפרמטרים הראשי חסום ב-rate>0.
+
+    נמדד על הדוח האמיתי: 350 פריטים — 343 «מלאי איטי», 6 «מעקב
+    אספקה» ואחד שישב ב«תקין» בלי שאיש יראה אותו. 533 יחידות,
+    ₪3,184 + $8,107. הסכום קטן, והסתירה אינה: אותה שורה אמרה
+    «להקטין מלאי» ו«הרצפה היא 3» בלי להזכיר את השנייה.
+
+    ב-311 מהם המלאי ממילא מעל הרצפה, ולכן ההערה אינה המלצת רכש —
+    היא יישור פרמטר. שבעה חשופים היום, ולהם זו כן חשיפה. */
+ for(const it of items){
+  if(it.rate>0||it.isPDItem||it.isOD||it.noStock||it.paramFix)continue;
+  if(!(it.sugSS>0))continue;
+  const ssGap=it.ss<it.sugSS, ropGap=it.rop<it.sugROP;
+  if(!ssGap&&!ropGap)continue;
+  /* פריט שישב ב«תקין» — הפער הוא הבעיה היחידה שלו, ולכן הוא עובר
+     לסיווג הפרמטרים במקום להוסיף «אין פעולה נדרשת» לצד המלצה. */
+  const iOk=Q.ok.indexOf(it);
+  if(iOk>=0){Q.ok.splice(iOk,1);it.sev=1;it.cat='עדכון פרמטרים';
+   it.why=(it.why||[]).filter(w=>w[0]!=='ok');
+   it.act=(it.act||[]).filter(a=>a!=='אין פעולה נדרשת');
+   Q.quality.push(it)}
+  it.paramFix=true;
+  it.why.push(['warn',`${it.ssSrc==='policy'?'רצפת המדיניות לביקוש זעום':'רצפת ssMin שהוגדרה ב-SAP'} `+
+    `אומרת ${it.sugSS} יח׳, וב-SAP יושבים מלאי ביטחון ${it.ss} ונקודת הזמנה ${it.rop}`]);
+  if(Q.excess.includes(it))
+   it.why.push(['idea',`ההקטנה נעצרת ברצפה ולא באפס — ${it.sugSS} יח׳ נשארות על המדף`]);
+  else if(it.free<=0&&ropGap)
+   it.why.push(['err',`מלאי פנוי אפס ונקודת הזמנה ${it.rop}`+
+    (it.rop<=0?' — SAP לא יזמין את הפריט מעצמו כלל'
+             :` — נמוכה מהרצפה ${it.sugROP}, ולכן הכרית לא תשוחזר`)]);
+  it.act=[...(it.act||[]),
+   ssGap&&ropGap?`לעדכן מלאי ביטחון ל-${it.sugSS} ונקודת הזמנה ל-${it.sugROP}`
+   :ssGap?`לעדכן מלאי ביטחון ל-${it.sugSS}`
+   :`לעדכן נקודת הזמנה ל-${it.sugROP}`].slice(0,4)}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
