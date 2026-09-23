@@ -523,6 +523,40 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ממוין לפי שווי הפער',fv.sorted);
  ok('הפער חיובי בכל שורה',+fv.cells[5]>0,fv.cells.join(' | '));
  ok('הפוטר מסכם יחידות וכסף',/יח׳ מעל הדרישה/.test(fv.pgR),fv.pgR);
+ /* ============ הדלת הורחבה מ-409 ל-2,287 ============
+    התנאי rate>0 הוסר: הפער נמדד היום על כל פריט מנוהל־מלאי. שתי
+    השאלות נשארות נפרדות *בתוך* הדלת — «הדרישה» מציגה «—» כשאין קצב
+    מדוד, והסיכום מפצל את שתי האוכלוסיות. */
+ const fw=await p.evaluate(()=>{
+  const all=(QF&&QF.all?QF.all:[]);
+  const rows=floorRows();
+  return {n:rows.length,
+   narrow:all.filter(r=>r.rate>0&&!r.isOD&&!r.noStock&&(r.ssMinEff||0)>(r.ssStat||0)).length,
+   noRate:rows.filter(ssNoRate).length,
+   /* אף החרגה עסקית אינה נכנסת */
+   leaks:rows.filter(r=>r.isOD||r.noStock||(r.ssMinEff||0)<=(r.ssStat||0)).length,
+   /* הפער תמיד מול הרצפה שבתוקף, לא מול ssMin הגולמי */
+   rawFloor:rows.filter(r=>ssFloorGap(r)!==(r.ssMinEff||0)-(r.ssStat||0)).length,
+   /* בשורות חסרות־קצב התא מציג «—» ולא 0 */
+   /* התאמה שורה-לשורה בין «אין קצב» לבין התא שמציג «—» */
+   dash:(()=>{const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+     const shown=tr.map(t=>currentRows()[+t.dataset.i]);
+     return {n:tr.length,
+       want:shown.filter(ssNoRate).length,
+       got:tr.filter(t=>(t.children[4]||{}).textContent.trim()==='—').length,
+       match:tr.every((t,i)=>((t.children[4]||{}).textContent.trim()==='—')===ssNoRate(shown[i]))}})(),
+   pgR:document.getElementById('pgR').textContent,
+   sub:document.getElementById('phdSub').textContent}});
+ ok('הדלת כוללת גם פריטים בלי קצב מדוד',fw.n>fw.narrow,
+    `${fw.n} פריטים · ${fw.narrow} מהם עם קצב (לפני ההרחבה זה היה כל המסלול)`);
+ ok('ואף החרגה עסקית לא נכנסה איתם',fw.leaks===0,fw.leaks+' דליפות');
+ ok('הפער נמדד מול הרצפה שבתוקף ולא מול ssMin הגולמי',fw.rawFloor===0,fw.rawFloor+' חריגות');
+ ok('בעמודת הדרישה «—» מופיעה בדיוק בשורות שאין בהן קצב מדוד',
+    fw.dash.match&&fw.dash.got===fw.dash.want,
+    `${fw.dash.got}/${fw.dash.want} מתוך ${fw.dash.n} שורות מרונדרות`);
+ ok('והסיכום אומר כמה מהן בלי קצב',
+    fw.noRate===0||/בלי קצב מדוד/.test(fw.pgR),fw.pgR);
+ ok('והתת-כותרת מסבירה מה «—» אומרת',/אין קצב מדוד/.test(fw.sub),fw.sub.slice(0,140));
  await p.click('#floorBtn');await p.waitForTimeout(600);
  ok('לחיצה על הסיכום מחזירה ל"החודש"','month'===await p.evaluate(()=>mode));
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);

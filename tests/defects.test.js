@@ -8,9 +8,9 @@ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','ש
 const D=n=>{const d=new Date(Date.now()-n*864e5);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`};
 // months[0] = חודש-1 (הקרוב ביותר)
 const mk=(pn,o)=>{const m=o.months;const y=m.reduce((a,b)=>a+b,0);
- return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק','01','פעיל',o.mrp||'ND','A',o.srv||95,
-  o.ss||0,o.rop||0,o.lt||30,2,0,o.price!=null?o.price:100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
-  'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
+ return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק',o.status||'01',o.stx||'פעיל',o.mrp||'ND','A',o.srv||95,
+  o.ss||0,o.rop||0,o.lt||30,2,o.ssMin||0,o.price!=null?o.price:100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
+  o.mkt1||'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
   o.y0!=null?o.y0:y, o.y1!=null?o.y1:y, o.y2!=null?o.y2:y, 0, ...m, D(o.saleAgo||10), D(o.entAgo||60)]};
 
 const rows=[
@@ -75,6 +75,55 @@ const rows=[
  mk('CUR-USD2',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD',price:250}),
  // SAP ss=1 ו-rop=3 בלי קצב: הרצפות מרימות SS, והכלל SS≤ROP חייב לרוץ אחריהן
  mk('SSROP-GUARD',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:3,rop:3,ss:1,price:5000,cur:'USD'}),
+ /* ============ רצפת SS — ששת המקרים ============
+    רצפת SS מאושרת היא כרית *מעבר* לצריכה בזמן האספקה, ולא יעד למלאי
+    הכולל. לכן קצב מחושב אפס אינו עילה לאפס אותה. שש השורות האלה הן
+    בדיוק ששת המצבים שבהם max(סטטיסטי, ssMin, מדיניות) יכול להיחתך. */
+ // 1 · ביקוש זעום בפריט יקר עם ssMin חיובי — המקרה שדווח
+ mk('SSF-EXPENSIVE',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120}),
+ // 2 · אותו ביקוש, פריט זול — רצפת המחיר (3) נמוכה מ-ssMin (5)
+ mk('SSF-CHEAP',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:5,lt:120}),
+ // 3 · קצב מחושב אפס לחלוטין, רצפת ssMin חיובית
+ mk('SSF-ZERO-RATE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:0,rop:0,ss:0,ssMin:4,price:200,lt:120}),
+ // 4 · SS סטטיסטי גבוה משתי הרצפות
+ mk('SSF-STAT-WINS',{months:[30,2,28,3,25,4,30,2,27,3,26],free:50,rop:0,ss:0,ssMin:2,price:200,lt:120,srv:95}),
+ // 5 · רצפת מדיניות גבוהה משני המרכיבים האחרים
+ mk('SSF-POLICY-WINS',{months:[0,0,1,0,0,0,1,0,0,0,1],y0:3,y1:3,y2:3,free:0,rop:0,ss:0,ssMin:1,price:5,lt:120}),
+ // 6 · שלוש ההחרגות — ssMin זהה, והרצפה אינה חלה על אף אחת מהן
+ mk('SSF-PD',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,mrp:'PD',srv:50}),
+ mk('SSF-ONDEMAND',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,mkt1:'כלי עבודה'}),
+ /* נוכחות מינימלית — המקרה הנקי: אין רצפה בכלל, אין קצב, וב-SAP
+    יושבים 1/1. ⌈0+0⌉=0, ו-ROP_MIN_ACT מחזיק אותם על 1. הבדיקה הזו
+    ישבה קודם על הדוח הסינתטי, שבו היא הפכה ריקה אחרי תיקון הרצפה. */
+ mk('ROPMIN-KEEP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:5,rop:1,ss:1,ssMin:0,price:200,lt:120}),
+ /* ============ הרצפה מול המלצת הקטנת המלאי ============
+    מלאי איטי גדול, צריכה 1 יח׳ בשלוש שנים, ומחיר שמעמיד רצפת
+    מדיניות של 3. «כמה להשאיר» נגזר קודם מהקצב התלת-שנתי בלבד —
+    ⌈(1/36)×24⌉ = 1 — ולכן ההמלצה הייתה להקטין ל-1, מתחת לרצפה
+    שהכלי עצמו מחשב. */
+ mk('FLOOR-SLOW',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:200,rop:0,ss:0,price:5,lt:120,saleAgo:120,entAgo:400}),
+ /* אותו מבנה, אבל ב-SAP כבר יושבים פרמטרים מעל הרצפה — אסור שייכנס
+    להערה החדשה, כדי שהיא לא תהפוך לרעש על כל שורת מלאי איטי. */
+ mk('FLOOR-SLOW-OK',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:200,rop:9,ss:9,price:5,lt:120,saleAgo:120,entAgo:400}),
+ /* ============ שלוש התנגשויות שהרונג החדש יכול לייצר ============
+    כל אחת מהן היא «שתי הוראות על אותה שורה», וזה בדיוק מה שמתכנן
+    לא יכול לבצע. */
+ // 1 · מלאי מת עם רצפה: «לוודא ש-ROP/SS מאופסים» מול «להעלות ל-5»
+ mk('DEAD-FLOOR',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:0,ss:0,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
+ /* אותם 20 יח׳ ואותה רצפה 5, בשני מצבי פרמטרים שמפעילים מסלולי
+    המלצה *אחרים*:
+      10/10 — מלאי פנוי (20) גבוה מ-ROP, ולכן אין ropRisk. מה שכן
+              נפתח הוא רונג «הפרמטר שמחזיר את המלאי» (10 > LOW_PARAM_FLOOR),
+              שהוסיף «לעדכן נקודת הזמנה ל-5 ומלאי ביטחון ל-5».
+      30/10 — מלאי פנוי ≤ ROP, ולכן ropRisk דלק ואיתו paramFix.
+              הפריט נספר כתיקון פרמטרים שהוחלט עליו, לפני שהוכרע. */
+ mk('DEAD-FLOOR-1010',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:10,ss:10,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
+ mk('DEAD-FLOOR-3010',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:30,ss:10,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
+ // 2 · פריט שיסומן ידנית בבדיקה עצמה — חייב להישאר בלי המלצת פרמטר
+ mk('MARK-FLOOR',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120}),
+ // 3 · פריט שיסומן «לפי דרישה» — הייצוא חייב לשקף את המדיניות בתוקף
+ mk('ODMARK-FLOOR',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120}),
+ mk('SSF-NOSTOCK',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,status:'04',stx:'גמר המלאי'}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -111,6 +160,86 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
           noThirdSource:ALL.filter(x=>x.sugSS>Math.max(x.ssStat||0,x.ssMin||0,x.lowFloor||0,x.ss||0))
             .map(x=>`${x.pn}: SS=${x.sugSS} מול max(${x.ssStat},${x.ssMin},${x.lowFloor},${x.ss})`),
           guard:g('SSROP-GUARD'),
+          /* ============ רצפת SS ============
+             כל מקרה נאסף פעם אחת ומשרת את שלושת הפלטים: המנוע (sugSS),
+             הכרטיס (explain) והייצוא (XCOLS) — כי המפרט דורש שיציגו
+             את אותה תוצאה, ולא רק שהמספר בפנים יהיה נכון. */
+          ssf:(()=>{const pick=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+             explain(r);const card=(document.getElementById('mbody').innerText||'').replace(/\s+/g,' ');
+             const h=XCOLS.map(c=>c[0]),v=XCOLS.map(c=>{try{return c[1](r)}catch(_){return ''}});
+             const at=n=>v[h.indexOf(n)];
+             return {sugSS:r.sugSS,sugROP:r.sugROP,ssStat:r.ssStat,ssMin:r.ssMin,ssMinEff:r.ssMinEff,
+               lowFloor:r.lowFloor,ssSrc:r.ssSrc,rate:+r.rate.toFixed(3),dLT:+r.dLT.toFixed(2),
+               noStock:!!r.noStock,isOD:!!r.isOD,card,
+               xSS:at('SS מוצע'),xROP:at('ROP מוצע'),xStat:at('SS סטטיסטי'),
+               xSap:at('רצפת ssMin בתוקף'),xPol:at('רצפת מדיניות'),xSrc:at('מקור SS'),xDlt:at('ביקוש בזמן האספקה')}};
+            const o={};
+            for(const pn of ['SSF-EXPENSIVE','SSF-CHEAP','SSF-ZERO-RATE','SSF-STAT-WINS',
+                             'SSF-POLICY-WINS','SSF-PD','SSF-ONDEMAND','SSF-NOSTOCK'])o[pn]=pick(pn);
+            document.getElementById('modalwrap').classList.remove('open');
+            o.violations=ALL.filter(x=>!x.isOD&&!x.noStock&&x.ssMin>0&&x.sugSS<x.ssMin).map(x=>x.pn);
+            o['ROPMIN-KEEP']=pick('ROPMIN-KEEP');
+            /* ============ הפער מול SAP — האם מישהו מדווח עליו ============ */
+            const note=/רצפת המדיניות לביקוש זעום אומרת|רצפת ssMin שהוגדרה ב-SAP אומרת/;
+            const act=/לעדכן מלאי ביטחון ל-|לעדכן נקודת הזמנה ל-/;
+            const detail=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+              return {cat:r.cat,sev:r.sev,stock:r.stock,free:r.free,sugSS:r.sugSS,sugROP:r.sugROP,
+                ss:r.ss,rop:r.rop,excessQty:r.excessQty,paramFix:!!r.paramFix,
+                keepsFloor:r.stock-(r.excessQty||0),
+                noted:(r.why||[]).some(w=>note.test(w[1])),
+                acted:(r.act||[]).some(a=>act.test(a)),
+                why:(r.why||[]).map(w=>w[1]).join(' | '),acts:(r.act||[]).join(' | ')}};
+            o.slow=detail('FLOOR-SLOW');o.slowOk=detail('FLOOR-SLOW-OK');
+            /* פער שאיש לא מדווח עליו — חייב להיות ריק */
+            /* paramFix הוא הסמן של הכלי עצמו ל«השורה הזו נושאת החלטת
+               פרמטר» — לא חשוב איזה רונג שם אותו, חשוב שמישהו שם. */
+            o.unreported=ALL.filter(x=>!x.isOD&&!x.noStock&&x.rate<=0&&x.sugSS>0
+              &&(x.ss<x.sugSS||x.rop<x.sugROP)&&!x.mark&&!x.paramFix
+              /* מלאי מת מדווח דרך שורת ההתנגשות, לא דרך paramFix:
+                 שם השאלה אינה «לעדכן פרמטר» אלא «איזו מדיניות חלה». */
+              &&!(x.why||[]).some(w=>/התנגשות מדיניות/.test(w[1])))
+              .map(x=>`${x.pn} [${x.cat}] ss ${x.ss}→${x.sugSS} rop ${x.rop}→${x.sugROP}`);
+            /* המלצת הקטנה שיורדת מתחת לרצפה — חייב להיות ריק */
+            o.cutsBelow=ALL.filter(x=>(x.excessQty||0)>0&&x.stock-(x.excessQty||0)<(x.sugSS||0))
+              .map(x=>`${x.pn}: מלאי ${x.stock} − ${x.excessQty} < רצפה ${x.sugSS}`);
+            /* סתירה על אותה שורה: «אין פעולה נדרשת» לצד המלצת פרמטר */
+            o.contradict=ALL.filter(x=>(x.act||[]).includes('אין פעולה נדרשת')
+              &&(x.act||[]).some(a=>act.test(a))).map(x=>x.pn);
+            /* «SAP לא יחזיר» נאמר רק כשנקודת ההזמנה באמת מתחת לרצפה */
+            o.falseAlarm=ALL.filter(x=>(x.why||[]).some(w=>/הכרית לא תשוחזר|לא יזמין את הפריט מעצמו/.test(w[1]))
+              &&!(x.rop<x.sugROP)).map(x=>`${x.pn} rop ${x.rop} ≥ ${x.sugROP}`);
+            /* ============ שלוש ההתנגשויות ============ */
+            /* יעד פרמטרים «מחייב» = כל ניסוח שאומר לאן להעמיד את
+               ROP/SS. «להכריע» אינו יעד — הוא בקשת החלטה. */
+            const BIND=/לעדכן (מלאי ביטחון|נקודת הזמנה) ל-|לאפס נקודת הזמנה|להקטין (נקודת הזמנה|מלאי ביטחון)|ROP\/SS מאופסים/;
+            const dead=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+              const w=(r.why||[]).map(x=>x[1]);
+              return {cat:r.cat,floorClash:!!r.floorClash,paramFix:!!r.paramFix,
+                rop:r.rop,ss:r.ss,sugSS:r.sugSS,sugROP:r.sugROP,free:r.free,stock:r.stock,
+                bind:(r.act||[]).filter(a=>BIND.test(a)),
+                decide:(r.act||[]).some(a=>/להכריע/.test(a)),
+                clash:w.some(x=>/התנגשות מדיניות/.test(x)),
+                ropRisk:w.some(x=>/סיכון להזמנה חוזרת/.test(x)),
+                reorder:w.some(x=>/סיכון להזמנה חוזרת|SAP יזמין בחזרה/.test(x)),
+                inSnap:Object.prototype.hasOwnProperty.call(paramSnap(ALL),pn),
+                why:w.join(' | '),acts:(r.act||[]).join(' | ')}};
+            o.deadCases={base:dead('DEAD-FLOOR'),p1010:dead('DEAD-FLOOR-1010'),p3010:dead('DEAD-FLOOR-3010')};
+            /* אינווריאנטה: התנגשות = אין יעד מחייב, אין paramFix, אין מעקב */
+            {const snap=paramSnap(ALL);
+             o.clashLeak=ALL.filter(x=>x.floorClash&&((x.act||[]).some(a=>BIND.test(a))
+               ||x.paramFix||Object.prototype.hasOwnProperty.call(snap,x.pn)))
+               .map(x=>`${x.pn} paramFix=${!!x.paramFix} act="${(x.act||[]).filter(a=>BIND.test(a)).join(' / ')}"`);
+             o.clashN=ALL.filter(x=>x.floorClash).length;}
+            o.dead=detail('DEAD-FLOOR');
+            o.deadWhy=(()=>{const r=ALL.find(x=>x.pn==='DEAD-FLOOR');
+              return r?(r.why||[]).map(w=>w[1]).join(' | '):''})();
+            /* אף שורה אינה נושאת גם «לאפס/לוודא שמאופסים» וגם «להעלות» */
+            o.bothWays=ALL.filter(x=>{const a=(x.act||[]).join(' | ');
+              return /לאפס נקודת הזמנה|ROP\/SS מאופסים/.test(a)&&act.test(a)})
+              .map(x=>`${x.pn}: ${(x.act||[]).join(' | ')}`);
+
+            o.ropFormula=ALL.filter(x=>!x.isOD&&x.sugROP<Math.ceil(x.dLT+x.sugSS)).map(x=>x.pn);
+            return o})(),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
                header:(COLS.find(c=>c[0]==='risk')||[])[1]},
           rank:(()=>{const ex=Q.excess.filter(x=>x.expCap>0);
@@ -295,6 +424,158 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('כשאין חוסרים — המסך עובר למסלול שיש בו עבודה',
     scr.shortN===0?(scr.track!=='short'&&scr.rows>0):true,
     `מסלול=${scr.track} · חוסרים=${scr.shortN} · שורות=${scr.rows}`);
+ // ============ רצפת SS — ששת המקרים של המפרט ============
+ {const F=o.ssf, E=F['SSF-EXPENSIVE'];
+  ok('1 · ביקוש זעום בפריט יקר — רצפת ssMin נשמרת',
+     E.sugSS===5&&E.sugROP===5&&E.ssSrc==='sap',
+     `rate=${E.rate} ssStat=${E.ssStat} ssMin=${E.ssMin} → SS=${E.sugSS} ROP=${E.sugROP} (לפני התיקון: 0 / 0)`);
+  const C=F['SSF-CHEAP'];
+  ok('2 · אותו ביקוש בפריט זול — רצפת המחיר (3) נמוכה מ-ssMin (5), ו-ssMin גובר',
+     C.lowFloor===3&&C.sugSS===5&&C.ssSrc==='sap',
+     `מדיניות=${C.lowFloor} ssMin=${C.ssMinEff} → SS=${C.sugSS} (לפני התיקון: 3)`);
+  const Z=F['SSF-ZERO-RATE'];
+  ok('3 · קצב מחושב אפס עם רצפה חיובית — הרצפה אינה מתאפסת',
+     Z.rate===0&&Z.ssStat===0&&Z.sugSS===4&&Z.sugROP===4,
+     `rate=${Z.rate} ssStat=${Z.ssStat} → SS=${Z.sugSS} ROP=${Z.sugROP}`);
+  const S=F['SSF-STAT-WINS'];
+  ok('4 · SS סטטיסטי גבוה משתי הרצפות — הוא שקובע',
+     S.ssSrc==='stat'&&S.sugSS===S.ssStat&&S.sugSS>S.ssMinEff&&S.sugSS>S.lowFloor,
+     `ssStat=${S.ssStat} ssMin=${S.ssMinEff} מדיניות=${S.lowFloor} → SS=${S.sugSS}`);
+  const P=F['SSF-POLICY-WINS'];
+  ok('5 · רצפת מדיניות גבוהה משני המרכיבים האחרים — היא שקובעת',
+     P.ssSrc==='policy'&&P.sugSS===P.lowFloor&&P.lowFloor>P.ssMinEff&&P.lowFloor>P.ssStat,
+     `ssStat=${P.ssStat} ssMin=${P.ssMinEff} מדיניות=${P.lowFloor} → SS=${P.sugSS}`);
+  // 6 · ההחרגות — אותה ssMin=5, ואף אחת מהן אינה מקבלת המלצת רכש חדשה
+  for(const [pn,why] of [['SSF-PD','PD'],['SSF-ONDEMAND','לפי דרישה'],['SSF-NOSTOCK','גמר המלאי']]){
+   const x=F[pn];
+   ok(`6 · ההחרגה «${why}» נשמרה — ssMin=5 אינו יוצר SS/ROP`,
+      x&&x.sugSS===0&&x.sugROP===0,
+      x?`SS=${x.sugSS} ROP=${x.sugROP} ssMin=${x.ssMin} ssMinEff=${x.ssMinEff}`:'לא נמצא');}
+  {const K=F['ROPMIN-KEEP'];
+   ok('נוכחות מינימלית — בלי רצפה ובלי קצב, ROP ו-SS נשארים 1 ולא 0',
+      K&&K.sugROP===1&&K.sugSS===1&&K.ssStat===0&&K.ssMinEff===0&&K.lowFloor===0,
+      K?`ssStat=${K.ssStat} ssMin=${K.ssMinEff} מדיניות=${K.lowFloor} → SS=${K.sugSS} ROP=${K.sugROP}`:'לא נמצא');}
+ // ============ הפער מול SAP — 350 הפריטים ששתקו ============
+ ok('המלצת הקטנת המלאי נעצרת ברצפה ולא באפס',
+    F.slow&&F.slow.keepsFloor===F.slow.sugSS&&F.slow.sugSS>0,
+    F.slow?`מלאי ${F.slow.stock} · להקטין ${F.slow.excessQty} · נשאר ${F.slow.keepsFloor} · רצפה ${F.slow.sugSS} (לפני התיקון נשארה 1)`:'לא נמצא');
+ ok('ואותה שורה אומרת גם מה לעשות עם הפרמטר',
+    F.slow&&F.slow.noted&&F.slow.acted&&F.slow.paramFix,
+    F.slow?F.slow.acts:'לא נמצא');
+ /* «ההערה» היא שורת ה-why של הרונג החדש. הפריט הזה כן מקבל החלטת
+    פרמטר — מהרונג ההפוך, «הפרמטר שמחזיר את המלאי» — וזה בדיוק הנכון. */
+ ok('פריט שהפרמטרים שלו כבר מעל הרצפה אינו מקבל את ההערה החדשה',
+    F.slowOk&&!F.slowOk.noted,
+    F.slowOk?`ss ${F.slowOk.ss}→${F.slowOk.sugSS} rop ${F.slowOk.rop}→${F.slowOk.sugROP} · ${F.slowOk.acts}`:'לא נמצא');
+ ok('אין פער בין הרצפה ל-SAP שאיש אינו מדווח עליו',
+    F.unreported.length===0,F.unreported.slice(0,5).join(' · '));
+ ok('אין המלצת הקטנה שמורידה מתחת לרצפה',
+    F.cutsBelow.length===0,F.cutsBelow.slice(0,5).join(' · '));
+ ok('אין שורה שאומרת «אין פעולה נדרשת» לצד המלצת פרמטר',
+    F.contradict.length===0,F.contradict.join(' · '));
+ ok('«הכרית לא תשוחזר» נאמר רק כשנקודת ההזמנה מתחת לרצפה',
+    F.falseAlarm.length===0,F.falseAlarm.slice(0,5).join(' · '));
+ /* ============ שתי ההתנגשויות שדורשות סימון בפועל ============
+    הסימון מוחל, נמדד, ומוסר — כדי ששאר הקובץ ימשיך על לוח נקי. */
+ const mrk=await p.evaluate(()=>{
+  const act=/לעדכן מלאי ביטחון ל-|לעדכן נקודת הזמנה ל-/;
+  const kM=markKey(ALL.find(x=>x.pn==='MARK-FLOOR')),
+        kO=markKey(ALL.find(x=>x.pn==='ODMARK-FLOOR'));
+  MARKS[kM]={t:'ignore',ts:Date.now()};MARKS[kO]={t:'ondemand',ts:Date.now()};
+  Q=classify(ALL);
+  const xp=pn=>{const r=ALL.find(x=>x.pn===pn);
+    const h=XCOLS.map(c=>c[0]),v=XCOLS.map(c=>{try{return c[1](r)}catch(_){return ''}});
+    const at=n=>v[h.indexOf(n)];
+    return {odMarked:!!r.odMarked,mark:r.mark?r.mark.t:null,cat:r.cat,
+      ssMinEff:r.ssMinEff,lowFloor:r.lowFloor,ssSrc:r.ssSrc,paramFix:!!r.paramFix,
+      acts:(r.act||[]).join(' | '),
+      xSS:at('SS מוצע'),xEff:at('רצפת ssMin בתוקף'),xRaw:at('רצפת ssMin מ-SAP'),
+      xPol:at('רצפת מדיניות'),xSrc:at('מקור SS')}};
+  const o={marked:xp('MARK-FLOOR'),odMark:xp('ODMARK-FLOOR'),
+   markedActs:Q.marked.filter(x=>(x.act||[]).some(a=>act.test(a)))
+     .map(x=>`${x.pn} [${x.cat}]: ${(x.act||[]).join(' | ')}`),
+   markedFix:Q.marked.filter(x=>x.paramFix).map(x=>x.pn),
+   odLeak:ALL.filter(x=>x.isOD&&((x.ssMinEff||0)>0||(x.lowFloor||0)>0))
+     .map(x=>`${x.pn} ssMinEff=${x.ssMinEff} lowFloor=${x.lowFloor}`)};
+  /* הסרת הסימון חייבת להחזיר את השדות הנגזרים לערכם המקורי */
+  delete MARKS[kM];delete MARKS[kO];Q=classify(ALL);
+  o.restored=(()=>{const r=ALL.find(x=>x.pn==='ODMARK-FLOOR');
+    return {ssMinEff:r.ssMinEff,lowFloor:r.lowFloor,ssSrc:r.ssSrc,sugSS:r.sugSS}})();
+  return o});
+
+ const ACTRE=/לעדכן מלאי ביטחון ל-|לעדכן נקודת הזמנה ל-/;
+ // ============ שלוש ההתנגשויות שנמצאו בביקורת ============
+ // 1 · מלאי מת עם רצפה מאושרת
+ ok('מלאי מת עם רצפה אינו מקבל שתי הוראות הפוכות',
+    F.dead&&!ACTRE.test(F.dead.acts||'')&&/להכריע/.test(F.dead.acts||''),
+    F.dead?F.dead.acts:'לא נמצא');
+ ok('וההתנגשות נאמרת במפורש',/התנגשות מדיניות/.test(F.deadWhy),
+    (F.deadWhy.match(/התנגשות מדיניות[^|]*/)||[''])[0].slice(0,110));
+ /* שלושת מצבי הפרמטרים — אותם 20 יח׳ ואותה רצפה 5 */
+ for(const [k,lbl] of [['base','0/0'],['p1010','10/10'],['p3010','30/10']]){
+  const c=F.deadCases[k];
+  ok(`התנגשות ${lbl} · אין יעד פרמטרים מחייב לפני ההכרעה`,
+     c&&c.floorClash&&c.bind.length===0&&c.decide,
+     c?`ROP/SS ${c.rop}/${c.ss} · רצפה ${c.sugSS} · ${c.acts}`:'לא נמצא');
+  ok(`התנגשות ${lbl} · אינה נספרת כתיקון פרמטרים שהוחלט עליו`,
+     c&&!c.paramFix&&!c.inSnap,
+     c?`paramFix=${c.paramFix} · במעקב היישום=${c.inSnap}`:'לא נמצא');
+  /* עם ROP=0 אין סיכון להזמנה חוזרת — SAP לא יזמין מעצמו כלל, ולכן
+     אזהרה שם הייתה שקר. היא נדרשת בדיוק במצבים שבהם ROP פעיל. */
+  const wantReorder=k!=='base';
+  ok(`התנגשות ${lbl} · ההתנגשות נאמרת${wantReorder?' וסיכון ההזמנה החוזרת נשאר גלוי':' (ROP=0 — אין סיכון להזמנה חוזרת)'}`,
+     c&&c.clash&&c.reorder===wantReorder,
+     c?`התנגשות=${c.clash} · סיכון=${c.reorder} · ${c.why.slice(-150)}`:'לא נמצא');}
+ ok('ב-30/10, שבו המלאי הפנוי ≤ ROP, נשארת האזהרה החריפה עצמה',
+    F.deadCases.p3010&&F.deadCases.p3010.ropRisk,
+    F.deadCases.p3010?F.deadCases.p3010.why:'לא נמצא');
+ ok('אף פריט בהתנגשות אינו נושא יעד, paramFix או מעקב יישום',
+    F.clashLeak.length===0,`${F.clashN} בהתנגשות · ${F.clashLeak.slice(0,3).join(' · ')}`);
+ ok('אין שורה בקטלוג שאומרת גם לאפס וגם להעלות',
+    F.bothWays.length===0,F.bothWays.slice(0,3).join(' · '));
+ // 2 · סימון ידני תקף
+ ok('פריט עם סימון תקף אינו מקבל המלצת פרמטר',
+    mrk.markedActs.length===0,mrk.markedActs.slice(0,3).join(' · '));
+ ok('ואינו נושא paramFix',mrk.markedFix.length===0,mrk.markedFix.join(' · '));
+ ok('והסימון עצמו עדיין מוצג',mrk.marked.cat==='מוחרג ידנית'&&mrk.marked.mark==='ignore',
+    `${mrk.marked.cat} · ${mrk.marked.acts}`);
+ // 3 · ייצוא אחרי סימון «לפי דרישה»
+ ok('סימון «לפי דרישה» מאפס את הרצפה שבתוקף ואת מקור ה-SS',
+    mrk.odMark&&mrk.odMark.odMarked&&mrk.odMark.ssMinEff===0&&mrk.odMark.lowFloor===0&&mrk.odMark.ssSrc==='od',
+    mrk.odMark?`ssMinEff=${mrk.odMark.ssMinEff} lowFloor=${mrk.odMark.lowFloor} src=${mrk.odMark.ssSrc}`:'לא נמצא');
+ ok('הייצוא עקבי — בתוקף 0, מקור «לפי דרישה»',
+    mrk.odMark&&mrk.odMark.xSS===0&&mrk.odMark.xEff===0&&mrk.odMark.xPol===0&&mrk.odMark.xSrc==='לפי דרישה — ללא מלאי ביטחון',
+    mrk.odMark?`SS=${mrk.odMark.xSS} בתוקף=${mrk.odMark.xEff} מדיניות=${mrk.odMark.xPol} מקור=${mrk.odMark.xSrc}`:'לא נמצא');
+ ok('והערך הגולמי מ-SAP נשמר לתיעוד',mrk.odMark&&mrk.odMark.xRaw===5,
+    mrk.odMark?'רצפת ssMin מ-SAP = '+mrk.odMark.xRaw:'לא נמצא');
+ ok('הסרת הסימון מחזירה את הרצפה שבתוקף',
+    mrk.restored.ssMinEff===5&&mrk.restored.ssSrc==='sap'&&mrk.restored.sugSS===5,
+    `ssMinEff=${mrk.restored.ssMinEff} src=${mrk.restored.ssSrc} SS=${mrk.restored.sugSS}`);
+ ok('אף פריט מוחרג אינו מתאר רצפה בתוקף',mrk.odLeak.length===0,mrk.odLeak.slice(0,3).join(' · '));
+ ok('רצפת ssMin שהוגדרה אינה נחתכת לאף פריט מנוהל־מלאי',
+     F.violations.length===0,F.violations.join(' · '));
+  ok('ROP לעולם אינו נמוך מ-⌈ביקוש בזמן האספקה + SS⌉',
+     F.ropFormula.length===0,F.ropFormula.join(' · '));
+  // שקיפות — ארבעת המרכיבים בנפרד בכרטיס, ואותה תוצאה בייצוא
+  ok('הכרטיס מציג את ארבעת המרכיבים בנפרד',
+     /SS סטטיסטי/.test(E.card)&&/רצפת ssMin מ-SAP/.test(E.card)
+     &&/רצפת מדיניות נוספת/.test(E.card)&&/SS סופי = max/.test(E.card),
+     E.card.slice(0,160));
+  ok('והוא אומר מי קבע את התוצאה',/קבע: רצפת ssMin מ-SAP/.test(E.card),
+     (E.card.match(/SS סופי = max[^·]*· קבע: [^ ]+( [^ ]+)*/)||[''])[0].slice(0,80));
+  ok('הכרטיס כבר לא טוען «SS=0» לפריט עם קצב אפס ורצפה',
+     !/קצב חודשי = 0 SS=0/.test(Z.card)&&/SS סופי = max/.test(Z.card)
+     &&/הרצפה נשמרת/.test(Z.card),Z.card.slice(0,120));
+  ok('הפער מוצג כמידע לבחינה ולא כהמלצה לאפס את הרצפה',
+     /מידע לבחינה/.test(E.card)&&!/שקול לאפס/.test(E.card),
+     (E.card.match(/מידע לבחינה[^.]*/)||[''])[0].slice(0,80));
+  ok('הייצוא מציג את אותם מספרים כמו הכרטיס',
+     E.xSS===E.sugSS&&E.xROP===E.sugROP&&E.xStat===E.ssStat
+     &&E.xSap===E.ssMinEff&&E.xPol===E.lowFloor&&E.xSrc==='רצפת ssMin מ-SAP',
+     `ייצוא: SS=${E.xSS} ROP=${E.xROP} סטטיסטי=${E.xStat} ssMin=${E.xSap} מדיניות=${E.xPol} מקור=${E.xSrc}`);
+  ok('וגם להחרגה — הייצוא לא נותן לה רצפה בתוקף',
+     F['SSF-PD'].xSap===0&&F['SSF-NOSTOCK'].xSap===0,
+     `PD=${F['SSF-PD'].xSap} · גמר מלאי=${F['SSF-NOSTOCK'].xSap}`);}
  if(errs.length)ok('אין שגיאות JS',false,errs.join(' | '));else ok('אין שגיאות JS',true);
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

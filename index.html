@@ -2477,9 +2477,38 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const odBrand=CLEAN(r[m.brand])||TXT(r,m.hierBrand)||'ללא שיוך';
     const odPlanner=CLEAN(r[m.planner])||'ללא שיוך';
     const isODStatic=isPDItem||OD_GROUPS.has(mkt1);
+    /* ============ SS_FLOOR — רצפה מאושרת אינה תלויה בקצב ============
+       הכלל העסקי: מלאי הביטחון הוא כרית *מעבר* לביקוש בזמן האספקה,
+       ולא יעד למלאי הכולל. לכן:
+
+         SS סופי = max(SS סטטיסטי, רצפת SAP, רצפת מדיניות)
+         ROP     = ceil(ביקוש בזמן אספקה + SS סופי)
+
+       מה שהיה כאן: `(rate>0 && !isOD) ? max(ssStat,ssMin) : 0`.
+       השער `rate>0` אִפֵּס גם את רצפת ה-SAP, לא רק את המרכיב
+       הסטטיסטי — כלומר קצב אפס מחק רצפה שהמתכנן אישר במערכת.
+
+       נמדד על הדוח האמיתי: 1,879 פריטים פעילים עם קצב אפס ו-ssMin
+       חיובי; ב-176 מהם ההמלצה ירדה מתחת לרצפה — 154 לאפס מוחלט,
+       ו-22 לרצפת המדיניות שנמוכה מ-ssMin. 504 יחידות בסך הכול.
+       בקצב חיובי לא הייתה אף חריגה, ולכן זה שער אחד ולא נוסחה.
+
+       ההחרגות נשמרות: PD, «לפי דרישה», וסטטוס שאינו מיועד לחידוש
+       מלאי (לא פעיל / גמר המלאי) — אותו כלל בדיוק של m1Active.
+       לפריטים האלה הרצפה אינה חלה, כדי שהתיקון לא ייצור עבורם
+       המלצת רכש חדשה. */
+    const stC=stCode(CLEAN(r[m.status])),stTx=CLEAN(r[m.statusTxt]);
+    const noStock=stC===4||stC===14||/לא פעיל|גמר המלאי/.test(stTx);
     const ssStat=(rate>0&&!isODStatic)?Math.ceil(z*sdLT):0;
-    let sugSS=(rate>0&&!isODStatic)?Math.max(ssStat,ssMin):0;
-    let sugROP=(rate>0&&!isODStatic)?Math.ceil(dLT+sugSS):0;
+    /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
+    const lowFloor=(isODStatic||noStock)?0:lowDemFloor(d12,price,currency);
+    const lowBand=lowFloor?lowDemBand(price,currency):null;
+    const ssMinEff=(isODStatic||noStock)?0:ssMin;
+    let sugSS=isODStatic?0:Math.max(ssStat,ssMinEff,lowFloor);
+    let sugROP=isODStatic?0:Math.ceil(dLT+sugSS);
+    /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
+    const ssSrc=isODStatic?'od':sugSS<=0?'none'
+      :(ssStat>=sugSS?'stat':(ssMinEff>=sugSS?'sap':'policy'));
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
        שנמדד. ראה TREND_TRIG. */
@@ -2499,10 +2528,6 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     /* הערך ברוטו — מדף בלבד. etaApply דורס את unsQty/unsVal כשיש דוח
        ETA, ומשחזר מכאן כשמסירים אותו. ראה ETA_COVER. */
     const unsGross=unsQty;
-    /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
-    const lowFloor=isODStatic?0:lowDemFloor(d12,price,currency);
-    const lowBand=isODStatic?null:(lowFloor?lowDemBand(price,currency):null);
-    if(lowFloor){sugSS=Math.max(sugSS,lowFloor);sugROP=Math.max(sugROP,lowFloor)}
     /* ROP_MIN_ACT — לא מציעים להוריד נוכחות מינימלית שהמתכנן קבע */
     if(!isODStatic){
       if(sugROP===0&&NUM(r[m.rop])===ROP_MIN_ACT)sugROP=ROP_MIN_ACT;
@@ -2540,7 +2565,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -2607,11 +2632,16 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;
-  if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase}
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;it.floorClash=false;
+  if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase;
+   it.ssMinEff=it.ssMinEffBase;it.lowFloor=it.lowFloorBase;it.ssSrc=it.ssSrcBase}
   if(mk&&mk.t==='ondemand'){
     if(odExpired(mk))it.odStale=true;
-    else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0}}
+    /* ההחרגה הידנית היא מדיניות בתוקף, ולכן היא מאפסת גם את השדות
+       שמתארים *איזו* רצפה חלה — לא רק את ההמלצה. ssMin הגולמי נשמר
+       בעמודה שלו לצורכי תיעוד. ראה ODMARK_FIELDS. */
+    else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0;
+      it.ssMinEff=0;it.lowFloor=0;it.ssSrc='od'}}
   else if(mk&&mk.t&&markExpired(mk)){it.markStale=mk}
   else if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
@@ -2788,8 +2818,27 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
         ['warn',`הון כלוא ${money(val,it.currency)} · ${it.stock} יח׳ במחסן`],
         it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:['info','אין תאריך מכירה אחרונה בדוח'],
         ropRisk?['err',`נקודת הזמנה ${it.rop} עדיין פעילה ומלאי פנוי ${it.free} ≤ ROP — סיכון להזמנה חוזרת של מלאי מת`]:null].filter(Boolean);
+      /* ============ מלאי מת מול רצפה מאושרת ============
+         שתי מדיניות סותרות על אותה שורה: «אין צריכה 3 שנים, לחסל»
+         מול «רצפת SS שהוגדרה ב-SAP». הכלי אינו מכריע ביניהן, אבל גם
+         אינו רשאי לתת שתי הוראות הפוכות — «לוודא ש-ROP/SS מאופסים»
+         ו«להעלות אותם לרצפה» אינן ניתנות לביצוע יחד. ההתנגשות
+         נאמרת, וההוראה היחידה היא לבחור. */
+      const deadFloor=it.sugSS>0;
+      /* ============ הדגל, ולמה הוא מכבה את paramFix ============
+         כל עוד לא הוכרע איזו מדיניות חלה, אין יעד פרמטרים מחייב —
+         ולכן הפריט גם אינו «תיקון פרמטרים שהוחלט עליו». paramFix הוא
+         המכנה של מעקב היישום (paramSnap), וסימון הפריט שם היה מייצר
+         המלצה שמעולם לא ניתנה ואז סופר אותה כ«לא יושמה».
+         אזהרת הסיכון להזמנה חוזרת *נשארת* — היא עובדה, לא יעד. */
+      it.floorClash=deadFloor;
+      if(deadFloor)it.paramFix=false;
+      if(deadFloor)it.why.push(['warn',`התנגשות מדיניות: אין צריכה ${win}, `+
+        `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${it.sugSS} יח׳. `+
+        `הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד`]);
       it.act=[`לבחון חיסול / החזרה לספק / קמפיין — ${money(val,it.currency)} מוקפאים`,
-        ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
+        deadFloor?`להכריע: לשחרר את רצפת ה-SS (${it.sugSS}) ואז לחסל, או להשאיר אותה ולהחזיק ${it.sugSS} יח׳`
+        :ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
         'לבדוק רכש פתוח לפני החלטה'];
       Q.excess.push(it);continue}
     it.sev=ropRisk?1:0;it.cat='טרם הוכיח את עצמו';
@@ -2800,7 +2849,14 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       `לבדוק שוב בעוד ${Math.max(0,Math.ceil((DEAD_DAYS-(it.entAge||0))/30))} חודשים`];
     Q.passive.push(it);continue}
   if(it.slow3y&&it.stock>0){
-    const keep=Math.ceil(it.rate3y*SLOW_MONTHS), over=Math.max(0,it.stock-keep);
+    /* ============ ההקטנה נעצרת ברצפה, לא באפס ============
+       «כמה להשאיר» נגזר מהקצב התלת-שנתי בלבד, והתעלם מרצפת מלאי
+       הביטחון שהכלי עצמו מחשב. נמדד על הדוח האמיתי: ב-102 פריטים
+       ההקטנה המוצעת ירדה *מתחת* לרצפה — 1062031500 החזיק 199 יח׳,
+       הכלי אמר «להקטין ב-198» (נשארת 1), והרצפה שלו היא 3. מי שהיה
+       מבצע היה יורד מתחת לכרית שהוא עצמו אישר.
+       רצפה מאושרת היא חסם תחתון על מה שנשאר על המדף. */
+    const keep=Math.max(Math.ceil(it.rate3y*SLOW_MONTHS),it.sugSS||0), over=Math.max(0,it.stock-keep);
     it.excessQty=over;it.expCap=over*it.price;it.sev=1;it.cat='מלאי איטי';
     it.why=[['warn',`צריכה ${it.cons3y} יח׳ בלבד ב-3 שנים · כיסוי ${it.cov3y.toFixed(0)} חודשים בקצב הזה`],
       ['info',`מעל ${SLOW_MONTHS} חודשי כיסוי יושבות ${over} יח׳ בשווי ${money(it.expCap,it.currency)}`],
@@ -2875,14 +2931,21 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     קדימה (אפס מסוכן רק על הנייר) לבין 6 שהמלאי שלהם אפס וזמן האספקה
     120 יום — ואלה היחידים שדורשים החלטה אנושית. */
  for(const it of items){
-  if(it.sugROP===0&&it.rop>0&&it.d12>3&&!it.isPDItem&&!it.isOD&&it.rate<=0&&it.silent>=3){
+  /* התנאי הוא הקצב, לא התוצאה. קודם עמד כאן sugROP===0, ומרגע שרצפת
+     SS מאושרת נשמרת גם בקצב אפס — הפריט המסוכן ביותר (ssMin חיובי,
+     מדף ריק, אספקה 120 יום) היה מאבד את ההסבר בדיוק בגלל התיקון. */
+  if(it.rop>0&&it.d12>3&&!it.isPDItem&&!it.isOD&&it.rate<=0&&it.silent>=3){
    const dry=it.free<=0;
    it.why.push([dry?'err':'info',
      `שקט ${it.silent} חודשים — אך נמכרו ${it.d12} יח׳ ב-11 החודשים, רובן לפני השקט. `+
-     `הקצב נמדד על 6 החודשים האחרונים בלבד, ולכן הוא 0 וגם נקודת ההזמנה המוצעת 0`]);
+     `הקצב נמדד על 6 החודשים האחרונים בלבד, ולכן הוא 0`+
+     (it.sugROP>0?`, ונקודת ההזמנה המוצעת (${it.sugROP}) נשענת על רצפת מלאי הביטחון בלבד`
+                 :` וגם נקודת ההזמנה המוצעת 0`)]);
    if(dry){it.silentDry=true;it.paramFix=true;
     it.why.push(['err',`אין מלאי פנוי וזמן האספקה ${it.ltD} יום — אם הביקוש יחזור, ההמתנה מלאה`]);
-    it.act=[`להחליט ידנית: לאפס את נקודת ההזמנה (${it.rop}) או להשאיר אותה עד שהשקט יוכח`,
+    it.act=[it.sugSS>0
+      ?`להחליט ידנית: להעמיד את נקודת ההזמנה על הרצפה (${it.sugROP}) או להשאיר ${it.rop} עד שהשקט יוכח`
+      :`להחליט ידנית: לאפס את נקודת ההזמנה (${it.rop}) או להשאיר אותה עד שהשקט יוכח`,
       ...(it.act||[])].slice(0,4)}
    else it.why.push(['ok',`יש ${it.free} יח׳ במלאי — גם אם נקודת ההזמנה תתאפס, אין חשיפה מיידית`])}}
  /* סימון שפג — הפריט חזר לסיווג רגיל, וזה חייב להיאמר. בניגוד
@@ -2915,12 +2978,63 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
   if(!(it.rop>bar||it.ss>bar))continue;
   if(!Q.excess.includes(it))continue;
-  it.paramFix=true;
   it.why.push(['warn',`ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}, `+
     `מול ${hist} יח׳ ש${it.has3y?'נמכרו בשלוש שנים':'נמכרו ב-11 חודשים'}`]);
-  it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
+  /* השורה הזו כבר נאמרה בנוסח חריף יותר כשמלאי פנוי ≤ ROP */
+  if(!(it.why||[]).some(w=>/סיכון להזמנה חוזרת/.test(w[1])))
+   it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
+  /* התנגשות מלאי מת מול רצפה: האזהרה למעלה נשארת גלויה — היא הסיכון
+     שהמתכנן חייב לראות — אבל יעד הפרמטרים ממתין להכרעה, ולכן גם אין
+     כאן paramFix. ראה «הדגל, ולמה הוא מכבה את paramFix». */
+  if(it.floorClash)continue;
+  it.paramFix=true;
   it.act=[...(it.act||[]),
     `לעדכן נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS} — אחרת המלאי יחזור`].slice(0,4)}
+ /* ============ הצד ההפוך: הפרמטר שלא יחזיר את המלאי ============
+    הרונג שמעל מטפל בפרמטר שגבוה מדי — SAP יזמין בחזרה. זה הצד השני
+    בדיוק: הפרמטר *נמוך* מהרצפה שהכלי מחשב, ולכן SAP לא יחזיר את
+    הפריט בכלל. עד כה איש לא אמר את זה: רונג המלאי האיטי רץ קודם
+    ועושה continue, ורונג הפרמטרים הראשי חסום ב-rate>0.
+
+    נמדד על הדוח האמיתי: 350 פריטים — 343 «מלאי איטי», 6 «מעקב
+    אספקה» ואחד שישב ב«תקין» בלי שאיש יראה אותו. 533 יחידות,
+    ₪3,184 + $8,107. הסכום קטן, והסתירה אינה: אותה שורה אמרה
+    «להקטין מלאי» ו«הרצפה היא 3» בלי להזכיר את השנייה.
+
+    ב-311 מהם המלאי ממילא מעל הרצפה, ולכן ההערה אינה המלצת רכש —
+    היא יישור פרמטר. שבעה חשופים היום, ולהם זו כן חשיפה. */
+ for(const it of items){
+  if(it.rate>0||it.isPDItem||it.isOD||it.noStock||it.paramFix)continue;
+  /* סימון ידני תקף הוא החרגה מוצהרת — «מוחרג ידנית» או «טופל» מוציאים
+     את הפריט מהתרעות עד להסרת הסימון, וההמלצה הזו אינה יוצאת דופן.
+     סימון שפג אינו חוסם: it.mark מתאפס בתחילת המעבר. */
+  if(it.mark)continue;
+  /* מלאי מת מטופל ברונג שלו, שם ההתנגשות מוצגת במפורש. הוספת «להעלות
+     את הפרמטרים» שם הייתה ההוראה ההפוכה על אותה שורה. */
+  if(it.dead3y||it.floorClash)continue;
+  if(!(it.sugSS>0))continue;
+  const ssGap=it.ss<it.sugSS, ropGap=it.rop<it.sugROP;
+  if(!ssGap&&!ropGap)continue;
+  /* פריט שישב ב«תקין» — הפער הוא הבעיה היחידה שלו, ולכן הוא עובר
+     לסיווג הפרמטרים במקום להוסיף «אין פעולה נדרשת» לצד המלצה. */
+  const iOk=Q.ok.indexOf(it);
+  if(iOk>=0){Q.ok.splice(iOk,1);it.sev=1;it.cat='עדכון פרמטרים';
+   it.why=(it.why||[]).filter(w=>w[0]!=='ok');
+   it.act=(it.act||[]).filter(a=>a!=='אין פעולה נדרשת');
+   Q.quality.push(it)}
+  it.paramFix=true;
+  it.why.push(['warn',`${it.ssSrc==='policy'?'רצפת המדיניות לביקוש זעום':'רצפת ssMin שהוגדרה ב-SAP'} `+
+    `אומרת ${it.sugSS} יח׳, וב-SAP יושבים מלאי ביטחון ${it.ss} ונקודת הזמנה ${it.rop}`]);
+  if(Q.excess.includes(it))
+   it.why.push(['idea',`ההקטנה נעצרת ברצפה ולא באפס — ${it.sugSS} יח׳ נשארות על המדף`]);
+  else if(it.free<=0&&ropGap)
+   it.why.push(['err',`מלאי פנוי אפס ונקודת הזמנה ${it.rop}`+
+    (it.rop<=0?' — SAP לא יזמין את הפריט מעצמו כלל'
+             :` — נמוכה מהרצפה ${it.sugROP}, ולכן הכרית לא תשוחזר`)]);
+  it.act=[...(it.act||[]),
+   ssGap&&ropGap?`לעדכן מלאי ביטחון ל-${it.sugSS} ונקודת הזמנה ל-${it.sugROP}`
+   :ssGap?`לעדכן מלאי ביטחון ל-${it.sugSS}`
+   :`לעדכן נקודת הזמנה ל-${it.sugROP}`].slice(0,4)}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
@@ -4334,7 +4448,8 @@ function actQty(r){const a=(r.act||[])[0]||'';
  const m=a.match(/(?:ל-|להשלים\s+)(\d[\d,]*)\s*יח׳/);
  return m?+m[1].replace(/,/g,''):null}
 /* ============ רצפת מלאי הביטחון ============
-   sugSS = max(ssStat, ssMin). ssMin הוא העמודה "מל.בט.מינ." מה-SAP.
+   sugSS = max(ssStat, ssMin, רצפת מדיניות). ssMin הוא העמודה
+   "מל.בט.מינ." מה-SAP.
    נמדד על הדוח האמיתי, ושווה לדעת מה הוא באמת: מתוך 2,638 פריטים
    שיש להם ssMin, ב-2,629 הוא *זהה בדיוק* לעמודת "מלאי בטחון" — תשע
    חריגות. כלומר זו לא רצפת מדיניות שמישהו שקל, אלא המצב הקיים.
@@ -4344,8 +4459,28 @@ function actQty(r){const a=(r.act||[])[0]||'';
    הנוסחה נשארת שמרנית בכוונה: לא ממליצים על פחות ביטחון ממה שהמתכנן
    קבע. מה שמשתנה הוא שהפער בין הרצפה לדרישה הסטטיסטית מפסיק להיות
    בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
+/* מי קבע את SS הסופי — אותו מילון משרת את הכרטיס ואת הייצוא, כדי
+   ששניהם יאמרו בדיוק את אותו דבר. */
+const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',od:'לפי דרישה — ללא מלאי ביטחון',none:'—'};
+/* ============ מי נכנס לדלת ============
+   הדלת מנתה רק פריטים עם קצב חיובי, ולכן הראתה 409 מתוך 2,287. שתי
+   השאלות אינן זהות — כשיש קצב הפער הוא שיקול דעת על מספר מחושב,
+   וכשאין קצב «הפער» הוא כל הרצפה — אבל שתיהן אותה שאלה כספית, ושתיהן
+   שייכות לאותו מסך. ההפרדה נשמרת *בתוך* הדלת: עמודת «הדרישה» מציגה
+   «—» כשאין קצב מדוד, והסיכום מפצל את שתי האוכלוסיות.
+
+   נמדד על הדוח האמיתי: 408 עם קצב (5,257 יח׳ · ₪116,021 + $127,817)
+   ו-1,879 בלי קצב (2,938 יח׳ · ₪48,253 + $202,552). בעשרים הראשונים
+   לפי שווי רק 4 הם חסרי־קצב, ובמאה הראשונים 54 — כלומר האוכלוסייה
+   החדשה משתלבת בדירוג ולא משתלטת עליו.
+
+   הפער נמדד מול ssMinEff ולא מול ssMin הגולמי: לפריט בסטטוס שאינו
+   לחידוש מלאי הרצפה אינה מוחלת מלכתחילה, ולכן אין לו פער. ראה 5א7. */
 function ssNeed(r){return r.ssStat||0}
-function ssFloorGap(r){return (r.rate>0&&!r.isOD&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
+function ssFloorGap(r){const f=r.ssMinEff||0;
+ return (!r.isOD&&!r.noStock&&f>ssNeed(r))?f-ssNeed(r):0}
+/* «אין קצב מדוד» — המרכיב הסטטיסטי לא חושב, הוא לא יצא 0. */
+function ssNoRate(r){return !(r.rate>0)}
 function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
 function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
@@ -4421,7 +4556,7 @@ function decisionHead(){const cols=FIXLIKE()
   :track==='done'?['מק״ט','תיאור','הסימון','מתי סומן','']
   :track==='floor'?['מק״ט','תיאור',
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
-    '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
+    '<span title="⌈Z × σ × √LT⌉ — המרכיב הסטטיסטי. «—» = אין קצב מדוד, ולכן הוא לא חושב">הדרישה</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 12ח׳']
   :track==='applied'?['מק״ט','תיאור',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
@@ -4707,7 +4842,7 @@ function renderDecisions(rows){
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
     <td class="num"><b>${r.ssMin.toLocaleString('he-IL')}</b></td>
-    <td class="num">${need.toLocaleString('he-IL')}</td>
+    <td class="num${ssNoRate(r)?' dim':''}" title="${ssNoRate(r)?'אין קצב מדוד — המרכיב הסטטיסטי לא חושב, ולכן הרצפה כולה היא הפער':'⌈Z × σ × √LT⌉'}">${ssNoRate(r)?'—':need.toLocaleString('he-IL')}</td>
     <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
     <td class="num">${money(gap*(r.price||0),r.currency)}</td>
     ${doorEtaCell(r)}
@@ -4741,7 +4876,7 @@ function renderDecisions(rows){
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
-    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`:'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
+    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?(ssNoRate(r)?`אין קצב מדוד, ולכן הרצפה שהגדרת (${r.ssMinEff}) היא כולה הפער`:`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`):'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
     <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
     <td class="act1">${esc((r.act||[])[0]||'')}</td></tr>`);
    return}
@@ -4774,7 +4909,7 @@ function renderDecisions(rows){
    `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
-     :track==='floor'?'אין פריט שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
+     :track==='floor'?'אין פריט מנוהל־מלאי שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
@@ -4797,7 +4932,9 @@ function renderDecisions(rows){
  /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
  const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
  document.getElementById('pgR').textContent=(track==='floor'
-   ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+   ?(()=>{const nr=rows.filter(ssNoRate).length;
+      return `${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+       +(nr?` · מתוכם ${nr.toLocaleString('he-IL')} בלי קצב מדוד — שם הרצפה כולה היא הפער`:'')})()
    :track==='rise'
    ?(()=>{const cov=rows.filter(riseCovered);
       return `${rows.reduce((a,r)=>a+riseGap(r),0).toLocaleString('he-IL')} יח׳ שנקודת ההזמנה מפגרת אחריהן · ${moneyMix(rows,r=>riseGap(r)*(r.price||0))}`
@@ -4813,7 +4950,7 @@ function renderDecisions(rows){
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  document.getElementById('phdSub').textContent=track==='floor'
-  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
+  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · «הדרישה» = — פירושה שאין קצב מדוד, ולכן הרצפה כולה היא הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
   :track==='trend'
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'
@@ -5205,45 +5342,70 @@ function explain(r){const A=r.A;
  const pAct=+A.pAct.toFixed(2), muEv=+A.muEv.toFixed(1);
  const rateZero=r.rate<=0;
  const isPDItem=!!r.isPDItem;const zeroBuf=rateZero||isPDItem;
- const ssFloorUsed=!zeroBuf&&r.sugSS===r.ssMin&&r.ssMin>zsdLT;
+ /* ============ שקיפות רצפת ה-SS ============
+    הפאנל מפרק את SS לארבעה מרכיבים נפרדים — סטטיסטי, רצפת SAP, רצפת
+    מדיניות, והתוצאה — כי SS סופי הוא max של שלושתם ולא נוסחה אחת.
+    noSS היא ההחרגה העסקית היחידה שמאפסת הכול (PD / לפי דרישה); קצב
+    אפס *אינו* מאפס רצפה מאושרת, ולכן הוא כבר לא מקצר כאן את הטבלה. */
+ const noSS=!!r.isOD;
+ const ssStatV=r.ssStat||0,ssMinEffV=r.ssMinEff||0,lowFloorV=r.lowFloor||0;
+ const ssMax=Math.max(ssStatV,ssMinEffV,lowFloorV);
+ const floorTop=Math.max(ssMinEffV,lowFloorV);
+ /* שני הדגלים מדברים על אותה רצפה. כשהקצב אפס, דגל הקצב הוא
+    הניסוח המדויק — ולכן floorDecided נשאר לשורה שבה *יש* מרכיב
+    סטטיסטי אמיתי והרצפה בכל זאת גברה עליו. */
+ const floorDecided=!noSS&&!rateZero&&(r.ssSrc==='sap'||r.ssSrc==='policy')&&ssMax>ssStatV;
+ const floorGapShown=!noSS&&(r.ssSrc==='sap'||r.ssSrc==='policy')&&ssMax>ssStatV;
  let flags='';
- if(isPDItem)flags+=`<div class="flag info">🛈 <b>פריט PD — לפי הזמנה בלבד.</b> פריטי PD מנוהלים ידנית, ולכן <u>אין המלצת מלאי ביטחון או נקודת הזמנה</u> (מוצע 0).${(r.ssMin>0||r.ss>0)?` שים לב: ב-SAP יושבת רצפת ssMin=${r.ssMin}${r.ss>0?` / SS=${r.ss}`:''} על פריט בעל צריכה ${r.d12} יח׳/שנה — סביר שזו שארית שגויה, שקול לאפס.`:''}</div>`;
+ if(isPDItem)flags+=`<div class="flag info">🛈 <b>פריט PD — לפי הזמנה בלבד.</b> פריטי PD מנוהלים ידנית, ולכן <u>אין המלצת מלאי ביטחון או נקודת הזמנה</u> (מוצע 0).${(r.ssMin>0||r.ss>0)?` שים לב: ב-SAP יושבת רצפת ssMin=${r.ssMin}${r.ss>0?` / SS=${r.ss}`:''} על פריט בעל צריכה ${r.d12} יח׳/שנה — הרצפה אינה מוחלת על פריט PD בכלי — זה מידע לבחינה ב-SAP, לא המלצה.`:''}</div>`;
  if(!isPDItem&&!rateZero&&r.ltD<=0)flags+=`<div class="flag crit">🛑 <b>זמן אספקה = ${r.ltD} (חסר/0) — הסיבה השורשית.</b> LT=0 מאפס גם את ביקוש-בזמן-האספקה וגם את מרכיב הביטחון, ולכן <u>גם ROP וגם SS נופלים</u>. הזן זמן אספקה אמיתי ב-"אספ.מתוכנ." ויחושבו מחדש.</div>`;
  if(!isPDItem&&z===0&&!rateZero&&r.ltD>0)flags+=`<div class="flag crit">⚠️ <b>רמת השירות ${r.srv} → Z=0.</b> Z=0 מאפס את מרכיב הביטחון הסטטיסטי — נשארת רק רצפת ssMin${r.ssMin>0?` (${r.ssMin})`:' , והיא 0'}. העלה "רמת שרות" ל-90/95 וה-SS יעלה.</div>`;
  if(!zeroBuf&&A.pAct<0.5)flags+=`<div class="flag info">🛈 <b>ביקוש מקוטע — ${active} חודשים מתוך 11.</b> בזמן אספקה של ${ltM} חודשים אתה מצפה שישאלו אותך <b>${fmt1(A.pAct*Math.max(r.ltM,0))}</b> פעמים, ובכל פעם בערך ${fmt1(A.muEv)} יח׳. σ=${sd} כבר מכיל את שניהם — פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר לאותה צריכה שנתית, וזה מכוון: כשהוא נדרש, הוא נדרש בבת אחת.</div>`;
- if(ssFloorUsed){flags+=`<div class="flag">ℹ הביטחון הסטטיסטי (${zsdLT}) נמוך מרצפת ssMin (${r.ssMin}) — נבחרה הרצפה.</div>`;
-   if(r.ssMin>r.d12&&r.d12>0)flags+=`<div class="flag">⚠️ <b>ssMin=${r.ssMin} חשוד</b> — גבוה מהצריכה השנתית (${r.d12} יח׳). ייתכן שארית ישנה ב-SAP. שקול לאפס.</div>`;}
+ if(!noSS&&rateZero&&floorTop>0)flags+=`<div class="flag info">🛈 <b>קצב חודשי = 0 — המרכיב הסטטיסטי מתאפס, הרצפה נשמרת.</b> אין צריכה מדודה בחלון ולכן ⌈Z×σ_LT⌉ = 0. ${r.ssSrc==='policy'?`רצפת המדיניות (${lowFloorV})`:`רצפת ssMin מ-SAP (${ssMinEffV})`} אינה תלויה בקצב — היא כרית מעבר לצריכה הצפויה בזמן האספקה, ולכן SS מוצע = ${r.sugSS}. הפער מול המרכיב הסטטיסטי (0) הוא מידע לבחינה, לא המלצה.</div>`;
+ if(floorDecided)flags+=`<div class="flag info">🛈 <b>הרצפה היא שקבעה.</b> המרכיב הסטטיסטי (${ssStatV}) נמוך מ${r.ssSrc==='sap'?`רצפת ssMin מ-SAP (${ssMinEffV})`:`רצפת המדיניות (${lowFloorV})`}, ולכן SS נקבע לפי הרצפה: ${r.sugSS}. הפער — <b>${ssMax-ssStatV} יח׳</b> — מוצג כמידע לבחינה: הרצפה היא החלטת מדיניות, לא תוצאה סטטיסטית.</div>`;
+ if(floorGapShown&&ssMinEffV>0&&r.d12>0&&ssMinEffV>r.d12)flags+=`<div class="flag">ℹ רצפת ssMin (${ssMinEffV}) גבוהה מהצריכה ב-11 חודשים (${r.d12} יח׳) — כרית של כ-${fmt1(ssMinEffV/(r.d12/11))} חודשי צריכה. אם זו החלטה מכוונת, זה המצב הנכון; אם זו שארית ישנה ב-SAP, זה המקום לבדוק. הכלי אינו מכריע ביניהן.</div>`;
+ if(!noSS&&r.noStock&&r.ssMin>0)flags+=`<div class="flag info">🛈 <b>סטטוס שאינו מיועד לחידוש מלאי</b> (לא פעיל / גמר המלאי) — רצפת ssMin=${r.ssMin} שב-SAP אינה מוחלת כאן, כדי שהתיקון לא ייצור המלצת רכש לפריט שיוצא מהמלאי.</div>`;
  /* מגמה — מוצגת בשני הכיוונים, אבל רק אחד מהם משנה מספר. */
  if(trendGap(r)>0)flags+=`<div class="flag">↘️ <b>הביקוש ירד ב-${Math.abs(trendPct(r))}% בתוך חלון הקצב</b> — ${fmt1(r.tRec)} יח׳ בשלושת החודשים האחרונים מול ${fmt1(r.tPre)} בשלושה שלפניהם. הממוצע השטוח (${fmt1(r.rate)} יח׳/חודש) יושב מעל הרמה הנוכחית; קצב מרוסן ${fmt1(r.rateT)} נותן נקודת הזמנה <b>${r.sugROPT}</b> במקום ${r.sugROP} — <u>${trendGap(r)} יח׳ פחות</u> (${money(trendGap(r)*(r.price||0),r.currency)}). ההמלצה שבטבלה לא שונתה — זו בדיקה, לא החלטה.</div>`;
  /* בסיס זעיר מייצר יחסים חסרי משמעות (1 יח׳ → 60 יח׳ = "6000%"),
     ולכן הדגל דורש בסיס אמיתי ומנוסח בכפולות כשהיחס גדול. */
  else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
- const ssRows=zeroBuf?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'קצב חודשי = 0'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
+ const ssRows=noSS?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'לפי דרישה — ללא מלאי ביטחון'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
   :`<tr><td>רמת שירות</td><td>${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
     <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr>
     <tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
-    <tr class="step"><td>σ_LT = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
-    <tr class="step"><td>⌈ Z × σ_LT ⌉ (סטטיסטי)</td><td>⌈${z} × ${sdLT}⌉ = ${zsdLT}</td></tr>
-    <tr><td>רצפת ssMin מ-SAP</td><td>${r.ssMin}</td></tr>
-    <tr class="total"><td>SS מוצע = max</td><td>max(${zsdLT}, ${r.ssMin}) = ${r.sugSS}</td></tr>`;
- const ropRows=zeroBuf?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'קצב = 0'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
+    <tr><td>σ_LT = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
+    <tr class="step"><td>① SS סטטיסטי = ⌈ Z × σ_LT ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdLT}⌉ = ${ssStatV}`}</td></tr>
+    <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
+    <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${lowFloorV>0?`${lowFloorV} · ביקוש זעום${r.lowBand?` — מדרגה ${r.lowBand.name}`:''}`:'—'}</td></tr>
+    <tr class="total"><td>SS סופי = max( ① , ② , ③ )</td><td>max(${ssStatV}, ${ssMinEffV}, ${lowFloorV}) = ${ssMax}${r.ssSrc!=='none'?` · קבע: ${SS_SRC[r.ssSrc]}`:''}</td></tr>
+    ${r.sugSS!==ssMax?`<tr class="total"><td>נוכחות מינימלית — SS ב-SAP = ${ROP_MIN_ACT}, לא מורידים</td><td>SS מוצע = ${r.sugSS}</td></tr>`:''}`;
+ /* ROP נגזר מה-SS הסופי, ולכן הטבלה מראה את אותו מספר שהשורה מעל
+    הסתיימה בו. שתי המדיניות שיכולות לדרוס אותו — נוכחות מינימלית
+    וכלל SS ≤ ROP — מקבלות שורה משלהן במקום להיעלם בתוצאה. */
+ const ropCalc=Math.ceil(r.dLT+r.sugSS);
+ const ropRows=noSS?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
   :`<tr><td>קצב חודשי מתוקן</td><td>${r.rate.toFixed(2)}${r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:''}</td></tr>
-    <tr><td>LT בחודשים</td><td>${ltM}</td></tr><tr class="step"><td>ביקוש_LT = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
-    <tr><td>+ SS מוצע</td><td>${r.sugSS}</td></tr>
-    <tr class="total"><td>ROP מוצע = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${r.sugROP}</td></tr>`;
- const guard=(r.sugSS>0&&r.sugSS===r.sugROP)?`<div class="flag">ℹ כלל הברזל: SS מוצע ≤ ROP מוצע — לכן ROP הועלה ל-${r.sugROP}.</div>`:'';
+    <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
+    <tr class="step"><td>ביקוש צפוי בזמן האספקה = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
+    <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
+    <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${ropCalc}</td></tr>
+    ${r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
+ /* הכלל מוצג רק כשהוא באמת דרס את הנוסחה. אחרת ROP=SS הוא פשוט
+    התוצאה (ביקוש בזמן אספקה = 0), ולא כלל שהתערב. */
+ const guard=(r.sugSS>0&&r.sugROP!==ropCalc&&r.sugROP===r.sugSS)?`<div class="flag">ℹ כלל הברזל: SS מוצע ≤ ROP מוצע — לכן ROP הועלה ל-${r.sugROP}.</div>`:'';
  const mvRow=(r.sales!=null||r.entries!=null)?`<tr><td>תנועה אחרונה — מכירה/כניסה</td><td>${movText(r.sales)} / ${movText(r.entries)}</td></tr>`:'';
  document.getElementById('mtitle').textContent=`מאחורי החישוב — ${r.pn}`;
  document.getElementById('mbody').innerHTML=`${flags||''}
-  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , ssMin )</div><table>${ssRows}</table></div>
-  <div class="calc"><div class="ch">נקודת הזמנה (ROP)<span class="res">${r.sugROP}</span></div><div class="formula">ROP = ⌈ (קצב × LT) + SS ⌉</div><table>${ropRows}</table></div>${guard}
+  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , רצפת ssMin , רצפת מדיניות )</div><table>${ssRows}</table></div>
+  <div class="calc"><div class="ch">נקודת הזמנה (ROP)<span class="res">${r.sugROP}</span></div><div class="formula">ROP = ⌈ ביקוש בזמן האספקה + SS סופי ⌉</div><table>${ropRows}</table></div>${guard}
   <div class="calc"><div class="ch">בסיס הנתונים</div><table>
     <tr><td>חודשים פעילים</td><td>${active}/11</td></tr><tr><td>חציון צריכה (חודשים עם מכירה)</td><td>${med}</td></tr><tr><td>צריכה 11 חו׳</td><td>${r.d12}</td></tr>
     <tr><td>פיק היסטורי</td><td>${A.peak}</td></tr>
     <tr><td>סדרת צריכה</td><td style="direction:ltr">${r.months.join(' · ')}</td></tr>
     ${r.curMonth!=null?`<tr><td>חודש נוכחי (חלקי — מוחרג)</td><td>${r.curMonth}</td></tr>`:''}${mvRow}
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
-   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים — והוא <b>כבר</b> מכיל גם את השכיחות וגם את הגודל: p×E[q²] − (p×μq)² שווה לו בדיוק. לכן אין רצפת-פיק ואין תוספת לגושי/ספורדי; פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר מעצם החישוב. חודשי אזילה הוחלפו בחציון — חודש בלי מלאי אינו חודש בלי ביקוש. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. פיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
+   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים — והוא <b>כבר</b> מכיל גם את השכיחות וגם את הגודל: p×E[q²] − (p×μq)² שווה לו בדיוק. לכן אין רצפת-פיק ואין תוספת לגושי/ספורדי; פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר מעצם החישוב. חודשי אזילה הוחלפו בחציון — חודש בלי מלאי אינו חודש בלי ביקוש. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. רצפת SS מאושרת היא כרית <b>מעבר</b> לצריכה הצפויה בזמן האספקה, ולא יעד למלאי הכולל — ולכן היא נשמרת גם כשהקצב אפס והמרכיב הסטטיסטי מתאפס. פיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
 document.getElementById('dchip').onclick=()=>toggleDiag();
 document.getElementById('dclose').onclick=()=>closeDetail();
@@ -5337,6 +5499,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
  ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.blockedCust],['רכש פתוח',r=>r.po],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
+ ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
  ['לקוח ממתין ללא מלאי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
