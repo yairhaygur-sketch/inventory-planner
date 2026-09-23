@@ -8,6 +8,16 @@
      · פריט אחד נשר כי חישוב האזילה לפי קצב ממוצע אמר שהוא מכוסה,
        בזמן שהזמנת לקוח בשם יושבת מולו. */
 const XLSX=require('xlsx'),{chromium}=require('playwright'),fs=require('fs'),path=require('path');
+/* ============ פעולה בסרגל העליון ============
+   פעולות משניות עוברות אל תפריט «עוד» ברוחב צר (ראה fitTop). הבדיקה
+   פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
+   האמיתית, לא עקיפה שלה. */
+const topAct=async(p,id)=>{
+ const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
+   return !!b&&!!b.closest('#moreMenu')},id);
+ if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ await p.click('#'+id);
+ if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
 const SD=__dirname, MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
 const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','שם ספק','סטטוס חומר','תיאור','סוג MRP','ABC','רמת שרות',
  'מלאי בטחון','נק.הז.מחדש','אספ.מתוכנ.','זמ.עב.קבלת','מל.בט.מינ.','מחיר FOB','מטבע FOB','סה"כ מלאי','מלאי פנוי',
@@ -100,8 +110,12 @@ const snap=()=>{const {rows,landed}=expediteRows();
  // ── שלב 1: ZMRP בלבד. הכלי אינו יודע תאריכים, והוא אומר זאת ──
  await p.setInputFiles('#f',SD+'/expedite-zmrp.xlsx');await p.waitForTimeout(1800);
  const dry=await p.evaluate(snap);
+ /* קודם: `e.offsetParent!==null` בלבד. ברוחב צר הכפתור יושב בתוך תפריט
+    «עוד» ולכן offsetParent שלו null — אבל הוא נגיש, עם שם מלא. הבדיקה
+    שואלת «אפשר להגיע אליו», לא «הוא בשורה». */
  const btnSeen=await p.evaluate(()=>{const e=document.getElementById('expXls');
-  return !!e&&e.offsetParent!==null});
+  if(!e)return false;
+  return e.offsetParent!==null||!!e.closest('#moreMenu')});
 
  // ── שלב 2: דוח ה-ETA ──
  await p.setInputFiles('#fe',SD+'/expedite-eta.xlsx');await p.waitForTimeout(1500);
@@ -109,7 +123,7 @@ const snap=()=>{const {rows,landed}=expediteRows();
 
  // ── שלב 3: הכפתור עצמו — עד הקובץ שיורד ──
  const dl=await Promise.all([p.waitForEvent('download',{timeout:15000}),
-   p.click('#expXls')]).then(a=>a[0]).catch(()=>null);
+   topAct(p,'expXls')]).then(a=>a[0]).catch(()=>null);
  let book=null;
  if(dl){const f=await dl.path();
   if(f){const w=XLSX.readFile(f);

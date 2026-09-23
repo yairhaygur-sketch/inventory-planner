@@ -1,4 +1,14 @@
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
+/* ============ פעולה בסרגל העליון ============
+   פעולות משניות עוברות אל תפריט «עוד» ברוחב צר (ראה fitTop). הבדיקה
+   פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
+   האמיתית, לא עקיפה שלה. */
+const topAct=async(p,id)=>{
+ const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
+   return !!b&&!!b.closest('#moreMenu')},id);
+ if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ await p.click('#'+id);
+ if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
 const SD=__dirname;const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -78,7 +88,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* כותרת המשנה של הקטלוג חייבת למנות כל מטבע שקיים — בלי «+N» */
  await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(400);
  const cur=await p.evaluate(()=>{
-   const sub=(document.querySelector('#tabs .tab[data-m=catalog] .m')||{}).textContent||'';
+   /* לטאב יש היום שתי שורות מתחת לשם: .m.what — מה המסלול הוא,
+      ו-.m.stat — המספר. הסכום הכספי יושב ב-stat. */
+   const sub=(document.querySelector('#tabs .tab[data-m=catalog] .m.stat')||{}).textContent||'';
    const syms=[...new Set(sumBy(decisionList('cap'),r=>r.expCap||0)
      .map(([c])=>curSym(c)))];
    return {sub,syms,missing:syms.filter(x=>sub.indexOf(x)<0)}});
@@ -161,7 +173,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return !!r&&r.offsetParent!==null});
  ok('כפתור «סינון» בסרגל העליון גלוי',
    await p.evaluate(()=>{const b=document.getElementById('filtBtn');return !!b&&b.offsetParent!==null}));
- await p.click('#filtBtn');await p.waitForTimeout(350);
+ await topAct(p,'filtBtn');await p.waitForTimeout(350);
  ok('הכפתור פותח את המסילה',await railVis());
  ok('תשעת הסינונים קיימים',
    9===await p.evaluate(()=>document.querySelectorAll('.wfilters .ddbtn').length));
@@ -169,12 +181,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('✕ מקפל את המסילה',!(await railVis()));
  ok('הקיפול משחרר את עמודת הרשת',
    await p.evaluate(()=>document.body.classList.contains('nofilters')));
- await p.click('#filtBtn');await p.waitForTimeout(350);
+ await topAct(p,'filtBtn');await p.waitForTimeout(350);
  ok('הכפתור בסרגל מחזיר את המסילה',await railVis());
  await p.click('.wfilters .whead .wx');await p.waitForTimeout(300);
  await p.reload();await p.waitForTimeout(1600);
  ok('הקיפול שורד רענון',!(await railVis()));
- await p.click('#filtBtn');await p.waitForTimeout(300);
+ await topAct(p,'filtBtn');await p.waitForTimeout(300);
  await p.reload();await p.waitForTimeout(1600);
  ok('הפתיחה שורדת רענון',await railVis());
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4000);

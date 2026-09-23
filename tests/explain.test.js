@@ -48,7 +48,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    navCov.withXp+' מתוך '+navCov.n+' · '+navCov.names.join(' · '));
 
  /* --- הדלקה --- */
- await p.click('#xpBtn');await p.waitForTimeout(250);
+ /* קודם: `p.click('#xpBtn')`. הכפתור הבודד הוחלף בפריט בתפריט «עזרה»,
+    שמאגד את מצב ההסבר, ההיכרות והסבר פורמט הדוח. המצב עצמו לא השתנה. */
+ await p.click('#helpBtn');await p.waitForTimeout(150);
+ await p.click('#helpMenu .mi[data-help="xp"]');await p.waitForTimeout(250);
  ok('הכפתור מדליק את המצב',
    await p.evaluate(()=>document.body.classList.contains('xp')));
 
@@ -78,7 +81,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    `x ${Math.round(fit.l)}–${Math.round(fit.r)} מתוך ${fit.W} · y ${Math.round(fit.t)}–${Math.round(fit.b)} מתוך ${fit.H}`);
 
  /* --- כיבוי מחזיר את ההתנהגות הרגילה --- */
- await p.click('#xpBtn');await p.waitForTimeout(250);
+ /* קודם: `p.click('#xpBtn')`. הכפתור הבודד הוחלף בפריט בתפריט «עזרה»,
+    שמאגד את מצב ההסבר, ההיכרות והסבר פורמט הדוח. המצב עצמו לא השתנה. */
+ await p.click('#helpBtn');await p.waitForTimeout(150);
+ await p.click('#helpMenu .mi[data-help="xp"]');await p.waitForTimeout(250);
  await p.evaluate(m=>[...document.querySelectorAll('#tabs .tab')]
    .find(x=>x.dataset.m===m).click(),target);
  await p.waitForTimeout(500);
