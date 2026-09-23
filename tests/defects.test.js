@@ -8,9 +8,9 @@ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','ש
 const D=n=>{const d=new Date(Date.now()-n*864e5);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`};
 // months[0] = חודש-1 (הקרוב ביותר)
 const mk=(pn,o)=>{const m=o.months;const y=m.reduce((a,b)=>a+b,0);
- return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק','01','פעיל',o.mrp||'ND','A',o.srv||95,
-  o.ss||0,o.rop||0,o.lt||30,2,0,o.price!=null?o.price:100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
-  'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
+ return [pn,'פריט מבחן '+pn,'Test '+pn,'ספק',o.status||'01',o.stx||'פעיל',o.mrp||'ND','A',o.srv||95,
+  o.ss||0,o.rop||0,o.lt||30,2,o.ssMin||0,o.price!=null?o.price:100,o.cur||'USD',o.free,o.free,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן','0',
+  o.mkt1||'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
   o.y0!=null?o.y0:y, o.y1!=null?o.y1:y, o.y2!=null?o.y2:y, 0, ...m, D(o.saleAgo||10), D(o.entAgo||60)]};
 
 const rows=[
@@ -75,6 +75,28 @@ const rows=[
  mk('CUR-USD2',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD',price:250}),
  // SAP ss=1 ו-rop=3 בלי קצב: הרצפות מרימות SS, והכלל SS≤ROP חייב לרוץ אחריהן
  mk('SSROP-GUARD',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:3,rop:3,ss:1,price:5000,cur:'USD'}),
+ /* ============ רצפת SS — ששת המקרים ============
+    רצפת SS מאושרת היא כרית *מעבר* לצריכה בזמן האספקה, ולא יעד למלאי
+    הכולל. לכן קצב מחושב אפס אינו עילה לאפס אותה. שש השורות האלה הן
+    בדיוק ששת המצבים שבהם max(סטטיסטי, ssMin, מדיניות) יכול להיחתך. */
+ // 1 · ביקוש זעום בפריט יקר עם ssMin חיובי — המקרה שדווח
+ mk('SSF-EXPENSIVE',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120}),
+ // 2 · אותו ביקוש, פריט זול — רצפת המחיר (3) נמוכה מ-ssMin (5)
+ mk('SSF-CHEAP',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:5,lt:120}),
+ // 3 · קצב מחושב אפס לחלוטין, רצפת ssMin חיובית
+ mk('SSF-ZERO-RATE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:0,rop:0,ss:0,ssMin:4,price:200,lt:120}),
+ // 4 · SS סטטיסטי גבוה משתי הרצפות
+ mk('SSF-STAT-WINS',{months:[30,2,28,3,25,4,30,2,27,3,26],free:50,rop:0,ss:0,ssMin:2,price:200,lt:120,srv:95}),
+ // 5 · רצפת מדיניות גבוהה משני המרכיבים האחרים
+ mk('SSF-POLICY-WINS',{months:[0,0,1,0,0,0,1,0,0,0,1],y0:3,y1:3,y2:3,free:0,rop:0,ss:0,ssMin:1,price:5,lt:120}),
+ // 6 · שלוש ההחרגות — ssMin זהה, והרצפה אינה חלה על אף אחת מהן
+ mk('SSF-PD',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,mrp:'PD',srv:50}),
+ mk('SSF-ONDEMAND',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,mkt1:'כלי עבודה'}),
+ /* נוכחות מינימלית — המקרה הנקי: אין רצפה בכלל, אין קצב, וב-SAP
+    יושבים 1/1. ⌈0+0⌉=0, ו-ROP_MIN_ACT מחזיק אותם על 1. הבדיקה הזו
+    ישבה קודם על הדוח הסינתטי, שבו היא הפכה ריקה אחרי תיקון הרצפה. */
+ mk('ROPMIN-KEEP',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:5,rop:1,ss:1,ssMin:0,price:200,lt:120}),
+ mk('SSF-NOSTOCK',{months:[0,0,0,0,0,1,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120,status:'04',stx:'גמר המלאי'}),
 ];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
@@ -111,6 +133,27 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
           noThirdSource:ALL.filter(x=>x.sugSS>Math.max(x.ssStat||0,x.ssMin||0,x.lowFloor||0,x.ss||0))
             .map(x=>`${x.pn}: SS=${x.sugSS} מול max(${x.ssStat},${x.ssMin},${x.lowFloor},${x.ss})`),
           guard:g('SSROP-GUARD'),
+          /* ============ רצפת SS ============
+             כל מקרה נאסף פעם אחת ומשרת את שלושת הפלטים: המנוע (sugSS),
+             הכרטיס (explain) והייצוא (XCOLS) — כי המפרט דורש שיציגו
+             את אותה תוצאה, ולא רק שהמספר בפנים יהיה נכון. */
+          ssf:(()=>{const pick=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+             explain(r);const card=(document.getElementById('mbody').innerText||'').replace(/\s+/g,' ');
+             const h=XCOLS.map(c=>c[0]),v=XCOLS.map(c=>{try{return c[1](r)}catch(_){return ''}});
+             const at=n=>v[h.indexOf(n)];
+             return {sugSS:r.sugSS,sugROP:r.sugROP,ssStat:r.ssStat,ssMin:r.ssMin,ssMinEff:r.ssMinEff,
+               lowFloor:r.lowFloor,ssSrc:r.ssSrc,rate:+r.rate.toFixed(3),dLT:+r.dLT.toFixed(2),
+               noStock:!!r.noStock,isOD:!!r.isOD,card,
+               xSS:at('SS מוצע'),xROP:at('ROP מוצע'),xStat:at('SS סטטיסטי'),
+               xSap:at('רצפת ssMin בתוקף'),xPol:at('רצפת מדיניות'),xSrc:at('מקור SS'),xDlt:at('ביקוש בזמן האספקה')}};
+            const o={};
+            for(const pn of ['SSF-EXPENSIVE','SSF-CHEAP','SSF-ZERO-RATE','SSF-STAT-WINS',
+                             'SSF-POLICY-WINS','SSF-PD','SSF-ONDEMAND','SSF-NOSTOCK'])o[pn]=pick(pn);
+            document.getElementById('modalwrap').classList.remove('open');
+            o.violations=ALL.filter(x=>!x.isOD&&!x.noStock&&x.ssMin>0&&x.sugSS<x.ssMin).map(x=>x.pn);
+            o['ROPMIN-KEEP']=pick('ROPMIN-KEEP');
+            o.ropFormula=ALL.filter(x=>!x.isOD&&x.sugROP<Math.ceil(x.dLT+x.sugSS)).map(x=>x.pn);
+            return o})(),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
                header:(COLS.find(c=>c[0]==='risk')||[])[1]},
           rank:(()=>{const ex=Q.excess.filter(x=>x.expCap>0);
@@ -295,6 +338,61 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('כשאין חוסרים — המסך עובר למסלול שיש בו עבודה',
     scr.shortN===0?(scr.track!=='short'&&scr.rows>0):true,
     `מסלול=${scr.track} · חוסרים=${scr.shortN} · שורות=${scr.rows}`);
+ // ============ רצפת SS — ששת המקרים של המפרט ============
+ {const F=o.ssf, E=F['SSF-EXPENSIVE'];
+  ok('1 · ביקוש זעום בפריט יקר — רצפת ssMin נשמרת',
+     E.sugSS===5&&E.sugROP===5&&E.ssSrc==='sap',
+     `rate=${E.rate} ssStat=${E.ssStat} ssMin=${E.ssMin} → SS=${E.sugSS} ROP=${E.sugROP} (לפני התיקון: 0 / 0)`);
+  const C=F['SSF-CHEAP'];
+  ok('2 · אותו ביקוש בפריט זול — רצפת המחיר (3) נמוכה מ-ssMin (5), ו-ssMin גובר',
+     C.lowFloor===3&&C.sugSS===5&&C.ssSrc==='sap',
+     `מדיניות=${C.lowFloor} ssMin=${C.ssMinEff} → SS=${C.sugSS} (לפני התיקון: 3)`);
+  const Z=F['SSF-ZERO-RATE'];
+  ok('3 · קצב מחושב אפס עם רצפה חיובית — הרצפה אינה מתאפסת',
+     Z.rate===0&&Z.ssStat===0&&Z.sugSS===4&&Z.sugROP===4,
+     `rate=${Z.rate} ssStat=${Z.ssStat} → SS=${Z.sugSS} ROP=${Z.sugROP}`);
+  const S=F['SSF-STAT-WINS'];
+  ok('4 · SS סטטיסטי גבוה משתי הרצפות — הוא שקובע',
+     S.ssSrc==='stat'&&S.sugSS===S.ssStat&&S.sugSS>S.ssMinEff&&S.sugSS>S.lowFloor,
+     `ssStat=${S.ssStat} ssMin=${S.ssMinEff} מדיניות=${S.lowFloor} → SS=${S.sugSS}`);
+  const P=F['SSF-POLICY-WINS'];
+  ok('5 · רצפת מדיניות גבוהה משני המרכיבים האחרים — היא שקובעת',
+     P.ssSrc==='policy'&&P.sugSS===P.lowFloor&&P.lowFloor>P.ssMinEff&&P.lowFloor>P.ssStat,
+     `ssStat=${P.ssStat} ssMin=${P.ssMinEff} מדיניות=${P.lowFloor} → SS=${P.sugSS}`);
+  // 6 · ההחרגות — אותה ssMin=5, ואף אחת מהן אינה מקבלת המלצת רכש חדשה
+  for(const [pn,why] of [['SSF-PD','PD'],['SSF-ONDEMAND','לפי דרישה'],['SSF-NOSTOCK','גמר המלאי']]){
+   const x=F[pn];
+   ok(`6 · ההחרגה «${why}» נשמרה — ssMin=5 אינו יוצר SS/ROP`,
+      x&&x.sugSS===0&&x.sugROP===0,
+      x?`SS=${x.sugSS} ROP=${x.sugROP} ssMin=${x.ssMin} ssMinEff=${x.ssMinEff}`:'לא נמצא');}
+  {const K=F['ROPMIN-KEEP'];
+   ok('נוכחות מינימלית — בלי רצפה ובלי קצב, ROP ו-SS נשארים 1 ולא 0',
+      K&&K.sugROP===1&&K.sugSS===1&&K.ssStat===0&&K.ssMinEff===0&&K.lowFloor===0,
+      K?`ssStat=${K.ssStat} ssMin=${K.ssMinEff} מדיניות=${K.lowFloor} → SS=${K.sugSS} ROP=${K.sugROP}`:'לא נמצא');}
+ ok('רצפת ssMin שהוגדרה אינה נחתכת לאף פריט מנוהל־מלאי',
+     F.violations.length===0,F.violations.join(' · '));
+  ok('ROP לעולם אינו נמוך מ-⌈ביקוש בזמן האספקה + SS⌉',
+     F.ropFormula.length===0,F.ropFormula.join(' · '));
+  // שקיפות — ארבעת המרכיבים בנפרד בכרטיס, ואותה תוצאה בייצוא
+  ok('הכרטיס מציג את ארבעת המרכיבים בנפרד',
+     /SS סטטיסטי/.test(E.card)&&/רצפת ssMin מ-SAP/.test(E.card)
+     &&/רצפת מדיניות נוספת/.test(E.card)&&/SS סופי = max/.test(E.card),
+     E.card.slice(0,160));
+  ok('והוא אומר מי קבע את התוצאה',/קבע: רצפת ssMin מ-SAP/.test(E.card),
+     (E.card.match(/SS סופי = max[^·]*· קבע: [^ ]+( [^ ]+)*/)||[''])[0].slice(0,80));
+  ok('הכרטיס כבר לא טוען «SS=0» לפריט עם קצב אפס ורצפה',
+     !/קצב חודשי = 0 SS=0/.test(Z.card)&&/SS סופי = max/.test(Z.card)
+     &&/הרצפה נשמרת/.test(Z.card),Z.card.slice(0,120));
+  ok('הפער מוצג כמידע לבחינה ולא כהמלצה לאפס את הרצפה',
+     /מידע לבחינה/.test(E.card)&&!/שקול לאפס/.test(E.card),
+     (E.card.match(/מידע לבחינה[^.]*/)||[''])[0].slice(0,80));
+  ok('הייצוא מציג את אותם מספרים כמו הכרטיס',
+     E.xSS===E.sugSS&&E.xROP===E.sugROP&&E.xStat===E.ssStat
+     &&E.xSap===E.ssMinEff&&E.xPol===E.lowFloor&&E.xSrc==='רצפת ssMin מ-SAP',
+     `ייצוא: SS=${E.xSS} ROP=${E.xROP} סטטיסטי=${E.xStat} ssMin=${E.xSap} מדיניות=${E.xPol} מקור=${E.xSrc}`);
+  ok('וגם להחרגה — הייצוא לא נותן לה רצפה בתוקף',
+     F['SSF-PD'].xSap===0&&F['SSF-NOSTOCK'].xSap===0,
+     `PD=${F['SSF-PD'].xSap} · גמר מלאי=${F['SSF-NOSTOCK'].xSap}`);}
  if(errs.length)ok('אין שגיאות JS',false,errs.join(' | '));else ok('אין שגיאות JS',true);
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

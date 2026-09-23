@@ -528,6 +528,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    ropDrops:keep.filter(x=>x.sugROP===0).length,
    ssDrops:keepSS.filter(x=>x.sugSS===0).length,
    kept:keep.filter(x=>x.sugROP===ROP_MIN_ACT).length,
+   /* מרגע שרצפת SS מאושרת נשמרת גם בקצב אפס, פריט עם rop=1 ורצפה
+      חיובית עולה אל הרצפה במקום להישאר 1 — וזו בדיוק הכוונה. מה
+      שחייב להישמר הוא שאיש אינו *יורד* מתחת ל-1. */
+   keptFloor:keep.every(x=>x.sugROP>=ROP_MIN_ACT),
    /* PD ו«לפי דרישה» כן נשארים על 0 — מדיניות מפורשת */
    pdZero:ALL.filter(x=>(x.isPDItem||x.isOD)&&x.rop===ROP_MIN_ACT&&x.sugROP===0).length,
    /* לא נגענו בפריטים עם ROP גבוה יותר */
@@ -539,7 +543,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    shown:shown.length};});
  ok('אין המלצה להוריד נקודת הזמנה מ-1 ל-0',rp.ropDrops===0,rp.ropDrops+' המלצות');
  ok('אין המלצה להוריד מלאי ביטחון מ-1 ל-0',rp.ssDrops===0,rp.ssDrops+' המלצות');
- ok('ההמלצה על פריטים כאלה היא להשאיר 1',rp.kept>0,rp.kept+' פריטים');
+ /* קודם נדרש כאן rp.kept>0 («ההמלצה היא להשאיר 1»). אחרי תיקון רצפת
+    ה-SS אין בדוח הסינתטי אף פריט שהתשובה לו היא בדיוק 1 — לכולם יש
+    רצפה שמרימה אותם מעליה. הכלל ש-ROP_MIN_ACT מגן עליו נבדק כאן
+    כחסם תחתון, והמקרה הנקי עצמו נבדק דטרמיניסטית ב-defects. */
+ ok('אף פריט עם נקודת הזמנה 1 אינו יורד מתחתיה',rp.keptFloor,
+    `${rp.kept} נשארו על 1 · ${rp.ropDrops} ירידות מתחת ל-1`);
  ok('פריטי PD ולפי דרישה עדיין מקבלים 0 — מדיניות מפורשת',rp.pdZero>=0,rp.pdZero+' פריטים');
  ok('נקודת הזמנה גבוהה מ-1 עדיין ניתנת לאיפוס',rp.biggerStillDrop>0,rp.biggerStillDrop+' פריטים');
  ok('ROP=1 אינו מכניס «טרם הוכיח את עצמו» לרשימת החודש',rp.youngWithRop1===0);
@@ -548,7 +557,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* ============ שקט אחרי מכירה ============ */
  const sl=await p.evaluate(()=>{
   const shown=decisionList('month');
-  const cand=ALL.filter(x=>x.sugROP===0&&x.rop>0&&x.d12>3&&!x.isPDItem&&!x.isOD&&x.rate<=0);
+  /* קודם היה כאן גם x.sugROP===0. התנאי הזה חי בתוך הקוד עצמו והוסר
+     משם: רצפת SS מאושרת מרימה את sugROP גם בקצב אפס, וההסבר על השקט
+     אינו תלוי בה. */
+  const cand=ALL.filter(x=>x.rop>0&&x.d12>3&&!x.isPDItem&&!x.isOD&&x.rate<=0);
   const noted=cand.filter(x=>(x.why||[]).some(w=>/שקט \d+ חודשים/.test(w[1])));
   const dry=ALL.filter(x=>x.silentDry);
   return {cand:cand.length,noted:noted.length,
@@ -558,13 +570,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    dryHasAct:dry.every(x=>(x.act||[]).some(a=>/להחליט ידנית/.test(a))),
    /* פריט עם מלאי מקבל הסבר מרגיע ולא דגל */
    calm:cand.filter(x=>x.free>0).every(x=>!x.silentDry),
-   /* לא הומצא קצב — sugROP נשאר 0 */
-   stillZero:cand.every(x=>x.sugROP===0),
+   /* לא הומצא קצב חלופי: הקצב וביקוש-בזמן-האספקה נשארים אפס. מה
+      ש-sugROP כן נושא הוא הרצפה, ולא תחזית שהומצאה. */
+   stillZero:cand.every(x=>x.rate===0&&x.dLT===0),
+   fromFloor:cand.every(x=>x.sugROP===Math.max(0,x.sugSS)||x.sugROP===0),
    dry:dry.length,silentMax:Math.max(0,...cand.map(x=>x.silent))};});
  ok('כל פריט ששקט אחרי מכירה מקבל הסבר',sl.cand>0&&sl.noted===sl.cand,sl.noted+'/'+sl.cand);
  ok('הדגל האדום נדלק רק על פריט ללא מלאי',sl.dryAllEmpty&&sl.calm,sl.dry+' פריטים');
  ok('הפריטים החשופים נכנסים לרשימת החודש עם החלטה ידנית',sl.dryInMonth&&sl.dryHasAct);
- ok('לא הומצא קצב חלופי — ההמלצה נשארת 0',sl.stillZero,'שקט מקסימלי '+sl.silentMax+' חודשים');
+ /* קודם: «לא הומצא קצב חלופי — ההמלצה נשארת 0». ההמלצה כבר לא בהכרח 0,
+    אבל מה שנבדק כאן — שלא הומצאה תחזית — נשאר בדיוק אותו דבר. */
+ ok('לא הומצא קצב חלופי — הקצב וביקוש-בזמן-האספקה נשארים 0',sl.stillZero,
+    'שקט מקסימלי '+sl.silentMax+' חודשים');
+ ok('ומה שנקודת ההזמנה נושאת הוא הרצפה בלבד',sl.fromFloor,sl.cand+' פריטים');
 
  /* ============ לקוח ממתין ============ */
  const cw=await p.evaluate(()=>{
