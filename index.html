@@ -4380,12 +4380,25 @@ function actQty(r){const a=(r.act||[])[0]||'';
 /* מי קבע את SS הסופי — אותו מילון משרת את הכרטיס ואת הייצוא, כדי
    ששניהם יאמרו בדיוק את אותו דבר. */
 const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',none:'—'};
-/* הדלת מונה רק פריטים עם קצב חיובי, ובכוונה. כשיש קצב, הפער בין
-   הרצפה לדרישה הסטטיסטית הוא שיקול דעת על מספר מחושב. כשאין קצב,
-   «הפער» הוא כל הרצפה — 2,287 פריטים במקום 409 — וזו שאלה אחרת:
-   «האם הרצפה הזו עדיין נכונה», ולא «האם היא גבוהה מדי». ראה 5א7. */
+/* ============ מי נכנס לדלת ============
+   הדלת מנתה רק פריטים עם קצב חיובי, ולכן הראתה 409 מתוך 2,287. שתי
+   השאלות אינן זהות — כשיש קצב הפער הוא שיקול דעת על מספר מחושב,
+   וכשאין קצב «הפער» הוא כל הרצפה — אבל שתיהן אותה שאלה כספית, ושתיהן
+   שייכות לאותו מסך. ההפרדה נשמרת *בתוך* הדלת: עמודת «הדרישה» מציגה
+   «—» כשאין קצב מדוד, והסיכום מפצל את שתי האוכלוסיות.
+
+   נמדד על הדוח האמיתי: 408 עם קצב (5,257 יח׳ · ₪116,021 + $127,817)
+   ו-1,879 בלי קצב (2,938 יח׳ · ₪48,253 + $202,552). בעשרים הראשונים
+   לפי שווי רק 4 הם חסרי־קצב, ובמאה הראשונים 54 — כלומר האוכלוסייה
+   החדשה משתלבת בדירוג ולא משתלטת עליו.
+
+   הפער נמדד מול ssMinEff ולא מול ssMin הגולמי: לפריט בסטטוס שאינו
+   לחידוש מלאי הרצפה אינה מוחלת מלכתחילה, ולכן אין לו פער. ראה 5א7. */
 function ssNeed(r){return r.ssStat||0}
-function ssFloorGap(r){return (r.rate>0&&!r.isOD&&r.ssMin>ssNeed(r))?r.ssMin-ssNeed(r):0}
+function ssFloorGap(r){const f=r.ssMinEff||0;
+ return (!r.isOD&&!r.noStock&&f>ssNeed(r))?f-ssNeed(r):0}
+/* «אין קצב מדוד» — המרכיב הסטטיסטי לא חושב, הוא לא יצא 0. */
+function ssNoRate(r){return !(r.rate>0)}
 function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
 function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
@@ -4461,7 +4474,7 @@ function decisionHead(){const cols=FIXLIKE()
   :track==='done'?['מק״ט','תיאור','הסימון','מתי סומן','']
   :track==='floor'?['מק״ט','תיאור',
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
-    '<span title="Z × σ × √LT, או רצפת גושיות אם היא גבוהה יותר">הדרישה</span>',
+    '<span title="⌈Z × σ × √LT⌉ — המרכיב הסטטיסטי. «—» = אין קצב מדוד, ולכן הוא לא חושב">הדרישה</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 12ח׳']
   :track==='applied'?['מק״ט','תיאור',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
@@ -4747,7 +4760,7 @@ function renderDecisions(rows){
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
     <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
     <td class="num"><b>${r.ssMin.toLocaleString('he-IL')}</b></td>
-    <td class="num">${need.toLocaleString('he-IL')}</td>
+    <td class="num${ssNoRate(r)?' dim':''}" title="${ssNoRate(r)?'אין קצב מדוד — המרכיב הסטטיסטי לא חושב, ולכן הרצפה כולה היא הפער':'⌈Z × σ × √LT⌉'}">${ssNoRate(r)?'—':need.toLocaleString('he-IL')}</td>
     <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
     <td class="num">${money(gap*(r.price||0),r.currency)}</td>
     ${doorEtaCell(r)}
@@ -4781,7 +4794,7 @@ function renderDecisions(rows){
     <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
     <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
     <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
-    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`:'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
+    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?(ssNoRate(r)?`אין קצב מדוד, ולכן הרצפה שהגדרת (${r.ssMinEff}) היא כולה הפער`:`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`):'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
     <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
     <td class="act1">${esc((r.act||[])[0]||'')}</td></tr>`);
    return}
@@ -4814,7 +4827,7 @@ function renderDecisions(rows){
    `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
-     :track==='floor'?'אין פריט שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
+     :track==='floor'?'אין פריט מנוהל־מלאי שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
@@ -4837,7 +4850,9 @@ function renderDecisions(rows){
  /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
  const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
  document.getElementById('pgR').textContent=(track==='floor'
-   ?`${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+   ?(()=>{const nr=rows.filter(ssNoRate).length;
+      return `${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
+       +(nr?` · מתוכם ${nr.toLocaleString('he-IL')} בלי קצב מדוד — שם הרצפה כולה היא הפער`:'')})()
    :track==='rise'
    ?(()=>{const cov=rows.filter(riseCovered);
       return `${rows.reduce((a,r)=>a+riseGap(r),0).toLocaleString('he-IL')} יח׳ שנקודת ההזמנה מפגרת אחריהן · ${moneyMix(rows,r=>riseGap(r)*(r.price||0))}`
@@ -4853,7 +4868,7 @@ function renderDecisions(rows){
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  document.getElementById('phdSub').textContent=track==='floor'
-  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
+  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · «הדרישה» = — פירושה שאין קצב מדוד, ולכן הרצפה כולה היא הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
   :track==='trend'
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'
