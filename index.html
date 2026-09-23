@@ -2632,7 +2632,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;it.floorClash=false;
   if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase;
    it.ssMinEff=it.ssMinEffBase;it.lowFloor=it.lowFloorBase;it.ssSrc=it.ssSrcBase}
   if(mk&&mk.t==='ondemand'){
@@ -2825,6 +2825,14 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
          ו«להעלות אותם לרצפה» אינן ניתנות לביצוע יחד. ההתנגשות
          נאמרת, וההוראה היחידה היא לבחור. */
       const deadFloor=it.sugSS>0;
+      /* ============ הדגל, ולמה הוא מכבה את paramFix ============
+         כל עוד לא הוכרע איזו מדיניות חלה, אין יעד פרמטרים מחייב —
+         ולכן הפריט גם אינו «תיקון פרמטרים שהוחלט עליו». paramFix הוא
+         המכנה של מעקב היישום (paramSnap), וסימון הפריט שם היה מייצר
+         המלצה שמעולם לא ניתנה ואז סופר אותה כ«לא יושמה».
+         אזהרת הסיכון להזמנה חוזרת *נשארת* — היא עובדה, לא יעד. */
+      it.floorClash=deadFloor;
+      if(deadFloor)it.paramFix=false;
       if(deadFloor)it.why.push(['warn',`התנגשות מדיניות: אין צריכה ${win}, `+
         `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${it.sugSS} יח׳. `+
         `הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד`]);
@@ -2970,10 +2978,16 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
   if(!(it.rop>bar||it.ss>bar))continue;
   if(!Q.excess.includes(it))continue;
-  it.paramFix=true;
   it.why.push(['warn',`ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}, `+
     `מול ${hist} יח׳ ש${it.has3y?'נמכרו בשלוש שנים':'נמכרו ב-11 חודשים'}`]);
-  it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
+  /* השורה הזו כבר נאמרה בנוסח חריף יותר כשמלאי פנוי ≤ ROP */
+  if(!(it.why||[]).some(w=>/סיכון להזמנה חוזרת/.test(w[1])))
+   it.why.push(['idea','הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה']);
+  /* התנגשות מלאי מת מול רצפה: האזהרה למעלה נשארת גלויה — היא הסיכון
+     שהמתכנן חייב לראות — אבל יעד הפרמטרים ממתין להכרעה, ולכן גם אין
+     כאן paramFix. ראה «הדגל, ולמה הוא מכבה את paramFix». */
+  if(it.floorClash)continue;
+  it.paramFix=true;
   it.act=[...(it.act||[]),
     `לעדכן נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS} — אחרת המלאי יחזור`].slice(0,4)}
  /* ============ הצד ההפוך: הפרמטר שלא יחזיר את המלאי ============
@@ -2997,7 +3011,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   if(it.mark)continue;
   /* מלאי מת מטופל ברונג שלו, שם ההתנגשות מוצגת במפורש. הוספת «להעלות
      את הפרמטרים» שם הייתה ההוראה ההפוכה על אותה שורה. */
-  if(it.dead3y)continue;
+  if(it.dead3y||it.floorClash)continue;
   if(!(it.sugSS>0))continue;
   const ssGap=it.ss<it.sugSS, ropGap=it.rop<it.sugROP;
   if(!ssGap&&!ropGap)continue;

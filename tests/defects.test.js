@@ -110,6 +110,15 @@ const rows=[
     לא יכול לבצע. */
  // 1 · מלאי מת עם רצפה: «לוודא ש-ROP/SS מאופסים» מול «להעלות ל-5»
  mk('DEAD-FLOOR',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:0,ss:0,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
+ /* אותם 20 יח׳ ואותה רצפה 5, בשני מצבי פרמטרים שמפעילים מסלולי
+    המלצה *אחרים*:
+      10/10 — מלאי פנוי (20) גבוה מ-ROP, ולכן אין ropRisk. מה שכן
+              נפתח הוא רונג «הפרמטר שמחזיר את המלאי» (10 > LOW_PARAM_FLOOR),
+              שהוסיף «לעדכן נקודת הזמנה ל-5 ומלאי ביטחון ל-5».
+      30/10 — מלאי פנוי ≤ ROP, ולכן ropRisk דלק ואיתו paramFix.
+              הפריט נספר כתיקון פרמטרים שהוחלט עליו, לפני שהוכרע. */
+ mk('DEAD-FLOOR-1010',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:10,ss:10,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
+ mk('DEAD-FLOOR-3010',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:20,rop:30,ss:10,ssMin:5,price:200,lt:120,saleAgo:1300,entAgo:1400}),
  // 2 · פריט שיסומן ידנית בבדיקה עצמה — חייב להישאר בלי המלצת פרמטר
  mk('MARK-FLOOR',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:0,rop:0,ss:0,ssMin:5,price:200,lt:120}),
  // 3 · פריט שיסומן «לפי דרישה» — הייצוא חייב לשקף את המדיניות בתוקף
@@ -200,6 +209,27 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
             o.falseAlarm=ALL.filter(x=>(x.why||[]).some(w=>/הכרית לא תשוחזר|לא יזמין את הפריט מעצמו/.test(w[1]))
               &&!(x.rop<x.sugROP)).map(x=>`${x.pn} rop ${x.rop} ≥ ${x.sugROP}`);
             /* ============ שלוש ההתנגשויות ============ */
+            /* יעד פרמטרים «מחייב» = כל ניסוח שאומר לאן להעמיד את
+               ROP/SS. «להכריע» אינו יעד — הוא בקשת החלטה. */
+            const BIND=/לעדכן (מלאי ביטחון|נקודת הזמנה) ל-|לאפס נקודת הזמנה|להקטין (נקודת הזמנה|מלאי ביטחון)|ROP\/SS מאופסים/;
+            const dead=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
+              const w=(r.why||[]).map(x=>x[1]);
+              return {cat:r.cat,floorClash:!!r.floorClash,paramFix:!!r.paramFix,
+                rop:r.rop,ss:r.ss,sugSS:r.sugSS,sugROP:r.sugROP,free:r.free,stock:r.stock,
+                bind:(r.act||[]).filter(a=>BIND.test(a)),
+                decide:(r.act||[]).some(a=>/להכריע/.test(a)),
+                clash:w.some(x=>/התנגשות מדיניות/.test(x)),
+                ropRisk:w.some(x=>/סיכון להזמנה חוזרת/.test(x)),
+                reorder:w.some(x=>/סיכון להזמנה חוזרת|SAP יזמין בחזרה/.test(x)),
+                inSnap:Object.prototype.hasOwnProperty.call(paramSnap(ALL),pn),
+                why:w.join(' | '),acts:(r.act||[]).join(' | ')}};
+            o.deadCases={base:dead('DEAD-FLOOR'),p1010:dead('DEAD-FLOOR-1010'),p3010:dead('DEAD-FLOOR-3010')};
+            /* אינווריאנטה: התנגשות = אין יעד מחייב, אין paramFix, אין מעקב */
+            {const snap=paramSnap(ALL);
+             o.clashLeak=ALL.filter(x=>x.floorClash&&((x.act||[]).some(a=>BIND.test(a))
+               ||x.paramFix||Object.prototype.hasOwnProperty.call(snap,x.pn)))
+               .map(x=>`${x.pn} paramFix=${!!x.paramFix} act="${(x.act||[]).filter(a=>BIND.test(a)).join(' / ')}"`);
+             o.clashN=ALL.filter(x=>x.floorClash).length;}
             o.dead=detail('DEAD-FLOOR');
             o.deadWhy=(()=>{const r=ALL.find(x=>x.pn==='DEAD-FLOOR');
               return r?(r.why||[]).map(w=>w[1]).join(' | '):''})();
@@ -481,6 +511,26 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     F.dead?F.dead.acts:'לא נמצא');
  ok('וההתנגשות נאמרת במפורש',/התנגשות מדיניות/.test(F.deadWhy),
     (F.deadWhy.match(/התנגשות מדיניות[^|]*/)||[''])[0].slice(0,110));
+ /* שלושת מצבי הפרמטרים — אותם 20 יח׳ ואותה רצפה 5 */
+ for(const [k,lbl] of [['base','0/0'],['p1010','10/10'],['p3010','30/10']]){
+  const c=F.deadCases[k];
+  ok(`התנגשות ${lbl} · אין יעד פרמטרים מחייב לפני ההכרעה`,
+     c&&c.floorClash&&c.bind.length===0&&c.decide,
+     c?`ROP/SS ${c.rop}/${c.ss} · רצפה ${c.sugSS} · ${c.acts}`:'לא נמצא');
+  ok(`התנגשות ${lbl} · אינה נספרת כתיקון פרמטרים שהוחלט עליו`,
+     c&&!c.paramFix&&!c.inSnap,
+     c?`paramFix=${c.paramFix} · במעקב היישום=${c.inSnap}`:'לא נמצא');
+  /* עם ROP=0 אין סיכון להזמנה חוזרת — SAP לא יזמין מעצמו כלל, ולכן
+     אזהרה שם הייתה שקר. היא נדרשת בדיוק במצבים שבהם ROP פעיל. */
+  const wantReorder=k!=='base';
+  ok(`התנגשות ${lbl} · ההתנגשות נאמרת${wantReorder?' וסיכון ההזמנה החוזרת נשאר גלוי':' (ROP=0 — אין סיכון להזמנה חוזרת)'}`,
+     c&&c.clash&&c.reorder===wantReorder,
+     c?`התנגשות=${c.clash} · סיכון=${c.reorder} · ${c.why.slice(-150)}`:'לא נמצא');}
+ ok('ב-30/10, שבו המלאי הפנוי ≤ ROP, נשארת האזהרה החריפה עצמה',
+    F.deadCases.p3010&&F.deadCases.p3010.ropRisk,
+    F.deadCases.p3010?F.deadCases.p3010.why:'לא נמצא');
+ ok('אף פריט בהתנגשות אינו נושא יעד, paramFix או מעקב יישום',
+    F.clashLeak.length===0,`${F.clashN} בהתנגשות · ${F.clashLeak.slice(0,3).join(' · ')}`);
  ok('אין שורה בקטלוג שאומרת גם לאפס וגם להעלות',
     F.bothWays.length===0,F.bothWays.slice(0,3).join(' · '));
  // 2 · סימון ידני תקף
