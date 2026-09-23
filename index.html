@@ -41,6 +41,10 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .menu{display:none;position:absolute;top:38px;inset-inline-start:0;z-index:80;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadowH);padding:8px;width:210px}
 .menu.open{display:block}
 .menu .mi{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 8px;border-radius:7px;cursor:pointer}
+/* כפתור שנראה כפריט תפריט — אותו מראה, אבל מגיעים אליו במקלדת */
+.menu button.mi{width:100%;border:0;background:none;font-family:inherit;font-size:12.5px;
+ text-align:start;color:inherit}
+.menu button.mi[aria-pressed="true"]{background:var(--accL);font-weight:700}
 .menu .mi:hover{background:var(--accL)}
 .menu .mi .sw{width:34px;height:20px;border-radius:10px;background:#cdd3df;position:relative;transition:.15s;flex:0 0 auto}
 .menu .mi .sw::after{content:'';position:absolute;top:2px;inset-inline-start:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
@@ -1297,9 +1301,19 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  color:var(--ink-2);white-space:nowrap}
 .tab.navtab.sel .m.what{color:var(--on-fill);opacity:.9}
 .tab.navtab .m.stat{font-weight:700}
-.navhint{font-size:11.5px;line-height:1.55;color:var(--ink-2);margin:0 0 8px;padding:6px 9px;
- background:var(--surface-2);border:1px solid var(--line);border-radius:7px}
+/* ============ תקציב הגובה ============
+   הרמז הזה נחוץ פעם אחת, והרשימה נמדדת כל בוקר. הוא נבנה קודם כפסקה
+   בת שתי שורות — 40px קבועים מתוך תקציב כרום של 360px, שממנו נשארו
+   6px בלבד. על הראנר זה נתן 363 וה-CI נפל.
+   עכשיו: שורה אחת, נחתכת בסוף, ונסגרת לתמיד בלחיצה. */
+.navhint{display:flex;align-items:center;gap:8px;font-size:11px;line-height:1.35;
+ color:var(--ink-2);margin:0 0 5px;padding:2px 8px;min-width:0;
+ background:var(--surface-2);border:1px solid var(--line);border-radius:6px}
+.navhint>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .navhint b{color:var(--ink);font-weight:700}
+.navhint>button{margin-inline-start:auto;flex:0 0 auto;border:0;background:none;cursor:pointer;
+ font:inherit;font-size:12px;color:var(--dim);padding:2px 4px;line-height:1}
+.navhint>button:hover{color:var(--ink)}
 .navhint[hidden]{display:none}
 /* ============ חודש הבסיס — תווית גלויה ============ */
 .rdwrap{display:flex;flex-direction:column;gap:2px}
@@ -1797,10 +1811,12 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
     <div class="menuwrap"><button class="btn" id="helpBtn" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
-      <div class="menu wide" id="helpMenu">
-        <div class="mi" data-help="tour">🧭 היכרות עם הכלי</div>
-        <div class="mi" data-help="xp" id="helpXp">💡 מצב הסבר — לחיצה מסבירה במקום להפעיל</div>
-        <div class="mi" data-help="how">📄 איך מפיקים את דוח ה-ZMRP?</div>
+      <!-- כפתורים ולא div: פריט תפריט שאי אפשר להגיע אליו ב-Tab
+           ולהפעיל ב-Enter אינו נגיש, וטבעת מיקוד אינה מתקנת את זה. -->
+      <div class="menu wide" id="helpMenu" role="menu">
+        <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
+        <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
+        <button type="button" class="mi" role="menuitem" data-help="how"><span aria-hidden="true">📄</span> איך מפיקים את דוח ה-ZMRP?</button>
       </div></div>
     <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
       <div class="menu wide" id="moreMenu"></div></div>
@@ -1871,9 +1887,7 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="tabs" id="tabs"></div>
       <!-- ============ מה הסרגל הזה אינו ============
            «לטיפול היום» מזמין קריאה של מסנן תאריך. הוא אינו. -->
-      <p class="navhint" id="navhint">אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד.
-        <b>תיקוני פרמטרים</b> ו<b>אספקות צפויות</b> הם מסלולים בתוך «לטיפול היום», ברצועה שמעל הטבלה.
-        <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</p>
+      <p class="navhint" id="navhint" hidden><span>אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד. <b>תיקוני פרמטרים</b> ו<b>אספקות צפויות</b> הם מסלולים בתוך «לטיפול היום», ברצועה שמעל הטבלה. <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</span><button type="button" id="navhintX" aria-label="הבנתי — להסתיר את ההסבר">✕</button></p>
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
@@ -2548,7 +2562,7 @@ function etaAgeDays(){if(!ETA||!ETA.ts)return null;
    (ב) הזיכרון שבזיכרון מתאפס בכניסה, כך שהדוגמה מתחילה נקייה.
    היציאה היא רענון עמוד, ולכן האמת חוזרת מ-localStorage שלא נגענו בו.
    העדפות תצוגה (פריסה, מצב כהה, קיבוץ) אינן «החלטות» וממשיכות לעבוד. */
-let DEMO=false;
+let DEMO=false,DEMO_LOADING=false;
 let STORE_FAIL=null,STORE_TRIM=null;
 function storeSet(key,val,label){
  if(DEMO)return true;                       /* מצב הדגמה — לא נכתב דבר */
@@ -2589,7 +2603,9 @@ function storeChip(){const el=document.getElementById('storechip');if(!el)return
   toast(ok?'נשמר ✓':'עדיין אין מקום — יש לפנות אחסון')}}
 function etaSave(){if(DEMO)return;try{localStorage.setItem(ETA_KEY,JSON.stringify(ETA))}catch(_){
   toast('⚠ דוח ה-ETA נטען אבל לא נשמר — אחסון הדפדפן מלא')}}
-function etaClear(){ETA=null;try{localStorage.removeItem(ETA_KEY)}catch(_){}
+/* מחיקה היא כתיבה. בלי הסייג הזה, «הסר דוח ETA» מתוך ההדגמה היה
+   מוחק את דוח ה-ETA האמיתי מהאחסון. ראה DEMO_ISOLATION. */
+function etaClear(){ETA=null;if(!DEMO)try{localStorage.removeItem(ETA_KEY)}catch(_){}
  if(ALL&&ALL.length){etaApply(ALL);apply()}etaChip()}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
   if(DIAG.hardStop)return out;
@@ -4257,7 +4273,9 @@ function stateValidate(o){
  if(+o.v>STATE_V)return `הקובץ נוצר בגרסה חדשה יותר (${o.v}) — עדכן את האתר לפני הטעינה`;
  return null}
 /* מיזוג סימונים: לכל מפתח מנצח החותם המאוחר. לא נמחק דבר. */
-function stateMergeMarks(blob){const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
+function stateMergeMarks(blob){
+ if(DEMO){toast('⚠ מיזוג אינו זמין במצב הדגמה — צא ממנו קודם');return {added:0,updated:0,kept:0}}
+ const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
  const inc=j((blob.keys||{})['planner_marks_v1'])||{};
  let added=0,updated=0,kept=0;
  for(const key in inc){const a=inc[key],b=MARKS[key];
@@ -4266,7 +4284,11 @@ function stateMergeMarks(blob){const j=s=>{try{return JSON.parse(s)}catch(_){ret
   else if((a.ts||0)>(b.ts||0)){MARKS[key]=a;updated++}
   else kept++}
  saveMarks();return {added,updated,kept}}
+/* «שחזור מלא» כותב ומוחק ישירות, ולכן עקף את הגנת ההדגמה לגמרי:
+   קובץ גיבוי שנטען בתוך הדגמה היה דורס סימונים והיסטוריה אמיתיים.
+   שחזור הוא החלטה על העבודה האמיתית, ואין לו מובן בתוך הדגמה. */
 function stateRestoreAll(blob){
+ if(DEMO){toast('⚠ שחזור אינו זמין במצב הדגמה — צא ממנו קודם');return false}
  for(const k of STATE_KEYS){const v=(blob.keys||{})[k];
   try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){}}
  return true}
@@ -4314,6 +4336,7 @@ function tiles(){
      data-xp="nav-done" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></div>`:''})()
   +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
      data-xp="nav-moves" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></div>`;
+ navHintSync();
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    setMode(e.dataset.m)})}
@@ -6091,6 +6114,13 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
  rd.readAsArrayBuffer(file)};
 etaChip();
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
+ /* ============ יציאה מפורשת מההדגמה ============
+    כפתור ההעלאה נשאר פעיל בהדגמה, וזה נכון — אבל בלי השורה הזאת
+    DEMO היה נשאר דלוק על נתונים אמיתיים: המעתד רואה את המלאי שלו,
+    עובד עליו, ואף סימון אינו נשמר. המעבר קורה *לפני* הטעינה, כדי
+    שכל מה שהטעינה כותבת (פנקס, זיכרון תור, מעקב יישום) ייכתב
+    למקום הנכון. ראה DEMO_ISOLATION. */
+ if(DEMO&&!DEMO_LOADING){demoExit();toast('יצאת ממצב ההדגמה — נטען דוח אמיתי')}
  const t0=performance.now();
  document.getElementById('updated').textContent='קורא קובץ...';
  const rd=new FileReader();
@@ -6216,13 +6246,35 @@ function demoRows(){
    '100','ZT','200',md,'300',gp,
    y,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
  return {hdr,rows}}
+/* ============ DEMO_ISOLATION ============
+   היציאה קוראת את האמת מחדש מ-localStorage, שלא נגענו בו לכל אורך
+   ההדגמה. לכן היא לא דורשת רענון — וזה מה שמאפשר מעבר מפורש גם
+   כשהמעתד בוחר דוח אמיתי מתוך ההדגמה: משחזרים, ואז טוענים.
+   אחרת הוא היה רואה נתונים אמיתיים בזמן ש-DEMO עדיין דלוק, וכל
+   סימון שהיה מסמן עליהם לא היה נשמר. */
+function demoExit(){
+ if(!DEMO)return false;
+ DEMO=false;
+ const j=(k,f)=>{try{const o=JSON.parse(localStorage.getItem(k));return o==null?f:o}catch(_){return f}};
+ MARKS=j(MK_KEY,{})||{};
+ {const h=j(HIST_KEY,null);HIST=(h&&Array.isArray(h.runs)&&h.items)?h:{runs:[],items:{}}}
+ {const q=j(PAR_KEY,null);PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}
+ {const l=j(LEDG_KEY,null);LEDGER=(l&&l.days&&l.etas)?l:{v:1,days:{},etas:{}}}
+ {const o=j(ETA_KEY,null);ETA=(o&&o.byPn&&typeof o.byPn==='object')?o:null}
+ const bar=document.getElementById('demobar');if(bar)bar.hidden=true;
+ document.body.classList.remove('demo');
+ etaChip();return true}
 function demoStart(){
  if(typeof XLSX==='undefined'){toast('⚠ ספריית האקסל עוד נטענת — נסה שוב בעוד רגע');return}
  const {hdr,rows}=demoRows();
  /* (ב) — הזיכרון שבזיכרון מתאפס, כדי שהדוגמה לא תרשת סימונים אמיתיים */
- DEMO=true;
+ DEMO=true;DEMO_LOADING=true;
  Object.keys(MARKS).forEach(k=>delete MARKS[k]);
  HIST={runs:[],items:{}};PARAMS={runs:[]};LEDGER={v:1,days:{},etas:{}};
+ /* דוח ה-ETA האמיתי נשאר בזיכרון והוחל על פריטי ההדגמה. גרוע מזה:
+    «הסר דוח ETA» מתוך ההדגמה היה מוחק אותו מהאחסון. הוא יורד כאן,
+    וחוזר ב-demoExit מהאחסון שלא נגענו בו. */
+ ETA=null;etaChip();
  document.getElementById('demobar').hidden=false;
  document.body.classList.add('demo');
  const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה'],[],hdr,...rows]);
@@ -6233,7 +6285,8 @@ function demoStart(){
  const inp=document.getElementById('f');
  try{const dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;
    inp.dispatchEvent(new Event('change'))}
- catch(_){toast('⚠ הדפדפן לא אפשר לטעון את קובץ ההדגמה')}}
+ catch(_){toast('⚠ הדפדפן לא אפשר לטעון את קובץ ההדגמה')}
+ finally{DEMO_LOADING=false}}
 /* ============ היכרות קצרה עם הכלי ============
    חמישה צעדים לאורך מסלול העבודה האמיתי: דוח ← מסלול ← פריט ←
    ההמלצה והסיבה ← סימון. היא אינה חוסמת: אפשר לדלג בכל שלב, היא
@@ -6323,6 +6376,15 @@ function fitTop(){
    והסבר פורמט הדוח שנכתב למסך הפתיחה — אותו טקסט, לא עותק. */
 /* פתיחה וסגירה של תפריט «עוד». נכתב בנפרד מ-wMenu כי הוא מחזיק
    כפתורים אמיתיים ולא מתגים, ולחיצה עליהם צריכה גם לסגור אותו. */
+/* הרמז נחוץ פעם אחת. הוא מוצג עד שהמעתד סוגר אותו, ואז לא חוזר —
+   כמו ההיכרות, ומאותה סיבה: הוא עולה גובה שהרשימה צריכה. */
+const NAVHINT_KEY='planner_navhint_v1';
+function navHintSync(){const e=document.getElementById('navhint');if(!e)return;
+ let done=false;try{done=!!localStorage.getItem(NAVHINT_KEY)}catch(_){}
+ e.hidden=done||!(typeof ALL!=='undefined'&&ALL&&ALL.length)}
+function navHintWire(){const x=document.getElementById('navhintX');if(!x)return;
+ x.onclick=()=>{try{localStorage.setItem(NAVHINT_KEY,'1')}catch(_){}
+  const e=document.getElementById('navhint');if(e)e.hidden=true}}
 function moreWire(){
  const mb=document.getElementById('moreBtn'),mm=document.getElementById('moreMenu');
  if(!mb||!mm)return;
@@ -6339,15 +6401,33 @@ function helpWire(){
  hb.onclick=e=>{e.stopPropagation();const open=!hm.classList.contains('open');
   hm.classList.toggle('open',open);hb.setAttribute('aria-expanded',open?'true':'false');
   const x=document.getElementById('helpXp');
-  if(x)x.classList.toggle('on',!!XPON)};
+  if(x)x.setAttribute('aria-pressed',XPON?'true':'false');
+  /* Enter/רווח על כפתור מייצרים click עם detail=0. בלי ההבחנה הזאת
+     טיפול נפרד ב-keydown פתח את התפריט ואז ה-click סגר אותו מיד. */
+  if(open&&e.detail===0){const it=hm.querySelector('button.mi');if(it)it.focus()}};
  document.addEventListener('click',e=>{if(!hm.contains(e.target)&&e.target!==hb){
   hm.classList.remove('open');hb.setAttribute('aria-expanded','false')}});
- hm.querySelectorAll('.mi').forEach(mi=>mi.onclick=()=>{
-  hm.classList.remove('open');hb.setAttribute('aria-expanded','false');
+ const items=()=>[...hm.querySelectorAll('button.mi')];
+ const shut=back=>{hm.classList.remove('open');hb.setAttribute('aria-expanded','false');
+  if(back)hb.focus()};
+ items().forEach(mi=>mi.onclick=()=>{
+  shut(false);
   const k=mi.dataset.help;
   if(k==='xp')xpSet(!XPON);
   else if(k==='tour')tourStart(true);
-  else if(k==='how')howModal()});}
+  else if(k==='how')howModal()});
+ /* פתיחה ב-Enter/רווח מעבירה מיקוד לפריט הראשון, חצים נעים בין
+    הפריטים, ו-Escape סוגר ומחזיר את המיקוד לכפתור. */
+ hb.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowDown')return;         /* Enter/רווח מטופלים ב-click */
+  e.preventDefault();hm.classList.add('open');hb.setAttribute('aria-expanded','true');
+  const it=items();if(it.length)it[0].focus()});
+ hm.addEventListener('keydown',e=>{
+  const it=items(),i=it.indexOf(document.activeElement);
+  if(e.key==='Escape'){e.preventDefault();shut(true)}
+  else if(e.key==='ArrowDown'){e.preventDefault();it[(i+1)%it.length].focus()}
+  else if(e.key==='ArrowUp'){e.preventDefault();it[(i-1+it.length)%it.length].focus()}
+  else if(e.key==='Tab'&&!e.shiftKey&&i===it.length-1)shut(false)});}
 /* הסבר פורמט הדוח, זמין גם אחרי שנטען דוח */
 function howModal(){
  document.getElementById('mtitle').textContent='איך מפיקים את דוח ה-ZMRP';
@@ -6361,9 +6441,14 @@ function welWire(){
  const dm=document.getElementById('welDemo');if(dm)dm.onclick=demoStart;
  const tb=document.getElementById('welTour');if(tb)tb.onclick=()=>tourStart(true);
  const ex=document.getElementById('demoExit');
- if(ex)ex.onclick=()=>{if(confirm('לצאת ממצב ההדגמה? העמוד ייטען מחדש והעבודה האמיתית תחזור.'))location.reload()};
+ if(ex)ex.onclick=()=>{
+  if(!confirm('לצאת ממצב ההדגמה? נתוני הדוגמה יימחקו מהמסך והעבודה האמיתית תחזור.'))return;
+  demoExit();ALL=[];Q=QF=null;
+  document.getElementById('updated').textContent='לא נטען קובץ';
+  document.getElementById('plannerGreeting').textContent='העלה דוח ZMRP כדי להתחיל';
+  welToggle();render();toast('חזרת לעבודה האמיתית')};
  welToggle()}
-welWire();helpWire();moreWire();tourWire();fitTop();
+welWire();helpWire();moreWire();tourWire();navHintWire();fitTop();
 /* משתמש חדש מקבל הצעה אחת, ורק כשאין עדיין נתונים. משתמש ותיק —
    ומי שכבר סגר אותה פעם — לא רואה אותה שוב, גם לא בהעלאה הבאה.
    ?nobrief=1 מדלג גם עליה, כמו על התדריך: בדיקה אינה משתמש חדש.
@@ -6749,6 +6834,14 @@ document.addEventListener('keydown',e=>{
   if(mw.classList.contains('open')){mw.classList.remove('open');return}
   closeDetail();return}
  if(typing)return;
+ /* ============ פקד שמפעיל את עצמו ============
+    השורה `if(K==='Enter'||K===' '){e.preventDefault();…}` שלמטה חלה
+    על כל מה שאינו שדה קלט — כלומר גם על כפתור ממוקד. preventDefault
+    על keydown מבטל את ה-click הסינתטי, ולכן **אף כפתור בכלי לא היה
+    ניתן להפעלה ב-Enter או ברווח**; אותו דבר לחצים בתוך תפריט.
+    זה נמצא דרך תפריט העזרה החדש, אבל הוא היה בכל הכפתורים.
+    ניווט השורות ממשיך לעבוד: שורות הן <tr>, לא פקדים. */
+ if(t.closest&&t.closest('button,a[href],summary,[role="menuitem"]'))return;
  const K=e.key;
  if(K==='/'){e.preventDefault();focusQ();return}
  if(K==='ArrowDown'||K==='j'){e.preventDefault();moveSel(1);return}

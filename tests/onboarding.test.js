@@ -224,5 +224,95 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   else ok('אין שגיאות JS בהדגמה',true);
   await ctx.close()}
 
+ /* ---------- ז · בידוד ההדגמה: מחיקות, שחזורים, ו-ETA ---------- */
+ {const ctx=await b.newContext({viewport:{width:1512,height:860}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p);
+  await p.setInputFiles('#fe',SD+'/zmrp-demo-eta.xlsx');await p.waitForTimeout(1500);
+  await p.evaluate(()=>{setMark(ALL[0],'campaign','אמיתי');setMark(ALL[1],'ignore','אמיתי')});
+  await p.waitForTimeout(300);
+  const base=await p.evaluate(()=>({eta:!!ETA,etaLS:!!localStorage.getItem('planner_eta_v1'),
+    marks:localStorage.getItem('planner_marks_v1')}));
+  ok('בסיס: דוח ETA אמיתי וסימונים אמיתיים שמורים',base.eta&&base.etaLS&&!!base.marks);
+  await p.evaluate(()=>demoStart());await p.waitForTimeout(3000);
+  const iso=await p.evaluate(prev=>{const L={};
+   L.etaMem=!!ETA;
+   etaClear();                                   /* מחיקה = כתיבה */
+   L.etaLSafter=!!localStorage.getItem('planner_eta_v1');
+   const fake={keys:{'planner_marks_v1':JSON.stringify({ZZZ:{t:'handled',ts:1}}),
+     'planner_history_v1':JSON.stringify({runs:[{sig:'x'}],items:{}})}};
+   L.restore=stateRestoreAll(fake);
+   L.merged=stateMergeMarks(fake).added;
+   L.marksIntact=localStorage.getItem('planner_marks_v1')===prev;
+   return L},base.marks);
+  ok('בהדגמה — דוח ה-ETA האמיתי יורד מהזיכרון',!iso.etaMem);
+  ok('«הסר דוח ETA» בהדגמה אינו מוחק אותו מהאחסון',iso.etaLSafter);
+  ok('«שחזור מלא» חסום בהדגמה',iso.restore===false);
+  ok('«מיזוג סימונים» חסום בהדגמה',iso.merged===0);
+  ok('והסימונים השמורים נשארו בדיוק כפי שהיו',iso.marksIntact);
+
+  /* ---------- ח · העלאת דוח אמיתי מתוך ההדגמה ---------- */
+  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(3000);
+  const back=await p.evaluate(()=>{
+   setMark(ALL[2],'handled','אחרי יציאה');
+   let ls={};try{ls=JSON.parse(localStorage.getItem('planner_marks_v1')||'{}')}catch(_){}
+   return {demo:DEMO,bar:!document.getElementById('demobar').hidden,
+     marks:Object.keys(MARKS).length,eta:!!ETA,saved:Object.keys(ls).length}});
+  ok('העלאת דוח אמיתי מתוך ההדגמה מבטלת את מצב ההדגמה',!back.demo&&!back.bar);
+  ok('והעבודה האמיתית — סימונים ו-ETA — חוזרת לפני הטעינה',
+    back.marks===3&&back.eta,`${back.marks} סימונים · ETA=${back.eta}`);
+  ok('וסימון חדש על הנתונים האמיתיים באמת נשמר',back.saved===3,back.saved+' באחסון');
+  if(errs.length)ok('אין שגיאות JS בבידוד',false,errs.join(' | '));
+  else ok('אין שגיאות JS בבידוד',true);
+  await ctx.close()}
+
+ /* ---------- ט · מקלדת ---------- */
+ {const ctx=await b.newContext({viewport:{width:1920,height:1080}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p);
+  /* פריטי התפריט חייבים להיות פקדים, לא div-ים עם onclick */
+  const kind=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu .mi')]
+    .map(e=>e.tagName+':'+(e.getAttribute('role')||'')));
+  ok('פריטי העזרה הם כפתורים עם role=menuitem',
+    kind.length===3&&kind.every(x=>x==='BUTTON:menuitem'),kind.join(' · '));
+  await p.evaluate(()=>document.getElementById('helpBtn').focus());
+  await p.keyboard.press('Enter');await p.waitForTimeout(200);
+  const k1=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),
+    exp:document.getElementById('helpBtn').getAttribute('aria-expanded'),
+    f:document.activeElement.dataset.help||''}));
+  ok('Enter פותח את התפריט ומעביר מיקוד לפריט הראשון',
+    k1.open&&k1.exp==='true'&&k1.f==='tour',`open=${k1.open} focus=${k1.f}`);
+  await p.keyboard.press('ArrowDown');await p.waitForTimeout(120);
+  ok('חצים נעים בין הפריטים',
+    'xp'===await p.evaluate(()=>document.activeElement.dataset.help||''));
+  await p.keyboard.press('Escape');await p.waitForTimeout(150);
+  const k3=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),
+    f:document.activeElement.id}));
+  ok('Escape סוגר ומחזיר את המיקוד לכפתור',!k3.open&&k3.f==='helpBtn',
+    `open=${k3.open} focus=${k3.f}`);
+  await p.keyboard.press('Enter');await p.waitForTimeout(150);
+  await p.keyboard.press('ArrowDown');await p.waitForTimeout(100);
+  await p.keyboard.press('Enter');await p.waitForTimeout(300);
+  ok('Enter על פריט מפעיל אותו',await p.evaluate(()=>document.body.classList.contains('xp')));
+  /* ============ הבאג שהתפריט חשף ============
+     המנוע הגלובלי עשה preventDefault על Enter/רווח לכל מה שאינו שדה
+     קלט, ולכן ביטל את ה-click הסינתטי — אף כפתור בכלי לא היה ניתן
+     להפעלה במקלדת. הטענה כאן היא על כפתור ותיק, לא על החדשים. */
+  await p.evaluate(()=>{xpSet(false);document.getElementById('filtBtn').focus()});
+  const railBefore=await p.evaluate(()=>{const r=document.querySelector('.wfilters');
+    return !!r&&r.offsetParent!==null});
+  await p.keyboard.press('Enter');await p.waitForTimeout(400);
+  const railAfter=await p.evaluate(()=>{const r=document.querySelector('.wfilters');
+    return !!r&&r.offsetParent!==null});
+  ok('Enter מפעיל גם כפתור ותיק בסרגל (היה חסום גלובלית)',
+    railBefore!==railAfter,`מסילה ${railBefore} → ${railAfter}`);
+  await ctx.close()}
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();
