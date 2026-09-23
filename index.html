@@ -2507,7 +2507,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     let sugSS=isODStatic?0:Math.max(ssStat,ssMinEff,lowFloor);
     let sugROP=isODStatic?0:Math.ceil(dLT+sugSS);
     /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
-    const ssSrc=sugSS<=0?'none'
+    const ssSrc=isODStatic?'od':sugSS<=0?'none'
       :(ssStat>=sugSS?'stat':(ssMinEff>=sugSS?'sap':'policy'));
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
@@ -2565,7 +2565,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -2633,10 +2633,15 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
   it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;
-  if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase}
+  if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase;
+   it.ssMinEff=it.ssMinEffBase;it.lowFloor=it.lowFloorBase;it.ssSrc=it.ssSrcBase}
   if(mk&&mk.t==='ondemand'){
     if(odExpired(mk))it.odStale=true;
-    else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0}}
+    /* ההחרגה הידנית היא מדיניות בתוקף, ולכן היא מאפסת גם את השדות
+       שמתארים *איזו* רצפה חלה — לא רק את ההמלצה. ssMin הגולמי נשמר
+       בעמודה שלו לצורכי תיעוד. ראה ODMARK_FIELDS. */
+    else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0;
+      it.ssMinEff=0;it.lowFloor=0;it.ssSrc='od'}}
   else if(mk&&mk.t&&markExpired(mk)){it.markStale=mk}
   else if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
@@ -2813,8 +2818,19 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
         ['warn',`הון כלוא ${money(val,it.currency)} · ${it.stock} יח׳ במחסן`],
         it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:['info','אין תאריך מכירה אחרונה בדוח'],
         ropRisk?['err',`נקודת הזמנה ${it.rop} עדיין פעילה ומלאי פנוי ${it.free} ≤ ROP — סיכון להזמנה חוזרת של מלאי מת`]:null].filter(Boolean);
+      /* ============ מלאי מת מול רצפה מאושרת ============
+         שתי מדיניות סותרות על אותה שורה: «אין צריכה 3 שנים, לחסל»
+         מול «רצפת SS שהוגדרה ב-SAP». הכלי אינו מכריע ביניהן, אבל גם
+         אינו רשאי לתת שתי הוראות הפוכות — «לוודא ש-ROP/SS מאופסים»
+         ו«להעלות אותם לרצפה» אינן ניתנות לביצוע יחד. ההתנגשות
+         נאמרת, וההוראה היחידה היא לבחור. */
+      const deadFloor=it.sugSS>0;
+      if(deadFloor)it.why.push(['warn',`התנגשות מדיניות: אין צריכה ${win}, `+
+        `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${it.sugSS} יח׳. `+
+        `הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד`]);
       it.act=[`לבחון חיסול / החזרה לספק / קמפיין — ${money(val,it.currency)} מוקפאים`,
-        ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
+        deadFloor?`להכריע: לשחרר את רצפת ה-SS (${it.sugSS}) ואז לחסל, או להשאיר אותה ולהחזיק ${it.sugSS} יח׳`
+        :ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
         'לבדוק רכש פתוח לפני החלטה'];
       Q.excess.push(it);continue}
     it.sev=ropRisk?1:0;it.cat='טרם הוכיח את עצמו';
@@ -2975,6 +2991,13 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     היא יישור פרמטר. שבעה חשופים היום, ולהם זו כן חשיפה. */
  for(const it of items){
   if(it.rate>0||it.isPDItem||it.isOD||it.noStock||it.paramFix)continue;
+  /* סימון ידני תקף הוא החרגה מוצהרת — «מוחרג ידנית» או «טופל» מוציאים
+     את הפריט מהתרעות עד להסרת הסימון, וההמלצה הזו אינה יוצאת דופן.
+     סימון שפג אינו חוסם: it.mark מתאפס בתחילת המעבר. */
+  if(it.mark)continue;
+  /* מלאי מת מטופל ברונג שלו, שם ההתנגשות מוצגת במפורש. הוספת «להעלות
+     את הפרמטרים» שם הייתה ההוראה ההפוכה על אותה שורה. */
+  if(it.dead3y)continue;
   if(!(it.sugSS>0))continue;
   const ssGap=it.ss<it.sugSS, ropGap=it.rop<it.sugROP;
   if(!ssGap&&!ropGap)continue;
@@ -4424,7 +4447,7 @@ function actQty(r){const a=(r.act||[])[0]||'';
    בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
 /* מי קבע את SS הסופי — אותו מילון משרת את הכרטיס ואת הייצוא, כדי
    ששניהם יאמרו בדיוק את אותו דבר. */
-const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',none:'—'};
+const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',od:'לפי דרישה — ללא מלאי ביטחון',none:'—'};
 /* ============ מי נכנס לדלת ============
    הדלת מנתה רק פריטים עם קצב חיובי, ולכן הראתה 409 מתוך 2,287. שתי
    השאלות אינן זהות — כשיש קצב הפער הוא שיקול דעת על מספר מחושב,
