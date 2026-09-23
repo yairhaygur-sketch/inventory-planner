@@ -1683,6 +1683,7 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
     <span class="updated" id="updated">לא נטען קובץ</span>
     <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
+    <button class="etachip stale" id="storechip" type="button" hidden></button>
     <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
     <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
   </div>
@@ -2371,6 +2372,55 @@ function etaApply(list){
  return list}
 function etaAgeDays(){if(!ETA||!ETA.ts)return null;
  return Math.floor((Date.now()-ETA.ts)/864e5)}
+/* ============ STORE_LOUD — אחסון שנגמר חייב להישמע ============
+   כל כתיבה לאחסון הדפדפן הייתה עטופה ב-`try{}catch(_){}` שבולע את
+   השגיאה. כשהמכסה נגמרת הכלי ממשיך לעבוד ונראה תקין לחלוטין —
+   והפנקס, ההיסטוריה והסימונים פשוט מפסיקים להירשם. בלי הודעה.
+
+   נמדד: מכסת הדפדפן היא 5,056KB. על הדוח האמיתי (7,569 מק״טים)
+   האחסון תופס 282KB — 5.6%, ולכן זו אינה בעיה של היום. אבל הפנקס
+   גדל בכל יום שנרשמת בו תצפית, וב-150,000 מק״טים הוא לבדו 2,692KB
+   והמכסה כבר מלאה. כלומר זה לא «אם» אלא «מתי».
+
+   הכלל של הכלי חל גם על הכלי עצמו: מה שאינו ידוע נאמר. כישלון
+   שתיקה הוא הגרוע מכולם — הוא נראה כמו הצלחה. */
+let STORE_FAIL=null,STORE_TRIM=null;
+function storeSet(key,val,label){
+ try{localStorage.setItem(key,val);
+  if(STORE_FAIL&&STORE_FAIL.key===key){STORE_FAIL=null;storeChip()}
+  return true}
+ catch(e){
+  const quota=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014);
+  STORE_FAIL={key,label,quota,when:Date.now()};storeChip();return false}}
+function storeBytes(){let t=0;
+ try{for(const k in localStorage)if(localStorage.hasOwnProperty(k))t+=(localStorage[k]||'').length}catch(_){}
+ return t}
+function storeChip(){const el=document.getElementById('storechip');if(!el)return;
+ const kb=Math.round(storeBytes()/1024);
+ if(!STORE_FAIL){
+  if(!STORE_TRIM){el.hidden=true;return}
+  /* קיצור אינו כישלון — הכתיבה הצליחה. אבל היקף הזיכרון קטן,
+     וזה משנה את המשמעות של מה שהוא מחשב. */
+  el.hidden=false;
+  el.textContent=`⚠ ${STORE_TRIM.what} מתקצר`;
+  el.title=`אחסון הדפדפן מלא (${kb.toLocaleString('he-IL')}KB), ולכן `
+   +(STORE_TRIM.dropped?`היום הישן ביותר (${STORE_TRIM.dropped}) נמחק מ${STORE_TRIM.what}. `
+                       :`התמונה הישנה ביותר נמחקה מ${STORE_TRIM.what}. `)
+   +`נשארו ${STORE_TRIM.left}.\n\n`
+   +'המידע החדש נשמר — הוותק הוא שמתקצר, ואיתו הטווח שהחישובים נשענים עליו.\n'
+   +'כדי לעצור את זה: ייצא «מצב עבודה» ונקה נתוני אתר לדפדפן הזה.';
+  el.onclick=()=>toast('ייצא «מצב עבודה» כגיבוי, ואז נקה נתוני אתר');
+  return}
+ el.hidden=false;
+ el.textContent=`⚠ ${STORE_FAIL.label} לא נשמר`;
+ el.title=(STORE_FAIL.quota
+   ?`אחסון הדפדפן מלא (${kb.toLocaleString('he-IL')}KB). `
+   :'הדפדפן דחה את הכתיבה. ')
+  +`«${STORE_FAIL.label}» לא נרשם, והנתונים שעל המסך תקינים אבל לא יישרדו רענון.\n\n`
+  +'מה לעשות: ייצא «מצב עבודה» כגיבוי, ואז נקה נתוני אתר לדפדפן הזה.\n'
+  +'לחיצה כאן מנסה שוב.';
+ el.onclick=()=>{const ok=storeSet(STORE_FAIL.key,STORE_FAIL.last||'',STORE_FAIL.label);
+  toast(ok?'נשמר ✓':'עדיין אין מקום — יש לפנות אחסון')}}
 function etaSave(){try{localStorage.setItem(ETA_KEY,JSON.stringify(ETA))}catch(_){
   toast('⚠ דוח ה-ETA נטען אבל לא נשמר — אחסון הדפדפן מלא')}}
 function etaClear(){ETA=null;try{localStorage.removeItem(ETA_KEY)}catch(_){}
@@ -2879,7 +2929,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
 const MK_KEY='planner_marks_v1';
 let MARKS={};
 try{MARKS=JSON.parse(localStorage.getItem(MK_KEY)||'{}')}catch(_){MARKS={}}
-function saveMarks(){try{localStorage.setItem(MK_KEY,JSON.stringify(MARKS))}catch(_){}}
+function saveMarks(){storeSet(MK_KEY,JSON.stringify(MARKS),'הסימונים')}
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
 /* סימון קבוצתי — פעולה על הרשימה המסוננת כולה.
@@ -3674,9 +3724,15 @@ try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
  if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
 function ledgerSave(){
  try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
- catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס */
+ catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס.
+    זו התנהגות נכונה, אבל היא הייתה שקטה: הפנקס מתקצר מאחור ואיש
+    אינו יודע. עכשיו זה נאמר, כי «כמה זמן אחורה הפנקס מגיע» הוא
+    בדיוק מה שקובע את אמינות התאריכים שהוא מחשב. */
   const ks=Object.keys(LEDGER.days).sort();
-  if(ks.length>1){delete LEDGER.days[ks[0]];ledgerPrune();ledgerSave()}}}
+  if(ks.length>1){const dropped=ks[0];delete LEDGER.days[dropped];
+   STORE_TRIM={what:'הפנקס',dropped,left:ks.length-1};storeChip();
+   ledgerPrune();ledgerSave()}
+  else{storeSet(LEDG_KEY,JSON.stringify(LEDGER),'הפנקס')}}}
 /* דוח ETA שאף יום לא מצביע עליו אינו נחוץ */
 function ledgerPrune(){
  const ks=Object.keys(LEDGER.days).sort();
@@ -3763,7 +3819,7 @@ const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
 try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
  if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
-function saveHist(){try{localStorage.setItem(HIST_KEY,JSON.stringify(HIST))}catch(_){}}
+function saveHist(){storeSet(HIST_KEY,JSON.stringify(HIST),'ההיסטוריה בין ההרצות')}
 function runSig(items){let c=0;for(const x of items)c+=(x.d12||0);
  return `${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}|${items.length}|${c}`}
 /* התור שהזיכרון עוקב אחריו: מה שדורש פעולה, לא הקטלוג */
@@ -3816,7 +3872,10 @@ try{const q=JSON.parse(localStorage.getItem(PAR_KEY));
  if(q&&Array.isArray(q.runs))PARAMS=q}catch(_){}
 function saveParams(){try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
   /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
-  if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);saveParams()}}}
+  if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);
+   STORE_TRIM={what:'זיכרון הפרמטרים',left:PARAMS.runs.length};storeChip();
+   saveParams()}
+  else{storeSet(PAR_KEY,JSON.stringify(PARAMS),'זיכרון הפרמטרים')}}}
 /* המכנה הוא *מה שהכלי ביקש*, לא כל פער מספרי שקיים בקטלוג.
    נמדד: 1,373 פריטים בקטלוג יש להם פער בין הפרמטר להמלצה, אבל רק מי
    ש-paramFix דלוק עליו הוצג בפועל ברשימת העבודה. לדווח «40 מתוך 1,373»

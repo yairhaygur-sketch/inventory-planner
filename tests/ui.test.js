@@ -881,6 +881,41 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     actBeforeWhy:secs.indexOf('מה לעשות')>=0&&secs.indexOf('מה לעשות')<secs.indexOf('מה מצדיק את זה')}});
  ok('בראש הכרטיס משפט פעולה אחד',card.hasAct,card.actTxt);
  ok('«מה לעשות» לפני «מה מצדיק את זה»',card.actBeforeWhy,card.order.join(' → '));
+
+ /* ============ STORE_LOUD · אחסון שנגמר נשמע ============
+    כל כתיבה לאחסון הייתה ב-try{}catch(_){} שבולע. כשהמכסה נגמרת
+    הכלי נראה תקין והפנקס פשוט מפסיק להירשם. הבדיקה ממלאת את
+    המכסה באמת — לא מדמה — ובודקת ששלושת הדברים קורים: הכתיבה
+    נכשלת, השבב מופיע, והוא אומר מה לא נשמר. */
+ const store=await p.evaluate(()=>{
+  const before=document.getElementById('storechip').hidden;
+  /* ממלאים את המכסה עד הסוף ממש: גושים גדולים ואז קטנים, כי
+     המכסה אינה מדויקת לבית וכתיבה זעירה עוד נכנסת אחרי שהגדולות
+     נכשלו. בלי זה saveMarks על אובייקט ריק פשוט מצליח. */
+  let n=0;
+  try{for(;n<200;n++)localStorage.setItem('__fill'+n,'x'.repeat(1024*128))}catch(_){}
+  try{for(;n<4000;n++)localStorage.setItem('__fill'+n,'x'.repeat(1024))}catch(_){}
+  /* המפתח כבר קיים, ודריסה בערך שווה-גודל אינה צורכת מכסה חדשה.
+     מה שנכשל הוא *גידול*, ולכן הסימונים מוגדלים לפני השמירה —
+     בדיוק כמו במציאות, שבה הפנקס והסימונים רק גדלים. */
+  for(let i=0;i<400;i++)MARKS['בדיקה|בדיקה|PN'+i]={t:'handled',ts:Date.now(),note:'מילוי'};
+  saveMarks();                      /* חייב להיכשל עכשיו */
+  const el=document.getElementById('storechip');
+  const shown=!el.hidden, txt=(el.textContent||'').trim(), tip=el.title||'';
+  /* מפנים ובודקים שהשבב יורד */
+  for(let i=0;i<n;i++)localStorage.removeItem('__fill'+i);
+  saveMarks();
+  const cleared=document.getElementById('storechip').hidden;
+  return {before,filled:n,shown,txt,tip,cleared,
+    failKey:STORE_FAIL?STORE_FAIL.key:null}});
+ ok('בהתחלה אין שבב אחסון',store.before);
+ ok('המכסה באמת נגמרה בבדיקה',store.filled>0&&store.filled<200,store.filled+' גושים של 128KB');
+ ok('כתיבה שנכשלה מדליקה שבב',store.shown&&/לא נשמר/.test(store.txt),store.txt);
+ ok('השבב אומר מה בדיוק לא נשמר',/הסימונים/.test(store.txt),store.txt);
+ ok('וההסבר אומר שהנתונים לא ישרדו רענון',
+    /לא יישרדו רענון/.test(store.tip)&&/מלא/.test(store.tip),store.tip.slice(0,80));
+ ok('כשהמקום מתפנה השבב יורד',store.cleared&&!store.failKey,
+    'שבב מוסתר '+store.cleared);
  ok('כפתור בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
     !dOut.vis.includes('doneBtn')&&!dOut.vis.includes('apBtn'),
     dOut.vis.join(', '));
