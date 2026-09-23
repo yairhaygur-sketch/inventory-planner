@@ -1,0 +1,228 @@
+/* ============ הנגשה למעתד שלא בנה את הכלי ============
+   מסך הפתיחה, שמות הפעולות, הסברי הניווט, משמעות «טופל», ההיכרות
+   ומצב ההדגמה. הטענה המרכזית בכל אחד מהם היא אחת: מי שלא בנה את
+   הכלי צריך לדעת איך להתחיל, איפה למצוא, ומה הוא בדיוק סימן. */
+const {chromium}=require('playwright'),fs=require('fs'),path=require('path');
+const SD=__dirname;
+const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
+const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
+const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ /* התדריך היומי הקיים מופיע כשיש משהו חדש, והוא מודאל. בלי nobrief
+    הוא חוסם — וזו התנהגות נכונה שלו, לא של מה שנבדק כאן. */
+ const bf=await p.evaluate(()=>{const e=document.getElementById('brief');return !!e&&!e.hidden});
+ if(bf){await p.click('#briefGo');await p.waitForTimeout(400)}};
+
+(async()=>{
+ const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
+
+ /* ---------- א · מסך הפתיחה, בשני הרוחבים שנדרשו ---------- */
+ for(const W of [1366,1920]){
+  const ctx=await b.newContext({viewport:{width:W,height:W===1366?768:1080}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(700);
+
+  const w0=await p.evaluate(()=>{const w=document.getElementById('welcome');
+   const t=(w.innerText||'').replace(/\s+/g,' ');
+   const top=document.querySelector('.top').getBoundingClientRect();
+   const wb=w.getBoundingClientRect();
+   return {seen:!w.hidden&&wb.height>0,txt:t,
+    /* חייב לכסות את אזור העבודה ולא את הסרגל — אחרת אי אפשר להעלות */
+    belowTop:Math.round(wb.top)>=Math.round(top.bottom)-1,
+    upload:[...document.querySelectorAll('label[for="f"]')].filter(e=>e.offsetParent!==null).length,
+    search:document.getElementById('qbox').offsetParent!==null,
+    hscroll:document.documentElement.scrollWidth>window.innerWidth+1}});
+  ok(`${W} · מסך הפתיחה מוצג כשאין דוח`,w0.seen);
+  ok(`${W} · והוא אומר מאיפה מתחילים`,
+    /מתחילים מדוח המלאי שלך/.test(w0.txt)&&/העלאת דוח ZMRP/.test(w0.txt),w0.txt.slice(0,70));
+  ok(`${W} · דוח ה-ETA מוצג כתוספת ולא כדרישה`,
+    /תוספת שאפשר לצרף בהמשך/.test(w0.txt));
+  ok(`${W} · והפרטיות נאמרת במפורש`,
+    /מעובדים בדפדפן ואינם נשלחים לשרת/.test(w0.txt));
+  ok(`${W} · שלוש נקודות הכניסה קיימות`,
+    /איך מפיקים את הדוח\?/.test(w0.txt)&&/נתוני דוגמה/.test(w0.txt)&&/היכרות עם הכלי/.test(w0.txt));
+  ok(`${W} · הסרגל העליון נשאר לחיץ מתחת למסך הפתיחה`,
+    w0.belowTop&&w0.upload===2&&w0.search,
+    `מתחת לסרגל=${w0.belowTop} · תוויות העלאה גלויות=${w0.upload} · חיפוש=${w0.search}`);
+  ok(`${W} · אין גלישה אופקית במסך הפתיחה`,!w0.hscroll);
+
+  /* «איך מפיקים» — נגזר ממה שהמפענח דורש, ואומר מה חסר */
+  await p.click('#welHow');await p.waitForTimeout(250);
+  const how=await p.evaluate(()=>{const e=document.getElementById('welHowBox');
+   return {open:!e.hidden,txt:(e.innerText||'').replace(/\s+/g,' ')}});
+  ok(`${W} · «איך מפיקים» נפתח ומתאר את הפורמט האמיתי`,
+    how.open&&/מק"ט מוביל/.test(how.txt)&&/\.xlsx/.test(how.txt)&&/חודש הבסיס|חודש בסיס/.test(how.txt));
+  ok(`${W} · והוא אומר מה חסר במקום להמציא שלבי SAP`,
+    /אין בידי תיעוד של שלבי ההפקה ב-SAP/.test(how.txt)&&!/טרנזקציה ZMRP01|לחץ על/.test(how.txt),
+    (how.txt.match(/מה שאין לי[^.]*\./)||[''])[0].slice(0,90));
+
+  /* ---------- ב · שמות הפעולות ---------- */
+  await p.evaluate(()=>tourEnd());
+  await load(p);
+  const act=await p.evaluate(()=>{
+   const want={filtBtn:'סינון',exportXls:'ייצוא לאקסל',expXls:'ייצוא דוח זירוז',
+     stBtn:'גיבוי והעברה',darkToggle:'מצב כהה'};
+   const top=document.querySelector('.top');
+   const st=Object.entries(want).map(([id,nm])=>{const e=document.getElementById(id);
+    if(!e)return {id,ok:false,why:'חסר'};
+    const lbl=((e.querySelector('.lbl')||{}).textContent||'').trim();
+    const inMenu=!!e.closest('#moreMenu');
+    return {id,ok:lbl===nm,lbl,why:inMenu?'בתפריט «עוד»':'בשורה'}});
+   return {st,clipped:top.scrollWidth>top.clientWidth+2,
+    help:((document.getElementById('helpBtn')||{}).textContent||'').replace(/\s+/g,' ').trim(),
+    helpItems:[...document.querySelectorAll('#helpMenu .mi')].map(e=>e.dataset.help)}});
+  ok(`${W} · לכל פעולה שם מלא לפי מה שהיא עושה`,act.st.every(x=>x.ok),
+    act.st.map(x=>`${x.lbl||x.id}(${x.why})`).join(' · '));
+  ok(`${W} · הסרגל אינו נחתך`,!act.clipped);
+  ok(`${W} · «עזרה» הוא תפריט עם שלוש כניסות`,
+    /עזרה/.test(act.help)&&act.helpItems.join(',')==='tour,xp,how',act.helpItems.join(','));
+
+  /* ---------- ג · הסברי הניווט ---------- */
+  const nav=await p.evaluate(()=>{
+   const tabs=[...document.querySelectorAll('#tabs .tab.navtab')];
+   return {what:tabs.map(t=>({m:t.dataset.m,
+      w:((t.querySelector('.m.what')||{}).textContent||'').trim(),
+      sel:t.classList.contains('sel')})),
+    hint:(document.getElementById('navhint').innerText||'').replace(/\s+/g,' '),
+    hintSeen:document.getElementById('navhint').offsetParent!==null,
+    rdLabel:((document.querySelector('.rdwrap .tl')||{}).textContent||'').trim(),
+    rdTitle:(document.getElementById('rd')||{}).title||''}});
+  ok(`${W} · לכל מסלול יש הסבר — גם למסלול שאינו הפעיל`,
+    nav.what.length>=2&&nav.what.every(x=>x.w.length>5),
+    nav.what.map(x=>`${x.m}${x.sel?'*':''}: ${x.w}`).join(' · '));
+  ok(`${W} · נאמר במפורש שאלה מסלולי עבודה ולא מסנני תאריך`,
+    nav.hintSeen&&/מסלולי עבודה/.test(nav.hint)&&/לא מסנני תאריך/.test(nav.hint));
+  ok(`${W} · ונאמר איפה מוצאים פרמטרים, אספקות, טופלו ותנועות`,
+    /תיקוני פרמטרים/.test(nav.hint)&&/אספקות צפויות/.test(nav.hint)
+    &&/טופלו/.test(nav.hint)&&/תנועות/.test(nav.hint),nav.hint.slice(0,150));
+  ok(`${W} · «חודש בסיס» קיבל תווית גלויה והסבר`,
+    /חודש בסיס/.test(nav.rdLabel)&&/החודש המלא האחרון/.test(nav.rdTitle),
+    `תווית="${nav.rdLabel}"`);
+  if(errs.length)ok(`${W} · אין שגיאות JS`,false,errs.join(' | '));
+  else ok(`${W} · אין שגיאות JS`,true);
+  await ctx.close();
+ }
+
+ /* ---------- ד · משמעות «טופל» ---------- */
+ {const ctx=await b.newContext({viewport:{width:1512,height:860}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p);
+  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
+  const m0=await p.evaluate(()=>{const d=document.getElementById('detail');
+
+   return (d.innerText||'').replace(/\s+/g,' ')});
+  /* הסייג חייב להיות גלוי *בלי* לפתוח מגירה או טאב: innerText אינו
+     כולל תוכן מוסתר, ולכן הבדיקה הזו נכשלה כשהוא ישב ב«סימון והחרגה». */
+  ok('ליד כפתור «סמן כטופל» נאמר שהוא אינו מעדכן את SAP',
+    /נשמר בכלי בלבד ואינו מעדכן את SAP/.test(m0),m0.slice(0,120));
+  ok('ונאמר שם גם לכמה זמן ושאפשר לבטל',
+    /7 ימים/.test(m0)&&/לבטל/.test(m0),
+    (m0.match(/מוציא את הפריט[^.]*\./)||[''])[0]);
+  await p.evaluate(()=>{const r=ALL.find(x=>x.pn===CURRENT_DETAIL.pn);setMark(r,'handled','');
+    classify([r]);detail(ALL.find(x=>x.pn===r.pn))});
+  await p.waitForTimeout(400);
+  const m1=await p.evaluate(()=>(document.getElementById('detail').innerText||'').replace(/\s+/g,' '));
+  ok('«סומן כטופל» מובחן מ«השינוי זוהה בדוח SAP הבא»',
+    /סומן כטופל/.test(m1)&&/הכלי לא בדק דבר/.test(m1)&&/הדוח הבא/.test(m1),
+    (m1.match(/סומן כטופל[^|]{0,160}/)||[''])[0]);
+  ok('ואחרי הסימון נאמר לכמה זמן ואיך מבטלים',
+    /7 ימים/.test(m1)&&/בטל סימון טופל/.test(m1),
+    (m1.match(/מסתיר את הפריט[^.]*\./)||[''])[0]);
+  await ctx.close()}
+
+ /* ---------- ה · ההיכרות ---------- */
+ {const ctx=await b.newContext({viewport:{width:1512,height:860}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();
+  await p.goto('file://'+path.join(SD,'..','index.html'));   /* בלי nobrief — כמו משתמש אמיתי */
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(1400);
+  const t0=await p.evaluate(()=>{const t=document.getElementById('tour');
+   return {seen:!t.hidden,n:(document.getElementById('tourN').textContent||''),
+     ttl:(document.getElementById('tourTtl').textContent||'')}});
+  ok('משתמש חדש מקבל את ההיכרות מעצמה',t0.seen&&t0.n==='1/5',`${t0.ttl} ${t0.n}`);
+  const steps=[];
+  for(let i=0;i<5;i++){
+   steps.push(await p.evaluate(()=>document.getElementById('tourTtl').textContent));
+   await p.click('#tourNext');await p.waitForTimeout(200)}
+  ok('חמישה צעדים לאורך מסלול העבודה',
+    steps.length===5&&/מתחילים מדוח/.test(steps[0])&&/מסלול/.test(steps[1])
+    &&/פריט/.test(steps[2])&&/ההמלצה/.test(steps[3])&&/טיפול/.test(steps[4]),
+    steps.join(' → '));
+  ok('בסיום היא נסגרת',await p.evaluate(()=>document.getElementById('tour').hidden));
+  /* לא חוזרת — לא ברענון, ולא בהעלאת דוח */
+  await p.reload();await p.waitForTimeout(1400);
+  ok('ואינה חוזרת ברענון',await p.evaluate(()=>document.getElementById('tour').hidden));
+  await load(p);
+  ok('ואינה חוזרת בהעלאת דוח',await p.evaluate(()=>document.getElementById('tour').hidden));
+  /* אבל נפתחת מחדש מתפריט העזרה */
+  await p.click('#helpBtn');await p.waitForTimeout(150);
+  await p.click('#helpMenu .mi[data-help="tour"]');await p.waitForTimeout(300);
+  ok('ונפתחת מחדש מתפריט העזרה',
+    await p.evaluate(()=>!document.getElementById('tour').hidden&&document.getElementById('tourN').textContent==='1/5'));
+  /* דילוג מוקדם גם הוא סוגר לתמיד */
+  await p.click('#tourSkip');await p.waitForTimeout(200);
+  ok('ודילוג סוגר אותה',await p.evaluate(()=>document.getElementById('tour').hidden));
+  await ctx.close()}
+
+ /* ---------- ו · מצב ההדגמה — מבודד מהעבודה האמיתית ---------- */
+ {const ctx=await b.newContext({viewport:{width:1512,height:860}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  /* קודם עבודה אמיתית: דוח, סימון, וזיכרון שנשמר */
+  await load(p);
+  await p.evaluate(()=>{setMark(ALL[0],'campaign','אמיתי');setMark(ALL[1],'ignore','אמיתי')});
+  await p.waitForTimeout(300);
+  const real=await p.evaluate(()=>({marks:Object.keys(MARKS).length,
+    keys:Object.keys(localStorage).filter(k=>k.startsWith('planner_')).sort(),
+    blob:localStorage.getItem('planner_marks_v1')}));
+  ok('לפני ההדגמה — יש עבודה אמיתית שמורה',real.marks===2&&!!real.blob,
+    `${real.marks} סימונים · ${real.keys.length} מפתחות`);
+  /* עכשיו הדגמה */
+  await p.evaluate(()=>demoStart());await p.waitForTimeout(3000);
+  const dm=await p.evaluate(()=>({demo:DEMO,n:ALL.length,
+    bar:!document.getElementById('demobar').hidden,
+    barTxt:(document.getElementById('demobar').innerText||'').replace(/\s+/g,' '),
+    marks:Object.keys(MARKS).length,hist:HIST.runs.length,par:PARAMS.runs.length,
+    ledger:Object.keys(LEDGER.days).length,
+    cats:[...new Set(ALL.map(r=>r.cat))].length,
+    pns:ALL.slice(0,3).map(r=>r.pn)}));
+  ok('מצב ההדגמה טוען נתונים סינתטיים',dm.demo&&dm.n>40&&dm.cats>=5,
+    `${dm.n} פריטים · ${dm.cats} סיווגים · ${dm.pns.join(',')}`);
+  ok('והוא מסומן בבירור על המסך',dm.bar&&/מצב הדגמה/.test(dm.barTxt)&&/לא המלאי שלך/.test(dm.barTxt),
+    dm.barTxt.slice(0,80));
+  /* הזיכרונות מתאפסים בכניסה, ואז הרצת ההדגמה עצמה רושמת אחד —
+     שלה. מה שחייב להיות אפס הוא *שאריות מהעבודה האמיתית*. */
+  ok('הוא מתחיל נקי — בלי סימונים, ועם היסטוריה של ההדגמה בלבד',
+    dm.marks===0&&dm.hist<=1&&dm.par<=1,
+    `סימונים ${dm.marks} · תור ${dm.hist} · יישום ${dm.par} · פנקס ${dm.ledger}`);
+  /* סימון בתוך ההדגמה אינו מגיע לאחסון */
+  await p.evaluate(()=>{setMark(ALL[0],'handled','הדגמה')});await p.waitForTimeout(300);
+  const after=await p.evaluate(()=>({marks:Object.keys(MARKS).length,
+    blob:localStorage.getItem('planner_marks_v1'),
+    keys:Object.keys(localStorage).filter(k=>k.startsWith('planner_')).sort().join(',')}));
+  ok('סימון בהדגמה נראה על המסך אבל אינו נכתב לאחסון',
+    after.marks===1&&after.blob===real.blob,
+    `בזיכרון ${after.marks} · האחסון זהה למקור=${after.blob===real.blob}`);
+  ok('ואף מפתח אחסון לא נוסף או השתנה בגלל ההדגמה',
+    after.keys===real.keys.join(','),`${real.keys.join(',')} → ${after.keys}`);
+  /* והיציאה מחזירה את האמת */
+  await p.reload();await p.waitForTimeout(400);
+  await load(p);
+  const back=await p.evaluate(()=>({demo:DEMO,marks:Object.keys(MARKS).length,
+    notes:Object.values(MARKS).map(m=>m.note).sort().join(','),
+    bar:!document.getElementById('demobar').hidden}));
+  ok('יציאה מההדגמה מחזירה את העבודה האמיתית במדויק',
+    !back.demo&&!back.bar&&back.marks===2&&back.notes==='אמיתי,אמיתי',
+    `DEMO=${back.demo} · ${back.marks} סימונים · הערות=${back.notes}`);
+  if(errs.length)ok('אין שגיאות JS בהדגמה',false,errs.join(' | '));
+  else ok('אין שגיאות JS בהדגמה',true);
+  await ctx.close()}
+
+ await b.close();console.log(out.join('\n'));
+ process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

@@ -637,6 +637,57 @@ body.xp #tbl,body.xp .rows{cursor:default}
 /* display:flex דורס את [hidden] המובנה. בלי זה השכבה הסגורה נשארת
    פרושה על כל המסך ובולעת כל לחיצה — הכלי כולו מפסיק להגיב. */
 .brief[hidden]{display:none}
+/* ============ מסך הפתיחה ============ */
+/* מכסה את אזור העבודה בלבד, לא את הסרגל העליון: העלאת הדוח, החיפוש
+   והעזרה חייבים להישאר לחיצים גם לפני שנטען משהו. inset-block-start
+   נקבע מגובה הסרגל בפועל (welToggle), כי הוא משתנה עם הרוחב. */
+.wel{position:fixed;inset:0;inset-block-start:56px;z-index:420;background:var(--paper);
+ display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+.wel[hidden]{display:none}
+.welbox{width:min(640px,100%);text-align:center}
+.welmk{width:46px;height:46px;border-radius:11px;background:var(--accent);color:var(--on-fill);
+ font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.welbox h1{font-size:26px;font-weight:800;margin:0 0 10px;color:var(--ink)}
+.welsub{font-size:16px;line-height:1.6;color:var(--ink-2);margin:0 auto 22px;max-width:46ch}
+.welgo{font-size:16px!important;padding:12px 26px!important;display:inline-flex;align-items:center;gap:8px}
+.welnote{font-size:13.5px;color:var(--ink-2);margin:14px auto 0;max-width:52ch;line-height:1.55}
+.welnote.priv{color:var(--dim);margin-top:8px}
+.wellinks{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.wlink{background:none;border:1px solid var(--line);border-radius:8px;padding:8px 14px;
+ font:inherit;font-size:13.5px;color:var(--accent);font-weight:700;cursor:pointer}
+.wlink:hover{background:var(--surface-2)}
+.wlink[aria-expanded="true"]{background:var(--surface-2);border-color:var(--accent)}
+.welhow{margin-top:18px;text-align:start;background:var(--surface-2);border:1px solid var(--line);
+ border-radius:10px;padding:16px 18px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
+.welhow[hidden]{display:none}
+.welhow h3{font-size:13.5px;font-weight:800;color:var(--ink);margin:0 0 8px}
+.welhow h3:not(:first-child){margin-top:16px}
+.welhow ul{margin:0;padding-inline-start:20px}
+.welhow code{font-family:var(--num);font-size:12.5px;background:var(--panel);
+ border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+.welhow .miss{margin-top:14px;border-inline-start:3px solid var(--high);background:var(--high-bg);
+ color:var(--high);padding:9px 12px;border-radius:0 6px 6px 0}
+/* ============ מצב נתוני דוגמה ============ */
+.demobar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+ background:var(--high-bg);color:var(--high);border-bottom:1px solid var(--high);
+ padding:7px 14px;font-size:13px;font-weight:700;flex:0 0 auto}
+.demobar[hidden]{display:none}
+/* ============ היכרות קצרה ============ */
+.tour{position:fixed;z-index:430;inset-block-end:22px;inset-inline-start:50%;transform:translateX(50%);
+ width:min(460px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--accent);
+ border-radius:12px;box-shadow:var(--shadowH);padding:16px 18px}
+.tour[hidden]{display:none}
+.tourhd{display:flex;align-items:baseline;gap:10px;margin-bottom:7px}
+.tourhd b{font-size:15px;font-weight:800;color:var(--ink)}
+.tourn{font-family:var(--num);font-size:12px;color:var(--dim);margin-inline-start:auto}
+.tourtx{font-size:14px;line-height:1.65;color:var(--ink-2);margin:0 0 14px}
+.tourbtns{display:flex;gap:8px;align-items:center}
+.tourbtns .pri{margin-inline-start:auto}
+.tourspot{outline:3px solid var(--accent)!important;outline-offset:2px;border-radius:8px;
+ box-shadow:0 0 0 9999px rgba(15,23,42,.30)!important;position:relative;z-index:425}
+.demobar button{font:inherit;font-size:12.5px;background:var(--high);color:var(--on-fill);
+ border:0;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:700}
+@media(max-width:760px){.welbox h1{font-size:22px}.welsub{font-size:14.5px}}
 .briefbox{width:min(980px,100%)}
 .briefhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .briefhd b{font-size:var(--f-lg);font-weight:800}
@@ -686,7 +737,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .tab.navtab.sel .m{display:inline;font-size:11px;font-weight:600;
   color:var(--on-fill);opacity:.85;white-space:nowrap}
 @media(max-width:1280px){.tab.navtab .t{font-size:12px}.tab.navtab{padding:6px 8px;gap:5px}
-  .tab.navtab.sel .m{display:none}}
+  .tab.navtab.sel .m,.tab.navtab .m.what{display:none}}
 
 tr[class*="sev"]>td.rnk{border-inline-start:3px solid var(--calm)}
 /* מספרים בטבלה מיושרים לעמודה — ספרה מתחת לספרה */
@@ -1217,7 +1268,66 @@ body.mode-done #tbl .dn.undo{opacity:1;pointer-events:auto}
 
 /* מתחת ל-1400 פיקסלים אין מקום לשלוש תוויות בסרגל. האייקון נשאר,
    הטקסט יורד, וה-title נושא את המשמעות — עדיף על תווית חתוכה. */
-@media(max-width:1400px){.top .lc .btn .lbl{display:none}}
+/* ============ הסרגל העליון ברוחב צר ============
+   בלוק הכותרת הוא הפריט הפחות תפקודי בסרגל — שתי שורות טקסט —
+   והוא הראשון לרדת. מתחת ל-1100 הסרגל נשבר לשתי שורות במקום לחתוך:
+   פעולה שנחתכה היא פעולה שאינה קיימת. */
+@media(max-width:1500px){.top .titleblock{display:none}}
+/* הרמז נשאר ב-title של השדה ובהיכרות; התווית עצמה נשארת גלויה */
+body.topnarrow .rdwrap .tl .hint{display:none}
+body.topnarrow .brand .nm span{display:none}
+body.topnarrow .titleblock{display:none}
+body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1100px){.top{height:auto;min-height:56px;flex-wrap:wrap;padding-block:6px}
+ .top .fgroup.qwrap{order:3;flex:1 1 220px}}
+/* ============ תוויות הפעולות ============
+   קודם עמד כאן `@media(max-width:1400px){.lbl{display:none}}` — כלומר
+   בכל מסך של 1366 כל הפעולות הפכו לסמל בלבד, בלי שם. במקום להסתיר
+   שמות, הפעולות המשניות עוברות אל תפריט «עוד» *עם* השם המלא. fitTop()
+   מעביר את הכפתורים עצמם, ולכן אין כאן עותק שני של אף כפתור. */
+.menu.wide{width:250px}
+/* ============ מה כל מסלול הוא ============
+   .tab.navtab .m מוסתר בברירת מחדל ומוצג רק בטאב הפעיל — כלומר עד
+   עכשיו אי אפשר היה לדעת מה מסלול *אחר* מכיל בלי להיכנס אליו. זה
+   בדיוק מה שחוסם משתמש חדש. ה«מה» מוצג בכל הטאבים; המספר נשאר
+   בפעיל בלבד, כי הוא שייך לתוכן ולא לבחירה.
+   הצבע על הטאב הפעיל חייב להיות --on-fill: המילוי הוא --accent,
+   ודיו כהה עליו נותן 2.46:1. */
+.tab.navtab .m.what{display:inline;font-size:11px;font-weight:600;
+ color:var(--ink-2);white-space:nowrap}
+.tab.navtab.sel .m.what{color:var(--on-fill);opacity:.9}
+.tab.navtab .m.stat{font-weight:700}
+.navhint{font-size:11.5px;line-height:1.55;color:var(--ink-2);margin:0 0 8px;padding:6px 9px;
+ background:var(--surface-2);border:1px solid var(--line);border-radius:7px}
+.navhint b{color:var(--ink);font-weight:700}
+.navhint[hidden]{display:none}
+/* ============ חודש הבסיס — תווית גלויה ============ */
+.rdwrap{display:flex;flex-direction:column;gap:2px}
+.rdwrap .tl{font-size:10.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.rdwrap .tl .hint{font-weight:500;color:var(--dim)}
+.dsec summary .sumnote{font-weight:600;color:var(--high)}
+.dcnote{grid-column:1/-1;margin-top:8px;font-size:12px;line-height:1.6;color:var(--ink-2);
+ background:var(--high-bg);border-inline-start:3px solid var(--high);
+ border-radius:0 6px 6px 0;padding:7px 10px}
+.dcnote b{color:var(--high);font-weight:800}
+/* ============ קריאות בסרגל העליון ============
+   הטקסט המשני בסרגל ישב על 11.5px בצבע --dim, על רקע בהיר משלו.
+   הוא נקרא כל בוקר ואינו קישוט: מוגדל, ומועבר ל--ink-2 שיחס
+   הניגודיות שלו גבוה יותר. */
+.updated{font-size:12.5px;color:var(--ink-2);font-weight:600}
+.top .qwrap .qstat{font-size:11.5px;color:var(--ink-2)}
+.plannerGreeting{color:var(--ink-2)}
+/* ============ מיקוד מקלדת ============
+   היה outline:none על כמה רכיבים, ובלעדיו אי אפשר לנווט במקלדת
+   ולדעת איפה אתה. טבעת אחידה לכל מה שאפשר להגיע אליו ב-Tab. */
+:where(button,[href],input,select,textarea,label.btn,.tab,[tabindex]):focus-visible{
+ outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+.tab:focus-visible{outline-offset:-1px}
+.menu .mi.act{gap:0;padding:0}
+.menu .mi.act .btn{width:100%;justify-content:flex-start;border:0;background:none;
+ padding:7px 8px;font-size:12.5px;gap:9px}
+.menu .mi.act .btn .lbl{display:inline!important}
+.menu .mi.act .btn:hover{background:transparent}
 /* הכפתורים לא מתכווצים לאפס — תיבת החיפוש היא שנותנת מקום. מתחת
    ל-1300 גם כותרת המסך יורדת: היא חוזרת ממילא בשורת המצבים שמתחת. */
 .top .lc{overflow:visible;flex:0 0 auto}
@@ -1654,6 +1764,26 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn pri" id="briefGo">התחל לעבוד</button>
   </div>
 </div>
+<!-- ============ מסך הפתיחה ============
+     לפני שנטען דוח, המסך היה ריק: שלד של וידג'טים בלי נתון אחד.
+     מתכנן שרואה אותו בפעם הראשונה אינו יודע מה הכלי רוצה ממנו.
+     ה-label מצביע על אותו #f של הסרגל העליון — אין כאן קלט שני. -->
+<div id="welcome" class="wel" hidden>
+  <div class="welbox">
+    <div class="welmk">מ</div>
+    <h1>מתחילים מדוח המלאי שלך</h1>
+    <p class="welsub">העלה דוח ZMRP כדי לראות אילו חלפים דורשים טיפול, למה ומה מומלץ לעשות.</p>
+    <label class="btn pri welgo" for="f" id="welGo">⭱ העלאת דוח ZMRP</label>
+    <p class="welnote">דוח אספקות מתוכננות (ETA) הוא תוספת שאפשר לצרף בהמשך — הכלי עובד גם בלעדיו.</p>
+    <p class="welnote priv"><span aria-hidden="true">🔒</span> הנתונים מעובדים בדפדפן ואינם נשלחים לשרת.</p>
+    <div class="wellinks">
+      <button type="button" class="wlink" id="welHow" aria-expanded="false" aria-controls="welHowBox">איך מפיקים את הדוח?</button>
+      <button type="button" class="wlink" id="welDemo">התנסות עם נתוני דוגמה</button>
+      <button type="button" class="wlink" id="welTour">היכרות עם הכלי</button>
+    </div>
+    <div class="welhow" id="welHowBox" hidden></div>
+  </div>
+</div>
 <div class="top">
   <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
@@ -1663,10 +1793,18 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך.">☎<span class="lbl"> דוח זירוז</span></button>
-    <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה">⇅<span class="lbl"> מצב עבודה</span></button>
-    <button class="btn" id="darkToggle" title="החלפת ערכת צבעים">🌙<span class="lbl"> מצב כהה</span></button>
-    <button class="btn" id="xpBtn" aria-pressed="false" title="מצב הסבר — לחיצה על כל כפתור תסביר מה הוא מראה ומה לבדוק, במקום להפעיל אותו">?<span class="lbl"> הסבר</span></button>
+    <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
+    <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
+    <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
+    <div class="menuwrap"><button class="btn" id="helpBtn" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
+      <div class="menu wide" id="helpMenu">
+        <div class="mi" data-help="tour">🧭 היכרות עם הכלי</div>
+        <div class="mi" data-help="xp" id="helpXp">💡 מצב הסבר — לחיצה מסבירה במקום להפעיל</div>
+        <div class="mi" data-help="how">📄 איך מפיקים את דוח ה-ZMRP?</div>
+      </div></div>
+    <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
+      <div class="menu wide" id="moreMenu"></div></div>
+    <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
     <input type="file" id="stFile" accept="application/json,.json" hidden>
   </div>
   <div class="fgroup qwrap" id="qwrap">
@@ -1679,7 +1817,8 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="qstat" id="qstat"></div>
   </div>
   <div class="sp">
-    <input type="month" id="rd" title="חודש בסיס — החודש המלא האחרון בדוח">
+    <div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
+      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div>
     <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
     <span class="updated" id="updated">לא נטען קובץ</span>
     <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
@@ -1687,6 +1826,19 @@ tr.grp.sup b{font-size:var(--f-md)}
     <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
     <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
   </div>
+</div>
+<div class="tour" id="tour" hidden role="dialog" aria-labelledby="tourTtl">
+  <div class="tourhd"><b id="tourTtl">היכרות עם הכלי</b><span class="tourn" id="tourN"></span></div>
+  <p class="tourtx" id="tourTx"></p>
+  <div class="tourbtns">
+    <button type="button" class="btn" id="tourSkip">דלג</button>
+    <button type="button" class="btn" id="tourBack">הקודם</button>
+    <button type="button" class="btn pri" id="tourNext">הבא</button>
+  </div>
+</div>
+<div class="demobar" id="demobar" hidden role="status">
+  <span><span aria-hidden="true">▲</span> מצב הדגמה — נתונים סינתטיים, לא המלאי שלך. סימונים והיסטוריה אינם נשמרים.</span>
+  <button type="button" id="demoExit">יציאה ממצב הדגמה</button>
 </div>
 <div class="diag" id="diag"></div>
 <div class="dash" id="dash">
@@ -1717,6 +1869,11 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="whead"><span class="hnd">⠿</span><span class="wt">תור עבודה</span><span class="wsub" id="qsub"></span><span class="wsp"><span class="wx" data-hide="queue" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="qbody">
       <div class="tabs" id="tabs"></div>
+      <!-- ============ מה הסרגל הזה אינו ============
+           «לטיפול היום» מזמין קריאה של מסנן תאריך. הוא אינו. -->
+      <p class="navhint" id="navhint">אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד.
+        <b>תיקוני פרמטרים</b> ו<b>אספקות צפויות</b> הם מסלולים בתוך «לטיפול היום», ברצועה שמעל הטבלה.
+        <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</p>
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
@@ -2384,8 +2541,17 @@ function etaAgeDays(){if(!ETA||!ETA.ts)return null;
 
    הכלל של הכלי חל גם על הכלי עצמו: מה שאינו ידוע נאמר. כישלון
    שתיקה הוא הגרוע מכולם — הוא נראה כמו הצלחה. */
+/* ============ מצב הדגמה ============
+   נתוני הדגמה אסור להם לגעת בעבודה האמיתית. הבידוד הוא בשתי שכבות:
+   (א) כל כותב אחסון שמחזיק *החלטות* — סימונים, זיכרון התור, מעקב
+       היישום, הפנקס ודוח ה-ETA — חוזר בלי לכתוב.
+   (ב) הזיכרון שבזיכרון מתאפס בכניסה, כך שהדוגמה מתחילה נקייה.
+   היציאה היא רענון עמוד, ולכן האמת חוזרת מ-localStorage שלא נגענו בו.
+   העדפות תצוגה (פריסה, מצב כהה, קיבוץ) אינן «החלטות» וממשיכות לעבוד. */
+let DEMO=false;
 let STORE_FAIL=null,STORE_TRIM=null;
 function storeSet(key,val,label){
+ if(DEMO)return true;                       /* מצב הדגמה — לא נכתב דבר */
  try{localStorage.setItem(key,val);
   if(STORE_FAIL&&STORE_FAIL.key===key){STORE_FAIL=null;storeChip()}
   return true}
@@ -2421,7 +2587,7 @@ function storeChip(){const el=document.getElementById('storechip');if(!el)return
   +'לחיצה כאן מנסה שוב.';
  el.onclick=()=>{const ok=storeSet(STORE_FAIL.key,STORE_FAIL.last||'',STORE_FAIL.label);
   toast(ok?'נשמר ✓':'עדיין אין מקום — יש לפנות אחסון')}}
-function etaSave(){try{localStorage.setItem(ETA_KEY,JSON.stringify(ETA))}catch(_){
+function etaSave(){if(DEMO)return;try{localStorage.setItem(ETA_KEY,JSON.stringify(ETA))}catch(_){
   toast('⚠ דוח ה-ETA נטען אבל לא נשמר — אחסון הדפדפן מלא')}}
 function etaClear(){ETA=null;try{localStorage.removeItem(ETA_KEY)}catch(_){}
  if(ALL&&ALL.length){etaApply(ALL);apply()}etaChip()}
@@ -3240,6 +3406,16 @@ const MODES=[
 const NAV=[
  ['line','לטיפול היום','⏱','var(--critical)'],
  ['catalog','הקטלוג','☰','var(--calm)']];
+/* ============ מה כל מסלול הוא ============
+   הכיתוב הקבוע הזה יושב מתחת לשם, ולצידו המספר הדינמי. הוא עונה על
+   השאלה הראשונה של מי שלא בנה את הכלי: «מה אני אמור למצוא כאן».
+   אלה *מסלולי עבודה*, לא מסנני תאריך — והמשפט הזה נאמר במפורש
+   מתחת לסרגל, כי «היום / החודש» מזמינים בדיוק את הקריאה השגויה. */
+const NAV_WHAT={
+ line:'חוסרים ולקוחות שממתינים לטיפול',
+ catalog:'חיפוש ובדיקה של כל הפריטים',
+ done:'פריטים שסימנת כטופלו',
+ moves:'מכירה וכניסה אחרונות לכל פריט'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 function navCount(k){
@@ -3837,6 +4013,7 @@ let LEDGER={v:1,days:{},etas:{}};
 try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
  if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
 function ledgerSave(){
+ if(DEMO)return;
  try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
  catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס.
     זו התנהגות נכונה, אבל היא הייתה שקטה: הפנקס מתקצר מאחור ואיש
@@ -3984,7 +4161,7 @@ const PAR_KEY='planner_params_v1', PAR_RUNS=4;
 let PARAMS={runs:[]};
 try{const q=JSON.parse(localStorage.getItem(PAR_KEY));
  if(q&&Array.isArray(q.runs))PARAMS=q}catch(_){}
-function saveParams(){try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
+function saveParams(){if(DEMO)return;try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
   /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
   if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);
    STORE_TRIM={what:'זיכרון הפרמטרים',left:PARAMS.runs.length};storeChip();
@@ -4130,13 +4307,13 @@ function tiles(){
   const {n,hot}=navCount(k);
   if(!n&&k!=='today'&&k!=='month'&&k!=='catalog')return '';
   return `<div class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
-   data-xp="nav-${k}" title="${esc(name)}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
-   <span class="m">${esc(sub(k))}</span></div>`}).join('')
+   data-xp="nav-${k}" title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
+   <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</div>`}).join('')
   +(()=>{const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
     return n||mode==='done'?`<div class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
-     data-xp="nav-done" title="פריטים שסימנת כטופל"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m"></span></div>`:''})()
+     data-xp="nav-done" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></div>`:''})()
   +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
-     data-xp="nav-moves" title="תנועות — CF · CG · נכנס ולא נמכר"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m">CF · CG</span></div>`;
+     data-xp="nav-moves" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></div>`;
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    setMode(e.dataset.m)})}
@@ -5200,7 +5377,9 @@ function delta(c,n){return n>c?`<div class="dlt up">▲ להעלות ב-${n-c}</
 const PATDESC={'חלק':'ביקוש סדיר וצפוי','תנודתי':'סדיר בתדירות, משתנה בכמות',
  'ספורדי':'מפוזר עם חודשים ריקים — ממוצע מטעה','גושי':'נדיר באשכולות — עדיף לפי הזמנה','ללא ביקוש':'אין תנועה ב-11 חודשים'};
 function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:'';
- return `<details class="dsec"${r.mark?' open':''}><summary>סימון והחרגה${r.mark?` · ${esc(r.cat)}`:''}</summary>
+ /* הסייג חייב להיות ליד הפעולה, לא בתוך מגירה סגורה: מי שלוחץ
+    «טופל» בפעם הראשונה צריך לדעת *לפני* הלחיצה שזה לא נוגע ב-SAP. */
+ return `<details class="dsec"${r.mark?' open':''}><summary>סימון והחרגה<span class="sumnote"> · נשמר בכלי בלבד ואינו מעדכן את SAP</span>${r.mark?` · ${esc(r.cat)}`:''}</summary>
   <div class="marks">
    <button data-t="handled" class="dn2 ${t==='handled'?'on':''}">✓ טופל</button>
    <button data-t="campaign" class="${t==='campaign'?'on':''}">קמפיין</button>
@@ -5208,7 +5387,12 @@ function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:
    <button data-t="ignore" class="${t==='ignore'?'on':''}">התעלם</button>
    <button data-t="" class="clr">בטל סימון</button></div>
   <input class="marknote" id="mknote" placeholder="הערה (קמפיין קיץ · ממתין לאישור מנהל)" value="${(note||'').replace(/"/g,'&quot;')}">
-  <div class="legend">${t==='handled'?'הפריט טופל והוסר מהרשימה. "בטל סימון" יחזיר אותו.':'מסומן = מוחרג מהתרעות עד הסרה.'} נשמר מקומית, שורד רענון.${r.mark?` · סומן ${new Date(r.mark.ts).toLocaleDateString('he-IL')}`:''}</div></details>`}
+  <div class="legend sap"><b>הסימון נשמר בכלי בלבד ואינו מעדכן את SAP.</b></div>
+  <div class="legend">${t==='handled'
+    ?`<b>סומן כטופל</b> — הפריט יצא מתור העבודה. הוא אינו «השינוי זוהה בדוח SAP הבא»: הכלי לא בדק דבר, הוא רק מקבל את מה שאמרת. הסימון מסתיר אותו ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הוא חוזר לסיווג האמיתי שלו — כדי שהדוח הבא יוכל להראות אם השינוי אכן בוצע. «בטל סימון» מחזיר אותו מיד.`
+    :t
+    ?`מסומן «${esc(MARK_LABEL[t]||t)}» — מוחרג מהתרעות מחסור ועודף למשך ${Math.round(markTTL(t)/864e5)} ימים, ואז הסימון פג והפריט חוזר לסיווג הרגיל. «בטל סימון» מחזיר אותו מיד.`
+    :'סימון מוציא את הפריט מהתרעות עד שהוא פג או מבוטל. «טופל» — שבוע; שאר הסוגים — חצי שנה.'} נשמר בדפדפן הזה ושורד רענון.${r.mark?` · סומן ${new Date(r.mark.ts).toLocaleDateString('he-IL')}`:''}</div></details>`}
 function movePanel(r){if(r.sales==null&&r.entries==null)return '';
  const sd=(r.sales&&r.sales.date&&r.entries&&r.entries.date&&sameDay(r.sales.date,r.entries.date));
  const saleQt=r.sales&&r.sales.num!=null?`<div class="qt">${r.sales.num} יח׳</div>`:'';
@@ -5235,7 +5419,14 @@ function decisionBlock(r){
   <div class="dcq">${esc(decisionQty(r))}</div>
   <div class="dcs2">${sub}</div>
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
-   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div></div>`}
+   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div>
+  <!-- ============ מה הסימון הזה אינו ============
+       הסייג ישב במגירת «סימון והחרגה», בתוך טאב שמתכנן חדש אינו
+       פותח. הוא חייב לשבת ליד הכפתור עצמו: מי שלוחץ «טופל» בפעם
+       הראשונה מניח שזה מעדכן משהו. זו הנחה שעולה כסף. -->
+  <div class="dcnote">${done
+    ?`<b>סומן כטופל</b> — הפריט יצא מתור העבודה. הסימון נשמר בכלי בלבד ו<b>אינו מעדכן את SAP</b>; הכלי לא בדק דבר, הוא מקבל את מה שאמרת. הוא מסתיר את הפריט ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הפריט חוזר לסיווג האמיתי שלו כדי שהדוח הבא יראה אם השינוי אכן בוצע. «בטל סימון טופל» מחזיר אותו מיד.`
+    :`הסימון נשמר בכלי בלבד ו<b>אינו מעדכן את SAP</b>. הוא מוציא את הפריט מתור העבודה ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הוא חוזר מעצמו — «סומן כטופל» אינו «השינוי זוהה בדוח SAP הבא». אפשר לבטל בכל רגע.`}</div></div>`}
 function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
  /* ============ חריגות בהיסטוריה ============
     נמדד: 248 פריטים בדוח מחזיקים פיק ו-30 מחזיקים צניחה, אבל «פיק»
@@ -5757,7 +5948,13 @@ function fitDoors(){
  const phd=d.closest('.phd');if(!phd)return;
  d.classList.remove('compact');
  if(phd.getBoundingClientRect().height>48||phd.scrollWidth>phd.clientWidth+1)
-  d.classList.add('compact')}
+  d.classList.add('compact');
+ /* במצב הצפוף השם נעלם ונשאר סמל ומספר. השם עדיין חייב להגיע לקורא
+    מסך ולניווט מקלדת, ולכן הוא עובר ל-aria-label מאותו טקסט עצמו. */
+ d.querySelectorAll('.btn').forEach(b=>{
+  const nm=(b.querySelector('.dl')||{}).textContent||'';
+  const n=(b.querySelector('.fn')||{}).textContent||'';
+  if(nm.trim())b.setAttribute('aria-label',`${nm.trim()} — ${n} פריטים`)})}
 window.addEventListener('resize',()=>{clearTimeout(window.__fdt);
  window.__fdt=setTimeout(fitDoors,120)});
 function syncRiseBtn(){const b=document.getElementById('riseBtn');if(!b)return;
@@ -5835,7 +6032,11 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
  const open=!LAYOUT.hidden.includes('filters');
  const n=FDEF.reduce((t,[k])=>t+(SEL[k]&&SEL[k].size?1:0),0);
  b.classList.toggle('on',open||n>0);
- b.innerHTML='☰ סינון'+(n?` <span class="fn">${n}</span>`:'')}
+ /* אותו מבנה כמו שאר הפעולות — סמל + .lbl — כדי שתפריט «עוד»
+    והתווית יתייחסו אליו בדיוק כמו לאחרים. קודם נכתב כאן טקסט שטוח
+    והשם נעלם מהמבנה. */
+ b.innerHTML='<span aria-hidden="true">☰</span><span class="lbl"> סינון</span>'
+  +(n?` <span class="fn">${n}</span>`:'')}
 document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
 function showDiag(){const el=document.getElementById('diag');
@@ -5935,9 +6136,244 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('plannerGreeting').textContent=planner?`${planner[0]} · ${tasks} פריטים דורשים טיפול`:`${tasks} פריטים דורשים טיפול`;
   document.getElementById('updated').textContent=`${ALL.length} מק״טים · ${tasks} משימות${detected?' · '+new Date(detected).toLocaleDateString('he-IL'):''}`;
-  colFilters={};apply();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
+  colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
+/* ============ מסך הפתיחה, נתוני הדגמה, והסבר פורמט הדוח ============
+   המסך מופיע כל עוד לא נטען דוח, ונעלם ברגע שיש נתונים. הוא אינו
+   מודאל: אין מה לחסום — מאחוריו אין עדיין כלום. */
+function welToggle(){const w=document.getElementById('welcome');if(!w)return;
+ const has=(typeof ALL!=='undefined'&&ALL&&ALL.length>0);
+ w.hidden=has;document.body.classList.toggle('welcoming',!has);
+ if(!has){const t=document.querySelector('.top');
+  if(t)w.style.insetBlockStart=Math.round(t.getBoundingClientRect().height)+'px'}}
+/* ============ «איך מפיקים את הדוח?» ============
+   נגזר ממה שהמפענח באמת דורש — NAMES, CRITICAL ו-MON — ולא מתיאור
+   שהומצא. אם עמודה תשנה שם ב-NAMES, ההסבר הזה ילך איתה. */
+function welHowHtml(){
+ const must=Object.values(CRITICAL).join(' · ');
+ const cols=[['מזהה ותיאור','מק"ט מוביל · תיאור חומר · תיאור חומר2'],
+  ['מלאי וביקוש','סה"כ מלאי · מלאי פנוי · הז. רכש · בהעברה · כמות בהז.פ'],
+  ['פרמטרים','נק.הז.מחדש · מלאי בטחון · מל.בט.מינ. · רמת שרות · אספ.מתוכנ. · סוג MRP'],
+  ['כסף','מחיר FOB · מטבע FOB'],
+  ['צריכה','צר.חודש-1 … צר.חודש-11 · צר.השנה · צר.שנה-1 · צר.שנה-2'],
+  ['שיוך','שם ספק · ABC · סוג חומר · ת.היר.1 מח · טקסט ארוך (מעתד)'],
+  ['תנועות (רשות)',"תאר' מכירה · תאר' כניסה"]];
+ return `<h3>מה הכלי מחפש בקובץ</h3>
+  <ul>
+   <li>קובץ <code>.xlsx</code> או <code>.xls</code>. הגיליון הראשון שבו נמצאת שורת הכותרות מזוהה אוטומטית.</li>
+   <li>שורת הכותרות מזוהה לפי התא <code>מק"ט מוביל</code> עם לפחות 11 עמודות מלאות. היא יכולה לשבת בכל אחת מ-30 השורות הראשונות — כותרת דוח מעליה אינה מפריעה.</li>
+   <li>אם יש תאריך באחת מהשורות שמעל הכותרות, הכלי מסיק ממנו את <b>חודש הבסיס</b>. אחרת הוא מניח את החודש המלא האחרון, ואפשר לתקן ידנית.</li>
+   <li>שורה אחת לכל מק״ט. מק״ט שמופיע פעמיים יעובד כשני פריטים, והכלי יתריע על כך.</li>
+  </ul>
+  <h3>עמודות חובה</h3>
+  <p>בלי אלה הכלי עוצר: <code>${esc(must)}</code>.</p>
+  <h3>העמודות שנקראות בפועל</h3>
+  <ul>${cols.map(([g,c])=>`<li><b>${g}:</b> ${esc(c)}</li>`).join('')}</ul>
+  <p>שמות העמודות נקראים כלשונם. עמודה חסרה שאינה חובה — הכלי ממשיך ומדווח מה ירד, בפס האבחון שמתחת לסרגל.</p>
+  <div class="miss"><b>מה שאין לי:</b> אין בידי תיעוד של שלבי ההפקה ב-SAP — שם הטרנזקציה, המשתנה (variant) והלייאאוט שמייצרים בדיוק את העמודות האלה. לא אמציא אותם. אם תשלח לי את שם הטרנזקציה והלייאאוט שאתה משתמש בהם, אוסיף כאן הוראות צעד־אחר־צעד.</div>`}
+/* ============ נתוני הדגמה ============
+   נבנים כחוברת אקסל אמיתית ומוזנים דרך אותו #f של הסרגל העליון —
+   אותו מפענח, אותו build, אותו classify. אין כאן מסלול טעינה שני
+   שאפשר לו להתפצל מהאמיתי. */
+function demoRows(){
+ const MONH=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
+ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','שם ספק','סטטוס חומר','תיאור',
+  'סוג MRP','ABC','רמת שרות','מלאי בטחון','נק.הז.מחדש','אספ.מתוכנ.','זמ.עב.קבלת','מל.בט.מינ.',
+  'מחיר FOB','מטבע FOB','סה"כ מלאי','מלאי פנוי','מלאי מרלוג','הז. רכש','בהעברה','אספקות פת.','כמות בהז.פ','סוג חומר',
+  'תיא.קבוצ.חומרים','קב.חו.חיצו','טקסט ארוך','תב.אח.הש.','ת.היר.1 מח','ת.היר.2 מח',
+  'היררכייה1','היררכייה1','היררכייה2','היררכייה2','היררכייה3','היררכייה3',
+  'צר.השנה','צר.שנה-1','צר.שנה-2','צר.החודש',...MONH,"תאר' מכירה","תאר' כניסה"];
+ /* מחולל זרוע — אותה דוגמה בכל פתיחה, כדי שמה שהסברת יישאר נכון */
+ let sd=7;const rnd=()=>{sd=(sd*1103515245+12345)&0x7fffffff;return sd/0x7fffffff};
+ const I=(a,b)=>a+Math.round(rnd()*(b-a));
+ const D=n=>{const d=new Date(Date.now()-n*864e5);
+  return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`};
+ const SUP=['אלפא רכיבים','בטא ייבוא','גמא חלפים','דלתא מוטורס'];
+ const GRP=['מנוע','חשמל','מרכב','בלמים','מתלים','פנים'];
+ const MDL=['ZT T5','ZT X7','LINK 01','LINK 03','ZT E-Van'];
+ const rows=[];
+ /* שבע משפחות, כל אחת מייצגת החלטה אחרת שהמתכנן יפגוש */
+ const fam=[
+  ['לקוח ממתין ללא מלאי',10,i=>({m:()=>I(4,16),free:0,cust:I(3,14),po:0,lt:120,pr:I(40,900),ss:I(2,8),rop:I(6,20),sale:I(2,25),ent:I(90,300)})],
+  ['אוזל החודש',       9,i=>({m:()=>I(6,22),free:I(1,6),cust:I(0,2),po:I(0,8),lt:90,pr:I(30,600),ss:I(2,6),rop:I(8,24),sale:I(1,20),ent:I(60,200)})],
+  ['מכוסה ותקין',       9,i=>({m:()=>I(5,18),free:I(60,200),cust:I(0,3),po:0,lt:60,pr:I(20,400),ss:I(4,10),rop:I(10,30),sale:I(1,15),ent:I(20,90)})],
+  ['הון כלוא',          8,i=>({m:()=>I(0,3),free:I(150,600),cust:0,po:0,lt:60,pr:I(80,1400),ss:I(0,3),rop:I(0,6),sale:I(60,260),ent:I(200,500)})],
+  ['מלאי מת',           6,i=>({m:()=>0,free:I(20,180),cust:0,po:0,lt:60,pr:I(60,900),ss:0,rop:0,sale:1400,ent:1500})],
+  ['תיקון פרמטרים',     8,i=>({m:()=>I(3,12),free:I(10,40),cust:I(0,2),po:I(0,6),lt:120,pr:I(25,500),ss:I(0,1),rop:I(0,2),sale:I(5,40),ent:I(40,160)})],
+  ['לפי דרישה (PD)',    6,i=>({m:()=>I(0,4),free:I(0,8),cust:I(0,3),po:I(0,4),lt:150,pr:I(100,2000),ss:0,rop:0,pd:true,sale:I(10,90),ent:I(80,320)})]];
+ let n=0;
+ for(const [lbl,cnt,gen] of fam)for(let i=0;i<cnt;i++){
+  const c=gen(i);const mon=Array.from({length:11},c.m);
+  const y=mon.reduce((a,b)=>a+b,0);
+  const gp=GRP[n%GRP.length],md=MDL[n%MDL.length];
+  const pn=`DEMO-${String(1000+n)}`;n++;
+  rows.push([pn,`${gp} ${md} — ${lbl}`,`Demo ${gp} ${n}`,SUP[n%SUP.length],'01','פעיל',
+   c.pd?'PD':'ND',['A','B','C'][n%3],c.pd?50:(n%2?80:95),
+   c.ss,c.rop,c.lt,2,c.ss,c.pr,['USD','USD','EUR','ILS'][n%4],
+   c.free,c.free,0,c.po,0,0,c.cust,n%3?'Z001':'Z004',
+   gp,'ZT','מתכנן הדגמה','12 חודשים',md,gp,
+   '100','ZT','200',md,'300',gp,
+   y,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
+ return {hdr,rows}}
+function demoStart(){
+ if(typeof XLSX==='undefined'){toast('⚠ ספריית האקסל עוד נטענת — נסה שוב בעוד רגע');return}
+ const {hdr,rows}=demoRows();
+ /* (ב) — הזיכרון שבזיכרון מתאפס, כדי שהדוגמה לא תרשת סימונים אמיתיים */
+ DEMO=true;
+ Object.keys(MARKS).forEach(k=>delete MARKS[k]);
+ HIST={runs:[],items:{}};PARAMS={runs:[]};LEDGER={v:1,days:{},etas:{}};
+ document.getElementById('demobar').hidden=false;
+ document.body.classList.add('demo');
+ const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה'],[],hdr,...rows]);
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ZMRP');
+ const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+ const file=new File([buf],'הדגמה-ZMRP.xlsx',
+   {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ const inp=document.getElementById('f');
+ try{const dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;
+   inp.dispatchEvent(new Event('change'))}
+ catch(_){toast('⚠ הדפדפן לא אפשר לטעון את קובץ ההדגמה')}}
+/* ============ היכרות קצרה עם הכלי ============
+   חמישה צעדים לאורך מסלול העבודה האמיתי: דוח ← מסלול ← פריט ←
+   ההמלצה והסיבה ← סימון. היא אינה חוסמת: אפשר לדלג בכל שלב, היא
+   נפתחת פעם אחת בלבד למשתמש חדש, ולא חוזרת בכל העלאת דוח.
+   מצב ההסבר הקיים (XP) נשאר מה שהוא — הסבר לפי דרישה על כפתור בודד;
+   ההיכרות היא הסדר שביניהם. */
+const TOUR_KEY='planner_tour_v1';
+const TOUR=[
+ {t:'1 · מתחילים מדוח',sel:'#welGo,label[for="f"]',
+  x:'העלה את דוח ה-ZMRP היומי. הכלי קורא אותו בדפדפן, מזהה את שורת הכותרות לבד, ומסיק ממנו את חודש הבסיס. דוח האספקות המתוכננות (ETA) הוא תוספת — אפשר לצרף אותו בהמשך ולא צריך אותו כדי להתחיל.'},
+ {t:'2 · בוחרים מסלול',sel:'#tabs',
+  x:'שני מסלולי עבודה: «לטיפול היום» הוא מה שדורש החלטה עכשיו — חוסרים ולקוחות שממתינים. «הקטלוג» הוא לחיפוש ובדיקה של כל פריט. אלה מסלולי עבודה, לא מסנני תאריך: «היום» אינו אומר שנטענו נתוני היום, אלא מה בוער.'},
+ {t:'3 · פותחים פריט',sel:'#tbl',
+  x:'לחיצה על שורה פותחת את כרטיס הפריט מימין: מלאי, הזמנות, צריכת 11 חודשים והפרמטרים שב-SAP. אפשר גם בלי עכבר — ↑↓ לפריט, ←→ לטאב.'},
+ {t:'4 · מבינים את ההמלצה',sel:'#detail',
+  x:'בכרטיס יש «מה קרה» ו«מה לעשות», ולידם כפתור «מאחורי החישוב» שמראה את הנוסחה עצמה: מלאי הביטחון מפורק לשלושה מרכיבים, ולידם מי מהם קבע. אם ההמלצה נראית לך שגויה — שם רואים למה היא יצאה כך.'},
+ {t:'5 · מסמנים טיפול',sel:'#detail',
+  x:'«✓ טופל» מוציא את הפריט מהתור. חשוב: הסימון נשמר בכלי בלבד ואינו מעדכן את SAP. הוא מסתיר את הפריט לשבוע, ואז הוא חוזר לסיווג האמיתי שלו — כדי שהדוח הבא יוכל להראות אם השינוי בוצע בפועל.'}];
+let TOURI=-1;
+function tourSpot(sel){
+ document.querySelectorAll('.tourspot').forEach(e=>e.classList.remove('tourspot'));
+ if(!sel)return;
+ for(const one of sel.split(',')){const el=document.querySelector(one.trim());
+  if(el&&el.offsetParent!==null){el.classList.add('tourspot');return}}}
+function tourShow(){
+ const box=document.getElementById('tour');if(!box)return;
+ if(TOURI<0||TOURI>=TOUR.length){tourEnd();return}
+ const st=TOUR[TOURI];
+ document.getElementById('tourTtl').textContent=st.t;
+ document.getElementById('tourN').textContent=`${TOURI+1}/${TOUR.length}`;
+ document.getElementById('tourTx').textContent=st.x;
+ document.getElementById('tourBack').hidden=TOURI===0;
+ document.getElementById('tourNext').textContent=TOURI===TOUR.length-1?'סיום':'הבא';
+ box.hidden=false;tourSpot(st.sel);
+ document.getElementById('tourNext').focus()}
+function tourEnd(){
+ TOURI=-1;const box=document.getElementById('tour');if(box)box.hidden=true;
+ tourSpot(null);try{localStorage.setItem(TOUR_KEY,'1')}catch(_){}}
+function tourStart(force){
+ if(!force){try{if(localStorage.getItem(TOUR_KEY))return}catch(_){}}
+ TOURI=0;tourShow()}
+function tourWire(){
+ const n=document.getElementById('tourNext'),b=document.getElementById('tourBack'),
+       k=document.getElementById('tourSkip');
+ if(n)n.onclick=()=>{TOURI++;tourShow()};
+ if(b)b.onclick=()=>{TOURI=Math.max(0,TOURI-1);tourShow()};
+ if(k)k.onclick=tourEnd;
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&TOURI>=0)tourEnd()})}
+/* ============ פעולות משניות ברוחב צר ============
+   הכפתורים עצמם נודדים אל תפריט «עוד» ובחזרה — לא עותק שלהם — ולכן
+   המאזינים, ה-id והמצב נשמרים. הסדר הוא סדר הוויתור: מה שיורד ראשון
+   הוא מה שנחוץ פחות בעבודה היומית. העלאת הדוח והחיפוש לעולם אינם
+   יורדים, והם ממילא אינם ב-.lc. */
+/* «וידג'טים / שמור תצוגה / אפס תצוגה» כבר מוסרים מה-DOM בסוף הקובץ
+   בהחלטה קודמת, ולכן אינם ברשימה. */
+const TOP_DROP=['darkToggle','stBtn','expXls','exportXls','filtBtn'];
+function fitTop(){
+ const lc=document.querySelector('.top .lc'),wrap=document.getElementById('moreWrap'),
+       menu=document.getElementById('moreMenu');
+ if(!lc||!wrap||!menu)return;
+ /* נמדד: התוכן של .top הוא 1,896px, והוא נחתך בשקט בכל רוחב מתחת
+    ל-1920 — ב-1366 יותר מ-500px של פעולות פשוט לא היו שם. .lc עצמו
+    לעולם אינו גולש (flex:0 0 auto), ולכן המדידה היא על הסרגל כולו. */
+ const top=document.querySelector('.top');
+ const over=()=>!!top&&top.scrollWidth>top.clientWidth+1;
+ /* קודם מחזירים הכול, כדי שהרחבה תתאושש ולא רק ההצרה */
+ [...menu.querySelectorAll('.mi.act')].reverse().forEach(mi=>{
+  const b=mi.firstElementChild;if(b)wrap.before(b);mi.remove()});
+ wrap.hidden=true;
+ /* סדר הוויתור מתחיל בקישוט ולא בפעולה: תת-הכותרת של המותג ורמז
+    חודש הבסיס אינם פעולות, והם יורדים לפני שכפתור כלשהו נעלם
+    מהעין. רק אם גם זה לא הספיק — פעולות עוברות אל «עוד». */
+ document.body.classList.remove('topnarrow');
+ if(!over())return;
+ document.body.classList.add('topnarrow');
+ if(!over())return;
+ wrap.hidden=false;
+ for(const id of TOP_DROP){
+  if(!over())break;
+  const b=document.getElementById(id);
+  if(!b||b.hidden||!lc.contains(b))continue;
+  const mi=document.createElement('div');mi.className='mi act';
+  menu.appendChild(mi);mi.appendChild(b)}
+ if(!menu.children.length)wrap.hidden=true}
+/* ============ תפריט העזרה ============
+   מאגד את שלוש נקודות הכניסה שהיו פזורות: מצב ההסבר הקיים, ההיכרות,
+   והסבר פורמט הדוח שנכתב למסך הפתיחה — אותו טקסט, לא עותק. */
+/* פתיחה וסגירה של תפריט «עוד». נכתב בנפרד מ-wMenu כי הוא מחזיק
+   כפתורים אמיתיים ולא מתגים, ולחיצה עליהם צריכה גם לסגור אותו. */
+function moreWire(){
+ const mb=document.getElementById('moreBtn'),mm=document.getElementById('moreMenu');
+ if(!mb||!mm)return;
+ mb.onclick=e=>{e.stopPropagation();const open=!mm.classList.contains('open');
+  mm.classList.toggle('open',open);mb.setAttribute('aria-expanded',open?'true':'false')};
+ mm.addEventListener('click',e=>{if(e.target.closest('.btn')){
+  mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
+ document.addEventListener('click',e=>{if(!mm.contains(e.target)&&e.target!==mb){
+  mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')mm.classList.remove('open')})}
+function helpWire(){
+ const hb=document.getElementById('helpBtn'),hm=document.getElementById('helpMenu');
+ if(!hb||!hm)return;
+ hb.onclick=e=>{e.stopPropagation();const open=!hm.classList.contains('open');
+  hm.classList.toggle('open',open);hb.setAttribute('aria-expanded',open?'true':'false');
+  const x=document.getElementById('helpXp');
+  if(x)x.classList.toggle('on',!!XPON)};
+ document.addEventListener('click',e=>{if(!hm.contains(e.target)&&e.target!==hb){
+  hm.classList.remove('open');hb.setAttribute('aria-expanded','false')}});
+ hm.querySelectorAll('.mi').forEach(mi=>mi.onclick=()=>{
+  hm.classList.remove('open');hb.setAttribute('aria-expanded','false');
+  const k=mi.dataset.help;
+  if(k==='xp')xpSet(!XPON);
+  else if(k==='tour')tourStart(true);
+  else if(k==='how')howModal()});}
+/* הסבר פורמט הדוח, זמין גם אחרי שנטען דוח */
+function howModal(){
+ document.getElementById('mtitle').textContent='איך מפיקים את דוח ה-ZMRP';
+ document.getElementById('mbody').innerHTML=`<div class="welhow" style="margin:0">${welHowHtml()}</div>`;
+ document.getElementById('modalwrap').classList.add('open')}
+function welWire(){
+ const how=document.getElementById('welHow'),box=document.getElementById('welHowBox');
+ if(how&&box)how.onclick=()=>{const open=box.hidden;
+   if(open&&!box.innerHTML)box.innerHTML=welHowHtml();
+   box.hidden=!open;how.setAttribute('aria-expanded',open?'true':'false')};
+ const dm=document.getElementById('welDemo');if(dm)dm.onclick=demoStart;
+ const tb=document.getElementById('welTour');if(tb)tb.onclick=()=>tourStart(true);
+ const ex=document.getElementById('demoExit');
+ if(ex)ex.onclick=()=>{if(confirm('לצאת ממצב ההדגמה? העמוד ייטען מחדש והעבודה האמיתית תחזור.'))location.reload()};
+ welToggle()}
+welWire();helpWire();moreWire();tourWire();fitTop();
+/* משתמש חדש מקבל הצעה אחת, ורק כשאין עדיין נתונים. משתמש ותיק —
+   ומי שכבר סגר אותה פעם — לא רואה אותה שוב, גם לא בהעלאה הבאה.
+   ?nobrief=1 מדלג גם עליה, כמו על התדריך: בדיקה אינה משתמש חדש.
+   התנאי נבדק שוב ברגע הפתיחה, כי דוח יכול להיטען בינתיים. */
+setTimeout(()=>{
+ /* BRIEF_SKIP מוגדר בהמשך הקובץ, ולכן נבדק כאן ולא בהרשמה */
+ if(BRIEF_SKIP)return;
+ const w=document.getElementById('welcome');
+ if(w&&!w.hidden)tourStart(false)},700);
+addEventListener('resize',()=>{clearTimeout(window.__ftt);window.__ftt=setTimeout(fitTop,120)});
 /* ============ מצב הסבר ============
    שתי שאלות לכל כפתור, ותמיד באותו סדר: מה אני רואה, ומה לבדוק.
    לא תיאור של מה הכפתור «עושה» — תיאור של מה המספר סופר במציאות,

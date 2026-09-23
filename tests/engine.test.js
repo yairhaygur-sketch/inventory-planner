@@ -1,4 +1,14 @@
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
+/* ============ פעולה בסרגל העליון ============
+   פעולות משניות עוברות אל תפריט «עוד» ברוחב צר (ראה fitTop). הבדיקה
+   פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
+   האמיתית, לא עקיפה שלה. */
+const topAct=async(p,id)=>{
+ const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
+   return !!b&&!!b.closest('#moreMenu')},id);
+ if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ await p.click('#'+id);
+ if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
 const SD=__dirname;const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -202,7 +212,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // ייצוא
  await p.evaluate(()=>{window.__x=[];const o=XLSX.writeFile;XLSX.writeFile=(wb)=>{window.__x=wb};});
- await p.click('#exportXls');await p.waitForTimeout(900);
+ await topAct(p,'exportXls');await p.waitForTimeout(900);
  const xh=await p.evaluate(()=>{const wb=window.__x;if(!wb||!wb.SheetNames)return null;
    const ws=wb.Sheets[wb.SheetNames[0]];return XLSX.utils.sheet_to_json(ws,{header:1})[0]||[]});
  ok('ייצוא: אין עמודות הכנסה/מכירה',xh&&!xh.some(h=>/הכנסה בסיכון|מחיר מכירה|שאבדו|הון נדרש/.test(h)),
@@ -443,14 +453,35 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    rt.wiped.marks===0&&rt.after.marks===rt.before.marks&&rt.after.snaps===rt.before.snaps,
    `${rt.before.marks} → ${rt.wiped.marks} → ${rt.after.marks}`);
 
- /* הכפתור נכנס לסרגל בלי לחתוך אחרים */
- const lcfit=await p.evaluate(()=>{const c=document.querySelector('.top .lc'),cb=c.getBoundingClientRect();
-  return {clipped:c.scrollWidth>c.clientWidth+2,
-   allVis:[...c.querySelectorAll('button')].every(x=>{const r=x.getBoundingClientRect();
-     return r.width>0&&r.left>=cb.left-1&&r.right<=cb.right+1}),
-   has:!!document.getElementById('stBtn')}});
- ok('כפתור «מצב עבודה» נכנס לסרגל בלי לחתוך',
-   lcfit.has&&!lcfit.clipped&&lcfit.allVis);
+ /* ============ הסרגל העליון — אף פעולה אינה נחתכת ============
+    קודם נבדק כאן ש*כל* כפתורי .lc נראים בתוך גבולות המכל. נמדד
+    אחר כך שהתוכן של .top הוא 1,896px, כלומר בכל רוחב מתחת ל-1920
+    הוא נחתך בשקט — והבדיקה לא תפסה את זה, כי היא מדדה את .lc
+    (שהוא flex:0 0 auto ולכן לעולם אינו גולש) ולא את הסרגל.
+    עכשיו הפעולות המשניות עוברות אל תפריט «עוד» עם השם המלא, והטענה
+    היא זו: הסרגל אינו נחתך, ולכל פעולה יש שם — בשורה או בתפריט. */
+ const lcfit=await p.evaluate(()=>{
+  const top=document.querySelector('.top'),lc=document.querySelector('.top .lc');
+  const cb=lc.getBoundingClientRect();
+  const acts=['filtBtn','exportXls','expXls','stBtn','darkToggle'];
+  const st=acts.map(id=>{const e=document.getElementById(id);
+   if(!e)return {id,ok:false,why:'חסר'};
+   const inMenu=!!e.closest('#moreMenu');
+   /* «שם» = טקסט קריא, לא סמל בלבד */
+   const named=((e.querySelector('.lbl')||{}).textContent||'').trim().length>1;
+   if(inMenu)return {id,ok:named,why:'בתפריט «עוד»'};
+   const r=e.getBoundingClientRect();
+   return {id,ok:named&&r.width>0&&r.left>=cb.left-1&&r.right<=cb.right+1,why:'בשורה'}});
+  return {topClipped:top.scrollWidth>top.clientWidth+2,
+   reachable:st.every(x=>x.ok),st,
+   has:!!document.getElementById('stBtn'),
+   upload:[...document.querySelectorAll('label[for="f"]')].some(e=>e.offsetParent!==null),
+   search:document.getElementById('qbox').offsetParent!==null}});
+ ok('הסרגל העליון אינו נחתך באף רוחב',!lcfit.topClipped);
+ ok('לכל פעולה יש שם — בשורה או בתפריט «עוד»',
+   lcfit.has&&lcfit.reachable,lcfit.st.map(x=>`${x.id}:${x.why}`).join(' · '));
+ ok('העלאת הדוח והחיפוש נשארים גלויים',lcfit.upload&&lcfit.search,
+   `העלאה=${lcfit.upload} · חיפוש=${lcfit.search}`);
  await p.evaluate(()=>{MARKS={};saveMarks();paramsReset();apply()});await p.waitForTimeout(400);
 
  /* ============ האם ההמלצה יושמה? ============ */
