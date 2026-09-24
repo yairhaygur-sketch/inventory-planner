@@ -37,6 +37,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    modeCounts:  MODES.map(m=>m[0]+'='+modeRows(m[0]).length).join(' '),
    tabsShown:   document.querySelectorAll('#tabs .tab').length,
    tabsMain:    document.querySelectorAll('#tabs .tab:not(.mini)').length,
+   tabsFirst:   (document.querySelector('#tabs .tab')||{dataset:{}}).dataset.m,
+   tabsBurn:    !!document.querySelector('#tabs .tab[data-m="burn"]'),
    tabsMini:    [...document.querySelectorAll('#tabs .tab.mini')]
                   .map(e=>e.dataset.m),
    /* יעד ריק = תג שמראה 0. כזה לא אמור להופיע כלל. */
@@ -90,7 +92,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     מילוי גם כשהן פעילות.
     מה שנעול כאן: היעדים *הראשיים* נשארים שלושה, והמשניים לכל היותר
     שניים — כלומר לא הסרגל בן שבעת היעדים. */
- ok('היעדים הראשיים נשארים שלושה לכל היותר',st.tabsMain<=3,st.tabsMain+' ראשיים');
+ /* ============ למה ארבעה ולא שלושה ============
+    «לקוח ממתין ללא רכש» קיבל מסלול משלו. הוא לא היה נגיש בשום דרך:
+    ה-KPI שהציג אותו מוסתר כברירת מחדל ואינו לחיץ, הדלת «לקוחות
+    ממתינים» דורשת מדף אפס *בדיוק* ופספסה 15 מתוך 16, ואף מצב לא
+    החזיק בדיוק את הדלי — ולכן גם doExport() לא יכול היה לייצא אותו.
+    הוא ראשון בסרגל, ומופיע רק כשיש בו משהו. */
+ ok('היעדים הראשיים נשארים ארבעה לכל היותר',st.tabsMain<=4,st.tabsMain+' ראשיים');
+ ok('והבוער ראשון בהם',st.tabsFirst==='burn'||!st.tabsBurn,
+    `ראשון=${st.tabsFirst} · יש בוער=${st.tabsBurn}`);
  ok('ולכל היותר שתי כניסות משניות, ואלה בדיוק שני המסלולים שהיו בלי דלת',
     st.tabsMini.length<=2&&st.tabsMini.every(m=>m==='today'||m==='month'),
     st.tabsMini.join(' · ')||'—');
