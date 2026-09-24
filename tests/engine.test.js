@@ -36,6 +36,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    modeDefault: mode,
    modeCounts:  MODES.map(m=>m[0]+'='+modeRows(m[0]).length).join(' '),
    tabsShown:   document.querySelectorAll('#tabs .tab').length,
+   tabsMain:    document.querySelectorAll('#tabs .tab:not(.mini)').length,
+   tabsMini:    [...document.querySelectorAll('#tabs .tab.mini')]
+                  .map(e=>e.dataset.m),
    /* יעד ריק = תג שמראה 0. כזה לא אמור להופיע כלל. */
    tabsEmpty:   [...document.querySelectorAll('#tabs .tab .bdg')]
                   .filter(b=>b.textContent.trim()==='0').length,
@@ -80,7 +83,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('אין יעדים ריקים בסרגל',st.tabsEmpty===0,
     st.tabsShown+' יעדים · '+st.tabsEmpty+' ריקים');
  ok('שני היעדים תמיד בסרגל — ציר וקטלוג',st.tabsCore===2,st.tabsCore+' מתוך 2');
- ok('הסרגל אינו חוזר לשבעה יעדים',st.tabsShown<=3,st.tabsShown+' יעדים');
+ /* ============ שני מסלולים קיבלו דלת, והסרגל לא חזר להיות מה שהיה ============
+    «חוסרים לטיפול» (today) ו«תיקוני פרמטרים ומעקב אספקה» (month) היו
+    מרונדרים ועובדים בלי שום כניסה — renderTrack() מת, ואיתו רצועת
+    המסלולים. הם חזרו ככניסות משניות (.mini): קטנות, בלי תיאור, ובלי
+    מילוי גם כשהן פעילות.
+    מה שנעול כאן: היעדים *הראשיים* נשארים שלושה, והמשניים לכל היותר
+    שניים — כלומר לא הסרגל בן שבעת היעדים. */
+ ok('היעדים הראשיים נשארים שלושה לכל היותר',st.tabsMain<=3,st.tabsMain+' ראשיים');
+ ok('ולכל היותר שתי כניסות משניות, ואלה בדיוק שני המסלולים שהיו בלי דלת',
+    st.tabsMini.length<=2&&st.tabsMini.every(m=>m==='today'||m==='month'),
+    st.tabsMini.join(' · ')||'—');
  ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
  ok('לכל מצב יש תוכן',/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');

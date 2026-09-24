@@ -648,11 +648,16 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .briefsum{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;
  font:inherit;font-size:12px;color:var(--ink-2);padding:5px 10px;cursor:pointer;text-align:start}
 .briefsum:hover{background:var(--surface)}
-.briefsum .bbk{font-weight:700;color:var(--ink)}
+.briefsum .bbk{font-weight:700;color:var(--ink);white-space:nowrap}
+/* הרצועה המקופלת היא שורה אחת. משפט ארוך נחתך כאן, ונאמר במלואו
+   ב-title ובשורת «בסיס ההשוואה» שנפרשת עם הרצועה. */
+.briefsum #briefSub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .briefsum .bbx{margin-inline-start:auto;transition:transform .15s}
 .briefsum[aria-expanded="true"] .bbx{transform:rotate(180deg)}
 .briefbar .briefbody{border-top:1px solid var(--line)}
 .briefbar .briefbody[hidden]{display:none}
+.briefbar .briefbase{padding:7px 10px 0;font-size:11.5px;color:var(--ink-2);font-weight:700}
+.briefbar .briefbase[hidden]{display:none}
 .briefbar .briefcards{margin:0;padding:8px 10px 10px}
 .briefbar .briefdiag{margin:0;border-radius:0}
 /* האזהרה מסומנת על שורת הכותרת ונפרשת בפנים: רצועה מקופלת היא שורה אחת */
@@ -735,7 +740,12 @@ body.xp #tbl,body.xp .rows{cursor:default}
    והוא משמש גם ל-#movtabs. .navtab מנצח אותם בספציפיות ולא נוגע בהם. */
 .tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2);padding:4px;
   grid-template-columns:none}
+/* ============ הסרגל היה div-ים ולא כפתורים ============
+   כלומר לא היה בו שום יעד שאפשר להגיע אליו ב-Tab, ולחיצת Enter לא
+   הפעילה דבר. אלה פקדים לכל דבר, ולכן הם <button> עם aria-pressed.
+   font:inherit נחוץ כי כפתור אינו יורש גופן מההורה. */
 .tab.navtab{display:flex;align-items:center;gap:7px;min-width:0;flex:0 0 auto;
+  font:inherit;text-align:start;
   background:transparent;border:0;border-radius:var(--r-ctl);padding:7px 11px;
   color:var(--ink-2);font-weight:700;box-shadow:none;transition:.12s;cursor:pointer}
 .tab.navtab::before{display:none}
@@ -749,6 +759,15 @@ body.xp #tbl,body.xp .rows{cursor:default}
 /* תג אדום גם כשהטאב כבוי — ככה «היום» צועק כשיש בו חומרה 3 */
 .tab.navtab.alert .bdg{background:var(--critical-bg);color:var(--critical)}
 .tab.navtab .m{display:none}
+/* .mini הוא קישור ולא מסלול ראשי: קטן יותר, ללא מילוי גם כשהוא פעיל */
+.tab.navtab.mini{padding:5px 9px;gap:5px;opacity:.9}
+.tab.navtab.mini .t{font-size:var(--f-sm);font-weight:700}
+.tab.navtab.mini .nico{font-size:12.5px}
+.tab.navtab.mini .bdg{font-size:10.5px;padding:0 6px}
+.tab.navtab.mini.sel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--c,var(--acc));opacity:1}
+.tab.navtab.mini.sel .t,.tab.navtab.mini.sel .nico{color:var(--ink)}
+.tabs.nostat .tab.navtab .m.stat{display:none}
+.tabs.mininarrow .tab.navtab.mini .t{display:none}
 .tab.navtab.sel{background:var(--accent);color:var(--on-fill);box-shadow:none}
 /* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
    בלי ההצהרה המפורשת הזאת הוא נותן דיו בהיר על מילוי בהיר: 2.48:1. */
@@ -822,8 +841,7 @@ td.miss .posq{color:var(--dim)}
 .dcmore ul{margin:0;padding-inline-start:18px;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
 .dcwhy{margin-top:13px;display:flex;flex-direction:column;gap:5px}
 .dcwhy .msg{margin:0}
-.dcnote .undomark{border:0;background:none;font:inherit;font-weight:700;
- color:var(--high);text-decoration:underline;cursor:pointer;padding:0}
+.dcnote .undoref{font-weight:700;color:var(--ink)}
 .dcwhat{margin-top:5px}
 .dcwhat summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink-2)}
 .dcwhat p{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)}
@@ -1899,7 +1917,7 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="tabs" id="tabs"></div>
       <!-- ============ מה הסרגל הזה אינו ============
            «לטיפול היום» מזמין קריאה של מסנן תאריך. הוא אינו. -->
-      <p class="navhint" id="navhint" hidden><span>אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד. <b>תיקוני פרמטרים</b> ו<b>אספקות צפויות</b> הם מסלולים בתוך «לטיפול היום», ברצועה שמעל הטבלה. <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</span><button type="button" id="navhintX" aria-label="הבנתי — להסתיר את ההסבר">✕</button></p>
+      <p class="navhint" id="navhint" hidden><span>אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד. <b>חוסרים לטיפול</b> ו<b>תיקוני פרמטרים ומעקב אספקה</b> הם שתי הכניסות הקטנות בסוף הסרגל הזה. <b>אספקות צפויות</b> הן ציר התחנות בתוך «לטיפול היום». <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</span><button type="button" id="navhintX" aria-label="הבנתי — להסתיר את ההסבר">✕</button></p>
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
@@ -1925,10 +1943,11 @@ tr.grp.sup b{font-size:var(--f-md)}
              במקומה ואינה מושפעת מכאן. -->
         <div id="brief" class="briefbar" hidden>
           <button type="button" class="briefsum" id="briefToggle" aria-expanded="false" aria-controls="briefBody">
-            <span class="bbk">מאז ההעלאה הקודמת</span><span id="briefSub"></span><span id="briefWarn" class="bbw" hidden></span><span class="bbx" aria-hidden="true">▾</span>
+            <span class="bbk" id="briefKicker">מאז ההעלאה הקודמת</span><span id="briefSub"></span><span id="briefWarn" class="bbw" hidden></span><span class="bbx" aria-hidden="true">▾</span>
           </button>
           <div id="briefBody" class="briefbody" hidden>
             <div id="briefDiag" class="briefdiag" hidden></div>
+            <div id="briefBase" class="briefbase" hidden></div>
             <div id="briefCards" class="briefcards"></div>
           </div>
         </div>
@@ -1954,7 +1973,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         </div>
         <!-- במקום רצועת החוסרים המלאה: שורה אחת שמובילה אליה -->
         <p class="shortlink" id="shortlink" hidden><span id="shortlinkTx"></span>
-          <button type="button" id="shortlinkGo">למסך החוסרים</button></p>
+          <button type="button" id="shortlinkGo">לרשימת החוסרים</button></p>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -3563,9 +3582,9 @@ function majorCat(list){const c={};let top=null,n=0;
 function tGroup(r){return isT1(r)?'t1':'t2'}
 const GC_KEY='planner_groups_v1';
 let GCOLL=new Set();try{GCOLL=new Set(JSON.parse(localStorage.getItem(GC_KEY)||'[]'))}catch(_){}
+function groupsSave(){try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}}
 function toggleGroup(g){GCOLL.has(g)?GCOLL.delete(g):GCOLL.add(g);
- try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}
- closeDetail();render()}
+ groupsSave();closeDetail();render()}
 function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
  for(const r of rows)(by[tGroup(r)]||by.t2).push(r);
  for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
@@ -3935,6 +3954,24 @@ function bandSet(v){BAND_OPEN=v;try{localStorage.setItem(BAND_KEY,v?'1':'0')}cat
    הרצועה עצמה נשארת ב«לטיפול היום» על כל הפילוחים שלה. בקטלוג —
    שהוא מסך חיפוש ובדיקה — נשארת שורה אחת שאומרת כמה חוסרים יש
    ומובילה אליהם. אין כאן מסלול חדש: היעד הוא setMode('line'). */
+/* ============ המונה והיעד חייבים להיות אותה אוכלוסייה ============
+   נמדד: המונה ספר decisionList('short') — inToday(), שאינו דורש קצב
+   צריכה — והכפתור הוביל ל-setMode('line'), שרשימותיו נגזרות כולן
+   מ-lineDry(), שכן דורש rate>0. פריט עם הזמנת לקוח, אפס מלאי וקצב
+   אפס נספר בקישור ולא הופיע ביעד. שתי אוכלוסיות, מספר אחד.
+
+   התיקון אינו נוגע בהגדרת החוסר: המונה נשאר decisionList('short'),
+   והיעד הוחלף למצב שמרנדר בדיוק את אותה רשימה — mode='today', שבו
+   currentRows() מחזיר decisionList(track) עם track='short'. כלומר
+   אותה קריאת פונקציה משני צידי הקישור.
+
+   SHORT_JUMP דואג גם לכך שבחירה קודמת ביעד לא תפתח רשימה אחרת:
+   קבוצות מקופלות (GCOLL) מסתירות שורות מהרינדור, ולכן הן נפתחות. */
+const SHORT_GROUPS=()=>TGROUP.map(([g])=>g);
+function shortOpen(){
+ for(const g of SHORT_GROUPS())GCOLL.delete(g);
+ for(const g of [...GCOLL])if(g.indexOf('sup:')===0)GCOLL.delete(g);
+ groupsSave();setMode('today')}
 function shortLink(){
  const el=document.getElementById('shortlink');if(!el)return;
  const show=mode==='catalog'&&QF&&QF.all&&QF.all.length;
@@ -3942,8 +3979,8 @@ function shortLink(){
  const n=decisionList('short').length;
  const tx=document.getElementById('shortlinkTx');
  if(tx)tx.innerHTML=n
-   ?`<b>${n.toLocaleString('he-IL')}</b> פריטים בחוסר לטיפול — הרשימה המלאה והפילוחים נמצאים ב«לטיפול היום»`
-   :'אין כרגע פריטים בחוסר לטיפול — «לטיפול היום» מחזיק את כל הפילוחים';}
+   ?`<b>${n.toLocaleString('he-IL')}</b> פריטים בחוסר לטיפול — לקוח ממתין ללא מלאי, או כמות שלא תסופק החודש. הרשימה המלאה ב«חוסרים לטיפול»`
+   :'אין כרגע פריטים בחוסר לטיפול — «חוסרים לטיפול» מחזיק את הרשימה כשתהיה';}
 function renderLine(){
  const el=document.getElementById('line');if(!el)return;
  shortLink();
@@ -4393,18 +4430,71 @@ function tiles(){
  t.innerHTML=NAV.map(([k,name,ico,c])=>{
   const {n,hot}=navCount(k);
   if(!n&&k!=='today'&&k!=='month'&&k!=='catalog')return '';
-  return `<div class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
-   data-xp="nav-${k}" title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
-   <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</div>`}).join('')
+  return `<button type="button" class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
+   data-xp="nav-${k}" aria-pressed="${k===mode?'true':'false'}" title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
+   <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</button>`}).join('')
   +(()=>{const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
-    return n||mode==='done'?`<div class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
-     data-xp="nav-done" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></div>`:''})()
-  +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
-     data-xp="nav-moves" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></div>`;
+    return n||mode==='done'?`<button type="button" class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
+     data-xp="nav-done" aria-pressed="${mode==='done'?'true':'false'}" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></button>`:''})()
+  +`<button type="button" class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
+     data-xp="nav-moves" aria-pressed="${cur==='moves'?'true':'false'}" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></button>`
+  /* ============ שני מסלולים שהיו קיימים ובלי דלת ============
+     renderTrack() מת (`if(1)return`) ואיתו ירדה רצועת המסלולים.
+     «חוסרים לטיפול» (mode=today) ו«תיקוני פרמטרים ומעקב אספקה»
+     (mode=month) נשארו מרונדרים ועובדים, אך היו נגישים רק כנפילה-
+     אחורה של jumpTo — כלומר רק למי שכבר ידע שהם שם.
+
+     הם יושבים כאן ולא בשורת הדלתות: שם .phd הוא flex בלי גלישה
+     (`flex-wrap:nowrap;overflow:hidden`), והדלתות אינן מתכווצות.
+     נמדד — שתי דלתות נוספות מעכו את מתג הקיבוץ מ-143px ל-19px,
+     והכפתורים שלו גלשו אל מעל הדלתות: קליק על «לפי ספק» נחת על דלת.
+     שורת הניווט היא flex-wrap:wrap וגם המקום הנכון מבחינת המשתמש.
+
+     אלה אינם מסכים חדשים ואינם הניווט הישן: .mini הוא קישור משני —
+     בלי תיאור, בלי מילוי — ולא טאב ראשי. */
+  +MINI.map(([k,name,ico,c,ttl])=>{
+    const {n,hot}=navCount(k);
+    return `<button type="button" class="tab navtab mini ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}"
+     data-m="${k}" data-xp="nav-${k}" id="${k==='today'?'shortBtn':'fixBtn'}"
+     aria-pressed="${k===mode?'true':'false'}"
+     title="${esc(name)} — ${esc(ttl())}" aria-label="${esc(name)} — ${n} פריטים"
+     ><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span></button>`}).join('');
+ fitTabs();
  navHintSync();
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
+   /* «חוסרים לטיפול» נפתח דרך shortOpen כדי שקבוצה שקופלה בעבר לא
+      תסתיר שורות מהרשימה שהמונה בקטלוג סופר. */
+   if(e.dataset.m==='today'){shortOpen();return}
    setMode(e.dataset.m)})}
+/* ============ שורת הניווט נשארת שורה אחת ============
+   נמדד: מתחת ל-1280px שתי הכניסות המשניות שברו את השורה לשתיים —
+   25px (‎3% מהרשימה) שנלקחו בדיוק מהמקום שהסבב הזה בא לפנות.
+   אותו דפוס כמו fitDoors: השם נשאר כברירת מחדל ויורד רק כשהשורה
+   באמת נשברת. הוא ממשיך להגיע לקורא מסך ולריחוף דרך title ו-aria-label. */
+function tabsLines(){const t=document.getElementById('tabs');if(!t)return 1;
+ const tops=new Set([...t.children].filter(e=>e.offsetParent!==null)
+   .map(e=>Math.round(e.getBoundingClientRect().top)));
+ return tops.size||1}
+/* שני שלבים, לפי מה ששווה יותר: קודם יורד הסכום הכספי שליד «הקטלוג»
+   — הוא חוזר ממילא בתוך הקטלוג עצמו — ורק אם גם זה לא הספיק יורדים
+   שמות הכניסות. שם של מסלול שווה יותר ממספר שכבר כתוב במקום אחר. */
+function fitTabs(){const t=document.getElementById('tabs');if(!t)return;
+ t.classList.remove('nostat');t.classList.remove('mininarrow');
+ if(tabsLines()>1)t.classList.add('nostat');
+ if(tabsLines()>1)t.classList.add('mininarrow')}
+/* שם משלו: __ftt כבר תפוס על ידי שומע ה-resize של fitTop, ושני
+   שומעים על אותו מזהה timeout מבטלים זה את זה — האחרון מנצח. */
+window.addEventListener('resize',()=>{clearTimeout(window.__ftbt);
+ window.__ftbt=setTimeout(fitTabs,120)});
+/* הכותרת של «תיקוני פרמטרים» מפרקת את המספר לשני חלקיו, כי mode=month
+   מחזיק את שניהם ברשימה אחת. */
+const MINI=[
+ ['today','חוסרים לטיפול','⚠','var(--critical)',
+  ()=>'לקוח ממתין ללא מלאי, או כמות שלא תסופק החודש — אותה רשימה שהמונה בקטלוג סופר'],
+ ['month','תיקוני פרמטרים ואספקה','⚙','var(--steady)',
+  ()=>{const r=QF?decisionList('month'):[],f=r.filter(x=>x.paramFix).length;
+   return `${f.toLocaleString('he-IL')} לתיקון פרמטרים ב-SAP · ${(r.length-f).toLocaleString('he-IL')} במעקב אספקה`}]];
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
  ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
@@ -5496,9 +5586,15 @@ function decisionBlock(r){
        הסייג חייב לשבת ליד הכפתור: מי שלוחץ «טופל» בפעם הראשונה מניח
        שזה מעדכן משהו. אבל פסקה שלמה ליד כפתור היא עומס — לכן שורה
        אחת, והפירוט ב-<details>, שנגיש במקלדת מעצם היותו אלמנט
-       סטנדרטי. מספר הימים נגזר מ-markTTL ואינו מקובע כאן שוב. */ -->
+       סטנדרטי. מספר הימים נגזר מ-markTTL ואינו מקובע כאן שוב.
+
+       ============ כפתור ביטול אחד, לא שניים ============
+       כאן ישב «לבטל» שני עם data-dmark. אבל החיווט הוא
+       querySelector('#detail [data-dmark]') — יחיד, שלוקח את הראשון
+       במסמך, כלומר את «בטל סימון טופל». הכפתור הזה מעולם לא היה
+       מחובר: הוא נראה כמו פעולה ולא עשה דבר. פעולה אחת ברורה. -->
   <div class="dcnote">${done
-    ?`<b>סומן כטופל</b> · מקומי, אינו מעדכן SAP · <button type="button" class="undomark" data-dmark="">לבטל</button>`
+    ?`<b>סומן כטופל</b> · מקומי, אינו מעדכן SAP · לביטול — <span class="undoref">בטל סימון טופל</span> שמעל`
     :`סימון מקומי ל-${DAYS(markTTL('handled'))} ימים; אינו מעדכן SAP. ניתן לבטל.`}
    <details class="dcwhat"><summary>מה בדיוק קורה</summary>
     <p>«סמן כטופל» אומר לכלי שטיפלת — <b>הכלי לא בדק דבר</b>, הוא מקבל את מה שאמרת. זה <b>אינו</b> «השינוי זוהה בדוח SAP הבא»: אימות אמיתי מגיע רק כשהדוח הבא מראה שהפרמטר אכן זז.</p>
@@ -6173,7 +6269,7 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
  rd.readAsArrayBuffer(file)};
 etaChip();
 {const g=document.getElementById('shortlinkGo');
- if(g)g.onclick=()=>setMode('line')}
+ if(g)g.onclick=()=>shortOpen()}
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
  /* ============ יציאה מפורשת מההדגמה ============
     כפתור ההעלאה נשאר פעיל בהדגמה, וזה נכון — אבל בלי השורה הזאת
@@ -6792,9 +6888,39 @@ function diagSig(){return (DIAG&&DIAG.warn)?DIAG.warn.join('|'):''}
    להשוואה, ולכן היא אומרת זאת במפורש ואינה מציגה אף פריט כ«שינוי»
    מול בסיס שאינו קיים. */
 function briefHasBase(h){return !!(h&&HIST.runs&&HIST.runs.length>1)}
+/* ============ הכותרת והכרטיסים חייבים לתאר אותו בסיס ============
+   בטעינה חוזרת recordRun *אינו* דוחף הרצה חדשה ואינו מקדם seen/prevMiss
+   — כלומר ההשוואה האחרונה בין שני דוחות שונים נשמרת, וזה נכון. אבל
+   הכותרת אמרה «אין שינוי להשוות אליו» בזמן שהכרטיסים הציגו בדיוק את
+   ההשוואה ההיא. סתירה בין הכותרת לתוכן שמתחתיה.
+   מה שמתוקן כאן הוא הניסוח בלבד: מנגנון הזיהוי וזיכרון ההשוואות לא נגעו. */
+function runWhen(r){
+ if(!r)return '';
+ /* חודש העוגן של הדוח עצמו נשמר בתוך ה-sig, ולכן הוא זמין בלי נתון
+    חדש. השעה נכללת כי שני דוחות שונים נטענים לרוב באותו יום, ואז
+    תאריך בלבד מציג שני מועדים זהים ואינו מבדיל ביניהם. */
+ const ym=String(r.sig||'').split('|')[0];
+ const m=/^(\d{4})-(\d{1,2})$/.exec(ym||'');
+ const rep=m?`דוח ${+m[2]}/${m[1]}`:'';
+ let ld='';
+ if(r.ts){const d=new Date(r.ts);
+  ld=`${d.getDate()}.${d.getMonth()+1}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+ return rep&&ld?`${rep} (נטען ${ld})`:(rep||ld)}
+/* שני הדוחות שהמספרים למטה מתארים */
+function briefPair(h){
+ if(!briefHasBase(h))return null;
+ const rs=HIST.runs||[],a=runWhen(rs[rs.length-2]),b=runWhen(rs[rs.length-1]);
+ return (a&&b)?[a,b]:null}
+function briefBaseTxt(h){
+ if(!briefHasBase(h))return 'אין עדיין בסיס להשוואה';
+ const pr=briefPair(h);
+ return pr?`בסיס ההשוואה: ${pr[0]} מול ${pr[1]}`
+          :'בסיס ההשוואה: הדוח הקודם מול הנוכחי'}
 function briefReason(h){
  if(!briefHasBase(h))return 'הדוח הראשון שנטען כאן — אין עדיין דוח קודם להשוואה';
- if(h&&h.repeat)return 'אותו דוח נטען שוב — אין שינוי להשוות אליו';
+ if(h&&h.repeat){const pr=briefPair(h);
+  return 'הדוח זוהה כטעינה חוזרת. מוצגת ההשוואה האחרונה בין שני דוחות שונים'
+   +(pr?` — ${pr[0]} מול ${pr[1]}`:'')+'.'}
  const worse=(QF&&QF.all?QF.all:[]).filter(r=>r.hWorse).length;
  const bits=[];
  if(h.newN>0)bits.push(`${h.newN} חדשים בתור`);
@@ -6833,13 +6959,21 @@ function showBrief(h){
  HIST.lastDiag=diagSig();saveHist();
  if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
   box.hidden=true;document.body.classList.remove('briefing');return}
- document.getElementById('briefSub').textContent=briefReason(h);
+ const sub=document.getElementById('briefSub');
+ sub.textContent=briefReason(h);sub.title=briefReason(h);
+ /* הקידומת חייבת להתאים למשפט שאחריה: «מאז ההעלאה הקודמת הדוח זוהה
+    כטעינה חוזרת» אינו משפט. */
+ const kk=document.getElementById('briefKicker');
+ if(kk)kk.textContent=!briefHasBase(h)?'הדוח הזה'
+   :(h&&h.repeat)?'ההשוואה האחרונה':'מאז ההעלאה הקודמת';
  const d=document.getElementById('briefDiag'),w=document.getElementById('briefWarn');
  const warn=(DIAG&&DIAG.warn)?DIAG.warn:[];
  d.hidden=!warn.length; if(warn.length)d.textContent=warn.join(' · ');
  /* סימון קצר על השורה המקופלת — הטקסט המלא נפרש עם הרצועה */
  w.hidden=!warn.length;
  if(warn.length)w.textContent='⚠ '+(warn.length>1?warn.length+' אזהרות על הדוח':warn[0]);
+ const bb=document.getElementById('briefBase');
+ if(bb){bb.textContent=briefBaseTxt(h);bb.hidden=!briefHasBase(h)}
  document.getElementById('briefCards').innerHTML=briefCards(h).map(x=>
   `<div class="bcard" style="--c:${x.c}"><div class="bl">${esc(x.l)}</div>
    <div class="bv">${x.v}</div><div class="bs">${x.s}</div></div>`).join('');

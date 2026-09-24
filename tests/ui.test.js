@@ -692,14 +692,21 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     el.hidden=true, אבל `.line{display:flex}` בספציפיות (0,1,0) ניצח
     את כלל ה-[hidden] של הדפדפן — כלומר ההסתרה מעולם לא עבדה. */
  ok('רצועת החוסרים אינה מוצגת בקטלוג',ch.line===0,ch.line+'px (היה 86)');
- ok('ובמקומה קישור קומפקטי למסך החוסרים',
-    /חוסר|לטיפול היום/.test(ch.link)&&/למסך החוסרים/.test(ch.link),ch.link.slice(0,90));
+ ok('ובמקומה קישור קומפקטי לרשימת החוסרים',
+    /חוסר/.test(ch.link)&&/לרשימת החוסרים/.test(ch.link),ch.link.slice(0,90));
+ /* ============ היעד הוא מה שהמונה סופר ============
+    הקישור הוביל קודם ל-setMode('line'), והמונה שלו סופר
+    decisionList('short'). שתי אוכלוסיות שונות: נמדד מונה 300 מול יעד
+    של 27 כש-LINE_SEL היה 'nopo'. היעד הוא היום mode='today', שבו
+    currentRows() מחזיר בדיוק את decisionList('short').
+    ההשוואה המלאה בין שתי האוכלוסיות נמצאת ב-tests/routes.test.js. */
  await p.click('#shortlinkGo');await p.waitForTimeout(700);
- ok('הקישור מוביל למסך החוסרים',
-    'line'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
- ok('ושם הרצועה המלאה חוזרת',
-    await p.evaluate(()=>{const e=document.getElementById('line');
-      return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().height>40}));
+ ok('הקישור מוביל לרשימה שהמונה סופר',
+    'today'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
+ ok('ואותם מק״טים בדיוק',
+    await p.evaluate(()=>{const a=decisionList('short').map(r=>r.pn).sort(),
+      c=currentRows().map(r=>r.pn).sort();
+      return a.length===c.length&&a.every((x,i)=>x===c[i])}));
  /* גרפי הפריט — לא נגעו */
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(500);
  ok('גרפי הצריכה ברמת הפריט נשארו',

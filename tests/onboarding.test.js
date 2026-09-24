@@ -78,10 +78,14 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
 
   /* ---------- ג · הסברי הניווט ---------- */
   const nav=await p.evaluate(()=>{
-   const tabs=[...document.querySelectorAll('#tabs .tab.navtab')];
+   const tabs=[...document.querySelectorAll('#tabs .tab.navtab:not(.mini)')];
    return {what:tabs.map(t=>({m:t.dataset.m,
       w:((t.querySelector('.m.what')||{}).textContent||'').trim(),
       sel:t.classList.contains('sel')})),
+    /* הכניסות המשניות הן קישורים ולא מסלולים ראשיים: אין להן בלוק
+       תיאור, ולכן השם וההסבר שלהן נבדקים ב-title וב-aria-label. */
+    mini:[...document.querySelectorAll('#tabs .tab.navtab.mini')]
+      .map(t=>({m:t.dataset.m,t:(t.title||''),a:(t.getAttribute('aria-label')||'')})),
     hint:(document.getElementById('navhint').innerText||'').replace(/\s+/g,' '),
     hintSeen:document.getElementById('navhint').offsetParent!==null,
     rdLabel:((document.querySelector('.rdwrap .tl')||{}).textContent||'').trim(),
@@ -89,6 +93,9 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   ok(`${W} · לכל מסלול יש הסבר — גם למסלול שאינו הפעיל`,
     nav.what.length>=2&&nav.what.every(x=>x.w.length>5),
     nav.what.map(x=>`${x.m}${x.sel?'*':''}: ${x.w}`).join(' · '));
+  ok(`${W} · לכניסות המשניות יש שם והסבר בריחוף ובקורא מסך`,
+    nav.mini.length===2&&nav.mini.every(x=>x.t.length>15&&x.a.length>5),
+    nav.mini.map(x=>`${x.m}: "${x.t.slice(0,50)}"`).join(' · '));
   ok(`${W} · נאמר במפורש שאלה מסלולי עבודה ולא מסנני תאריך`,
     nav.hintSeen&&/מסלולי עבודה/.test(nav.hint)&&/לא מסנני תאריך/.test(nav.hint));
   ok(`${W} · ונאמר איפה מוצאים פרמטרים, אספקות, טופלו ותנועות`,
@@ -135,17 +142,44 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   ok('הפירוט נגיש במקלדת — הוא <details> תקני',
     await p.evaluate(()=>{const d=document.querySelector('#detail .dcwhat');
       return !!d&&d.tagName==='DETAILS'&&!!d.querySelector('summary')}));
-  /* אחרי סימון — ביטול ברור */
-  await p.evaluate(()=>{const r=ALL.find(x=>x.pn===CURRENT_DETAIL.pn);setMark(r,'handled','');
-    classify([r]);detail(ALL.find(x=>x.pn===r.pn))});
-  await p.waitForTimeout(400);
+  /* ============ סימון וביטול — דרך הממשק, לא דרך setMark ============
+     בכרטיס מסומן היו *שני* כפתורי ביטול עם data-dmark, והחיווט הוא
+     querySelector יחיד — כלומר השני מעולם לא היה מחובר. הבדיקה הקודמת
+     בדקה שהוא *קיים*, ולכן עברה על כפתור מת. כאן נבדקת הפעולה עצמה:
+     סימון דרך הכפתור, מעבר ל«טופלו», ביטול, וחזרה לתור. */
+  const pn0=await p.evaluate(()=>CURRENT_DETAIL.pn);
+  const cat0=await p.evaluate(()=>ALL.find(x=>x.pn===CURRENT_DETAIL.pn).cat);
+  await p.click('#detail [data-dmark]');await p.waitForTimeout(500);
+  ok('לחיצה על «סמן כטופל» בממשק מסמנת',
+    await p.evaluate(pn=>{const r=ALL.find(x=>x.pn===pn);return !!(r.mark&&r.mark.t==='handled')},pn0));
   const m1=await p.evaluate(()=>(document.getElementById('detail').innerText||'').replace(/\s+/g,' '));
   ok('אחרי הסימון נאמר שסומן, ושאינו מעדכן SAP',
     /סומן כטופל/.test(m1)&&/אינו מעדכן SAP/.test(m1),
     (m1.match(/סומן כטופל[^·]*·[^·]*·/)||[''])[0]);
-  ok('ויש ביטול ברור',
-    await p.evaluate(()=>{const d=document.getElementById('detail');
-      return !!d.querySelector('.undomark')&&/בטל סימון טופל/.test(d.innerText||'')}));
+  ok('יש בדיוק כפתור ביטול אחד בכרטיס — לא שניים',
+    await p.evaluate(()=>document.querySelectorAll('#detail [data-dmark]').length)===1,
+    'data-dmark = '+await p.evaluate(()=>document.querySelectorAll('#detail [data-dmark]').length));
+  ok('והוא הכפתור הראשי «בטל סימון טופל»',
+    await p.evaluate(()=>{const b=document.querySelector('#detail [data-dmark]');
+      return !!b&&/בטל סימון טופל/.test(b.textContent||'')}));
+  /* --- פותחים אותו מתוך «טופלו», דרך לחיצה על רכיב גלוי --- */
+  await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
+  const doneTab=await p.evaluate(()=>{const e=document.querySelector('#tabs .tab[data-m="done"]');
+    return !!e&&e.offsetParent!==null});
+  ok('«טופלו» מופיע בניווט אחרי שיש פריט מסומן',doneTab);
+  await p.click('#tabs .tab[data-m="done"]');await p.waitForTimeout(500);
+  const inDone=await p.evaluate(pn=>[...document.querySelectorAll('#tbl tbody tr[data-i]')]
+    .some(tr=>(tr.textContent||'').includes(pn)),pn0);
+  ok('והפריט המסומן נמצא שם',inDone,pn0);
+  await p.click(`#tbl tbody tr[data-i]:has-text("${pn0}")`);await p.waitForTimeout(450);
+  /* --- הביטול, במקלדת --- */
+  await p.evaluate(()=>document.querySelector('#detail [data-dmark]').focus());
+  await p.keyboard.press('Enter');await p.waitForTimeout(500);
+  const after=await p.evaluate(pn=>{const r=ALL.find(x=>x.pn===pn);
+    return {marked:!!r.mark,cat:r.cat}},pn0);
+  ok('הפעלת הביטול במקלדת מוחקת את הסימון',!after.marked,
+    `mark=${after.marked}`);
+  ok('והפריט חוזר לסיווג שלו',after.cat===cat0,`${cat0} → ${after.cat}`);
   await ctx.close()}
 
  /* ---------- ה · ההיכרות ---------- */
