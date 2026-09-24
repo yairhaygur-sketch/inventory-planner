@@ -40,6 +40,13 @@ const rows=[
     ריקה. רמת שירות 0 וזמן אספקה 0 הם שני המסלולים הישירים ל-paramFix. */
  mk('PARAM-SRV',{months:[30,30,30,30,30,30,30,30,30,30,30],free:900,rop:1,ss:0,price:60,lt:120,srv:0}),
  mk('PARAM-LT',{months:[25,25,25,25,25,25,25,25,25,25,25],free:800,rop:1,ss:0,price:55,lt:0}),
+ /* ============ הדלי הבוער ============
+    BURN-PARTIAL הוא המקרה שהפיל את הדלת הקיימת: לקוח ממתין ל-19 יח׳,
+    על המדף יש 1, ואין שום הזמנת רכש. custWaiting דורש free<=0 ולכן
+    אינו רואה אותו — 15 מתוך 16 בדוח האמיתי נראים בדיוק כך. */
+ mk('BURN-PARTIAL',{months:[3,3,3,3,3,3,3,3,3,3,3],free:1,cust:19,po:0,price:300,lt:60}),
+ /* אותו מצב בדיוק, אבל יש רכש פתוח — זה כבר לא «ללא רכש» */
+ mk('COVERED-BY-PO',{months:[3,3,3,3,3,3,3,3,3,3,3],free:1,cust:10,po:4,price:300,lt:60}),
  /* רקע שקט */
  mk('QUIET',{months:[1,1,1,1,1,1,1,1,1,1,1],free:500,price:20})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
@@ -103,6 +110,74 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
    const miss=link.pns.filter(x=>!tg.pns.includes(x));
    ok(`אף מק״ט שנספר אינו נופל בדרך «${sel}»`,miss.length===0,miss.slice(0,4).join(' · '));
   }
+  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
+  await ctx.close()}
+
+ /* ================= 5 · «לקוח ממתין ללא רכש» — מסלול משלו =================
+    נמדד על דוח ההדגמה לפני: 16 פריטים, ואף מצב שבו currentRows() הוא
+    הדלי הזה — כלומר doExport() לא יכול היה לייצא אותם, והדרך היחידה
+    הייתה הקטלוג (900) פלוס סינון ידני. הדלת «לקוחות ממתינים» היא
+    cust>0 && free<=0 ופספסה 15 מתוך 16. */
+ {const ctx=await mkctx();const p=await ctx.newPage();
+  const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p,SD+'/routes.xlsx');
+
+  const f=await p.evaluate(()=>{const g=pn=>ALL.find(x=>x.pn===pn);
+    const B=g('BURN-PARTIAL'),C=g('COVERED-BY-PO');
+    return {bCat:B.cat,bBurn:!!B.burn,bFree:B.free,bCust:B.cust,bMiss:B.miss,
+      cCat:C.cat,cBurn:!!C.burn,cPo:C.po,
+      inWaiting:QF.waiting.some(r=>r.pn==='BURN-PARTIAL'),
+      inCustDoor:(QF.all||[]).filter(r=>r.cust>0&&r.free<=0).some(r=>r.pn==='BURN-PARTIAL')}});
+  ok('לקוח ממתין עם שארית מלאי ובלי רכש מסווג כבוער',
+    f.bCat==='לקוח ממתין – אין רכש'&&f.bBurn&&f.inWaiting,
+    `cat="${f.bCat}" burn=${f.bBurn} לקוח=${f.bCust} מדף=${f.bFree} חסר=${f.bMiss}`);
+  ok('והדלת «לקוחות ממתינים» אינה רואה אותו — היא דורשת מדף אפס',
+    !f.inCustDoor,`free=${f.bFree}`);
+  ok('פריט עם רכש פתוח אינו נחשב «ללא רכש»',
+    !f.cBurn&&f.cCat!=='לקוח ממתין – אין רכש',`cat="${f.cCat}" רכש=${f.cPo}`);
+
+  /* --- הכניסה: ראשונה, גלויה, כפתור --- */
+  const nav=await p.evaluate(()=>{const t=document.getElementById('tabs');
+    const e=t.querySelector('.tab[data-m="burn"]');
+    return {first:t.children[0]&&t.children[0].dataset.m,
+      vis:!!e&&e.offsetParent!==null,tag:e?e.tagName:'',
+      name:e?((e.querySelector('.t')||{}).textContent||''):'' ,
+      bdg:e?((e.querySelector('.bdg')||{}).textContent||''):''}});
+  ok('«לקוח ממתין ללא רכש» הוא הכניסה הראשונה בסרגל',nav.first==='burn',nav.first);
+  ok('והיא גלויה, כפתור, עם שם ומונה',
+    nav.vis&&nav.tag==='BUTTON'&&/לקוח ממתין ללא רכש/.test(nav.name)&&nav.bdg.length>0,
+    `${nav.tag} "${nav.name}" מונה=${nav.bdg}`);
+
+  /* --- לחיצה אחת מגיעה בדיוק לדלי, והייצוא הוא בדיוק הוא --- */
+  await p.click('#tabs .tab[data-m="burn"]');await p.waitForTimeout(700);
+  const r=await p.evaluate(()=>{
+    const W=QF.waiting.map(x=>x.pn).sort(),c=currentRows().map(x=>x.pn).sort();
+    return {mode,n:c.length,
+      exact:W.length===c.length&&W.every((x,i)=>x===c[i]),
+      dom:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+      exp:exportRows(currentRows()).length-1}});
+  ok('לחיצה אחת מהניווט פותחת בדיוק את הדלי הבוער',
+    r.mode==='burn'&&r.exact,`mode=${r.mode} n=${r.n}`);
+  ok('ומה שמוצג בטבלה הוא אותו דבר',r.dom===r.n,`${r.dom} מתוך ${r.n}`);
+  ok('והייצוא משם הוא בדיוק הפריטים האלה — בלי לעבור בקטלוג',
+    r.exp===r.n,`${r.exp} שורות בייצוא מול ${r.n} פריטים`);
+
+  /* --- מקלדת --- */
+  await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
+  await p.evaluate(()=>document.querySelector('#tabs .tab[data-m="burn"]').focus());
+  await p.keyboard.press('Enter');await p.waitForTimeout(600);
+  ok('ואפשר להגיע לשם גם במקלדת',await p.evaluate(()=>mode==='burn'));
+
+  /* --- תעדוף: הבוער ראשון גם ברשימות שהוא חלק מהן --- */
+  const pri=await p.evaluate(()=>{
+    const pos=list=>{const i=list.findIndex(r=>r.burn);return i<0?null:i+1};
+    LINE_M=null;const m=lineModel();
+    return {short:pos(decisionList('short')),stuck:pos(m.stuck),dry:pos(m.dry)}});
+  ok('ובכל רשימה שהוא חלק ממנה הוא בשורה הראשונה',
+    [pri.short,pri.stuck,pri.dry].every(v=>v===null||v===1),
+    `short=${pri.short} stuck=${pri.stuck} dry=${pri.dry}`);
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
   await ctx.close()}
 

@@ -767,6 +767,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .tab.navtab.mini.sel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--c,var(--acc));opacity:1}
 .tab.navtab.mini.sel .t,.tab.navtab.mini.sel .nico{color:var(--ink)}
 .tabs.nostat .tab.navtab .m.stat{display:none}
+.tabs.nowhat .tab.navtab .m.what{display:none}
 .tabs.mininarrow .tab.navtab.mini .t{display:none}
 .tab.navtab.sel{background:var(--accent);color:var(--on-fill);box-shadow:none}
 /* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
@@ -2878,7 +2879,7 @@ function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
- for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
+ for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
@@ -2931,6 +2932,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין – אין רכש':'פער כיסוי להזמנת לקוח';
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
       it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null,it.priceMissing?['warn','מחיר FOB חסר — לא ניתן לכמת את ההון הנדרש לכיסוי']:null].filter(Boolean);
+    /* ============ הדלי הבוער מקבל שם על הפריט ============
+       Q.waiting הוכרע כאן ממילא. הדגל אינו סיווג חדש ואינו משנה אף
+       הכרעה — הוא רק מאפשר למיון ולמסלול להצביע על אותו דלי בלי
+       להשוות מחרוזות cat. */
+    it.burn=noPO;
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
   /* מלאי שאינו מכסה את החודש הקרוב קודם לכל סיווג מעקב אספקה.
      רכש פתוח בלי ETA אינו כיסוי, ולכן ההחלטה היא הכמות החסרה ולא שיחת
@@ -3489,7 +3495,10 @@ const MODES=[
    כל מה שהיה מסלול נגיש משם — רצפת SS, מגמה, לקוח ממתין, יישום,
    מסומנים — דרך הסינון בקטלוג. «הון כלוא» ירד מהמסך לפי החלטת
    המתכנן: הוא לא הדבר שמחליטים עליו בבוקר. */
+/* «לקוח ממתין ללא רכש» ראשון, ולא כי הוא גדול — כי הוא היחיד שבו
+   ההבטחה ללקוח כבר ניתנה ואין מולה כלום. הוא מופיע רק כשיש בו משהו. */
 const NAV=[
+ ['burn','לקוח ממתין ללא רכש','🔥','var(--critical)'],
  ['line','לטיפול היום','⏱','var(--critical)'],
  ['catalog','הקטלוג','☰','var(--calm)']];
 /* ============ מה כל מסלול הוא ============
@@ -3498,6 +3507,7 @@ const NAV=[
    אלה *מסלולי עבודה*, לא מסנני תאריך — והמשפט הזה נאמר במפורש
    מתחת לסרגל, כי «היום / החודש» מזמינים בדיוק את הקריאה השגויה. */
 const NAV_WHAT={
+ burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
  line:'חוסרים ולקוחות שממתינים לטיפול',
  catalog:'חיפוש ובדיקה של כל הפריטים',
  done:'פריטים שסימנת כטופלו',
@@ -3509,6 +3519,7 @@ function navCount(k){
  const hot=rows=>rows.filter(r=>r.sev===3).length;
  if(k==='floor'){const r=floorRows();return {n:r.length,hot:hot(r)}}
  if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
+ if(k==='burn'){const r=burnRows();return {n:r.length,hot:r.length}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
  if(k==='applied'){return {n:APPLIED?APPLIED.total:0,hot:0}}
  /* הציר סופר את מי שאין לו שום מענה — לא את כל האוזלים. זה המספר
@@ -3525,6 +3536,8 @@ const MODESET={line:{cur:'today',track:'line'},today:{cur:'today',track:'short'}
  trend:{cur:'all',track:'trend'},
  /* לקוח ממתין — חוצה סיווג, ולכן כל הפריטים ולא תור עבודה */
  cust:{cur:'all',track:'cust'},
+ /* הדלי הבוער: הזמנת לקוח שהמלאי אינו מכסה, ואין מולה שום רכש */
+ burn:{cur:'all',track:'burn'},
  rise:{cur:'all',track:'rise'},
  /* מה יושם מאז ההעלאה הקודמת */
  applied:{cur:'all',track:'applied'}};
@@ -3648,7 +3661,12 @@ function lineNeed(r){return r.unsGross!=null?r.unsGross
   :Math.max(0,(r.rate||0)-Math.max(0,r.free||0))}
 function lineVal(r){return lineNeed(r)*(r.price||0)}
 /* דירוג כספי על הברוטו, ובתוך המטבע בלבד — מדיניות BZ, כמו בכל מקום */
-function lineCmp(a,b){return (curPos(a)-curPos(b))||(lineVal(b)-lineVal(a))}
+/* ============ הבוער ראשון, בתוך בלוק המטבע ============
+   הציר מיין לפי שווי בלבד, ולכן פריט עם לקוח שממתין ואין מולו רכש נחת
+   בשורה 21. הוא עולה לראש הבלוק שלו. בלוק המטבע נשאר ראשון בהשוואה —
+   מדיניות BZ אוסרת לערבב מטבעות, וזה נכון גם כשממהרים. */
+function lineCmp(a,b){return (curPos(a)-curPos(b))
+  ||((b.burn?1:0)-(a.burn?1:0))||(lineVal(b)-lineVal(a))}
 /* הפרמטר יחזיר את השריפה: נקודת ההזמנה ב-SAP נמוכה מהמוצע */
 function lineRecurs(r){return (r.rop||0)<(r.sugROP||0)}
 
@@ -4029,8 +4047,11 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='line'?lineRows()
+  /* «לקוח ממתין ללא רכש» לפני «אין מלאי»: isT1 דורש מדף אפס *בדיוק*,
+     ו-15 מתוך 16 הבוערים מחזיקים 1–3 יח׳ מול 6–37 שהוזמנו. */
   :tr==='short'?base.filter(inToday)
-     .sort((a,b)=>(isT1(b)?1:0)-(isT1(a)?1:0)||cmpMoneyDesc(a,b,'unsVal'))
+     .sort((a,b)=>(b.burn?1:0)-(a.burn?1:0)
+        ||(isT1(b)?1:0)-(isT1(a)?1:0)||cmpMoneyDesc(a,b,'unsVal'))
   :base.filter(r=>r[TRACKKEY[tr]]>0).sort((a,b)=>cmpMoneyDesc(a,b,TRACKKEY[tr]));
  return DL_CACHE[tr]=out}
 /* קו ה-80% חושב על סכום של דולרים ושקלים יחד — חיבור שאסור לפי
@@ -4421,6 +4442,8 @@ function tiles(){
    const c=l.reduce((x,r)=>x+(isT1(r)?(r.cust||0):0),0);
    const u=l.reduce((x,r)=>x+Math.ceil(r.unsQty||0),0);
    return u||c?`${c?c.toLocaleString('he-IL')+' לקוח · ':''}${u.toLocaleString('he-IL')} לא יסופקו`:''}
+  if(k==='burn'){const r=burnRows();if(!r.length)return '';
+   return `${burnTotals(r).units.toLocaleString('he-IL')} יח׳ ללא כיסוי · ${moneyMix(r,burnVal,true)}`}
   if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
    return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
   if(k==='catalog'){const cap=decisionList('cap');
@@ -4480,9 +4503,10 @@ function tabsLines(){const t=document.getElementById('tabs');if(!t)return 1;
    — הוא חוזר ממילא בתוך הקטלוג עצמו — ורק אם גם זה לא הספיק יורדים
    שמות הכניסות. שם של מסלול שווה יותר ממספר שכבר כתוב במקום אחר. */
 function fitTabs(){const t=document.getElementById('tabs');if(!t)return;
- t.classList.remove('nostat');t.classList.remove('mininarrow');
- if(tabsLines()>1)t.classList.add('nostat');
- if(tabsLines()>1)t.classList.add('mininarrow')}
+ t.classList.remove('nostat');t.classList.remove('nowhat');t.classList.remove('mininarrow');
+ if(tabsLines()>1)t.classList.add('nostat');   /* הסכום שליד «הקטלוג» */
+ if(tabsLines()>1)t.classList.add('nowhat');   /* תיאור המסלול — נשאר ב-title */
+ if(tabsLines()>1)t.classList.add('mininarrow')} /* שמות הכניסות המשניות */
 /* שם משלו: __ftt כבר תפוס על ידי שומע ה-resize של fitTop, ושני
    שומעים על אותו מזהה timeout מבטלים זה את זה — האחרון מנצח. */
 window.addEventListener('resize',()=>{clearTimeout(window.__ftbt);
@@ -4699,6 +4723,9 @@ function passColFilters(r){
    if(f.max!=null&&(!(typeof val==='number')||val>f.max))return false}
  return true}
 function currentRows(){if(cur==='today')return decisionList(track);
+ /* הדלי הבוער — ממוין לפי שווי הפער, בתוך בלוק המטבע (מדיניות BZ) */
+ if(track==='burn'){const by=burnRows().sort((a,b)=>(curPos(a)-curPos(b))||(burnVal(b)-burnVal(a)));
+   return sortCol==='sev'?by:sortRowsBy(by)}
  /* sortRowsBy ממיין לפי sortCol, וברירת המחדל שלו ('sev') דרסה את
     המיון לפי שווי — כך שהכיתוב "ממוין לפי שווי הפער" לא היה נכון.
     כל עוד המשתמש לא בחר עמודה, המיון לפי השווי הוא שקובע. */
@@ -4887,6 +4914,26 @@ function trendTotals(rows){const cur={};let units=0;
    פתוח, ו-78 שהרכש מכסה אותם כמותית במלואם. אפס פריטים באמצע. עבור
    78 מהם הפעולה אינה רכש אלא דרישת ETA, ומכיוון שהם מגיעים מארבעה
    ספקים בלבד — זו לא רשימה של 78 שורות אלא ארבע שיחות. */
+/* ============ «לקוח ממתין ללא רכש» — מסלול משלו ============
+   נמדד על דוח ההדגמה: 16 פריטים, 344 יח׳ שהובטחו ללקוח ואין מולם שום
+   הזמנת רכש. זה הדלי החמור ביותר בכלי, ולא הייתה אליו שום דרך:
+
+     · ה-KPI «בוער עכשיו» הראה 16 — אבל שורת המדדים מוסתרת כברירת
+       מחדל, והכרטיס אינו לחיץ.
+     · הדלת «לקוחות ממתינים» היא cust>0 && free<=0 — מלאי אפס *בדיוק*.
+       ‏15 מתוך 16 מחזיקים 1–3 יח׳ על המדף מול 6–37 שהוזמנו, ולכן אינם
+       שם. מתוך 50 הפריטים שבדלת, 49 אינם הדלי הזה.
+     · במסך הנחיתה הם מפוזרים: 12 מתוך 16, והראשון בשורה 21.
+     · doExport() מייצא את currentRows(), ולא היה שום מצב שבו
+       currentRows() הוא הדלי הזה — ולכן הדרך היחידה לשלוף אותם הייתה
+       הקטלוג (900 פריטים) פלוס סינון ידני.
+
+   burnRows() הוא בדיוק Q.waiting. שום סיווג לא השתנה. */
+function burnRows(){return (QF&&QF.waiting?QF.waiting:[]).filter(passColFilters)}
+function burnVal(r){return (r.miss||0)*(r.price||0)}
+function burnTotals(rows){const cur={};let units=0;
+ for(const r of rows){units+=(r.miss||0);const c=r.currency||'';cur[c]=(cur[c]||0)+burnVal(r)}
+ return {n:rows.length,units,cur}}
 function custWaiting(r){return r.cust>0&&r.free<=0}
 function custRows(){return (QF&&QF.all?QF.all:[]).filter(r=>custWaiting(r)&&passColFilters(r))}
 function custVal(r){return r.cust*(r.price||0)}
@@ -6621,6 +6668,9 @@ addEventListener('resize',()=>{clearTimeout(window.__ftt);window.__ftt=setTimeou
    לא תיאור של מה הכפתור «עושה» — תיאור של מה המספר סופר במציאות,
    ואיזו שאלה כדאי לשאול עליו. */
 const XP={
+ 'nav-burn':{t:'לקוח ממתין ללא רכש',
+  see:'הזמנת לקוח פתוחה שהמלאי על המדף אינו מכסה, ואין מולה שום הזמנת רכש. לא «יאזל» ולא «צפוי חוסר» — ההבטחה כבר ניתנה, והכמות החסרה אינה בדרך. המספר הוא פריטים; מתחתיו היחידות שאין להן כיסוי ושוויין ב-FOB, לכל מטבע בנפרד.',
+  chk:'זו הרשימה היחידה שבה כל שורה היא לקוח אמיתי שממתין. עבור עליה מלמעלה — היא ממוינת לפי שווי הפער בתוך כל מטבע — ופתח רכש. הרשימה הזאת היא גם מה שיוצא בייצוא לאקסל כשאתה עומד כאן, בלי לעבור דרך הקטלוג ובלי לסנן. שים לב: פריט יכול להיות כאן גם כשיש לו יחידה או שתיים על המדף — מה שקובע הוא הפער מול מה שהלקוח הזמין.'},
  /* ---- הציר, והמסלולים שנשארו נגישים מתוך הקטלוג ---- */
  'nav-line':{t:'ציר הזמן',
   see:'המסך הראשי. משמאל לימין: מה שלא יחזיק את החודש היום, ואחר כך כל תאריך אספקה שידוע לנו עליו מדוח ה-ETA. מתחת לכל תאריך — כמה מהחוסרים הוא מכבה, כמה כסף יוצא מסיכון, וכמה נשארים אחריו. הכרטיס השמאלי הוא מה שאין לו שום מענה עד המשלוח האחרון.',
