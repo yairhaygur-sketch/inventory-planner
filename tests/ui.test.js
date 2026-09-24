@@ -275,7 +275,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ועוד: האחוז אינו דבר שהעיצוב שולט בו. הרצועה היא 111px קבועים;
     האחוז נע בין 62% ל-73% לפי גובה החלון בלבד. לכן הוא מוחלף בשתי
     מידות שהעיצוב כן קובע — גובה הרצועה וגובה הכרום — ובאחוז רצפה. */
- ok('הרצועה אינה עולה על 120px',bud.band>0&&bud.band<=120,bud.band+'px');
+ /* הטענה הזאת עברה קודם במצב «today» — אבל שם הרצועה כלל לא אמורה
+    להיות. `.line{display:flex}` ניצח את [hidden], ולכן היא דלפה לכל
+    המצבים, והבדיקה מדדה דליפה. עכשיו היא נמדדת במסלול שלה. */
+ const bandH=await p.evaluate(async()=>{const before=mode;setMode('line');
+   await new Promise(r=>setTimeout(r,450));
+   const b=document.querySelector('.lband');
+   const h=b?Math.round(b.getBoundingClientRect().height):0;
+   setMode(before);return h});
+ await p.waitForTimeout(400);
+ ok('הרצועה אינה עולה על 120px במסלול שלה',bandH>0&&bandH<=120,bandH+'px');
+ ok('ואינה דולפת למצב «היום»',bud.band===0,bud.band+'px (היה 111 בגלל הדליפה)');
  ok('הכרום כולו מתחת ל-360px ב-1512x860',bud.chrome>0&&bud.chrome<360,bud.chrome+'px');
  ok('הרשימה מקבלת 60%+ מהמסך',bud.listPct>=60,bud.listPct+'%');
  /* ספירת השורות הגלויות היא תוצאה נגזרת, לא ההחלטה: היא זזה בשורה
@@ -662,31 +672,40 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  await p.setViewportSize({width:1512,height:860});
 
- /* גרף הצריכה — ברמת המסך, לא קבור בתוך <details> בכרטיס הפריט */
+ /* ============ הגרף המצרפי הוסר ============
+    כאן ישבו שבע טענות על «צריכה חודשית — כל הקטלוג»: שהוא נראה בלי
+    גלילה, עמודה לכל חודש, יחס צירים, תווי סקאלה וכו׳. הגרף סיכם
+    יחידות של חלפים שונים — בורג ומנוע באותה עמודה — והוסר בהחלטת
+    המתכנן. מה שנבדק עכשיו הוא שהוא באמת ירד, **ושגרפי הפריט נשארו**. */
  await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(700);
- const ch=await p.evaluate(()=>{const c=document.getElementById('ctop');
-  if(c.hidden)return {hidden:true};
-  const sv=c.querySelector('svg'),b=sv.getBoundingClientRect();
-  const vb=sv.getAttribute('viewBox').split(' ').map(Number);
-  return {hidden:false,inView:b.top>=0&&b.bottom<=innerHeight,
-   bars:c.querySelectorAll('rect').length,labs:c.querySelectorAll('.clab').length,
-   vals:c.querySelectorAll('.cval').length,
-   /* יחס הצירים חייב להישמר, אחרת הטקסט נמתח */
-   skew:Math.abs((b.width/b.height)-(vb[2]/vb[3])),
-   ticks:[...c.querySelectorAll('.cax')].map(t=>t.textContent),
-   tallest:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('height'))),
-   /* שטח הציור נגזר מהציור עצמו: מקו הבסיס עד קו הרשת העליון */
-   plotH:Math.max(...[...c.querySelectorAll('rect')].map(r=>+r.getAttribute('y')+ +r.getAttribute('height')))
-        -Math.min(...[...c.querySelectorAll('line')].map(l=>+l.getAttribute('y1')))}});
- ok('הגרף נראה במצב הקטלוג בלי גלילה ובלי לחיצה',!ch.hidden&&ch.inView);
- ok('עמודה לכל חודש בדוח',ch.bars===11,ch.bars+' עמודות');
- ok('רק השיא והחודש האחרון מתויגים',ch.vals===2,ch.vals+' תוויות ערך');
- ok('יחס הצירים נשמר — הטקסט אינו נמתח',ch.skew<0.05,'סטייה '+ch.skew.toFixed(3));
- ok('תווי הסקאלה עגולים',ch.ticks.every(t=>/^\d+(\.\d)?k?$/.test(t)),ch.ticks.join(' · '));
- ok('העמודה הגבוהה ממלאת את רוב שטח הציור',ch.tallest>=ch.plotH*0.6,
-    `${Math.round(ch.tallest)} מתוך ${Math.round(ch.plotH)}`);
+ const ch=await p.evaluate(()=>({
+   el:!!document.getElementById('ctop'),
+   fn:typeof topChart!=='undefined',
+   line:(()=>{const e=document.getElementById('line');
+     return e&&e.offsetParent!==null?Math.round(e.getBoundingClientRect().height):0})(),
+   link:(()=>{const e=document.getElementById('shortlink');
+     return e&&e.offsetParent!==null?(e.innerText||'').replace(/\s+/g,' ').trim():''})()}));
+ ok('הגרף המצרפי אינו קיים יותר בקטלוג',!ch.el&&!ch.fn,
+    `אלמנט=${ch.el} · פונקציה=${ch.fn}`);
+ /* ============ רצועת החוסרים אינה שייכת לקטלוג ============
+    נמדד לפני: 86px של רצועת חוסרים בקטלוג. renderLine עשה
+    el.hidden=true, אבל `.line{display:flex}` בספציפיות (0,1,0) ניצח
+    את כלל ה-[hidden] של הדפדפן — כלומר ההסתרה מעולם לא עבדה. */
+ ok('רצועת החוסרים אינה מוצגת בקטלוג',ch.line===0,ch.line+'px (היה 86)');
+ ok('ובמקומה קישור קומפקטי למסך החוסרים',
+    /חוסר|לטיפול היום/.test(ch.link)&&/למסך החוסרים/.test(ch.link),ch.link.slice(0,90));
+ await p.click('#shortlinkGo');await p.waitForTimeout(700);
+ ok('הקישור מוביל למסך החוסרים',
+    'line'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
+ ok('ושם הרצועה המלאה חוזרת',
+    await p.evaluate(()=>{const e=document.getElementById('line');
+      return !!e&&e.offsetParent!==null&&e.getBoundingClientRect().height>40}));
+ /* גרפי הפריט — לא נגעו */
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(500);
+ ok('גרפי הצריכה ברמת הפריט נשארו',
+    2===await p.evaluate(()=>['c1','c2'].filter(i=>!!document.getElementById(i)).length));
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
- ok('הגרף אינו מופיע במצב "היום"',await p.evaluate(()=>document.getElementById('ctop').hidden));
 
  /* ============ המגירה דוחפת ולא מכסה — כשיש רוחב ============
     מעל 1900px הרשימה מצטמצמת ברוחב המגירה; מתחת לזה המגירה מכסה, כי
@@ -916,17 +935,40 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('המסך הראשי נקרא «לטיפול היום»',
     ux.tabs.some(t=>/לטיפול היום/.test(t))&&!ux.tabs.some(t=>/ציר הזמן/.test(t)),
     ux.tabs.join(' | '));
- /* משפט הפעולה הוא הדבר הראשון בכרטיס, לפני ההסברים. */
+ /* ============ אזור החלטה אחד ============
+    קודם נבדק כאן ש-`.oact` קיים בראש הכרטיס ושהמקטע «מה לעשות» בא
+    לפני «מה מצדיק את זה». שניהם תיארו את המבנה שאוחד: אותה המלצה
+    הופיעה ב-.oact, ב-.dcs וב«מה לעשות» — שלושה אזורים, מידע אחד. */
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
  const card=await p.evaluate(()=>{
   const d=document.getElementById('detail');
-  const act=d.querySelector('.oact'),secs=[...d.querySelectorAll('.sec h3')].map(h=>h.textContent.trim());
-  return {hasAct:!!act&&act.offsetParent!==null,
-    actTxt:act?act.textContent.replace(/\s+/g,' ').trim().slice(0,60):'',
-    order:secs,
-    actBeforeWhy:secs.indexOf('מה לעשות')>=0&&secs.indexOf('מה לעשות')<secs.indexOf('מה מצדיק את זה')}});
- ok('בראש הכרטיס משפט פעולה אחד',card.hasAct,card.actTxt);
- ok('«מה לעשות» לפני «מה מצדיק את זה»',card.actBeforeWhy,card.order.join(' → '));
+  const r=CURRENT_DETAIL,a0=((r.act||[])[0]||'');
+  const txt=(d.innerText||'');
+  const dcs=d.querySelector('.dcs');
+  return {oact:!!d.querySelector('.oact'),
+    repeats:a0?txt.split(a0).length-1:0,
+    acts:(r.act||[]).length,
+    inDecision:!!dcs&&(dcs.innerText||'').indexOf(a0)>=0,
+    hasQty:!!d.querySelector('.dcq'),
+    qtyLabel:((d.querySelector('.dcql')||{}).textContent||''),
+    hasWhy:!!d.querySelector('.dcwhy .msg'),
+    whyN:d.querySelectorAll('.dcwhy .msg').length,
+    whySrc:(r.why||[]).length,
+    hasBtn:!!d.querySelector('.dcs [data-dmark]'),
+    moreN:d.querySelectorAll('.dcmore li').length,
+    secs:[...d.querySelectorAll('.sec h3')].map(h=>h.textContent.trim())}});
+ ok('אותה המלצה אינה חוזרת בשלושה אזורים',card.repeats===1&&!card.oact,
+    `${card.repeats} הופעות (היה 3) · .oact=${card.oact}`);
+ ok('ואזור ההחלטה נושא את ארבעת החלקים',
+    card.inDecision&&card.hasQty&&card.hasWhy&&card.hasBtn,
+    `פעולה=${card.inDecision} כמות=${card.hasQty} סיבה=${card.hasWhy} כפתור=${card.hasBtn}`);
+ ok('הכמות נושאת תיאור של משמעותה',
+    card.qtyLabel.trim().length>0||/ללא חשיפה/.test(card.secs.join('')),
+    `"${card.qtyLabel}"`);
+ ok('כל הסיבות נשמרו — לא נחתכו',card.whyN===card.whySrc,
+    `${card.whyN} מתוך ${card.whySrc}`);
+ ok('פעולות נוספות נשמרות מתחת לראשית',card.moreN===Math.max(0,card.acts-1),
+    `${card.moreN} נוספות · ${card.acts} בסך הכול`);
 
  /* ============ STORE_LOUD · אחסון שנגמר נשמע ============
     כל כתיבה לאחסון הייתה ב-try{}catch(_){} שבולע. כשהמכסה נגמרת

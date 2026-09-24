@@ -7,10 +7,8 @@ const SD=__dirname;
 const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
- /* התדריך היומי הקיים מופיע כשיש משהו חדש, והוא מודאל. בלי nobrief
-    הוא חוסם — וזו התנהגות נכונה שלו, לא של מה שנבדק כאן. */
- const bf=await p.evaluate(()=>{const e=document.getElementById('brief');return !!e&&!e.hidden});
- if(bf){await p.click('#briefGo');await p.waitForTimeout(400)}};
+ /* קודם היה כאן ביטול של התדריך המודאלי (`#briefGo`). התדריך אינו
+    חוסם יותר — הוא רצועת סיכום מקופלת — ולכן אין מה לבטל. */};
 
 (async()=>{
  const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -115,23 +113,39 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   const m0=await p.evaluate(()=>{const d=document.getElementById('detail');
 
    return (d.innerText||'').replace(/\s+/g,' ')});
-  /* הסייג חייב להיות גלוי *בלי* לפתוח מגירה או טאב: innerText אינו
-     כולל תוכן מוסתר, ולכן הבדיקה הזו נכשלה כשהוא ישב ב«סימון והחרגה». */
-  ok('ליד כפתור «סמן כטופל» נאמר שהוא אינו מעדכן את SAP',
-    /נשמר בכלי בלבד ואינו מעדכן את SAP/.test(m0),m0.slice(0,120));
-  ok('ונאמר שם גם לכמה זמן ושאפשר לבטל',
-    /7 ימים/.test(m0)&&/לבטל/.test(m0),
-    (m0.match(/מוציא את הפריט[^.]*\./)||[''])[0]);
+  /* ============ קצר ליד הכפתור, מלא לפי דרישה ============
+     קודם ישבה כאן פסקה שלמה ליד הכפתור. היא הייתה נכונה ועמוסה.
+     עכשיו: שורה אחת גלויה, והפירוט ב-<details> שנגיש במקלדת מעצם
+     היותו אלמנט סטנדרטי. מספר הימים נגזר מ-markTTL. */
+  const ttl=await p.evaluate(()=>DAYS(markTTL('handled')));
+  ok('ליד הכפתור שורה קצרה אחת, עם מספר הימים מההגדרה',
+    new RegExp(`סימון מקומי ל-${ttl} ימים`).test(m0)&&/אינו מעדכן SAP/.test(m0)&&/ניתן לבטל/.test(m0),
+    (m0.match(/סימון מקומי[^.]*\.[^.]*\./)||[''])[0]);
+  ok('וההסבר המלא אינו פתוח כברירת מחדל',
+    !/הכלי לא בדק דבר/.test(m0),'הפירוט סגור');
+  /* הפירוט — נפתח, ונגיש במקלדת */
+  await p.evaluate(()=>{const d=document.querySelector('#detail .dcwhat');if(d)d.open=true});
+  await p.waitForTimeout(200);
+  const full=await p.evaluate(()=>(document.getElementById('detail').innerText||'').replace(/\s+/g,' '));
+  ok('הפירוט מבחין בין סימון ידני לבין שינוי שאומת בדוח הבא',
+    /הכלי לא בדק דבר/.test(full)&&/השינוי זוהה בדוח SAP הבא/.test(full)
+    &&/הדוח הבא/.test(full),
+    (full.match(/אינו[^.]*השינוי זוהה[^.]*\./)||[''])[0].slice(0,120));
+  ok('ונאמר בו לכמה זמן',new RegExp(`${ttl} ימים`).test(full));
+  ok('הפירוט נגיש במקלדת — הוא <details> תקני',
+    await p.evaluate(()=>{const d=document.querySelector('#detail .dcwhat');
+      return !!d&&d.tagName==='DETAILS'&&!!d.querySelector('summary')}));
+  /* אחרי סימון — ביטול ברור */
   await p.evaluate(()=>{const r=ALL.find(x=>x.pn===CURRENT_DETAIL.pn);setMark(r,'handled','');
     classify([r]);detail(ALL.find(x=>x.pn===r.pn))});
   await p.waitForTimeout(400);
   const m1=await p.evaluate(()=>(document.getElementById('detail').innerText||'').replace(/\s+/g,' '));
-  ok('«סומן כטופל» מובחן מ«השינוי זוהה בדוח SAP הבא»',
-    /סומן כטופל/.test(m1)&&/הכלי לא בדק דבר/.test(m1)&&/הדוח הבא/.test(m1),
-    (m1.match(/סומן כטופל[^|]{0,160}/)||[''])[0]);
-  ok('ואחרי הסימון נאמר לכמה זמן ואיך מבטלים',
-    /7 ימים/.test(m1)&&/בטל סימון טופל/.test(m1),
-    (m1.match(/מסתיר את הפריט[^.]*\./)||[''])[0]);
+  ok('אחרי הסימון נאמר שסומן, ושאינו מעדכן SAP',
+    /סומן כטופל/.test(m1)&&/אינו מעדכן SAP/.test(m1),
+    (m1.match(/סומן כטופל[^·]*·[^·]*·/)||[''])[0]);
+  ok('ויש ביטול ברור',
+    await p.evaluate(()=>{const d=document.getElementById('detail');
+      return !!d.querySelector('.undomark')&&/בטל סימון טופל/.test(d.innerText||'')}));
   await ctx.close()}
 
  /* ---------- ה · ההיכרות ---------- */

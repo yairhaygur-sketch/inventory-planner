@@ -19,41 +19,47 @@ const open=async(ctx,q)=>{
  const ctx=await b.newContext({viewport:{width:1512,height:900}});
  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
 
- /* --- טעינה ראשונה: אין היסטוריה, ולכן התדריך חייב להופיע --- */
+ /* ============ התדריך אינו חוסם יותר ============
+    קודם נבדק כאן שהתדריך *חוסם* (`body.briefing`) ושלחיצה על «התחל
+    לעבוד» מסירה אותו. הוא אינו מחליט דבר ואינו מונע שום טעות — הוא
+    מסכם, ולכן הפך לרצועה מקופלת. מה שנבדק עכשיו: שאחרי טעינה תקינה
+    נכנסים ישר לעבודה, ושהסיכום עדיין שם ונכון. */
  const p=await open(ctx,'');
  const st=await p.evaluate(()=>({
    shown:!document.getElementById('brief').hidden,
-   body:document.body.classList.contains('briefing'),
+   blocking:document.body.classList.contains('briefing'),
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    why:document.getElementById('briefSub').textContent.trim(),
+   openAttr:document.getElementById('briefToggle').getAttribute('aria-expanded'),
    cards:[...document.querySelectorAll('#briefCards .bcard')].map(c=>({
      l:c.querySelector('.bl').textContent.trim(),
      v:c.querySelector('.bv').textContent.trim()})),
-   sev3:(QF&&QF.all?QF.all:[]).filter(r=>r.sev===3).length,
-   items:ALL.length}));
- ok('בטעינה ראשונה התדריך מופיע',st.shown&&st.body,st.why);
- ok('התדריך מנמק למה הוא כאן',st.why.length>0,st.why);
- ok('כרטיס הדוח מציג את מספר המק״טים',
-   st.cards.some(c=>c.l==='הדוח'&&c.v===st.items.toLocaleString('he-IL')),
-   JSON.stringify(st.cards.find(c=>c.l==='הדוח')));
- /* המספר בכרטיס חייב להיות המספר האמיתי, לא טקסט קבוע */
- ok('כרטיס "בוער עכשיו" תואם את ספירת חומרה 3',
-   st.cards.some(c=>c.l==='בוער עכשיו'&&c.v===st.sev3.toLocaleString('he-IL')),
-   'בכרטיס '+(st.cards.find(c=>c.l==='בוער עכשיו')||{}).v+' · בפועל '+st.sev3);
+   runs:HIST.runs.length}));
+ ok('טעינת דוח תקין מובילה ישירות לעבודה',!st.blocking&&st.rows>0,
+   `חוסם=${st.blocking} · ${st.rows} שורות`);
+ ok('רצועת הסיכום מוצגת',st.shown,st.why);
+ /* --- בהעלאה הראשונה אין בסיס להשוואה, ואסור להציג פריטים כשינוי --- */
+ ok('בהעלאה הראשונה נאמר שאין דוח קודם להשוואה',
+   /אין עדיין דוח קודם|אין בסיס/.test(st.why),st.why);
+ ok('ולא מוצג אף פריט כ«שינוי» מול בסיס שאינו קיים',
+   st.runs<=1?st.cards.every(c=>!/חדשים|החמירו|יצאו/.test(c.l)):true,
+   st.cards.map(c=>c.l+'='+c.v).join(' · '));
  ok('אין כרטיס ריק',st.cards.every(c=>c.v&&c.v!=='undefined'&&c.v!=='NaN'),
    st.cards.map(c=>c.l+'='+c.v).join(' · '));
-
- /* --- הכפתור מסיר את התדריך ומחזיר את הטבלה לשימוש --- */
- await p.click('#briefGo');await p.waitForTimeout(300);
- const after=await p.evaluate(()=>({
-   hidden:document.getElementById('brief').hidden,
-   body:document.body.classList.contains('briefing'),
-   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
- ok('«התחל לעבוד» מסיר את התדריך',after.hidden&&!after.body);
- ok('הטבלה מלאה מתחתיו',after.rows>0,after.rows+' שורות');
- /* אחרי הסגירה השורה חייבת להיות לחיצה — זה מה שנשבר אם המסך נשאר */
+ /* --- השורה לחיצה בלי שום צעד ביניים --- */
  await p.click('#tbl tbody tr[data-i]');await p.waitForTimeout(400);
- ok('אפשר ללחוץ על שורה אחרי הסגירה',
+ ok('אפשר ללחוץ על שורה בלי לסגור כלום',
    await p.evaluate(()=>document.body.classList.contains('dopen')));
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
+ /* --- הרצועה נפתחת ונסגרת, וגם במקלדת --- */
+ const before=await p.evaluate(()=>document.getElementById('briefToggle').getAttribute('aria-expanded'));
+ await p.evaluate(()=>document.getElementById('briefToggle').focus());
+ await p.keyboard.press('Enter');await p.waitForTimeout(250);
+ const afterK=await p.evaluate(()=>({
+   exp:document.getElementById('briefToggle').getAttribute('aria-expanded'),
+   cards:document.getElementById('briefCards').hidden}));
+ ok('הרצועה נפתחת ונסגרת במקלדת',afterK.exp!==before&&afterK.cards===(afterK.exp!=='true'),
+   `${before} → ${afterK.exp}`);
  await p.close();
 
  /* --- אותו דוח שוב, מיד: אין שינוי, ולכן אין תדריך --- */
@@ -64,8 +70,11 @@ const open=async(ctx,q)=>{
    repeat:HRUN&&HRUN.repeat,
    diag:(DIAG&&DIAG.warn)?DIAG.warn.join(' | '):'',
    runs:HIST.runs.length}));
- ok('טעינה חוזרת של אותו דוח אינה מציגה תדריך',!again.shown,
-   `repeat=${again.repeat} · סיבה="${again.why}" · diag="${again.diag}"`);
+ /* קודם: «טעינה חוזרת אינה מציגה תדריך». הרצועה מוצגת תמיד — היא
+    אינה חוסמת — ומה שמשתנה הוא מה שהיא אומרת. */
+ ok('טעינה חוזרת של אותו דוח אומרת שאין מה להשוות',
+   again.shown&&/אותו דוח נטען שוב|אין מה להשוות|אין עדיין דוח קודם/.test(again.why),
+   `repeat=${again.repeat} · סיבה="${again.why}"`);
  ok('הטבלה זמינה ישירות',
    (await p2.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))>0);
  await p2.close();
