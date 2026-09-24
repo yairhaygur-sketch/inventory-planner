@@ -646,9 +646,18 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const where=x=>{for(const k of QN)if(Q[k].includes(x))return k;return '?'};
   const qs={};for(const r of rows){const w=where(r);qs[w]=(qs[w]||0)+1}
   return {n:rows.length,
-   /* ההגדרה עצמה: הזמנת לקוח פתוחה ומלאי פנוי אפס — שום תנאי נוסף */
-   defOK:rows.every(r=>r.cust>0&&r.free<=0),
-   complete:(QF.all||[]).filter(r=>r.cust>0&&r.free<=0).length===rows.length,
+   /* ============ ההגדרה השתנתה: פער כיסוי, לא מדף ריק ============
+      קודם: cust>0 && free<=0 — מלאי פנוי אפס *בדיוק*. נמדד על דוח
+      ההדגמה: 50 פריטים, ומתוכם אחד בלבד בוער. פריט עם 19 הזמנות,
+      יחידה אחת על המדף ובלי שום רכש לא נכלל, כי המדף לא היה ריק.
+      היום ההגדרה היא הפער: הזמנת לקוח שהמלאי הפנוי והרכש הפתוח יחד
+      אינם מכסים — בדיוק רונג הלקוח ב-classify, על שני ענפיו. */
+   defOK:rows.every(r=>r.cust>0&&(r.cust-(Math.max(0,r.free)+Math.max(0,r.po)))>0),
+   complete:(QF.all||[]).filter(r=>r.custGap).length===rows.length,
+   /* «ללא רכש» הוא תת-קבוצה שלה, ויש לו מסלול משלו */
+   holdsAllBurn:QF.waiting.every(r=>rows.some(x=>x.pn===r.pn)),
+   burnIn:rows.filter(r=>r.burn).length,
+   isUnion:rows.length===QF.waiting.length+QF.immediate.length,
    /* הפיצול מכסה את הכל בדיוק פעם אחת */
    split:G.none.length+G.sup.reduce((a,[,l])=>a+l.length,0)===rows.length,
    noneOK:G.none.every(r=>r.po<=0&&(r.transfer||0)<=0),
@@ -662,7 +671,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    queues:Object.keys(qs).length,qs,
    pd:rows.filter(r=>r.isPDItem).length,
    held:rows.filter(r=>r.stock>0).length};});
- ok('כל שורה עומדת בהגדרה: הזמנת לקוח ומלאי פנוי אפס',cw.defOK&&cw.complete,cw.n+' פריטים');
+ ok('כל שורה עומדת בהגדרה: הזמנת לקוח שאין לה כיסוי מלא',cw.defOK&&cw.complete,cw.n+' פריטים');
+ ok('הרשימה היא בדיוק שני ענפי רונג הלקוח',cw.isUnion,
+   `${cw.n} = waiting + immediate`);
+ ok('וכל הבוערים בפנים — היא לא מחמיצה אותם כמו ההגדרה הישנה',
+   cw.holdsAllBurn&&cw.burnIn>0,`${cw.burnIn} בוערים מתוך ${cw.n}`);
  ok('הפיצול מכסה את כל הפריטים בדיוק פעם אחת',cw.split&&cw.dupes===0);
  ok('«אין רכש» מכיל רק פריטים ללא רכש ובלי מלאי בהעברה',cw.noneOK);
  ok('קבוצות הספקים מכילות רק פריטים עם רכש או העברה',cw.supOK);

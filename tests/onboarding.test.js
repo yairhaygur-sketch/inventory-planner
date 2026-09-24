@@ -38,22 +38,18 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
     /תוספת שאפשר לצרף בהמשך/.test(w0.txt));
   ok(`${W} · והפרטיות נאמרת במפורש`,
     /מעובדים בדפדפן ואינם נשלחים לשרת/.test(w0.txt));
-  ok(`${W} · שלוש נקודות הכניסה קיימות`,
-    /איך מפיקים את הדוח\?/.test(w0.txt)&&/נתוני דוגמה/.test(w0.txt)&&/היכרות עם הכלי/.test(w0.txt));
+  /* «איך מפיקים את הדוח» הוסר לפי החלטת המעתד — הוא ידע להפיק אותו
+     ממילא, והמסך תיאר פורמט במקום להוביל לעבודה. */
+  ok(`${W} · שתי נקודות הכניסה קיימות`,
+    /נתוני דוגמה/.test(w0.txt)&&/היכרות עם הכלי/.test(w0.txt));
+  ok(`${W} · והסבר הפקת הדוח אינו שם יותר`,
+    !/איך מפיקים/.test(w0.txt)
+    &&await p.evaluate(()=>!document.getElementById('welHow')&&!document.getElementById('welHowBox')));
   ok(`${W} · הסרגל העליון נשאר לחיץ מתחת למסך הפתיחה`,
     w0.belowTop&&w0.upload===2&&w0.search,
     `מתחת לסרגל=${w0.belowTop} · תוויות העלאה גלויות=${w0.upload} · חיפוש=${w0.search}`);
   ok(`${W} · אין גלישה אופקית במסך הפתיחה`,!w0.hscroll);
 
-  /* «איך מפיקים» — נגזר ממה שהמפענח דורש, ואומר מה חסר */
-  await p.click('#welHow');await p.waitForTimeout(250);
-  const how=await p.evaluate(()=>{const e=document.getElementById('welHowBox');
-   return {open:!e.hidden,txt:(e.innerText||'').replace(/\s+/g,' ')}});
-  ok(`${W} · «איך מפיקים» נפתח ומתאר את הפורמט האמיתי`,
-    how.open&&/מק"ט מוביל/.test(how.txt)&&/\.xlsx/.test(how.txt)&&/חודש הבסיס|חודש בסיס/.test(how.txt));
-  ok(`${W} · והוא אומר מה חסר במקום להמציא שלבי SAP`,
-    /אין בידי תיעוד של שלבי ההפקה ב-SAP/.test(how.txt)&&!/טרנזקציה ZMRP01|לחץ על/.test(how.txt),
-    (how.txt.match(/מה שאין לי[^.]*\./)||[''])[0].slice(0,90));
 
   /* ---------- ב · שמות הפעולות ---------- */
   await p.evaluate(()=>tourEnd());
@@ -73,8 +69,8 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   ok(`${W} · לכל פעולה שם מלא לפי מה שהיא עושה`,act.st.every(x=>x.ok),
     act.st.map(x=>`${x.lbl||x.id}(${x.why})`).join(' · '));
   ok(`${W} · הסרגל אינו נחתך`,!act.clipped);
-  ok(`${W} · «עזרה» הוא תפריט עם שלוש כניסות`,
-    /עזרה/.test(act.help)&&act.helpItems.join(',')==='tour,xp,how',act.helpItems.join(','));
+  ok(`${W} · «עזרה» הוא תפריט עם שתי כניסות`,
+    /עזרה/.test(act.help)&&act.helpItems.join(',')==='tour,xp',act.helpItems.join(','));
 
   /* ---------- ג · הסברי הניווט ---------- */
   const nav=await p.evaluate(()=>{
@@ -328,7 +324,7 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   const kind=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu .mi')]
     .map(e=>e.tagName+':'+(e.getAttribute('role')||'')));
   ok('פריטי העזרה הם כפתורים עם role=menuitem',
-    kind.length===3&&kind.every(x=>x==='BUTTON:menuitem'),kind.join(' · '));
+    kind.length===2&&kind.every(x=>x==='BUTTON:menuitem'),kind.join(' · '));
   await p.evaluate(()=>document.getElementById('helpBtn').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(200);
   const k1=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),

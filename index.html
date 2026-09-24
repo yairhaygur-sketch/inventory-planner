@@ -684,16 +684,6 @@ body.xp #tbl,body.xp .rows{cursor:default}
  font:inherit;font-size:13.5px;color:var(--accent);font-weight:700;cursor:pointer}
 .wlink:hover{background:var(--surface-2)}
 .wlink[aria-expanded="true"]{background:var(--surface-2);border-color:var(--accent)}
-.welhow{margin-top:18px;text-align:start;background:var(--surface-2);border:1px solid var(--line);
- border-radius:10px;padding:16px 18px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
-.welhow[hidden]{display:none}
-.welhow h3{font-size:13.5px;font-weight:800;color:var(--ink);margin:0 0 8px}
-.welhow h3:not(:first-child){margin-top:16px}
-.welhow ul{margin:0;padding-inline-start:20px}
-.welhow code{font-family:var(--num);font-size:12.5px;background:var(--panel);
- border:1px solid var(--line);border-radius:4px;padding:1px 5px}
-.welhow .miss{margin-top:14px;border-inline-start:3px solid var(--high);background:var(--high-bg);
- color:var(--high);padding:9px 12px;border-radius:0 6px 6px 0}
 /* ============ מצב נתוני דוגמה ============ */
 .demobar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
  background:var(--high-bg);color:var(--high);border-bottom:1px solid var(--high);
@@ -1847,7 +1837,6 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="menu wide" id="helpMenu" role="menu">
         <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
         <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
-        <button type="button" class="mi" role="menuitem" data-help="how"><span aria-hidden="true">📄</span> איך מפיקים את דוח ה-ZMRP?</button>
       </div></div>
     <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
       <div class="menu wide" id="moreMenu"></div></div>
@@ -1929,7 +1918,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
           <span class="doors" id="doors"><button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP"><span class="di">✔</span><span class="fn" id="apN">0</span><span class="dl"> יושמו ב-SAP</span><span class="lbl" id="apV"></span></button>
-          <button class="btn" id="custBtn" hidden title="הזמנת לקוח פתוחה מול מלאי פנוי אפס — חוצה את כל הסיווגים"><span class="di">👤</span><span class="fn" id="custN">0</span><span class="dl"> לקוחות ממתינים</span><span class="lbl" id="custV"></span></button>
+          <button class="btn" id="custBtn" hidden title="הזמנת לקוח שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים — כולל את מי שאין לו רכש כלל"><span class="di">👤</span><span class="fn" id="custN">0</span><span class="dl"> לקוח ממתין ללא כיסוי</span><span class="lbl" id="custV"></span></button>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית"><span class="di">▲</span><span class="fn" id="floorN">0</span><span class="dl"> מעל רצפת הביטחון</span><span class="lbl" id="floorV"></span></button>
           <button class="btn" id="trendBtn" hidden title="פריטים שהביקוש שלהם ירד בתוך חלון הקצב — הממוצע השטוח יושב מעל הרמה הנוכחית"><span class="di">↘</span><span class="fn" id="trendN">0</span><span class="dl"> ביקוש יורד</span><span class="lbl" id="trendV"></span></button>
           <button class="btn" id="riseBtn" hidden title="פריטים שהביקוש שלהם עלה בתוך חלון הקצב — נקודת ההזמנה מפגרת אחריו. מספר מייעץ: הכלי אינו מרים את ההמלצה לבד"><span class="di">↗</span><span class="fn" id="riseN">0</span><span class="dl"> ביקוש עולה</span><span class="lbl" id="riseV"></span></button>
@@ -1965,11 +1954,9 @@ tr.grp.sup b{font-size:var(--f-md)}
             <p class="welnote">דוח אספקות מתוכננות (ETA) הוא תוספת שאפשר לצרף בהמשך — הכלי עובד גם בלעדיו.</p>
             <p class="welnote priv"><span aria-hidden="true">🔒</span> הנתונים מעובדים בדפדפן ואינם נשלחים לשרת.</p>
             <div class="wellinks">
-              <button type="button" class="wlink" id="welHow" aria-expanded="false" aria-controls="welHowBox">איך מפיקים את הדוח?</button>
               <button type="button" class="wlink" id="welDemo">התנסות עם נתוני דוגמה</button>
               <button type="button" class="wlink" id="welTour">היכרות עם הכלי</button>
             </div>
-            <div class="welhow" id="welHowBox" hidden></div>
           </div>
         </div>
         <!-- במקום רצועת החוסרים המלאה: שורה אחת שמובילה אליה -->
@@ -2610,6 +2597,57 @@ function etaApply(list){
   r.unsQty=isT1(r)?gross:Math.max(0,gross-month);
   r.unsVal=r.unsQty*(r.price||0)}
  return list}
+/* ============ שורות אספקה שלא שויכו לאף מק״ט ============
+   דוח ה-ETA מגיע ממערכת אחרת, והשיוך הוא לפי מחרוזת. מק״ט שלא נמצא
+   בקטלוג — השורה שלו נופלת בשקט, והכלי ממשיך לחשב כאילו אין אספקה
+   בדרך. על פריט רגיל זו אי-דיוק; על פריט בחוסר זו המלצה לפתוח רכש
+   על סחורה שכבר בדרך.
+
+   לכן שתי רמות: המספר הכולל, ובנפרד — התאמות-כמעט מול פריטים שנמצאים
+   *עכשיו* בסכנת חוסר. nearKey מסיר כל מה שאינו אות או ספרה ומוריד
+   אפסים מובילים; זה תופס בדיוק את סוגי אי-ההתאמה שראינו (רווחים,
+   סימני כיווניות, אפסי ריפוד). */
+function nearKey(s){return String(s||'').replace(/[^0-9A-Za-z]/g,'')
+  .toUpperCase().replace(/^0+/,'')}
+function etaOrphans(list){
+ ETA_ORPH=null;
+ if(!ETA||!ETA.byPn||!list||!list.length)return;
+ const have=new Set(list.map(r=>etaKey(r.pn)));
+ const near=new Map();
+ for(const r of list){const k=nearKey(r.pn);if(k&&!near.has(k))near.set(k,r)}
+ let rows=0,units=0;const pns=[],risky=[];
+ for(const k in ETA.byPn){
+  if(have.has(k))continue;
+  const ls=ETA.byPn[k];
+  rows+=ls.length;for(const [q] of ls)units+=q;
+  pns.push(k);
+  /* התאמה-כמעט: המק״ט קיים בקטלוג, רק לא באותו כתיב */
+  const hit=near.get(nearKey(k));
+  if(hit)risky.push({eta:k,pn:hit.pn,burn:!!hit.burn,
+    short:!!hit.burn||(hit.miss||0)>0,
+    qty:ls.reduce((a,[q])=>a+q,0)});}
+ if(!rows)return;
+ risky.sort((a,b)=>(b.burn?1:0)-(a.burn?1:0)||(b.short?1:0)-(a.short?1:0));
+ ETA_ORPH={rows,units,pns:pns.length,
+   risky:risky.filter(x=>x.short),near:risky.length}}
+let ETA_ORPH=null;
+/* נוסח אחד לשני המקומות שמציגים אותו: פס האבחון והשבב בסרגל */
+function etaOrphanTxt(){
+ const o=ETA_ORPH;if(!o)return '';
+ let t=`${o.rows.toLocaleString('he-IL')} שורות בדוח האספקות (${o.pns.toLocaleString('he-IL')} מק״טים · ${o.units.toLocaleString('he-IL')} יח׳) לא שויכו לאף פריט בקטלוג — האספקה שלהן אינה נספרת בשום חישוב`;
+ if(o.risky.length){
+  const top=o.risky.slice(0,3).map(x=>`${x.pn} (${x.qty.toLocaleString('he-IL')} יח׳)`).join(' · ');
+  t+=`. ⚠ מתוכן ${o.risky.length} נראות כמו מק״טים שנמצאים עכשיו בחוסר — ${top}${o.risky.length>3?' ועוד':''}. בדוק את הכתיב לפני שתפתח עליהם רכש`}
+ return t+'.'}
+/* מוסיפה את האזהרה ל-DIAG ומרעננת את התצוגה. נקראת אחרי classify,
+   כי הזיהוי של «בחוסר» נשען על burn ו-miss. */
+function etaOrphanSync(){
+ DIAG.warn=DIAG.warn.filter(w=>!/לא שויכו לאף פריט בקטלוג/.test(w));
+ etaOrphans(typeof ALL!=='undefined'?ALL:null);
+ const t=etaOrphanTxt();
+ if(t)DIAG.warn.push(t);
+ if(typeof showDiag==='function')showDiag();
+ etaChip()}
 function etaAgeDays(){if(!ETA||!ETA.ts)return null;
  return Math.floor((Date.now()-ETA.ts)/864e5)}
 /* ============ STORE_LOUD — אחסון שנגמר חייב להישמע ============
@@ -2674,7 +2712,9 @@ function etaSave(){if(DEMO)return;try{localStorage.setItem(ETA_KEY,JSON.stringif
   toast('⚠ דוח ה-ETA נטען אבל לא נשמר — אחסון הדפדפן מלא')}}
 /* מחיקה היא כתיבה. בלי הסייג הזה, «הסר דוח ETA» מתוך ההדגמה היה
    מוחק את דוח ה-ETA האמיתי מהאחסון. ראה DEMO_ISOLATION. */
-function etaClear(){ETA=null;if(!DEMO)try{localStorage.removeItem(ETA_KEY)}catch(_){}
+function etaClear(){ETA=null;ETA_ORPH=null;
+ DIAG.warn=DIAG.warn.filter(w=>!/לא שויכו לאף פריט בקטלוג/.test(w));
+ if(typeof showDiag==='function')showDiag();if(!DEMO)try{localStorage.removeItem(ETA_KEY)}catch(_){}
  if(ALL&&ALL.length){etaApply(ALL);apply()}etaChip()}
 function build(rows,hdr){const m=mapCols(hdr),out=[];
   if(DIAG.hardStop)return out;
@@ -2879,7 +2919,7 @@ function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
- for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
+ for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
@@ -2936,7 +2976,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        Q.waiting הוכרע כאן ממילא. הדגל אינו סיווג חדש ואינו משנה אף
        הכרעה — הוא רק מאפשר למיון ולמסלול להצביע על אותו דלי בלי
        להשוות מחרוזות cat. */
-    it.burn=noPO;
+    it.burn=noPO;it.custGap=true;
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
   /* מלאי שאינו מכסה את החודש הקרוב קודם לכל סיווג מעקב אספקה.
      רכש פתוח בלי ETA אינו כיסוי, ולכן ההחלטה היא הכמות החסרה ולא שיחת
@@ -4934,7 +4974,16 @@ function burnVal(r){return (r.miss||0)*(r.price||0)}
 function burnTotals(rows){const cur={};let units=0;
  for(const r of rows){units+=(r.miss||0);const c=r.currency||'';cur[c]=(cur[c]||0)+burnVal(r)}
  return {n:rows.length,units,cur}}
-function custWaiting(r){return r.cust>0&&r.free<=0}
+/* ============ «לקוח ממתין» — פער כיסוי, לא מדף ריק ============
+   ההגדרה הייתה cust>0 && free<=0 — מלאי פנוי אפס *בדיוק*. נמדד על דוח
+   ההדגמה: 50 פריטים, ומתוכם **אחד** בוער. פריט עם 19 הזמנות, יחידה
+   אחת על המדף ובלי שום רכש לא נכלל, כי המדף לא היה ריק לגמרי.
+
+   ההגדרה היום היא הפער: הזמנת לקוח שהמלאי הפנוי והרכש הפתוח יחד אינם
+   מכסים. זה בדיוק הרונג של הלקוח ב-classify, על שני ענפיו — 16 ללא
+   רכש ו-118 עם רכש חלקי, סה״כ 134. «ללא רכש» הוא תת-הקבוצה הבוערת
+   ויש לו מסלול משלו; הדלת הזאת היא התמונה המלאה. */
+function custWaiting(r){return !!r.custGap}
 function custRows(){return (QF&&QF.all?QF.all:[]).filter(r=>custWaiting(r)&&passColFilters(r))}
 function custVal(r){return r.cust*(r.price||0)}
 function custTotals(rows){const cur={};let units=0;
@@ -5918,7 +5967,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
- ['לקוח ממתין ללא מלאי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
+ ['לקוח ממתין ללא כיסוי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
  ['מגמה בחלון הקצב %',r=>trendPct(r)==null?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
  ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
@@ -6291,10 +6340,14 @@ function etaChip(){const el=document.getElementById('etachip');if(!el)return;
  const d=etaAgeDays(),stale=d!=null&&d>ETA_STALE_DAYS;
  const when=d===0?'היום':d===1?'אתמול':'לפני '+d+' ימים';
  el.hidden=false;el.classList.toggle('stale',!!stale);
- el.textContent=(stale?'⚠ ':'')+'ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים · '+when;
+ const orph=ETA_ORPH,risk=orph&&orph.risky.length;
+ el.classList.toggle('stale',!!(stale||risk));
+ el.textContent=(stale||orph?'⚠ ':'')+'ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים · '+when
+  +(orph?' · '+orph.rows.toLocaleString('he-IL')+' לא שויכו':'');
  el.title=(stale?'הדוח בן יותר מ-'+ETA_STALE_DAYS+' ימים — תאריכים בו כבר אינם מהימנים. ':'')
   +ETA.rows.toLocaleString('he-IL')+' שורות · '+ETA.units.toLocaleString('he-IL')+' יח׳ משובצות'
   +(ETA.undated?' · '+ETA.undated+' שורות בלי תאריך הוחרגו':'')
+  +(orph?'\n▲ '+etaOrphanTxt():'')
   +'\nלחץ להסרת הדוח.'}
 document.getElementById('etachip').onclick=()=>{
  if(!ETA)return;
@@ -6307,7 +6360,9 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
   catch(err){res={err:'לא ניתן לקרוא את הקובץ: '+err.message}}
   if(res.err){toast('⛔ '+res.err);e.target.value='';return}
   ETA=res;etaSave();etaChip();
-  if(ALL&&ALL.length){etaApply(ALL);ledgerRecord(ALL);apply();
+  if(ALL&&ALL.length){etaApply(ALL);ledgerRecord(ALL);apply();etaOrphanSync();
+   const o=ETA_ORPH;
+   if(o&&o.risky.length)toast(`⚠ ${o.risky.length} שורות אספקה נראות כמו מק״טים שבחוסר ולא שויכו — ראה פס האבחון`);
    const hit=ALL.filter(r=>r.etaHas).length;
    toast('✓ דוח ETA — '+res.parts.toLocaleString('he-IL')+' מק״טים, '+hit.toLocaleString('he-IL')+' מהם בקטלוג');
    if(hit===0)toast('⚠ אף מק״ט מדוח ה-ETA לא נמצא בקטלוג — ודא שזה אותו מפעל');}
@@ -6364,6 +6419,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   showDiag();
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
+  etaOrphanSync();
   HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL);
   const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+Q[k].length,0);
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
@@ -6381,31 +6437,6 @@ function welToggle(){const w=document.getElementById('welcome');if(!w)return;
  w.hidden=has;document.body.classList.toggle('welcoming',!has);
  if(!has){const t=document.querySelector('.top');
   if(t)w.style.insetBlockStart=Math.round(t.getBoundingClientRect().height)+'px'}}
-/* ============ «איך מפיקים את הדוח?» ============
-   נגזר ממה שהמפענח באמת דורש — NAMES, CRITICAL ו-MON — ולא מתיאור
-   שהומצא. אם עמודה תשנה שם ב-NAMES, ההסבר הזה ילך איתה. */
-function welHowHtml(){
- const must=Object.values(CRITICAL).join(' · ');
- const cols=[['מזהה ותיאור','מק"ט מוביל · תיאור חומר · תיאור חומר2'],
-  ['מלאי וביקוש','סה"כ מלאי · מלאי פנוי · הז. רכש · בהעברה · כמות בהז.פ'],
-  ['פרמטרים','נק.הז.מחדש · מלאי בטחון · מל.בט.מינ. · רמת שרות · אספ.מתוכנ. · סוג MRP'],
-  ['כסף','מחיר FOB · מטבע FOB'],
-  ['צריכה','צר.חודש-1 … צר.חודש-11 · צר.השנה · צר.שנה-1 · צר.שנה-2'],
-  ['שיוך','שם ספק · ABC · סוג חומר · ת.היר.1 מח · טקסט ארוך (מעתד)'],
-  ['תנועות (רשות)',"תאר' מכירה · תאר' כניסה"]];
- return `<h3>מה הכלי מחפש בקובץ</h3>
-  <ul>
-   <li>קובץ <code>.xlsx</code> או <code>.xls</code>. הגיליון הראשון שבו נמצאת שורת הכותרות מזוהה אוטומטית.</li>
-   <li>שורת הכותרות מזוהה לפי התא <code>מק"ט מוביל</code> עם לפחות 11 עמודות מלאות. היא יכולה לשבת בכל אחת מ-30 השורות הראשונות — כותרת דוח מעליה אינה מפריעה.</li>
-   <li>אם יש תאריך באחת מהשורות שמעל הכותרות, הכלי מסיק ממנו את <b>חודש הבסיס</b>. אחרת הוא מניח את החודש המלא האחרון, ואפשר לתקן ידנית.</li>
-   <li>שורה אחת לכל מק״ט. מק״ט שמופיע פעמיים יעובד כשני פריטים, והכלי יתריע על כך.</li>
-  </ul>
-  <h3>עמודות חובה</h3>
-  <p>בלי אלה הכלי עוצר: <code>${esc(must)}</code>.</p>
-  <h3>העמודות שנקראות בפועל</h3>
-  <ul>${cols.map(([g,c])=>`<li><b>${g}:</b> ${esc(c)}</li>`).join('')}</ul>
-  <p>שמות העמודות נקראים כלשונם. עמודה חסרה שאינה חובה — הכלי ממשיך ומדווח מה ירד, בפס האבחון שמתחת לסרגל.</p>
-  <div class="miss"><b>מה שאין לי:</b> אין בידי תיעוד של שלבי ההפקה ב-SAP — שם הטרנזקציה, המשתנה (variant) והלייאאוט שמייצרים בדיוק את העמודות האלה. לא אמציא אותם. אם תשלח לי את שם הטרנזקציה והלייאאוט שאתה משתמש בהם, אוסיף כאן הוראות צעד־אחר־צעד.</div>`}
 /* ============ נתוני הדגמה ============
    נבנים כחוברת אקסל אמיתית ומוזנים דרך אותו #f של הסרגל העליון —
    אותו מפענח, אותו build, אותו classify. אין כאן מסלול טעינה שני
@@ -6619,7 +6650,7 @@ function helpWire(){
   const k=mi.dataset.help;
   if(k==='xp')xpSet(!XPON);
   else if(k==='tour')tourStart(true);
-  else if(k==='how')howModal()});
+  });
  /* פתיחה ב-Enter/רווח מעבירה מיקוד לפריט הראשון, חצים נעים בין
     הפריטים, ו-Escape סוגר ומחזיר את המיקוד לכפתור. */
  hb.addEventListener('keydown',e=>{
@@ -6632,16 +6663,7 @@ function helpWire(){
   else if(e.key==='ArrowDown'){e.preventDefault();it[(i+1)%it.length].focus()}
   else if(e.key==='ArrowUp'){e.preventDefault();it[(i-1+it.length)%it.length].focus()}
   else if(e.key==='Tab'&&!e.shiftKey&&i===it.length-1)shut(false)});}
-/* הסבר פורמט הדוח, זמין גם אחרי שנטען דוח */
-function howModal(){
- document.getElementById('mtitle').textContent='איך מפיקים את דוח ה-ZMRP';
- document.getElementById('mbody').innerHTML=`<div class="welhow" style="margin:0">${welHowHtml()}</div>`;
- document.getElementById('modalwrap').classList.add('open')}
 function welWire(){
- const how=document.getElementById('welHow'),box=document.getElementById('welHowBox');
- if(how&&box)how.onclick=()=>{const open=box.hidden;
-   if(open&&!box.innerHTML)box.innerHTML=welHowHtml();
-   box.hidden=!open;how.setAttribute('aria-expanded',open?'true':'false')};
  const dm=document.getElementById('welDemo');if(dm)dm.onclick=demoStart;
  const tb=document.getElementById('welTour');if(tb)tb.onclick=()=>tourStart(true);
  const ex=document.getElementById('demoExit');
@@ -6690,9 +6712,9 @@ const XP={
  'nav-trend':{t:'מגמה',
   see:'פריטים שהביקוש שלהם ירד בתוך אותם 11 חודשים. הממוצע השטוח עדיין גבוה, כי הוא זוכר את החודשים החזקים — אז הכלי עלול להמליץ להזמין לפי עבר שכבר לא קיים.',
   chk:'אלה המועמדים להורדת פרמטרים. לפני שאתה מוריד — פתח את הפריט וראה בגרף אם הירידה אמיתית או שזה חודש אחד חריג.'},
- 'nav-cust':{t:'לקוח ממתין',
-  see:'פריטים עם הזמנת לקוח פתוחה מול מלאי פנוי אפס. זה חוצה את כל הסיווגים — פריט יכול להיות «תקין» לפי כל מדד ועדיין להיות כאן.',
-  chk:'הפרד בין אלה שיש להם רכש פתוח בדרך לאלה שאין. רק השניים האחרונים באמת תקועים.'},
+ 'nav-cust':{t:'לקוח ממתין ללא כיסוי',
+  see:'הזמנת לקוח פתוחה שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים. זה חוצה את כל הסיווגים — פריט יכול להיות «תקין» לפי כל מדד ועדיין להיות כאן. קודם ההגדרה הייתה «מלאי פנוי אפס בדיוק», והיא החמיצה כל פריט שנשארה עליו יחידה אחת מול עשרים שהוזמנו.',
+  chk:'הקבוצה העליונה, «אין רכש», היא אותה רשימה שיושבת בכניסה האדומה בראש הסרגל — שם לא הוזמנה אף יחידה. השאר מקובצים לפי ספק, והכותרת של כל ספק אומרת לכמה מהם יש תאריך אספקה בדוח ה-ETA ולכמה צריך לדרוש אחד.'},
  'nav-applied':{t:'יישום',
   see:'מה קרה להמלצות מההרצה הקודמת. הכלי זוכר מה אמר, וכשאתה טוען דוח חדש הוא משווה: מה שונה ב-SAP בדיוק כמו שהומלץ, מה שונה למספר אחר, ומה לא נגעו בו.',
   chk:'אם הרבה המלצות «לא נגעו» — או שהן לא נכונות, או שהן לא מגיעות למי שמבצע. שתי בעיות שונות לגמרי.'},
@@ -6707,7 +6729,7 @@ const XP={
   see:'כמה כסף שוכב בפער בין הרצפה שהגדרת לדרישה המחושבת, מפוצל לפי מטבע. לעולם לא מחובר — דולר ושקל הם שני מספרים שונים.',
   chk:'זה הסכום שישתחרר אם תוריד את הרצפה לדרישה. זו לא המלצה להוריד — זה תג מחיר על ההחלטה.'},
  'sum-cust':{t:'הסיכום הכספי של לקוח ממתין',
-  see:'שווי הזמנות הלקוח שממתינות מול מלאי אפס, לפי מטבע.',
+  see:'שווי הזמנות הלקוח שאין להן כיסוי מלא במלאי וברכש, לפי מטבע.',
   chk:'זה כסף שכבר הובטח ללקוח ואי אפשר לספק. הוא לא «בסיכון» — הוא כבר תקוע.'},
  'sum-trend':{t:'הסיכום הכספי של מגמה',
   see:'שווי הפער בין מה שהפרמטרים מחזיקים לבין הרמה שאליה הביקוש ירד.',
