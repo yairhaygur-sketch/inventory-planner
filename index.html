@@ -641,6 +641,29 @@ body.xp #tbl,body.xp .rows{cursor:default}
 /* display:flex דורס את [hidden] המובנה. בלי זה השכבה הסגורה נשארת
    פרושה על כל המסך ובולעת כל לחיצה — הכלי כולו מפסיק להגיב. */
 .brief[hidden]{display:none}
+/* ============ רצועת הסיכום ============ */
+.briefbar{flex:0 0 auto;margin:0 0 6px;border:1px solid var(--line);
+ border-radius:7px;background:var(--surface-2);overflow:hidden}
+.briefbar[hidden]{display:none}
+.briefsum{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;
+ font:inherit;font-size:12px;color:var(--ink-2);padding:5px 10px;cursor:pointer;text-align:start}
+.briefsum:hover{background:var(--surface)}
+.briefsum .bbk{font-weight:700;color:var(--ink);white-space:nowrap}
+/* הרצועה המקופלת היא שורה אחת. משפט ארוך נחתך כאן, ונאמר במלואו
+   ב-title ובשורת «בסיס ההשוואה» שנפרשת עם הרצועה. */
+.briefsum #briefSub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.briefsum .bbx{margin-inline-start:auto;transition:transform .15s}
+.briefsum[aria-expanded="true"] .bbx{transform:rotate(180deg)}
+.briefbar .briefbody{border-top:1px solid var(--line)}
+.briefbar .briefbody[hidden]{display:none}
+.briefbar .briefbase{padding:7px 10px 0;font-size:11.5px;color:var(--ink-2);font-weight:700}
+.briefbar .briefbase[hidden]{display:none}
+.briefbar .briefcards{margin:0;padding:8px 10px 10px}
+.briefbar .briefdiag{margin:0;border-radius:0}
+/* האזהרה מסומנת על שורת הכותרת ונפרשת בפנים: רצועה מקופלת היא שורה אחת */
+.bbw{color:var(--high);font-weight:700;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;max-width:46%}
+.bbw[hidden]{display:none}
 /* ============ מסך הפתיחה ============ */
 /* מכסה את אזור העבודה בלבד, לא את הסרגל העליון: העלאת הדוח, החיפוש
    והעזרה חייבים להישאר לחיצים גם לפני שנטען משהו. inset-block-start
@@ -717,7 +740,12 @@ body.xp #tbl,body.xp .rows{cursor:default}
    והוא משמש גם ל-#movtabs. .navtab מנצח אותם בספציפיות ולא נוגע בהם. */
 .tabs{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2);padding:4px;
   grid-template-columns:none}
+/* ============ הסרגל היה div-ים ולא כפתורים ============
+   כלומר לא היה בו שום יעד שאפשר להגיע אליו ב-Tab, ולחיצת Enter לא
+   הפעילה דבר. אלה פקדים לכל דבר, ולכן הם <button> עם aria-pressed.
+   font:inherit נחוץ כי כפתור אינו יורש גופן מההורה. */
 .tab.navtab{display:flex;align-items:center;gap:7px;min-width:0;flex:0 0 auto;
+  font:inherit;text-align:start;
   background:transparent;border:0;border-radius:var(--r-ctl);padding:7px 11px;
   color:var(--ink-2);font-weight:700;box-shadow:none;transition:.12s;cursor:pointer}
 .tab.navtab::before{display:none}
@@ -731,6 +759,15 @@ body.xp #tbl,body.xp .rows{cursor:default}
 /* תג אדום גם כשהטאב כבוי — ככה «היום» צועק כשיש בו חומרה 3 */
 .tab.navtab.alert .bdg{background:var(--critical-bg);color:var(--critical)}
 .tab.navtab .m{display:none}
+/* .mini הוא קישור ולא מסלול ראשי: קטן יותר, ללא מילוי גם כשהוא פעיל */
+.tab.navtab.mini{padding:5px 9px;gap:5px;opacity:.9}
+.tab.navtab.mini .t{font-size:var(--f-sm);font-weight:700}
+.tab.navtab.mini .nico{font-size:12.5px}
+.tab.navtab.mini .bdg{font-size:10.5px;padding:0 6px}
+.tab.navtab.mini.sel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--c,var(--acc));opacity:1}
+.tab.navtab.mini.sel .t,.tab.navtab.mini.sel .nico{color:var(--ink)}
+.tabs.nostat .tab.navtab .m.stat{display:none}
+.tabs.mininarrow .tab.navtab.mini .t{display:none}
 .tab.navtab.sel{background:var(--accent);color:var(--on-fill);box-shadow:none}
 /* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
    בלי ההצהרה המפורשת הזאת הוא נותן דיו בהיר על מילוי בהיר: 2.48:1. */
@@ -795,6 +832,20 @@ td.miss .posq{color:var(--dim)}
 .dcq{font-family:var(--num);font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:var(--acc)}
 .dcs2{font-size:14px;color:var(--dim);margin-top:4px}
 .dcb{display:flex;gap:8px;margin-top:14px}
+/* ============ אזור ההחלטה המאוחד ============ */
+.dcql{font-family:inherit;font-size:13px;font-weight:600;color:var(--dim);
+ margin-inline-start:8px;letter-spacing:0}
+.dcmk{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;
+ color:var(--dim);margin-bottom:5px}
+.dcmore{margin-top:13px}
+.dcmore ul{margin:0;padding-inline-start:18px;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+.dcwhy{margin-top:13px;display:flex;flex-direction:column;gap:5px}
+.dcwhy .msg{margin:0}
+.dcnote .undoref{font-weight:700;color:var(--ink)}
+.dcwhat{margin-top:5px}
+.dcwhat summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.dcwhat p{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)}
+.tags.attrs{margin:0}
 .bpri{font-family:inherit;font-size:14px;font-weight:700;background:var(--acc);border:0;color:var(--bg);padding:10px 16px;cursor:pointer}
 .bpri:hover{background:var(--accD)}
 .bsec{font-family:inherit;font-size:14px;background:transparent;border:1px solid var(--line);color:var(--soft);padding:10px 16px;cursor:pointer}
@@ -1228,14 +1279,6 @@ body.nofilters .wdetail{grid-column:1}
 .top .sp{flex:0 0 auto}
 
 /* רצועת הגרף מעל הרשימה — קיימת רק במסך "הקטלוג" */
-.ctop{flex:0 0 auto;padding:10px 14px 4px;border-bottom:1px solid var(--line2)}
-.ctop .chd{display:flex;align-items:baseline;gap:12px;margin-bottom:2px}
-.ctop .chd b{font-size:var(--f-md);font-weight:700}
-.ctop .chd span{font-size:var(--f-sm);color:var(--dim)}
-.ctop svg{display:block;width:100%;height:auto;max-height:112px}
-.ctop .cax{font-family:var(--num);font-size:9px;font-weight:600;fill:var(--dimmer)}
-.ctop .clab{font-size:10px;fill:var(--dim);text-anchor:middle}
-.ctop .cval{font-family:var(--num);font-size:11px;font-weight:700;fill:var(--ink);text-anchor:middle}
 
 /* הגרף מצויר ביחידות פיקסל — ציור מחדש כשהרוחב משתנה */
 
@@ -1315,6 +1358,16 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  font:inherit;font-size:12px;color:var(--dim);padding:2px 4px;line-height:1}
 .navhint>button:hover{color:var(--ink)}
 .navhint[hidden]{display:none}
+/* ============ קישור החוסרים בקטלוג ============ */
+.shortlink{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ font-size:12px;color:var(--ink-2);margin:0 0 6px;padding:5px 10px;
+ background:var(--critical-bg);border-inline-start:3px solid var(--critical);
+ border-radius:0 6px 6px 0}
+.shortlink[hidden]{display:none}
+.shortlink b{color:var(--critical);font-weight:800}
+.shortlink button{margin-inline-start:auto;border:0;background:var(--critical);
+ color:var(--on-fill);border-radius:6px;padding:4px 11px;font:inherit;
+ font-size:12px;font-weight:700;cursor:pointer}
 /* ============ חודש הבסיס — תווית גלויה ============ */
 .rdwrap{display:flex;flex-direction:column;gap:2px}
 .rdwrap .tl{font-size:10.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
@@ -1475,6 +1528,12 @@ body.probing #tbl[data-track="short"] td.sup,body.probing #tbl[data-track="line"
 /* ==================== TIMELINE — הציר ====================
    שתי רמות באותו מסך: הרצועה היא רמה 1 (אורח קורא אותה ב-10 שניות),
    והטבלה שמתחתיה היא רמה 2 (לוחצים על תחנה ומקבלים את הפריטים). */
+/* ============ הרצועה נעלמה רק לכאורה ============
+   renderLine עושה el.hidden=true כשהמסלול אינו «line», אבל `.line`
+   מצהיר display:flex בספציפיות (0,1,0) שמנצחת את כלל ה-[hidden] של
+   הדפדפן. כלומר הרצועה הוצגה גם בקטלוג — נמדד 86px — במסך שאינו
+   עוסק בחוסרים כלל. */
+.line[hidden]{display:none}
 .line{display:flex;flex-direction:column;gap:0;padding:7px 12px 0;
   border-bottom:1px solid var(--line);background:var(--panel)}
 .line .lhd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:9px}
@@ -1769,35 +1828,6 @@ tr.grp.sup b{font-size:var(--f-md)}
      מופיע רק כשיש משהו חדש מאז ההרצה הקודמת. אחרת — ישר לטבלה, עם פס
      דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
      בזה, ויש בדיקה ייעודית שטוענת *בלי* הפרמטר ובודקת את המספרים). -->
-<div id="brief" class="brief" hidden>
-  <div class="briefbox">
-    <div class="briefhd"><b id="briefTtl">התדריך</b>
-      <span id="briefSub"></span></div>
-    <div id="briefDiag" class="briefdiag" hidden></div>
-    <div id="briefCards" class="briefcards"></div>
-    <button class="btn pri" id="briefGo">התחל לעבוד</button>
-  </div>
-</div>
-<!-- ============ מסך הפתיחה ============
-     לפני שנטען דוח, המסך היה ריק: שלד של וידג'טים בלי נתון אחד.
-     מתכנן שרואה אותו בפעם הראשונה אינו יודע מה הכלי רוצה ממנו.
-     ה-label מצביע על אותו #f של הסרגל העליון — אין כאן קלט שני. -->
-<div id="welcome" class="wel" hidden>
-  <div class="welbox">
-    <div class="welmk">מ</div>
-    <h1>מתחילים מדוח המלאי שלך</h1>
-    <p class="welsub">העלה דוח ZMRP כדי לראות אילו חלפים דורשים טיפול, למה ומה מומלץ לעשות.</p>
-    <label class="btn pri welgo" for="f" id="welGo">⭱ העלאת דוח ZMRP</label>
-    <p class="welnote">דוח אספקות מתוכננות (ETA) הוא תוספת שאפשר לצרף בהמשך — הכלי עובד גם בלעדיו.</p>
-    <p class="welnote priv"><span aria-hidden="true">🔒</span> הנתונים מעובדים בדפדפן ואינם נשלחים לשרת.</p>
-    <div class="wellinks">
-      <button type="button" class="wlink" id="welHow" aria-expanded="false" aria-controls="welHowBox">איך מפיקים את הדוח?</button>
-      <button type="button" class="wlink" id="welDemo">התנסות עם נתוני דוגמה</button>
-      <button type="button" class="wlink" id="welTour">היכרות עם הכלי</button>
-    </div>
-    <div class="welhow" id="welHowBox" hidden></div>
-  </div>
-</div>
 <div class="top">
   <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
@@ -1887,7 +1917,7 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="tabs" id="tabs"></div>
       <!-- ============ מה הסרגל הזה אינו ============
            «לטיפול היום» מזמין קריאה של מסנן תאריך. הוא אינו. -->
-      <p class="navhint" id="navhint" hidden><span>אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד. <b>תיקוני פרמטרים</b> ו<b>אספקות צפויות</b> הם מסלולים בתוך «לטיפול היום», ברצועה שמעל הטבלה. <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</span><button type="button" id="navhintX" aria-label="הבנתי — להסתיר את ההסבר">✕</button></p>
+      <p class="navhint" id="navhint" hidden><span>אלה <b>מסלולי עבודה</b>, לא מסנני תאריך — כל הדוח נטען תמיד. <b>חוסרים לטיפול</b> ו<b>תיקוני פרמטרים ומעקב אספקה</b> הם שתי הכניסות הקטנות בסוף הסרגל הזה. <b>אספקות צפויות</b> הן ציר התחנות בתוך «לטיפול היום». <b>טופלו</b> ו<b>תנועות</b> מופיעים כאן כשיש בהם תוכן.</span><button type="button" id="navhintX" aria-label="הבנתי — להסתיר את ההסבר">✕</button></p>
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
@@ -1904,8 +1934,46 @@ tr.grp.sup b{font-size:var(--f-md)}
           <button class="btn" id="riseBtn" hidden title="פריטים שהביקוש שלהם עלה בתוך חלון הקצב — נקודת ההזמנה מפגרת אחריו. מספר מייעץ: הכלי אינו מרים את ההמלצה לבד"><span class="di">↗</span><span class="fn" id="riseN">0</span><span class="dl"> ביקוש עולה</span><span class="lbl" id="riseV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון"><span class="di">✓</span><span class="fn" id="doneN">0</span><span class="dl"> טופלו</span></button></span>
           </div>
-        <div class="ctop" id="ctop" hidden></div>
         <div class="line" id="line" hidden></div>
+        <!-- ============ התדריך — מסך חוסם הפך לרצועה ============
+             התדריך היה שכבה מלאה מעל הכלי שדרשה לחיצה על «התחל לעבוד» לפני
+             שרואים שורה אחת. הוא אינו מחליט דבר ואינו חוסם שום טעות — הוא
+             מסכם. לכן: אחרי טעינה תקינה נכנסים ישר לעבודה, והסיכום יושב
+             ברצועה שאפשר להרחיב. חסימה על דוח פסול (DIAG.hardStop) נשארת
+             במקומה ואינה מושפעת מכאן. -->
+        <div id="brief" class="briefbar" hidden>
+          <button type="button" class="briefsum" id="briefToggle" aria-expanded="false" aria-controls="briefBody">
+            <span class="bbk" id="briefKicker">מאז ההעלאה הקודמת</span><span id="briefSub"></span><span id="briefWarn" class="bbw" hidden></span><span class="bbx" aria-hidden="true">▾</span>
+          </button>
+          <div id="briefBody" class="briefbody" hidden>
+            <div id="briefDiag" class="briefdiag" hidden></div>
+            <div id="briefBase" class="briefbase" hidden></div>
+            <div id="briefCards" class="briefcards"></div>
+          </div>
+        </div>
+        <!-- ============ מסך הפתיחה ============
+             לפני שנטען דוח, המסך היה ריק: שלד של וידג'טים בלי נתון אחד.
+             מתכנן שרואה אותו בפעם הראשונה אינו יודע מה הכלי רוצה ממנו.
+             ה-label מצביע על אותו #f של הסרגל העליון — אין כאן קלט שני. -->
+        <div id="welcome" class="wel" hidden>
+          <div class="welbox">
+            <div class="welmk">מ</div>
+            <h1>מתחילים מדוח המלאי שלך</h1>
+            <p class="welsub">העלה דוח ZMRP כדי לראות אילו חלפים דורשים טיפול, למה ומה מומלץ לעשות.</p>
+            <label class="btn pri welgo" for="f" id="welGo">⭱ העלאת דוח ZMRP</label>
+            <p class="welnote">דוח אספקות מתוכננות (ETA) הוא תוספת שאפשר לצרף בהמשך — הכלי עובד גם בלעדיו.</p>
+            <p class="welnote priv"><span aria-hidden="true">🔒</span> הנתונים מעובדים בדפדפן ואינם נשלחים לשרת.</p>
+            <div class="wellinks">
+              <button type="button" class="wlink" id="welHow" aria-expanded="false" aria-controls="welHowBox">איך מפיקים את הדוח?</button>
+              <button type="button" class="wlink" id="welDemo">התנסות עם נתוני דוגמה</button>
+              <button type="button" class="wlink" id="welTour">היכרות עם הכלי</button>
+            </div>
+            <div class="welhow" id="welHowBox" hidden></div>
+          </div>
+        </div>
+        <!-- במקום רצועת החוסרים המלאה: שורה אחת שמובילה אליה -->
+        <p class="shortlink" id="shortlink" hidden><span id="shortlinkTx"></span>
+          <button type="button" id="shortlinkGo">לרשימת החוסרים</button></p>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -2796,6 +2864,8 @@ const OD_TTL=183*864e5;                      /* חצי שנה */
 const MARK_TTL={ondemand:OD_TTL,campaign:OD_TTL,ignore:OD_TTL,treatment:OD_TTL,
   handled:7*864e5};
 function markTTL(t){const v=MARK_TTL[t];return v==null?OD_TTL:v}
+/* ימים מתוך TTL — כדי שמספר הימים בממשק ייגזר מההגדרה ולא יקובע שוב */
+function DAYS(ms){return Math.round(ms/864e5)}
 function markExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>markTTL(mk.t)}
 const markAgeD=mk=>(mk&&mk.ts)?Math.round((Date.now()-mk.ts)/864e5):null;
 function odMark(it){const mk=MARKS[markKey(it)]||MARKS[it.pn];
@@ -3512,9 +3582,9 @@ function majorCat(list){const c={};let top=null,n=0;
 function tGroup(r){return isT1(r)?'t1':'t2'}
 const GC_KEY='planner_groups_v1';
 let GCOLL=new Set();try{GCOLL=new Set(JSON.parse(localStorage.getItem(GC_KEY)||'[]'))}catch(_){}
+function groupsSave(){try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}}
 function toggleGroup(g){GCOLL.has(g)?GCOLL.delete(g):GCOLL.add(g);
- try{localStorage.setItem(GC_KEY,JSON.stringify([...GCOLL]))}catch(_){}
- closeDetail();render()}
+ groupsSave();closeDetail();render()}
 function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
  for(const r of rows)(by[tGroup(r)]||by.t2).push(r);
  for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
@@ -3880,8 +3950,40 @@ function bandToggle(){
   +`${BAND_OPEN?'▲':'▼'}</button>`}
 function bandSet(v){BAND_OPEN=v;try{localStorage.setItem(BAND_KEY,v?'1':'0')}catch(_){}
  renderLine();fitDoors()}
+/* ============ הקישור שמחליף את הרצועה בקטלוג ============
+   הרצועה עצמה נשארת ב«לטיפול היום» על כל הפילוחים שלה. בקטלוג —
+   שהוא מסך חיפוש ובדיקה — נשארת שורה אחת שאומרת כמה חוסרים יש
+   ומובילה אליהם. אין כאן מסלול חדש: היעד הוא setMode('line'). */
+/* ============ המונה והיעד חייבים להיות אותה אוכלוסייה ============
+   נמדד: המונה ספר decisionList('short') — inToday(), שאינו דורש קצב
+   צריכה — והכפתור הוביל ל-setMode('line'), שרשימותיו נגזרות כולן
+   מ-lineDry(), שכן דורש rate>0. פריט עם הזמנת לקוח, אפס מלאי וקצב
+   אפס נספר בקישור ולא הופיע ביעד. שתי אוכלוסיות, מספר אחד.
+
+   התיקון אינו נוגע בהגדרת החוסר: המונה נשאר decisionList('short'),
+   והיעד הוחלף למצב שמרנדר בדיוק את אותה רשימה — mode='today', שבו
+   currentRows() מחזיר decisionList(track) עם track='short'. כלומר
+   אותה קריאת פונקציה משני צידי הקישור.
+
+   SHORT_JUMP דואג גם לכך שבחירה קודמת ביעד לא תפתח רשימה אחרת:
+   קבוצות מקופלות (GCOLL) מסתירות שורות מהרינדור, ולכן הן נפתחות. */
+const SHORT_GROUPS=()=>TGROUP.map(([g])=>g);
+function shortOpen(){
+ for(const g of SHORT_GROUPS())GCOLL.delete(g);
+ for(const g of [...GCOLL])if(g.indexOf('sup:')===0)GCOLL.delete(g);
+ groupsSave();setMode('today')}
+function shortLink(){
+ const el=document.getElementById('shortlink');if(!el)return;
+ const show=mode==='catalog'&&QF&&QF.all&&QF.all.length;
+ el.hidden=!show;if(!show)return;
+ const n=decisionList('short').length;
+ const tx=document.getElementById('shortlinkTx');
+ if(tx)tx.innerHTML=n
+   ?`<b>${n.toLocaleString('he-IL')}</b> פריטים בחוסר לטיפול — לקוח ממתין ללא מלאי, או כמות שלא תסופק החודש. הרשימה המלאה ב«חוסרים לטיפול»`
+   :'אין כרגע פריטים בחוסר לטיפול — «חוסרים לטיפול» מחזיק את הרשימה כשתהיה';}
 function renderLine(){
  const el=document.getElementById('line');if(!el)return;
+ shortLink();
  if(track!=='line'){el.hidden=true;return}
  el.hidden=false;
  const m=LINE_M=lineModel();
@@ -4328,18 +4430,71 @@ function tiles(){
  t.innerHTML=NAV.map(([k,name,ico,c])=>{
   const {n,hot}=navCount(k);
   if(!n&&k!=='today'&&k!=='month'&&k!=='catalog')return '';
-  return `<div class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
-   data-xp="nav-${k}" title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
-   <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</div>`}).join('')
+  return `<button type="button" class="tab mode navtab ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}" data-m="${k}"
+   data-xp="nav-${k}" aria-pressed="${k===mode?'true':'false'}" title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}"><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span>
+   <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</button>`}).join('')
   +(()=>{const n=(QF&&QF.marked)?QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length:0;
-    return n||mode==='done'?`<div class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
-     data-xp="nav-done" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></div>`:''})()
-  +`<div class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
-     data-xp="nav-moves" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></div>`;
+    return n||mode==='done'?`<button type="button" class="tab mode navtab ${mode==='done'?'sel':''}" style="--c:var(--capital)" data-m="done"
+     data-xp="nav-done" aria-pressed="${mode==='done'?'true':'false'}" title="טופלו — ${esc(NAV_WHAT.done)}"><span class="nico">✓</span><span class="t">טופלו</span><span class="bdg">${n}</span><span class="m what">${esc(NAV_WHAT.done)}</span></button>`:''})()
+  +`<button type="button" class="tab modx navtab ${cur==='moves'?'sel':''}" style="--c:var(--steady)" data-m="moves"
+     data-xp="nav-moves" aria-pressed="${cur==='moves'?'true':'false'}" title="תנועות — ${esc(NAV_WHAT.moves)}"><span class="nico">⇄</span><span class="t">תנועות</span><span class="bdg">▤</span><span class="m what">${esc(NAV_WHAT.moves)}</span></button>`
+  /* ============ שני מסלולים שהיו קיימים ובלי דלת ============
+     renderTrack() מת (`if(1)return`) ואיתו ירדה רצועת המסלולים.
+     «חוסרים לטיפול» (mode=today) ו«תיקוני פרמטרים ומעקב אספקה»
+     (mode=month) נשארו מרונדרים ועובדים, אך היו נגישים רק כנפילה-
+     אחורה של jumpTo — כלומר רק למי שכבר ידע שהם שם.
+
+     הם יושבים כאן ולא בשורת הדלתות: שם .phd הוא flex בלי גלישה
+     (`flex-wrap:nowrap;overflow:hidden`), והדלתות אינן מתכווצות.
+     נמדד — שתי דלתות נוספות מעכו את מתג הקיבוץ מ-143px ל-19px,
+     והכפתורים שלו גלשו אל מעל הדלתות: קליק על «לפי ספק» נחת על דלת.
+     שורת הניווט היא flex-wrap:wrap וגם המקום הנכון מבחינת המשתמש.
+
+     אלה אינם מסכים חדשים ואינם הניווט הישן: .mini הוא קישור משני —
+     בלי תיאור, בלי מילוי — ולא טאב ראשי. */
+  +MINI.map(([k,name,ico,c,ttl])=>{
+    const {n,hot}=navCount(k);
+    return `<button type="button" class="tab navtab mini ${k===mode?'sel':''}${hot?' alert':''}" style="--c:${c}"
+     data-m="${k}" data-xp="nav-${k}" id="${k==='today'?'shortBtn':'fixBtn'}"
+     aria-pressed="${k===mode?'true':'false'}"
+     title="${esc(name)} — ${esc(ttl())}" aria-label="${esc(name)} — ${n} פריטים"
+     ><span class="nico">${ico}</span><span class="t">${name}</span><span class="bdg">${n.toLocaleString('he-IL')}</span></button>`}).join('');
+ fitTabs();
  navHintSync();
  t.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
+   /* «חוסרים לטיפול» נפתח דרך shortOpen כדי שקבוצה שקופלה בעבר לא
+      תסתיר שורות מהרשימה שהמונה בקטלוג סופר. */
+   if(e.dataset.m==='today'){shortOpen();return}
    setMode(e.dataset.m)})}
+/* ============ שורת הניווט נשארת שורה אחת ============
+   נמדד: מתחת ל-1280px שתי הכניסות המשניות שברו את השורה לשתיים —
+   25px (‎3% מהרשימה) שנלקחו בדיוק מהמקום שהסבב הזה בא לפנות.
+   אותו דפוס כמו fitDoors: השם נשאר כברירת מחדל ויורד רק כשהשורה
+   באמת נשברת. הוא ממשיך להגיע לקורא מסך ולריחוף דרך title ו-aria-label. */
+function tabsLines(){const t=document.getElementById('tabs');if(!t)return 1;
+ const tops=new Set([...t.children].filter(e=>e.offsetParent!==null)
+   .map(e=>Math.round(e.getBoundingClientRect().top)));
+ return tops.size||1}
+/* שני שלבים, לפי מה ששווה יותר: קודם יורד הסכום הכספי שליד «הקטלוג»
+   — הוא חוזר ממילא בתוך הקטלוג עצמו — ורק אם גם זה לא הספיק יורדים
+   שמות הכניסות. שם של מסלול שווה יותר ממספר שכבר כתוב במקום אחר. */
+function fitTabs(){const t=document.getElementById('tabs');if(!t)return;
+ t.classList.remove('nostat');t.classList.remove('mininarrow');
+ if(tabsLines()>1)t.classList.add('nostat');
+ if(tabsLines()>1)t.classList.add('mininarrow')}
+/* שם משלו: __ftt כבר תפוס על ידי שומע ה-resize של fitTop, ושני
+   שומעים על אותו מזהה timeout מבטלים זה את זה — האחרון מנצח. */
+window.addEventListener('resize',()=>{clearTimeout(window.__ftbt);
+ window.__ftbt=setTimeout(fitTabs,120)});
+/* הכותרת של «תיקוני פרמטרים» מפרקת את המספר לשני חלקיו, כי mode=month
+   מחזיק את שניהם ברשימה אחת. */
+const MINI=[
+ ['today','חוסרים לטיפול','⚠','var(--critical)',
+  ()=>'לקוח ממתין ללא מלאי, או כמות שלא תסופק החודש — אותה רשימה שהמונה בקטלוג סופר'],
+ ['month','תיקוני פרמטרים ואספקה','⚙','var(--steady)',
+  ()=>{const r=QF?decisionList('month'):[],f=r.filter(x=>x.paramFix).length;
+   return `${f.toLocaleString('he-IL')} לתיקון פרמטרים ב-SAP · ${(r.length-f).toLocaleString('he-IL')} במעקב אספקה`}]];
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
  ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
@@ -4795,52 +4950,13 @@ function decisionHead(){const cols=FIXLIKE()
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
  return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 
-/* ==================== צריכה חודשית — כל הקטלוג ====================
-   הגרפים היחידים באפליקציה ישבו בתוך <details> מקופל בכרטיס הפריט:
-   כדי לראות אחד מהם צריך היה לבחור פריט ואז לפתוח מגירה. זה גרף
-   ברמת המסך — נראה בלי גלילה ובלי לחיצה.
-   סדרה אחת, גוון אחד, בלי מקרא. מתויגים רק השיא והחודש האחרון.
-   הזמן זורם מימין לשמאל, כמו כיוון הקריאה.                          */
-function topChart(){
- const el=document.getElementById('ctop');if(!el)return;
- const show=(track==='cap')&&QF&&QF.all&&QF.all.length;
- el.hidden=!show;
- if(!show){el.innerHTML='';return}
- const N=LABELS.length,sum=new Array(N).fill(0);
- for(const x of QF.all){const m=x.months||[];
-  for(let i=0;i<N;i++)sum[i]+=Math.max(0,+m[i]||0)}
- /* חודש בקצה החלון שאין בו נתון כלל אינו "אפס מכירות" — הוא מחוץ לדוח */
- let last=N-1;while(last>0&&sum[last]===0)last--;
- const d=[],labs=[];
- for(let i=last;i>=0;i--){d.push(sum[i]);labs.push(LABELS[i])}   /* ישן -> חדש */
- if(d.length<2){el.hidden=true;el.innerHTML='';return}
- const max=Math.max(...d),peak=d.indexOf(max);
- /* יחידת ה-viewBox היא פיקסל אמיתי, אחרת הטקסט נמתח עם הרוחב */
- const W=Math.max(420,Math.round(el.clientWidth)||960);
- const H=112,padT=16,padB=18,padE=34,base=H-padB;
- const slot=(W-padE)/d.length,bw=Math.min(slot*0.6,46);
- const top=niceTop(max),yOf=v=>base-(v/top)*(base-padT);
- let g='',b='',lb='';
- for(const t of niceTicks(top)){const y=yOf(t).toFixed(1);
-  g+=`<line x1="0" y1="${y}" x2="${W-padE+6}" y2="${y}" stroke="var(--line2)" stroke-width="1"></line>`+
-     `<text x="${W-padE+10}" y="${(+y+3).toFixed(1)}" class="cax">${t>=1000?(t/1000)+'k':t}</text>`}
- d.forEach((v,i)=>{
-  const cx=W-padE-(i+0.5)*slot, x=(cx-bw/2).toFixed(1), y=yOf(v), h=Math.max(0,base-y).toFixed(1);
-  b+=`<rect x="${x}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h}" rx="3"`+
-     ` fill="var(--acc)" opacity="${i===peak?1:.4}"><title>${esc(labs[i].name)} ${labs[i].yy}׳ — ${v.toLocaleString('he-IL')} יח׳</title></rect>`;
-  if(i===peak||i===d.length-1)
-   b+=`<text x="${cx.toFixed(1)}" y="${(y-5).toFixed(1)}" class="cval">${v.toLocaleString('he-IL')}</text>`;
-  lb+=`<text x="${cx.toFixed(1)}" y="${H-5}" class="clab">${esc(labs[i].short)}</text>`});
- const tot=d.reduce((a,c)=>a+c,0);
- el.innerHTML=`<div class="chd"><b>צריכה חודשית — כל הקטלוג</b>`+
-  `<span>${d.length} חודשים · ${tot.toLocaleString('he-IL')} יח׳ · השיא ${esc(labs[peak].name)} ${max.toLocaleString('he-IL')}</span></div>`+
-  `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="צריכה חודשית מצרפית">${g}${b}${lb}</svg>`}
-/* גבול עליון ותווי סקאלה עגולים — 1 / 2 / 2.5 / 5 כפול חזקה של 10 */
-function niceTop(v){if(v<=0)return 1;
- const e=Math.pow(10,Math.floor(Math.log10(v))),f=v/e;
- return (f<=1?1:f<=1.5?1.5:f<=2?2:f<=3?3:f<=4?4:f<=5?5:f<=8?8:10)*e}
-function niceTicks(top){const out=[];for(let i=0;i<=4;i++)out.push(top*i/4);
- return out.filter(t=>Number.isInteger(t))}
+/* ============ הגרף המצרפי — הוסר ============
+   «צריכה חודשית — כל הקטלוג» סיכם יחידות של חלפים שונים לכדי מספר
+   אחד: בורג ומנוע באותה עמודה. נמדד: 142px מתוך גובה המסך בקטלוג,
+   קבועים, עבור מספר שאין ממנו החלטה.
+   גרפי הצריכה *ברמת הפריט* נשארו (c1/c2), וכל חישוב שנשען על
+   הסדרה החודשית לא נגע. niceTop/niceTicks ירדו איתו — הם שימשו
+   אותו בלבד. */
 function custRow(r,i){
  const stock=Math.max(0,r.stock||0);
  return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
@@ -5178,7 +5294,6 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
- setTimeout(topChart,0);
  if(cur==='moves'){showMovesPanel(true);renderMoves();return}
  showMovesPanel(false);
  const rows=currentRows();
@@ -5430,26 +5545,61 @@ function decisionQty(r){
  if(!r.isOD&&r.sugROP!==r.rop)return 'ROP '+r.rop+' → '+r.sugROP;
  if(!r.isOD&&r.sugSS!==r.ss)return 'SS '+r.ss+' → '+r.sugSS;
  return '—'}
+/* ============ אזור החלטה אחד ============
+   אותה המלצה הופיעה בשלושה מקומות בכרטיס: «הפעולה» בראש, «ההחלטה»
+   בבלוק, ו«מה לעשות» בטאב. נמדד על פריט אמיתי — מחרוזת הפעולה
+   הופיעה 3 פעמים, והפריט נשא פעולה אחת בלבד, כלומר שתיים מהן לא
+   הוסיפו מילה.
+
+   כאן יושבים ארבעת הדברים שההחלטה צריכה: הפעולה, הכמות ומשמעותה,
+   הסיבה, והכפתור. פעולות נוספות נשמרות ומוצגות מתחת לראשית —
+   «להסיר כפילות» אינו «להסיר מידע». פירוט החישוב והנתונים התומכים
+   נשארים בטאבים ובכפתור «מאחורי החישוב». */
+function decisionQtyLabel(r){
+ if(r.orderQty>0)return 'להזמנה';
+ if(r.miss>0)return 'חסרות';
+ if(r.excessQty>0)return 'מעל הכיסוי';
+ if(!r.isOD&&r.sugROP!==r.rop)return 'נקודת הזמנה';
+ if(!r.isOD&&r.sugSS!==r.ss)return 'מלאי ביטחון';
+ return ''}
 function decisionBlock(r){
- const act=(r.act||[])[0]||'אין פעולה נדרשת';
+ const acts=(r.act||[]).filter(Boolean);
+ const act=acts[0]||'אין פעולה נדרשת';
+ const more=acts.slice(1);
  const sub=r.miss>0?`${r.miss.toLocaleString('he-IL')} יח׳ חסרות`
   :r.expCap>0?`${money(r.expCap,r.currency)} הון כלוא`
   :'ללא חשיפה';
  const done=r.mark&&r.mark.t==='handled';
+ const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
+ const why=(r.why||[]);
+ const qlbl=decisionQtyLabel(r);
  return `<div class="dcs">
   <div class="dcl">ההחלטה</div>
   <div class="dca">${esc(act)}</div>
-  <div class="dcq">${esc(decisionQty(r))}</div>
+  <div class="dcq">${esc(decisionQty(r))}${qlbl?`<span class="dcql">${esc(qlbl)}</span>`:''}</div>
   <div class="dcs2">${sub}</div>
+  ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
+  ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div>
   <!-- ============ מה הסימון הזה אינו ============
-       הסייג ישב במגירת «סימון והחרגה», בתוך טאב שמתכנן חדש אינו
-       פותח. הוא חייב לשבת ליד הכפתור עצמו: מי שלוחץ «טופל» בפעם
-       הראשונה מניח שזה מעדכן משהו. זו הנחה שעולה כסף. -->
+       הסייג חייב לשבת ליד הכפתור: מי שלוחץ «טופל» בפעם הראשונה מניח
+       שזה מעדכן משהו. אבל פסקה שלמה ליד כפתור היא עומס — לכן שורה
+       אחת, והפירוט ב-<details>, שנגיש במקלדת מעצם היותו אלמנט
+       סטנדרטי. מספר הימים נגזר מ-markTTL ואינו מקובע כאן שוב.
+
+       ============ כפתור ביטול אחד, לא שניים ============
+       כאן ישב «לבטל» שני עם data-dmark. אבל החיווט הוא
+       querySelector('#detail [data-dmark]') — יחיד, שלוקח את הראשון
+       במסמך, כלומר את «בטל סימון טופל». הכפתור הזה מעולם לא היה
+       מחובר: הוא נראה כמו פעולה ולא עשה דבר. פעולה אחת ברורה. -->
   <div class="dcnote">${done
-    ?`<b>סומן כטופל</b> — הפריט יצא מתור העבודה. הסימון נשמר בכלי בלבד ו<b>אינו מעדכן את SAP</b>; הכלי לא בדק דבר, הוא מקבל את מה שאמרת. הוא מסתיר את הפריט ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הפריט חוזר לסיווג האמיתי שלו כדי שהדוח הבא יראה אם השינוי אכן בוצע. «בטל סימון טופל» מחזיר אותו מיד.`
-    :`הסימון נשמר בכלי בלבד ו<b>אינו מעדכן את SAP</b>. הוא מוציא את הפריט מתור העבודה ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הוא חוזר מעצמו — «סומן כטופל» אינו «השינוי זוהה בדוח SAP הבא». אפשר לבטל בכל רגע.`}</div></div>`}
+    ?`<b>סומן כטופל</b> · מקומי, אינו מעדכן SAP · לביטול — <span class="undoref">בטל סימון טופל</span> שמעל`
+    :`סימון מקומי ל-${DAYS(markTTL('handled'))} ימים; אינו מעדכן SAP. ניתן לבטל.`}
+   <details class="dcwhat"><summary>מה בדיוק קורה</summary>
+    <p>«סמן כטופל» אומר לכלי שטיפלת — <b>הכלי לא בדק דבר</b>, הוא מקבל את מה שאמרת. זה <b>אינו</b> «השינוי זוהה בדוח SAP הבא»: אימות אמיתי מגיע רק כשהדוח הבא מראה שהפרמטר אכן זז.</p>
+    <p>הפריט יוצא מתור העבודה ל-${DAYS(markTTL('handled'))} ימים ואז חוזר מעצמו לסיווג האמיתי שלו, כדי שהדוח הבא יוכל להראות אם השינוי בוצע. הסימון נשמר בדפדפן הזה בלבד ושורד רענון.</p>
+   </details></div></div>`}
 function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
  /* ============ חריגות בהיסטוריה ============
     נמדד: 248 פריטים בדוח מחזיקים פיק ו-30 מחזיקים צניחה, אבל «פיק»
@@ -5468,13 +5618,15 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
  <div class="ohead"><div class="opn">${esc(r.pn)}${copyBtn(r.pn)}</div><h2>${esc(r.desc)}</h2>
-  <div class="tags"><span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
-  <span class="tag">${esc(r.supplier.slice(0,20))}</span><span class="tag p">${A.pattern}</span>
-  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>
-  ${r.isAcc?'<span class="tag">אביזר</span>':''}<span class="tag">${esc(r.model.slice(0,18))}</span>
-  <span class="tag">${esc(r.mrp)}</span>${r.currency?`<span class="tag">${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
- ${(()=>{const a=(r.act||[])[0];return a
-   ?`<div class="oact"><span class="oactk">הפעולה</span><b>${esc(a)}</b></div>`:''})()}
+  <!-- ============ תשע תגיות ירדו לשלוש ============
+       בראש הכרטיס נשאר מה שנחוץ כדי להבין את ההחלטה *הנוכחית*:
+       הספק (מולו מבצעים), סוג ה-MRP (הוא שקובע אם יש המלצת מלאי
+       בכלל), וגיל המלאי (הוא שקובע אם מדובר בעודף). מותג, ABC,
+       דפוס, דגם, אביזר, מטבע ויבוא/מקומי עברו ללשונית «נתונים» —
+       לא נמחקו. המטבע ממילא צמוד לכל סכום דרך money(). -->
+  <div class="tags"><span class="tag">${esc(r.supplier.slice(0,20))}</span>
+  <span class="tag">${esc(r.mrp)}</span>
+  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
  ${decisionBlock(r)}
  <div class="dtabs" id="dtabs">
   <button class="dt on" data-dt="why" data-xp="dt-why">החלטה</button>
@@ -5488,10 +5640,12 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
         ההסברים וההיסטוריה. קודם היה הפוך: «למה הפריט ברשימה»
         פתח, והפעולה ישבה אחרי ההיסטוריה — כלומר הדבר היחיד
         שמבקשים ממך לעשות היה האחרון שראית. -->
-   <div class="sec" data-dt="why"><h3>מה לעשות</h3><ul class="acts">${(r.act||[]).map(a=>`<li>${a}</li>`).join('')}</ul></div>
-   <div class="sec" data-dt="why"><h3>מה מצדיק את זה</h3>${(r.why||[]).map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]}</span><span>${m}</span></div>`).join('')}</div>
    ${anomHTML?`<div class="sec" data-dt="why"><h3>חריגות בהיסטוריה</h3>${anomHTML}</div>`:''}
    <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
+   <div class="sec" data-dt="data"><h3>מאפייני הפריט</h3><div class="tags attrs">
+    <span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
+    <span class="tag p">${A.pattern}</span><span class="tag">${esc(r.model.slice(0,18))}</span>
+    ${r.isAcc?'<span class="tag">אביזר</span>':''}${r.currency?`<span class="tag">מטבע ${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}</div></div>
    <div class="sec" data-dt="data"><h3>נתוני מקור</h3><div class="kv">
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
@@ -5703,8 +5857,9 @@ qEl('q').onkeydown=e=>{
   pushRecent(qEl('q').value);closeSug()}};
 document.addEventListener('mousedown',e=>{const t=e.target;
  if(t&&t.closest&&(t.closest('#qwrap')||t.closest('#qsug')))return;closeSug()});
-window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug();
- clearTimeout(window.__ctr);window.__ctr=setTimeout(topChart,120)});
+/* מיקום מחדש של הצעות החיפוש בשינוי גודל. הוא ישב באותו שומע עם
+   ציור הגרף המצרפי שהוסר, ולכן הופרד ולא נמחק איתו. */
+window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug()});
 document.getElementById('wmBtn').onclick=e=>{e.stopPropagation();document.getElementById('wMenu').classList.toggle('open')};
 document.getElementById('saveView').onclick=()=>saveLayout(true);
 document.getElementById('resetView').onclick=()=>resetLayout();
@@ -6113,6 +6268,8 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
   e.target.value=''};
  rd.readAsArrayBuffer(file)};
 etaChip();
+{const g=document.getElementById('shortlinkGo');
+ if(g)g.onclick=()=>shortOpen()}
 document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)return;
  /* ============ יציאה מפורשת מההדגמה ============
     כפתור ההעלאה נשאר פעיל בהדגמה, וזה נכון — אבל בלי השורה הזאת
@@ -6726,63 +6883,109 @@ const BRIEF_SKIP=(()=>{try{return new URLSearchParams(location.search).has('nobr
    תפתח את התדריך היא תפתח אותו בכל טעינה לנצח — כלומר תבטל את השער
    כולו. נשמרת חתימה, ומשווים. */
 function diagSig(){return (DIAG&&DIAG.warn)?DIAG.warn.join('|'):''}
+/* ============ הסיכום — ארבע השאלות, ומה קורה כשאין מול מה להשוות ============
+   הרצועה מסכמת מה זז מאז ההעלאה הקודמת. בהעלאה הראשונה אין בסיס
+   להשוואה, ולכן היא אומרת זאת במפורש ואינה מציגה אף פריט כ«שינוי»
+   מול בסיס שאינו קיים. */
+function briefHasBase(h){return !!(h&&HIST.runs&&HIST.runs.length>1)}
+/* ============ הכותרת והכרטיסים חייבים לתאר אותו בסיס ============
+   בטעינה חוזרת recordRun *אינו* דוחף הרצה חדשה ואינו מקדם seen/prevMiss
+   — כלומר ההשוואה האחרונה בין שני דוחות שונים נשמרת, וזה נכון. אבל
+   הכותרת אמרה «אין שינוי להשוות אליו» בזמן שהכרטיסים הציגו בדיוק את
+   ההשוואה ההיא. סתירה בין הכותרת לתוכן שמתחתיה.
+   מה שמתוקן כאן הוא הניסוח בלבד: מנגנון הזיהוי וזיכרון ההשוואות לא נגעו. */
+function runWhen(r){
+ if(!r)return '';
+ /* חודש העוגן של הדוח עצמו נשמר בתוך ה-sig, ולכן הוא זמין בלי נתון
+    חדש. השעה נכללת כי שני דוחות שונים נטענים לרוב באותו יום, ואז
+    תאריך בלבד מציג שני מועדים זהים ואינו מבדיל ביניהם. */
+ const ym=String(r.sig||'').split('|')[0];
+ const m=/^(\d{4})-(\d{1,2})$/.exec(ym||'');
+ const rep=m?`דוח ${+m[2]}/${m[1]}`:'';
+ let ld='';
+ if(r.ts){const d=new Date(r.ts);
+  ld=`${d.getDate()}.${d.getMonth()+1}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+ return rep&&ld?`${rep} (נטען ${ld})`:(rep||ld)}
+/* שני הדוחות שהמספרים למטה מתארים */
+function briefPair(h){
+ if(!briefHasBase(h))return null;
+ const rs=HIST.runs||[],a=runWhen(rs[rs.length-2]),b=runWhen(rs[rs.length-1]);
+ return (a&&b)?[a,b]:null}
+function briefBaseTxt(h){
+ if(!briefHasBase(h))return 'אין עדיין בסיס להשוואה';
+ const pr=briefPair(h);
+ return pr?`בסיס ההשוואה: ${pr[0]} מול ${pr[1]}`
+          :'בסיס ההשוואה: הדוח הקודם מול הנוכחי'}
 function briefReason(h){
- const sig=diagSig(), diagNew=sig&&sig!==(HIST.lastDiag||'');
- /* אותו קובץ בדיוק שוב: recordRun מזהה זאת לפי החתימה ואינו רושם
-    הרצה חדשה. אין מה להשוות. */
- if(h&&h.repeat)return diagNew?'אזהרה חדשה על הדוח':null;
- if(!HIST.runs||HIST.runs.length<=1)return 'הדוח הראשון שנטען כאן';
- const prev=HIST.runs[HIST.runs.length-2];
- const hours=prev&&prev.ts?Math.round((Date.now()-prev.ts)/36e5):999;
- if(diagNew)return 'אזהרה חדשה על הדוח';
- if(h&&h.newN>0)return `${h.newN} פריטים חדשים בתור`;
+ if(!briefHasBase(h))return 'הדוח הראשון שנטען כאן — אין עדיין דוח קודם להשוואה';
+ if(h&&h.repeat){const pr=briefPair(h);
+  return 'הדוח זוהה כטעינה חוזרת. מוצגת ההשוואה האחרונה בין שני דוחות שונים'
+   +(pr?` — ${pr[0]} מול ${pr[1]}`:'')+'.'}
  const worse=(QF&&QF.all?QF.all:[]).filter(r=>r.hWorse).length;
- if(worse>0)return `${worse} חוסרים החמירו`;
- if(hours>=24)return `עברו ${hours} שעות מההרצה הקודמת`;
- return null}
+ const bits=[];
+ if(h.newN>0)bits.push(`${h.newN} חדשים בתור`);
+ if(worse>0)bits.push(`${worse} החמירו`);
+ if(h.resolved>0)bits.push(`${h.resolved} יצאו מהתור`);
+ if(APPLIED&&APPLIED.total)bits.push(`${APPLIED.done} מתוך ${APPLIED.total} המלצות יושמו`);
+ return bits.length?bits.join(' · '):'שום פריט לא נכנס, לא החמיר ולא יצא';}
 function briefCards(h){
- const Q3=(QF&&QF.all?QF.all:[]).filter(r=>r.sev===3).length;
- const wait=(QF&&QF.waiting)?QF.waiting.length:0;
- const cap=decisionList('cap');
+ if(!briefHasBase(h))return [{l:'אין בסיס להשוואה',v:'—',
+   s:'זו ההעלאה הראשונה בדפדפן הזה. מההעלאה הבאה יוצג כאן מה נכנס לתור, מה החמיר ומה יצא.',
+   c:'var(--calm)'}];
  const worse=(QF&&QF.all?QF.all:[]).filter(r=>r.hWorse).length;
- const c=[];
- c.push({l:'הדוח',v:ALL.length.toLocaleString('he-IL'),s:`מק״טים · נטען ב-${(LOADMS/1000).toFixed(1)} שנ׳`,c:'var(--calm)'});
- c.push({l:'בוער עכשיו',v:Q3.toLocaleString('he-IL'),
-   s:`בחומרה 3 · <b>${wait}</b> לקוחות ממתינים ללא רכש`,c:'var(--critical)'});
- if(cap.length){
-  /* כל מטבע בשורה משלו. הגרסה הראשונה כאן הציגה «$1.0M+2» — הצורה
-     המקוצרת שנועדה לטאב צר, שמחביאה שני מטבעות מאחורי סימן פלוס.
-     במסך שכולו מוקדש למספר אחד אין שום סיבה לקצר, ואין סיבה להסתיר
-     מטבע. הדומיננטי גדול, השאר מתחתיו — ולעולם לא מחוברים. */
-  const by=sumBy(cap,r=>r.expCap||0);
-  const rest=by.slice(1).map(([cu,v])=>money(v,cu)).join(' · ');
-  c.push({l:'הון לשחרור',v:by.length?money(by[0][1],by[0][0]):'—',
-   s:(rest?rest+'<br>':'')+`<b>${cap.length.toLocaleString('he-IL')}</b> פריטים בעודף`,
-   c:'var(--capital)'})}
- if(h)c.push({l:'מה השתנה',v:(h.newN||0).toLocaleString('he-IL'),
-   s:`חדשים בתור · <b>${worse}</b> החמירו · <b>${h.resolved||0}</b> יצאו`,c:'var(--high)'});
- if(APPLIED&&APPLIED.total)c.push({l:'מה יושם',v:APPLIED.done.toLocaleString('he-IL'),
-   s:`מתוך <b>${APPLIED.total}</b> המלצות · <b>${APPLIED.other}</b> שונו אחרת · <b>${APPLIED.none}</b> לא נגעו`,c:'var(--steady)'});
+ const c=[
+  {l:'חדשים לטיפול',v:(h.newN||0).toLocaleString('he-IL'),
+   s:'פריטים שנכנסו לתור מאז ההעלאה הקודמת',c:'var(--critical)'},
+  {l:'החמירו',v:worse.toLocaleString('he-IL'),
+   s:'הכמות החסרה שלהם גדלה',c:'var(--high)'},
+  {l:'יצאו מהתור',v:(h.resolved||0).toLocaleString('he-IL'),
+   s:'נפתרו או ירדו מהרשימה',c:'var(--steady)'}];
+ /* «שינויים שיושמו» מוצג רק כשיש השוואת פרמטרים בפועל */
+ if(APPLIED&&APPLIED.total)c.push({l:'יושמו ב-SAP',v:APPLIED.done.toLocaleString('he-IL'),
+   s:`מתוך <b>${APPLIED.total}</b> המלצות · <b>${APPLIED.other}</b> שונו אחרת · <b>${APPLIED.none}</b> לא נגעו`,
+   c:'var(--capital)'});
  return c}
+/* ============ אינו חוסם ============
+   הרצועה מוצגת כשיש נתונים, מקופלת. אזהרות תקינות נתונים נשארות
+   בולטות ומוצגות פתוחות — הן הדבר היחיד כאן שדורש תשומת לב. */
+let BRIEF_OPEN=false;
+function briefToggle(v){
+ BRIEF_OPEN=v;
+ const b=document.getElementById('briefToggle'),c=document.getElementById('briefBody');
+ if(b)b.setAttribute('aria-expanded',v?'true':'false');
+ if(c)c.hidden=!v}
 function showBrief(h){
  const box=document.getElementById('brief');if(!box)return;
- const why=BRIEF_SKIP?null:briefReason(h);
- /* נרשם אחרי ההחלטה, כדי שאותה אזהרה לא תיחשב חדשה בפעם הבאה */
  HIST.lastDiag=diagSig();saveHist();
- const line=document.getElementById('briefLine');
- if(!why){box.hidden=true;document.body.classList.remove('briefing');
-  if(line)line.hidden=true;return}
- document.getElementById('briefSub').textContent=why;
- const d=document.getElementById('briefDiag');
+ if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
+  box.hidden=true;document.body.classList.remove('briefing');return}
+ const sub=document.getElementById('briefSub');
+ sub.textContent=briefReason(h);sub.title=briefReason(h);
+ /* הקידומת חייבת להתאים למשפט שאחריה: «מאז ההעלאה הקודמת הדוח זוהה
+    כטעינה חוזרת» אינו משפט. */
+ const kk=document.getElementById('briefKicker');
+ if(kk)kk.textContent=!briefHasBase(h)?'הדוח הזה'
+   :(h&&h.repeat)?'ההשוואה האחרונה':'מאז ההעלאה הקודמת';
+ const d=document.getElementById('briefDiag'),w=document.getElementById('briefWarn');
  const warn=(DIAG&&DIAG.warn)?DIAG.warn:[];
  d.hidden=!warn.length; if(warn.length)d.textContent=warn.join(' · ');
+ /* סימון קצר על השורה המקופלת — הטקסט המלא נפרש עם הרצועה */
+ w.hidden=!warn.length;
+ if(warn.length)w.textContent='⚠ '+(warn.length>1?warn.length+' אזהרות על הדוח':warn[0]);
+ const bb=document.getElementById('briefBase');
+ if(bb){bb.textContent=briefBaseTxt(h);bb.hidden=!briefHasBase(h)}
  document.getElementById('briefCards').innerHTML=briefCards(h).map(x=>
   `<div class="bcard" style="--c:${x.c}"><div class="bl">${esc(x.l)}</div>
    <div class="bv">${x.v}</div><div class="bs">${x.s}</div></div>`).join('');
- box.hidden=false;document.body.classList.add('briefing')}
-function closeBrief(){const b=document.getElementById('brief');if(b)b.hidden=true;
+ box.hidden=false;
+ /* הרצועה נפתחת תמיד מקופלת. קודם אזהרת תקינות פתחה אותה — אבל
+    האזהרה עצמה יושבת ב-#briefDiag, מחוץ לחלק שנפתח, ונראית ממילא.
+    הפתיחה לא הוסיפה מידע והוסיפה ~105px של פאנל ריק בהעלאה הראשונה. */
+ briefToggle(false);
  document.body.classList.remove('briefing')}
-document.addEventListener('click',e=>{if(e.target&&e.target.id==='briefGo')closeBrief()});
+function closeBrief(){briefToggle(false)}
+{const t=document.getElementById('briefToggle');
+ if(t)t.onclick=()=>briefToggle(!BRIEF_OPEN)}
 
 /* ============ תנועות אחרונות — מטאב-קבוע לטאב בתור העבודה ============ */
 /* הרצועה התחתונה גזלה 292px קבועים מתוך 860 — יותר מתור העבודה עצמו. */
