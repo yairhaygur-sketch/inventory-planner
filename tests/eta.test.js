@@ -204,7 +204,54 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p3.setInputFiles('#fe',SD+'/eta-report.xlsx');await p3.waitForTimeout(1200);
  const noPoCol=await p3.evaluate(()=>({hasPo:!!(ETA&&ETA.hasPo),rows:ETA&&ETA.rows}));
 
+ /* ============ שורות אספקה שלא שויכו לאף מק״ט ============
+    דוח ה-ETA מגיע ממערכת אחרת והשיוך הוא לפי מחרוזת. שורה שלא מתחברת
+    נופלת בשקט, והכלי ממשיך לחשב כאילו אין אספקה בדרך. על פריט רגיל זו
+    אי-דיוק; על פריט שנמצא בחוסר זו המלצה לפתוח רכש על סחורה שכבר
+    בדרך. הקובץ כאן נפרד מדוח ה-ETA המשותף, כדי לא להזיז ספירות
+    שבדיקות אחרות נועלות. */
+ const oRows=[
+  ['4190000101','000010',RLM('ETA-FULL'),'משויך',5,'EA',inMonth],
+  ['4190000102','000010','ZZZ-NOT-IN-CATALOG','יתום',9,'EA',inMonth],
+  ['4190000103','000010','ZZZ-ALSO-MISSING','יתום',4,'EA',inMonth],
+  /* ETA-NOPO בכתיב אחר — אפסים מובילים. הפריט בוער: לקוח ממתין, אפס
+     מלאי ואפס רכש. אי-השיוך הוא בדיוק המקרה המסוכן — הכלי ימליץ
+     לפתוח רכש על סחורה שכבר בדרך. */
+  ['4190000104','000010',RLM('00ETA-NOPO'),'יתום מסוכן',30,'EA',inMonth]];
+ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([ehdr,...oRows]),'גיליון1');return wb})(),
+  SD+'/eta-orphan.xlsx');
+ const p4=await ctx.newPage();p4.on('pageerror',e=>errs.push('p4: '+e.message));
+ await p4.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+ await p4.evaluate(()=>localStorage.clear());await p4.reload();await p4.waitForTimeout(400);
+ await p4.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p4.waitForTimeout(1800);
+ await p4.setInputFiles('#fe',SD+'/eta-orphan.xlsx');await p4.waitForTimeout(1200);
+ const orph=await p4.evaluate(()=>{const o=ETA_ORPH;
+   return {o:o&&{rows:o.rows,pns:o.pns,units:o.units,risky:o.risky.map(x=>x.pn)},
+     chip:(document.getElementById('etachip').textContent||''),
+     warn:((DIAG.warn||[]).filter(w=>/לא שויכו לאף פריט בקטלוג/.test(w))[0]||'')}});
+ await p4.evaluate(()=>etaClear());await p4.waitForTimeout(300);
+ const orphCleared=await p4.evaluate(()=>
+   !(DIAG.warn||[]).some(w=>/לא שויכו/.test(w))&&!ETA_ORPH);
+ await p4.close();
+
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
+
+ /* ── שורות אספקה שלא שויכו ── */
+ ok('שורות שלא שויכו נספרות',
+   !!orph.o&&orph.o.rows===3&&orph.o.pns===3&&orph.o.units===43,
+   orph.o?`${orph.o.rows} שורות · ${orph.o.pns} מק״טים · ${orph.o.units} יח׳`:'לא נמדד');
+ ok('והן נאמרות במפורש ולא נופלות בשקט',
+   /לא שויכו לאף פריט בקטלוג/.test(orph.warn),orph.warn.slice(0,85));
+ ok('השבב בסרגל מסמן את זה',/לא שויכו/.test(orph.chip),orph.chip);
+ /* הדגש שהמעתד ביקש: פריטים שנמצאים *עכשיו* בחוסר */
+ ok('ומי שנראה כמו מק״ט שבחוסר מסומן בנפרד ובשמו',
+   !!orph.o&&orph.o.risky.length===1&&orph.o.risky[0]==='ETA-NOPO',
+   orph.o&&orph.o.risky.join(' · '));
+ ok('והנוסח אומר מה לעשות לפני שפותחים רכש',
+   /בדוק את הכתיב לפני שתפתח עליהם רכש/.test(orph.warn),
+   (orph.warn.match(/⚠[^.]*\./)||[''])[0].slice(0,115));
+ ok('הסרת דוח ה-ETA מסירה גם את האזהרה',orphCleared);
 
  /* ── SHELL_BAND — ראה ההערה בשלב 1 ── */
  ok('בלי דוח ETA יש רצועה עם מספר-גיבור',bDry.band>0&&bDry.hero>=48,

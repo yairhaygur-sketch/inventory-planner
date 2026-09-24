@@ -14,3 +14,4 @@ tests/routes-b2.xlsx
 # פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
 design/*/*.html
 !design/*/*.dc.html
+tests/eta-orphan.xlsx

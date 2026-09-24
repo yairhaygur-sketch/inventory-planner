@@ -1021,18 +1021,26 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    on:document.getElementById('custBtn').classList.contains('on'),
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    n:custRows().length,
-   allZeroFree:custRows().every(r=>r.free<=0),
-   ignoresPo:custRows().some(r=>r.po>0)}));
+   gapOK:custRows().every(r=>r.cust>0&&(r.cust-(Math.max(0,r.free)+Math.max(0,r.po)))>0),
+   withShelf:custRows().filter(r=>r.free>0).length,
+   withPo:custRows().filter(r=>r.po>0).length,
+   burnIn:custRows().filter(r=>r.burn).length,
+   allBurn:QF.waiting.every(x=>custRows().some(r=>r.pn===x.pn))}));
  ok('לחיצה מבחוץ נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
     `mode=${dIn.mode} track=${dIn.track}`);
  ok('בתוך המסלול הכפתור מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
- ok('ובתוכו הכיתוב המלא חוזר',/לקוחות ממתינים/.test(dIn.txt),dIn.txt);
+ ok('ובתוכו הכיתוב המלא חוזר',/לקוח ממתין ללא כיסוי/.test(dIn.txt),dIn.txt);
  ok('המסלול מציג בדיוק את הפריטים שנספרו',dIn.rows===dIn.n,`${dIn.rows} שורות · ${dIn.n} נספרו`);
- /* הכלל הפשוט שהמתכנן ביקש: הזמנת לקוח מול מלאי פנוי אפס. מלאי
-    בדרך אינו מנוכה — פריט עם רכש פתוח נשאר ברשימה. */
- ok('הכלל הוא «הזמנה מול מדף אפס» — בלי לנכות מלאי בדרך',
-    dIn.allZeroFree&&dIn.ignoresPo,
-    `כולם באפס מדף=${dIn.allZeroFree} · יש ביניהם עם רכש פתוח=${dIn.ignoresPo}`);
+ /* ============ הכלל השתנה: פער כיסוי, לא מדף ריק ============
+    קודם היה «הזמנה מול מדף אפס». נמדד: 50 פריטים, ומתוכם אחד בוער —
+    פריט עם 19 הזמנות ויחידה אחת על המדף לא נכלל, כי המדף לא היה ריק
+    לגמרי. היום הכלל הוא שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים. */
+ ok('הכלל הוא פער כיסוי מול הזמנת הלקוח',dIn.gapOK,
+    `${dIn.n} פריטים · ${dIn.withShelf} מהם עם יחידות על המדף · ${dIn.withPo} עם רכש פתוח`);
+ ok('פריט עם שארית מלאי אינו נופל יותר מהרשימה',dIn.withShelf>0,
+    dIn.withShelf+' פריטים עם מדף גדול מאפס');
+ ok('וכל הבוערים בפנים',dIn.allBurn&&dIn.burnIn>0,
+    `${dIn.burnIn} בוערים מתוך ${dIn.n}`);
 
  await p.click('#custBtn');await p.waitForTimeout(900);
  ok('לחיצה שנייה חוזרת למסלול שממנו נכנסת',
