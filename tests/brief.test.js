@@ -31,6 +31,8 @@ const open=async(ctx,q)=>{
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    why:document.getElementById('briefSub').textContent.trim(),
    openAttr:document.getElementById('briefToggle').getAttribute('aria-expanded'),
+   warn:document.getElementById('briefWarn').hidden?'':document.getElementById('briefWarn').textContent.trim(),
+   diagHidden:document.getElementById('briefBody').hidden,
    cards:[...document.querySelectorAll('#briefCards .bcard')].map(c=>({
      l:c.querySelector('.bl').textContent.trim(),
      v:c.querySelector('.bv').textContent.trim()})),
@@ -44,6 +46,11 @@ const open=async(ctx,q)=>{
  ok('ולא מוצג אף פריט כ«שינוי» מול בסיס שאינו קיים',
    st.runs<=1?st.cards.every(c=>!/חדשים|החמירו|יצאו/.test(c.l)):true,
    st.cards.map(c=>c.l+'='+c.v).join(' · '));
+ ok('הרצועה נפתחת מקופלת — שורה אחת',st.openAttr==='false'&&st.diagHidden,
+   `aria-expanded=${st.openAttr}`);
+ /* בדוח הדגמה יש פריטים ללא מחיר FOB, ולכן חייבת להיות אזהרה — והיא
+    חייבת להיראות בלי לפתוח את הרצועה. */
+ ok('אזהרת תקינות נראית על השורה המקופלת',/^⚠/.test(st.warn),st.warn||'(ריק)');
  ok('אין כרטיס ריק',st.cards.every(c=>c.v&&c.v!=='undefined'&&c.v!=='NaN'),
    st.cards.map(c=>c.l+'='+c.v).join(' · '));
  /* --- השורה לחיצה בלי שום צעד ביניים --- */
@@ -57,8 +64,8 @@ const open=async(ctx,q)=>{
  await p.keyboard.press('Enter');await p.waitForTimeout(250);
  const afterK=await p.evaluate(()=>({
    exp:document.getElementById('briefToggle').getAttribute('aria-expanded'),
-   cards:document.getElementById('briefCards').hidden}));
- ok('הרצועה נפתחת ונסגרת במקלדת',afterK.exp!==before&&afterK.cards===(afterK.exp!=='true'),
+   body:document.getElementById('briefBody').hidden}));
+ ok('הרצועה נפתחת ונסגרת במקלדת',afterK.exp!==before&&afterK.body===(afterK.exp!=='true'),
    `${before} → ${afterK.exp}`);
  await p.close();
 

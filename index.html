@@ -651,9 +651,14 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .briefsum .bbk{font-weight:700;color:var(--ink)}
 .briefsum .bbx{margin-inline-start:auto;transition:transform .15s}
 .briefsum[aria-expanded="true"] .bbx{transform:rotate(180deg)}
-.briefbar .briefcards{margin:0;padding:8px 10px 10px;border-top:1px solid var(--line)}
-.briefbar .briefcards[hidden]{display:none}
+.briefbar .briefbody{border-top:1px solid var(--line)}
+.briefbar .briefbody[hidden]{display:none}
+.briefbar .briefcards{margin:0;padding:8px 10px 10px}
 .briefbar .briefdiag{margin:0;border-radius:0}
+/* האזהרה מסומנת על שורת הכותרת ונפרשת בפנים: רצועה מקופלת היא שורה אחת */
+.bbw{color:var(--high);font-weight:700;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;max-width:46%}
+.bbw[hidden]{display:none}
 /* ============ מסך הפתיחה ============ */
 /* מכסה את אזור העבודה בלבד, לא את הסרגל העליון: העלאת הדוח, החיפוש
    והעזרה חייבים להישאר לחיצים גם לפני שנטען משהו. inset-block-start
@@ -1919,11 +1924,13 @@ tr.grp.sup b{font-size:var(--f-md)}
              ברצועה שאפשר להרחיב. חסימה על דוח פסול (DIAG.hardStop) נשארת
              במקומה ואינה מושפעת מכאן. -->
         <div id="brief" class="briefbar" hidden>
-          <button type="button" class="briefsum" id="briefToggle" aria-expanded="false" aria-controls="briefCards">
-            <span class="bbk">מאז ההעלאה הקודמת</span><span id="briefSub"></span><span class="bbx" aria-hidden="true">▾</span>
+          <button type="button" class="briefsum" id="briefToggle" aria-expanded="false" aria-controls="briefBody">
+            <span class="bbk">מאז ההעלאה הקודמת</span><span id="briefSub"></span><span id="briefWarn" class="bbw" hidden></span><span class="bbx" aria-hidden="true">▾</span>
           </button>
-          <div id="briefDiag" class="briefdiag" hidden></div>
-          <div id="briefCards" class="briefcards" hidden></div>
+          <div id="briefBody" class="briefbody" hidden>
+            <div id="briefDiag" class="briefdiag" hidden></div>
+            <div id="briefCards" class="briefcards"></div>
+          </div>
         </div>
         <!-- ============ מסך הפתיחה ============
              לפני שנטען דוח, המסך היה ריק: שלד של וידג'טים בלי נתון אחד.
@@ -6818,7 +6825,7 @@ function briefCards(h){
 let BRIEF_OPEN=false;
 function briefToggle(v){
  BRIEF_OPEN=v;
- const b=document.getElementById('briefToggle'),c=document.getElementById('briefCards');
+ const b=document.getElementById('briefToggle'),c=document.getElementById('briefBody');
  if(b)b.setAttribute('aria-expanded',v?'true':'false');
  if(c)c.hidden=!v}
 function showBrief(h){
@@ -6827,15 +6834,20 @@ function showBrief(h){
  if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
   box.hidden=true;document.body.classList.remove('briefing');return}
  document.getElementById('briefSub').textContent=briefReason(h);
- const d=document.getElementById('briefDiag');
+ const d=document.getElementById('briefDiag'),w=document.getElementById('briefWarn');
  const warn=(DIAG&&DIAG.warn)?DIAG.warn:[];
  d.hidden=!warn.length; if(warn.length)d.textContent=warn.join(' · ');
+ /* סימון קצר על השורה המקופלת — הטקסט המלא נפרש עם הרצועה */
+ w.hidden=!warn.length;
+ if(warn.length)w.textContent='⚠ '+(warn.length>1?warn.length+' אזהרות על הדוח':warn[0]);
  document.getElementById('briefCards').innerHTML=briefCards(h).map(x=>
   `<div class="bcard" style="--c:${x.c}"><div class="bl">${esc(x.l)}</div>
    <div class="bv">${x.v}</div><div class="bs">${x.s}</div></div>`).join('');
  box.hidden=false;
- /* אזהרה על הדוח פותחת את הרצועה; סיכום רגיל נשאר מקופל */
- briefToggle(warn.length>0);
+ /* הרצועה נפתחת תמיד מקופלת. קודם אזהרת תקינות פתחה אותה — אבל
+    האזהרה עצמה יושבת ב-#briefDiag, מחוץ לחלק שנפתח, ונראית ממילא.
+    הפתיחה לא הוסיפה מידע והוסיפה ~105px של פאנל ריק בהעלאה הראשונה. */
+ briefToggle(false);
  document.body.classList.remove('briefing')}
 function closeBrief(){briefToggle(false)}
 {const t=document.getElementById('briefToggle');
