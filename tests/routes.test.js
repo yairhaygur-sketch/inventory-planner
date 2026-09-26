@@ -138,20 +138,28 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('פריט עם רכש פתוח אינו נחשב «ללא רכש»',
     !f.cBurn&&f.cCat!=='לקוח ממתין – אין רכש',`cat="${f.cCat}" רכש=${f.cPo}`);
 
-  /* --- הכניסה: ראשונה, גלויה, כפתור --- */
-  const nav=await p.evaluate(()=>{const t=document.getElementById('tabs');
-    const e=t.querySelector('.tab[data-m="burn"]');
-    return {first:t.children[0]&&t.children[0].dataset.m,
+  /* --- הכניסה: ראשונה בתחום החוסרים, גלויה, כפתור ---
+     היה: «הכניסה הראשונה בסרגל» — סרגל אופקי של יעדים שווים. במסילה
+     האנכית יש שתי רמות, ו«אין רכש כלל» הוא הדלת הראשונה בתוך
+     «חוסרים ולקוחות». מה שנשמר הוא מה שההחלטה באמת דרשה: כניסה
+     גלויה עם מונה, בלי לעבור דרך הקטלוג ובלי לדעת מראש שהיא קיימת. */
+  await p.click('#tabs .tab[data-m="today"]');await p.waitForTimeout(500);
+  const nav=await p.evaluate(()=>{const sb=document.getElementById('railsub');
+    const e=sb.querySelector('.railsub2[data-m="burn"]');
+    const area=document.querySelector('#tabs .tab[data-m="today"]');
+    return {first:(SUBNAV.today||[])[0]&&SUBNAV.today[0][0],
+      areaFirstVisible:!!area&&area.offsetParent!==null,
       vis:!!e&&e.offsetParent!==null,tag:e?e.tagName:'',
       name:e?((e.querySelector('.t')||{}).textContent||''):'' ,
       bdg:e?((e.querySelector('.bdg')||{}).textContent||''):''}});
-  ok('«לקוח ממתין ללא רכש» הוא הכניסה הראשונה בסרגל',nav.first==='burn',nav.first);
+  ok('«אין רכש כלל» הוא הדלת הראשונה בתוך «חוסרים ולקוחות»',
+    nav.first==='burn'&&nav.areaFirstVisible,nav.first);
   ok('והיא גלויה, כפתור, עם שם ומונה',
-    nav.vis&&nav.tag==='BUTTON'&&/לקוח ממתין ללא רכש/.test(nav.name)&&nav.bdg.length>0,
+    nav.vis&&nav.tag==='BUTTON'&&/אין רכש כלל/.test(nav.name)&&nav.bdg.length>0,
     `${nav.tag} "${nav.name}" מונה=${nav.bdg}`);
 
-  /* --- לחיצה אחת מגיעה בדיוק לדלי, והייצוא הוא בדיוק הוא --- */
-  await p.click('#tabs .tab[data-m="burn"]');await p.waitForTimeout(700);
+  /* --- לחיצה מגיעה בדיוק לדלי, והייצוא הוא בדיוק הוא --- */
+  await p.click('#railsub .railsub2[data-m="burn"]');await p.waitForTimeout(700);
   const r=await p.evaluate(()=>{
     const W=QF.waiting.map(x=>x.pn).sort(),c=currentRows().map(x=>x.pn).sort();
     return {mode,n:c.length,
@@ -166,7 +174,9 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
 
   /* --- מקלדת --- */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
-  await p.evaluate(()=>document.querySelector('#tabs .tab[data-m="burn"]').focus());
+  await p.evaluate(()=>document.querySelector('#tabs .tab[data-m="today"]').focus());
+  await p.keyboard.press('Enter');await p.waitForTimeout(600);
+  await p.evaluate(()=>document.querySelector('#railsub .railsub2[data-m="burn"]').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(600);
   ok('ואפשר להגיע לשם גם במקלדת',await p.evaluate(()=>mode==='burn'));
 
@@ -193,45 +203,54 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===e
         || e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))},id);
 
-  ok('«חוסרים לטיפול» הוא כפתור גלוי ולחיץ',await clickable('shortBtn'));
-  ok('«תיקוני פרמטרים ומעקב אספקה» הוא כפתור גלוי ולחיץ',await clickable('fixBtn'));
+  /* היו: shortBtn ו-fixBtn — שתי כניסות משניות (.mini) שנוספו בסוף
+     סרגל אופקי, כי «חוסרים לטיפול» ו«תיקוני פרמטרים ומעקב אספקה»
+     היו מרונדרים בלי שום דלת. במסילה האנכית שניהם *תחומים ראשיים*
+     בזכות עצמם — «חוסרים ולקוחות» ו«תכנון ו-MRP» — ולכן הבדיקה
+     מכוונת לשם. היכולת לא ירדה; היא עלתה רמה. */
+  const clickableSel=async sel=>await p.evaluate(q=>{const e=document.querySelector(q);
+    if(!e||e.hidden)return false;const r=e.getBoundingClientRect();
+    if(!(r.width>0&&r.height>0))return false;
+    return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===e
+        || e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))},sel);
+  ok('«חוסרים ולקוחות» הוא כפתור גלוי ולחיץ',
+    await clickableSel('#tabs .tab[data-m="today"]'));
+  ok('«תכנון ו-MRP» הוא כפתור גלוי ולחיץ',
+    await clickableSel('#tabs .tab[data-m="month"]'));
 
-  await p.click('#shortBtn');await p.waitForTimeout(600);
+  await p.click('#tabs .tab[data-m="today"]');await p.waitForTimeout(600);
   const a=await p.evaluate(()=>({mode,track,n:currentRows().length}));
   ok('לחיצה עליו פותחת את רשימת החוסרים',a.mode==='today'&&a.track==='short',
     `mode=${a.mode} track=${a.track} n=${a.n}`);
 
-  await p.click('#fixBtn');await p.waitForTimeout(600);
+  await p.click('#tabs .tab[data-m="month"]');await p.waitForTimeout(600);
   const f=await p.evaluate(()=>({mode,track,n:currentRows().length,
     fix:currentRows().filter(r=>r.paramFix).length,
-    ttl:document.getElementById('fixBtn').getAttribute('title')||''}));
+    ttl:document.querySelector('#tabs .tab[data-m="month"]').getAttribute('title')||'',
+    sub:(SUBNAV.month||[]).map(x=>x[1]).join(' · ')}));
   ok('ולחיצה על השני פותחת את רשימת תיקוני הפרמטרים המלאה',
     f.mode==='month'&&f.track==='month',`mode=${f.mode} n=${f.n}`);
   ok('הרשימה שם היא הרשימה המלאה ולא פילוח מתוך האוזלים',
     f.n>=f.fix&&f.fix>0,`${f.fix} תיקונים מתוך ${f.n}`);
-  ok('והכותרת מפרקת אותה לתיקונים ולמעקב אספקה',
-    /לתיקון פרמטרים ב-SAP/.test(f.ttl)&&/במעקב אספקה/.test(f.ttl),f.ttl);
+  /* היה: הכותרת של fixBtn פירקה את הרשימה לשני חלקים בריחוף. במסילה
+     הפירוק גלוי בעין — דלתות המשנה של התחום — ולא מוסתר בתוך title. */
+  ok('והתחום מפרק את עצמו לדלתות משנה גלויות',
+    /תיקוני פרמטרים/.test(f.sub)&&/רצפת SS/.test(f.sub)&&/יושמו ב-SAP/.test(f.sub),f.sub);
 
   /* מקלדת — כפתור תקני, בלי preventDefault שחוסם את ה-click */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
-  await p.evaluate(()=>document.getElementById('shortBtn').focus());
+  await p.evaluate(()=>document.querySelector('#tabs .tab[data-m="today"]').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(600);
   ok('אפשר להפעיל את הדלת במקלדת',
     await p.evaluate(()=>mode==='today'));
 
-  /* הסבר הניווט מצביע על המיקום בפועל */
-  const hint=await p.evaluate(()=>{const e=document.getElementById('navhint');
-    return e?(e.textContent||'').replace(/\s+/g,' '):''});
-  /* הרמז ב-#68 הצביע על «רצועה שמעל הטבלה» — renderTrack() מת ולכן
-     היא אינה קיימת. הוא מצביע היום על המקום שבו הכניסות באמת יושבות. */
-  ok('הסבר הניווט מצביע על המיקום בפועל ולא על רצועה שאינה קיימת',
-    /הכניסות הקטנות בסוף הסרגל/.test(hint)&&!/ברצועה שמעל הטבלה/.test(hint),
-    hint.slice(0,170));
-  /* ומי שקורא את הרמז מוצא שם באמת את שתי הכניסות */
-  ok('ושתי הכניסות אכן יושבות שם',
-    await p.evaluate(()=>['shortBtn','fixBtn'].every(i=>{
-      const e=document.getElementById(i);
-      return !!e&&e.closest('#tabs')&&e.offsetParent!==null})));
+  /* היה: «הסבר הניווט מצביע על המיקום בפועל» — פסקה שהסבירה איפה
+     יושבות שתי הכניסות הקטנות. שתיהן תחומים במסילה, ולכן ההסבר
+     הוחלף במה שהוא תיאר: הן שם, בשמן, עם מונה. */
+  ok('שני התחומים יושבים במסילה בשמם ועם מונה',
+    await p.evaluate(()=>['today','month'].every(k=>{
+      const e=document.querySelector(`#tabs .tab[data-m="${k}"]`);
+      return !!e&&e.offsetParent!==null&&!!e.querySelector('.t')&&!!e.querySelector('.bdg')})));
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
   await ctx.close()}
 
@@ -247,12 +266,21 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
    await load(p2,SD+'/routes.xlsx');
    for(const m of ['line','today','month','catalog']){
     await p2.evaluate(k=>setMode(k),m);await p2.waitForTimeout(350);
+    /* היה: «שורת ניווט אחת» — סרגל אופקי שנשבר לשתי שורות מתחת
+       ל-1280px. המסילה אנכית, ולכן מה שנבדק הוא מה שאותו כלל באמת
+       הגן עליו: כל שישה התחומים נושאים שם קריא, אף אחד אינו נחתך
+       לסמל בלבד, והמסילה אינה גולשת. */
     const r=await p2.evaluate(()=>{const t=document.getElementById('tabs');
-     const mini=[...t.querySelectorAll('.tab.mini .t')];
-     return {lines:new Set([...t.children].map(e=>Math.round(e.getBoundingClientRect().top))).size,
-       named:mini.filter(e=>e.offsetParent!==null).length}});
-    ok(`${W} · ${m} · שורת ניווט אחת, ושתי הכניסות נושאות שם`,
-      r.lines===1&&r.named===2,`שורות=${r.lines} · עם שם=${r.named}`);}
+     const tabs=[...t.querySelectorAll('.tab')];
+     const rail=document.getElementById('rail');
+     return {n:tabs.length,
+       named:tabs.filter(e=>{const s=e.querySelector('.t');
+         return s&&s.offsetParent!==null&&s.textContent.trim().length>2}).length,
+       cols:new Set(tabs.map(e=>Math.round(e.getBoundingClientRect().left))).size,
+       ov:rail.scrollWidth-rail.clientWidth}});
+    ok(`${W} · ${m} · שישה תחומים בעמודה אחת, כולם נושאים שם`,
+      r.n===6&&r.named===6&&r.cols===1&&r.ov<=1,
+      `תחומים=${r.n} · עם שם=${r.named} · עמודות=${r.cols} · גלישה=${r.ov}`);}
    await p2.close();}
   await ctx.close()}
 

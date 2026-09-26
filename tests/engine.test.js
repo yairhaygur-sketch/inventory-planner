@@ -36,14 +36,6 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    modeDefault: mode,
    modeCounts:  MODES.map(m=>m[0]+'='+modeRows(m[0]).length).join(' '),
    tabsShown:   document.querySelectorAll('#tabs .tab').length,
-   tabsMain:    document.querySelectorAll('#tabs .tab:not(.mini)').length,
-   tabsFirst:   (document.querySelector('#tabs .tab')||{dataset:{}}).dataset.m,
-   tabsBurn:    !!document.querySelector('#tabs .tab[data-m="burn"]'),
-   tabsMini:    [...document.querySelectorAll('#tabs .tab.mini')]
-                  .map(e=>e.dataset.m),
-   /* יעד ריק = תג שמראה 0. כזה לא אמור להופיע כלל. */
-   tabsEmpty:   [...document.querySelectorAll('#tabs .tab .bdg')]
-                  .filter(b=>b.textContent.trim()==='0').length,
    tabsCore:    ['line','catalog']
                   .filter(k=>[...document.querySelectorAll('#tabs .tab')]
                     .some(t=>t.dataset.m===k)).length,
@@ -74,36 +66,57 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('הציר הוא המצב הראשון',/^line,/.test(st.modes),st.modes);
  ok('ברירת מחדל = ציר הזמן',st.modeDefault==='line'&&st.trackDefault==='line',
     st.modeDefault+' / '+st.trackDefault);
- /* היה: «ארבעה יעדים בסרגל במקום 11». הכלל ההוא נולד מכך ש-13 יעדים
-    לעבודה של 48 פריטים היו יותר מדי, ושניים מהם היו ריקים. הוא צמצם
-    נכון — אבל הוא צמצם את מה שנראה, לא את מה שקיים: ארבעת המסלולים
-    המשיכו להתקיים כ-hidden, כל אחד נגיש ממצב אחד בלבד, ואי אפשר היה
-    למצוא אותם. רצפת SS לבדה מחזיקה $127,834 + ₪106,574.
-    הכלל החדש: יעד מופיע אם *ויש בו משהו*. שלושת המצבים תמיד; מסלול
-    נוסף רק כשהספירה שלו גדולה מאפס. לכן המספר אינו קבוע — הוא נגזר
-    מהנתונים, וזה בדיוק מה שהכלל הקודם ניסה להשיג. */
- ok('אין יעדים ריקים בסרגל',st.tabsEmpty===0,
-    st.tabsShown+' יעדים · '+st.tabsEmpty+' ריקים');
+ /* ============ המסילה: שישה תחומים, ואף מסלול ותיק לא נעלם ============
+    הכלל הקודם ("אין יעדים ריקים בסרגל") נולד מסרגל אופקי צר: שם כל
+    יעד עלה ברוחב, ולכן יעד ריק היה עלות בלי תמורה. הוא הוחלף בהחלטת
+    המתכנן: «היעדים אינם נעלמים כשהמונה אפס». במסילה אנכית אין תחרות
+    על רוחב, והעלמת תחום ריק מסתירה מהמעתד שהתחום בכלל קיים — בדיוק
+    הכשל שהכלל הישן ניסה למנוע במקום אחר.
+    מה שנעול כאן:
+    · שישה תחומי עבודה, קבועים, לפי המפרט.
+    · תחום עם מונה אפס נשאר על המסילה עם תג «כבוי».
+    · כל מסלול ותיק (burn, cust, done, rise, floor, trend, applied,
+      moves) נגיש — כתחום או כדלת משנה בתוך תחום. אין יכולת שאבדה.
+    · אין יותר כניסות .mini — הן הפכו לדלתות משנה ב-#railsub. */
+ const NAVEXP=['home','today','line','month','cap','catalog'];
+ const nav=await p.evaluate(exp=>{
+  const ids=()=>[...document.querySelectorAll('#tabs .tab')].map(e=>e.dataset.m);
+  const areas=ids(),subs={},cnt={};
+  areas.forEach(a=>{cnt[a]=navCount(a).n;setMode(a);
+   subs[a]=[...document.querySelectorAll('#railsub .railsub2')].map(e=>e.dataset.m)});
+  setMode('line');
+  /* הדוח הזה אינו מייצר תחום ריק, ולכן הכלל נבדק ישירות: מאפסים את
+     כל המונים, מרנדרים מחדש, ובודקים שהתחומים עדיין שם. */
+  const zTabs=(()=>{const orig=window.navCount;
+   try{window.navCount=()=>({n:0,hot:false});tiles();
+    return [...document.querySelectorAll('#tabs .tab')]
+      .map(e=>({m:e.dataset.m,zero:!!e.querySelector('.bdg.zero'),
+        txt:((e.querySelector('.bdg')||{}).textContent||'').trim()}))}
+   finally{window.navCount=orig;tiles()}})();
+  const bdgZero=[...document.querySelectorAll('#tabs .tab')]
+    .filter(e=>{const b=e.querySelector('.bdg');return b&&b.classList.contains('zero')})
+    .map(e=>e.dataset.m);
+  const legacy=[...new Set(Object.keys(MODESET).concat('moves'))];
+  const reach=[...new Set(areas.concat(...Object.values(subs)))];
+  return {areas,subs,cnt,zTabs,bdgZero,legacy,reach,
+   lost:legacy.filter(k=>!reach.includes(k)),
+   mini:document.querySelectorAll('#tabs .tab.mini').length,
+   inRail:!!document.querySelector('#rail #tabs'),
+   noArea:legacy.filter(k=>!AREA_OF[k])}},NAVEXP);
+ ok('שישה תחומי עבודה במסילה, בסדר שנקבע',nav.areas.join(',')===NAVEXP.join(','),
+    nav.areas.join(' · '));
+ ok('המסילה אנכית — #tabs יושב בתוך #rail',nav.inRail);
+ ok('תחום עם מונה אפס נשאר על המסילה, עם תג כבוי שמראה 0',
+    nav.zTabs.length===NAVEXP.length&&nav.zTabs.every(t=>t.zero&&t.txt==='0'),
+    nav.zTabs.length+' תחומים כשכל המונים אפס · '
+      +nav.zTabs.filter(t=>t.zero).length+' עם תג כבוי');
+ ok('כל מסלול ותיק נגיש — כתחום או כדלת משנה',!nav.lost.length,
+    nav.lost.join(' · ')||nav.reach.length+' נגישים');
+ ok('לכל מסלול יש תחום ב-AREA_OF',!nav.noArea.length,nav.noArea.join(' · ')||'—');
+ ok('הבוער הוא דלת המשנה הראשונה ב«חוסרים ולקוחות»',
+    (nav.subs.today||[])[0]==='burn',(nav.subs.today||[]).join(' · ')||'—');
+ ok('אין יותר כניסות משניות מוקטנות בסרגל',nav.mini===0,nav.mini+' .mini');
  ok('שני היעדים תמיד בסרגל — ציר וקטלוג',st.tabsCore===2,st.tabsCore+' מתוך 2');
- /* ============ שני מסלולים קיבלו דלת, והסרגל לא חזר להיות מה שהיה ============
-    «חוסרים לטיפול» (today) ו«תיקוני פרמטרים ומעקב אספקה» (month) היו
-    מרונדרים ועובדים בלי שום כניסה — renderTrack() מת, ואיתו רצועת
-    המסלולים. הם חזרו ככניסות משניות (.mini): קטנות, בלי תיאור, ובלי
-    מילוי גם כשהן פעילות.
-    מה שנעול כאן: היעדים *הראשיים* נשארים שלושה, והמשניים לכל היותר
-    שניים — כלומר לא הסרגל בן שבעת היעדים. */
- /* ============ למה ארבעה ולא שלושה ============
-    «לקוח ממתין ללא רכש» קיבל מסלול משלו. הוא לא היה נגיש בשום דרך:
-    ה-KPI שהציג אותו מוסתר כברירת מחדל ואינו לחיץ, הדלת «לקוחות
-    ממתינים» דורשת מדף אפס *בדיוק* ופספסה 15 מתוך 16, ואף מצב לא
-    החזיק בדיוק את הדלי — ולכן גם doExport() לא יכול היה לייצא אותו.
-    הוא ראשון בסרגל, ומופיע רק כשיש בו משהו. */
- ok('היעדים הראשיים נשארים ארבעה לכל היותר',st.tabsMain<=4,st.tabsMain+' ראשיים');
- ok('והבוער ראשון בהם',st.tabsFirst==='burn'||!st.tabsBurn,
-    `ראשון=${st.tabsFirst} · יש בוער=${st.tabsBurn}`);
- ok('ולכל היותר שתי כניסות משניות, ואלה בדיוק שני המסלולים שהיו בלי דלת',
-    st.tabsMini.length<=2&&st.tabsMini.every(m=>m==='today'||m==='month'),
-    st.tabsMini.join(' · ')||'—');
  ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
  ok('לכל מצב יש תוכן',/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
