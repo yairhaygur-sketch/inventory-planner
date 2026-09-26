@@ -413,6 +413,56 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
   await ctx.close()}
 
+ /* ================= 5 · בריאות המלאי =================
+    התחום היה קיים במסילה, אבל הגוף שלו היה בדיוק הקטלוג: cur='all',
+    900 פריטים, ועמודת «הון כלוא» ריקה ברוב השורות הגלויות. */
+ {const ctx=await mkctx();const p=await ctx.newPage();
+  const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p,SD+'/routes.xlsx');
+  await p.click('#tabs .tab[data-m="cap"]');await p.waitForTimeout(700);
+  const c=await p.evaluate(()=>{
+   const el=document.getElementById('capTop');
+   const {list,B}=capBuckets();
+   const sup=capBySupplier(list);
+   const money=[...el.querySelectorAll('.cpanel h4 span')].map(x=>x.textContent);
+   return {mode,cur,track,
+     rows:currentRows().length,eng:list.length,
+     catalog:(QF.all||[]).length,
+     shown:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+     tiles:[...el.querySelectorAll('.ctile')].map(t=>({
+       t:t.querySelector('.ct').textContent,n:+t.querySelector('.cn').textContent.replace(/[^\d]/g,'')})),
+     eb:{excess:B.excess.length,slow:B.slow.length,dead:B.dead.length,other:B.other.length},
+     panels:sup.length,money,
+     curs:[...new Set(list.map(r=>r.currency||'—'))].length,
+     note:(el.querySelector('.cnote')||{}).textContent||'',
+     capCol:(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
+        .findIndex(t=>/הון כלוא/.test(t.textContent));
+       if(i<0)return null;
+       const tds=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,10)
+         .map(tr=>(tr.children[i].textContent||'').trim());
+       return tds.filter(x=>x&&x!=='—').length})()}});
+  ok('הטבלה היא רשימת ההון הכלוא ולא הקטלוג',
+    c.rows===c.eng&&c.eng<c.catalog,`${c.rows} שורות · ${c.eng} עם הון כלוא · ${c.catalog} בקטלוג`);
+  ok('ולכל שורה גלויה יש באמת הון כלוא',c.capCol===null||c.capCol>=Math.min(10,c.shown),
+    `${c.capCol} מתוך ${Math.min(10,c.shown)} הראשונות`);
+  ok('ארבעה אריחים, והמספרים הם הפילוח של המנוע',
+    c.tiles.length===4&&c.tiles[0].n===c.eng
+    &&c.tiles[1].n===c.eb.excess&&c.tiles[2].n===c.eb.slow&&c.tiles[3].n===c.eb.dead,
+    c.tiles.map(t=>`${t.t}=${t.n}`).join(' · '));
+  /* «רקע» אינו נעלם: אם רוב הפריטים בעלי ההון הכלוא אינם באף אחד
+     משלושת הדליים, המסך אומר זאת ולא מציג שלושה מספרים כאילו הם
+     כל הסיפור. */
+  ok('ומה שאינו באף דלי נאמר במפורש',
+    !c.eb.other||(c.note.includes(String(c.eb.other))&&/אינם עודף/.test(c.note)),
+    c.note.slice(0,90)||'(אין «רקע»)');
+  ok('לוח לכל מטבע — ואין סכום אחד חוצה מטבעות',
+    c.panels===c.curs&&c.money.length===c.curs,
+    `${c.panels} לוחות · ${c.curs} מטבעות · ${c.money.join(' | ')}`);
+  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
+  await ctx.close()}
+
  console.log(out.join('\n'));
  await b.close();
  process.exit(bad?1:0)})();

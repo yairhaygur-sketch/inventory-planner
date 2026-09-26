@@ -1054,6 +1054,40 @@ td.miss .posq{color:var(--dim)}
 .hhead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:0 0 9px}
 .hhead h2{margin:0;font-size:17px;font-weight:800;color:var(--ink)}
 .hhead .hsub{font-size:var(--f-sm);color:var(--ink-3)}
+/* ============ בריאות המלאי ============ */
+.captop{flex:0 0 auto;padding:8px 0 10px;border-block-end:1px solid var(--line2);margin-block-end:6px}
+.ctiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ctile{display:flex;flex-direction:column;gap:1px;padding:7px 10px;min-width:0;
+ background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);
+ border-inline-start:3px solid var(--line)}
+.ctile.capital{border-inline-start-color:var(--capital)}
+.ctile.excess{border-inline-start-color:var(--high)}
+.ctile.slow{border-inline-start-color:var(--trend)}
+.ctile.dead{border-inline-start-color:var(--ink-3)}
+.ctile .cn{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-size:20px;font-weight:800;color:var(--ink);line-height:1.1}
+.ctile .ct{font-size:var(--f-sm);font-weight:700;color:var(--ink-2)}
+.ctile .cm{font-family:var(--num);font-size:var(--f-sm);color:var(--ink);font-weight:700;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctile .cw{font-size:var(--f-xs);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cnote{margin:7px 0 0;font-size:var(--f-sm);color:var(--ink-2);line-height:1.45}
+.cnote.dim{color:var(--ink-3);font-size:var(--f-xs)}
+.cpanels{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:8px}
+.cpanel{min-width:0;background:var(--surface);border:1px solid var(--line);
+ border-radius:var(--r-card);padding:7px 10px 8px}
+.cpanel h4{display:flex;justify-content:space-between;gap:8px;margin:0 0 5px;
+ font-size:var(--f-sm);font-weight:800;color:var(--ink)}
+.cpanel h4 span{font-family:var(--num);color:var(--capital);font-weight:800}
+.cbar{display:flex;align-items:center;gap:7px;padding:1px 0;font-size:var(--f-xs)}
+.cbar .cbn{flex:0 0 74px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cbar .cbt{flex:1 1 auto;min-width:0;height:10px;background:var(--surface-2);
+ border-radius:3px;overflow:hidden;display:block}
+.cbar .cbt i{display:block;height:100%;background:var(--capital);border-radius:3px}
+.cbar.rest .cbt i{background:var(--ink-3)}
+.cbar .cbv{flex:0 0 auto;font-family:var(--num);font-variant-numeric:tabular-nums;
+ color:var(--ink);font-weight:700;white-space:nowrap}
+@media(max-width:1240px){.ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* ============ מרכז העבודה ============
    ארבעה כרטיסים על רשת של שתיים, כל אחד חמש שורות. הכרטיס אינו
    טבלה — הוא מצביע אל אחת, ולכן שורה בו היא כפתור ולא תא. */
@@ -2229,6 +2263,8 @@ tr.grp.sup b{font-size:var(--f-md)}
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון"><span class="di">✓</span><span class="fn" id="doneN">0</span><span class="dl"> טופלו</span></button></span>
           </div>
         <div class="line" id="line" hidden></div>
+        <!-- בריאות המלאי — רצועת סקירה מעל טבלת ההון הכלוא -->
+        <div class="captop" id="capTop" hidden></div>
         <!-- ============ התדריך — מסך חוסם הפך לרצועה ============
              התדריך היה שכבה מלאה מעל הכלי שדרשה לחיצה על «התחל לעבוד» לפני
              שרואים שורה אחת. הוא אינו מחליט דבר ואינו חוסם שום טעות — הוא
@@ -4085,9 +4121,13 @@ const MODESET={
  /* מרכז העבודה — מסך נחיתה. הוא אינו טבלה, ולכן track הוא 'short'
     רק כדי שכל מה שנשען על track ימשיך לעבוד; הגוף עצמו מוחלף. */
  home:{cur:'today',track:'short'},
- /* בריאות המלאי — אותו track 'cap' של הקטלוג, והפילוח לעודף/איטי/מת
-    נעשה בתוך המסך. אין כאן סיווג חדש. */
- cap:{cur:'all',track:'cap'},
+ /* ============ בריאות המלאי ============
+    היה cur:'all' — כלומר בדיוק הקטלוג, 900 פריטים, ועמודת «הון
+    כלוא» ריקה ברוב השורות הגלויות. עם cur:'today' הטבלה היא
+    decisionList('cap') עצמה: 311 הפריטים שיש להם הון כלוא, בבלוקי
+    מטבע, עם קו ה-80% לכל מטבע — המנגנון היה קיים ולא הגיעו אליו.
+    «קטלוג פריטים» נשאר cur:'all' ולא זז. */
+ cap:{cur:'today',track:'cap'},
  line:{cur:'today',track:'line'},today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
  /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
@@ -6044,7 +6084,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
     עכשיו מאותו מקור שהמסילה מציגה. */
  document.getElementById('lt').textContent=screenName();
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
- colsSync();setTimeout(freezeCols,0);
+ colsSync();renderCapTop();setTimeout(freezeCols,0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
@@ -7772,6 +7812,70 @@ function closeBrief(){briefToggle(false)}
 /* ============ תנועות אחרונות — מטאב-קבוע לטאב בתור העבודה ============ */
 /* הרצועה התחתונה גזלה 292px קבועים מתוך 860 — יותר מתור העבודה עצמו. */
 function showMovesPanel(on){showBody(on?'moves':'queue')}
+/* ============ בריאות המלאי ============
+   התחום היה קיים במסילה אבל הגוף שלו היה מסך הקטלוג עם מסלול «cap».
+   הרצועה הזאת מוסיפה מעליו את מה שהמפרט ביקש: הפילוח לעודף · איטי ·
+   מת, וההון הכלוא לפי ספק — כל מטבע בלוח נפרד.
+
+   שני כללים עסקיים שאינם נמתחים כאן:
+   · אין סכום בין מטבעות ואין המרה. לכל מטבע סקאלה משלו, ולכן אורך
+     העמודה משווה בתוך המטבע בלבד.
+   · «רקע» אינו נעלם. רוב הפריטים בעלי הון כלוא אינם עודף, אינם
+     איטיים ואינם מתים — והרצועה אומרת זאת, כדי ששלושת הדליים לא
+     ייראו כמו כל הסיפור. */
+function capBuckets(){
+ const list=decisionList('cap');
+ const B={excess:[],slow:[],dead:[],other:[]};
+ for(const r of list){const c=r.cat||'';
+  if(/^עודף/.test(c))B.excess.push(r);
+  else if(/^מלאי איטי/.test(c))B.slow.push(r);
+  else if(/^מלאי מת/.test(c))B.dead.push(r);
+  else B.other.push(r)}
+ return {list,B}}
+function capBySupplier(list){
+ const by=new Map();
+ for(const r of list){const cur=r.currency||'—',sup=r.supplier||'ללא ספק';
+  if(!by.has(cur))by.set(cur,new Map());
+  const m=by.get(cur);m.set(sup,(m.get(sup)||0)+(r.expCap||0))}
+ return [...by.entries()]
+  .map(([cur,m])=>[cur,[...m.entries()].filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1])])
+  .filter(([,l])=>l.length)
+  .sort((a,b)=>b[1].reduce((t,x)=>t+x[1],0)-a[1].reduce((t,x)=>t+x[1],0))}
+function renderCapTop(){
+ const el=document.getElementById('capTop');if(!el)return;
+ const on=mode==='cap';
+ el.hidden=!on;document.body.classList.toggle('cap-on',on);
+ if(!on){el.innerHTML='';return}
+ const {list,B}=capBuckets();
+ const tile=(t,rows,tone,why)=>`<div class="ctile ${tone}">
+   <span class="cn">${rows.length.toLocaleString('he-IL')}</span>
+   <span class="ct">${esc(t)}</span>
+   <span class="cm">${rows.length?moneyMix(rows,r=>r.expCap||0,true):'—'}</span>
+   <span class="cw">${esc(why)}</span></div>`;
+ const cur=capBySupplier(list);
+ /* עמודות אופקיות: השם הוא קטגוריה, והמספר יושב בקצה העמודה. */
+ const panel=([c,rows])=>{const mx=Math.max(...rows.map(x=>x[1]));
+  const top=rows.slice(0,6),rest=rows.slice(6);
+  const restSum=rest.reduce((t,x)=>t+x[1],0);
+  return `<div class="cpanel"><h4>${esc(curName(c))}<span>${money(rows.reduce((t,x)=>t+x[1],0),c)}</span></h4>
+   ${top.map(([sup,v])=>`<div class="cbar" title="${esc(sup)} — ${esc(money(v,c))}">
+     <span class="cbn">${esc(sup)}</span>
+     <span class="cbt"><i style="width:${Math.max(2,Math.round(v/mx*100))}%"></i></span>
+     <span class="cbv">${money(v,c)}</span></div>`).join('')}
+   ${rest.length?`<div class="cbar rest" title="${rest.length} ספקים נוספים">
+     <span class="cbn">ועוד ${rest.length}</span>
+     <span class="cbt"><i style="width:${Math.max(2,Math.round(restSum/mx*100))}%"></i></span>
+     <span class="cbv">${money(restSum,c)}</span></div>`:''}</div>`};
+ el.innerHTML=`<div class="ctiles">
+   ${tile('הון כלוא — הכול',list,'capital','כל פריט שיש לו הון כלוא מחושב')}
+   ${tile('עודף מלאי',B.excess,'excess','מלאי מעל מה שהקצב מצדיק')}
+   ${tile('מלאי איטי',B.slow,'slow','תנועה איטית לפי גיל המלאי')}
+   ${tile('מלאי מת',B.dead,'dead','בלי תנועה בחלון שנמדד')}
+  </div>
+  ${B.other.length?`<p class="cnote">${B.other.length.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')} הפריטים עם הון כלוא אינם עודף, אינם איטיים ואינם מתים — הם ברשימה שלמטה תחת הסיווג שלהם.</p>`:''}
+  <div class="cpanels">${cur.map(panel).join('')}</div>
+  <p class="cnote dim">הון כלוא לפי ספק · כל מטבע בסקאלה משלו — אין המרה ואין השוואה בין מטבעות.</p>`}
+
 /* ============ מרכז העבודה ============
    מסך הנחיתה. הוא אינו טבלה שלישית ואינו סיווג חדש: ארבע רשימות
    קיימות, חמש השורות הראשונות בכל אחת, וקישור לרשימה המלאה שממנה

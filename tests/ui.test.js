@@ -1431,6 +1431,35 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('והמיקום ברשימה מתעדכן',nav2.pos!==nav1.pos,`${nav1.pos} → ${nav2.pos}`);
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
 
+ /* ============ בריאות המלאי על נתוני הדגמה מלאים ============
+    ב-routes.xlsx יש שני פריטים עם הון כלוא ושניהם עודף, ולכן הכלל
+    «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
+    900 פריטים ורוב ההון הכלוא אינו באף אחד משלושת הדליים. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='cap');if(a)a.click()});
+ await p.waitForTimeout(800);
+ const capS=await p.evaluate(()=>{const {list,B}=capBuckets();
+   const el=document.getElementById('capTop');
+   return {other:B.other.length,n:list.length,
+     note:(el.querySelector('.cnote')||{}).textContent||'',
+     rows:currentRows().length,
+     tiles:[...el.querySelectorAll('.ctile .cn')].map(x=>+x.textContent.replace(/[^\d]/g,'')),
+     bars:el.querySelectorAll('.cbar').length,
+     panels:el.querySelectorAll('.cpanel').length,
+     curs:[...new Set(list.map(r=>r.currency||'—'))].length}});
+ ok('מה שאינו עודף, איטי או מת נאמר במפורש ולא נבלע',
+   capS.other>0&&capS.note.includes(capS.other.toLocaleString('he-IL'))
+   &&capS.note.includes(capS.n.toLocaleString('he-IL')),
+   `${capS.other} מתוך ${capS.n} · "${capS.note.slice(0,70)}"`);
+ ok('והטבלה מציגה בדיוק את רשימת ההון הכלוא',capS.rows===capS.n&&capS.tiles[0]===capS.n,
+   `${capS.rows} שורות · ${capS.n} ברשימה`);
+ ok('לוח לכל מטבע, ועמודות לספקים בתוכו',
+   capS.panels===capS.curs&&capS.bars>=capS.curs,
+   `${capS.panels} לוחות · ${capS.curs} מטבעות · ${capS.bars} עמודות`);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+
  /* ============ שתי בקרות הגובה: מדדים וצפיפות ============
     סעיף 3ג במפרט: «צפיפות רגילה וצפופה», ויעד של 18-24 שורות קריאות,
     עם איסור מפורש להגיע לשם בהקטנת טקסט. שתיהן נבדקות על אותה
