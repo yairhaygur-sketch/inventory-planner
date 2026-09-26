@@ -9,6 +9,18 @@ const topAct=async(p,id)=>{
  if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
  await p.click('#'+id);
  if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
+/* ============ ניווט במסילה ============
+   אחרי המעבר למסילה אנכית, מסלול ותיק שאינו אחד משישה התחומים
+   (moves, burn, cust, done, rise, floor, trend, applied) נמצא כדלת
+   משנה ב-#railsub של התחום שלו. הבדיקה הולכת באותו מסלול שהמעתד
+   הולך בו: תחום, ואז הדלת שבתוכו. */
+const goNav=async(p,k)=>{await p.evaluate(key=>{
+  const area=(typeof AREA_OF!=='undefined'&&AREA_OF[key])||key;
+  const a=[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m===area);
+  if(a)a.click();
+  if(area!==key){const s=[...document.querySelectorAll('#railsub .railsub2')]
+    .find(t=>t.dataset.m===key);if(s)s.click()}},k);
+ await p.waitForTimeout(400)};
 const SD=__dirname;const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -25,14 +37,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // 1. ניווט מקלדת ↓
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
- let pn1=await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim());
+ let pn1=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ למטה בוחר פריט ומעדכן את הכרטיס',!!pn1,pn1);
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
- let pn2=await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim());
+ let pn2=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ נוסף מתקדם לפריט הבא',pn2&&pn2!==pn1,pn1+' → '+pn2);
  await p.keyboard.press('ArrowUp');await p.waitForTimeout(250);
  ok('חץ למעלה חוזר אחורה',
-   (await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim()))===pn1);
+   (await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim()))===pn1);
 
  // 2. Enter מסמן כטופל וממשיך
  const before=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
@@ -49,8 +61,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('Escape יוצא מהשדה',await p.evaluate(()=>document.activeElement.id!=='q'));
 
  // 4. טאב תנועות
- await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m==='moves')?.click());
- await p.waitForTimeout(500);
+ await goNav(p,'moves');await p.waitForTimeout(200);
  const mv=await p.evaluate(()=>({rows:document.querySelectorAll('#movtbl tbody tr').length,
    panelShown:getComputedStyle(document.getElementById('movesPanel')).display!=='none',
    queueHidden:getComputedStyle(document.querySelector('#w_queue .qpanel')).display==='none',
@@ -61,7 +72,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ניווט מקלדת עובד גם בטאב תנועות',
    await p.evaluate(()=>document.querySelectorAll('#movtbl tbody tr.sel').length===1));
  // חזרה
- await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')].find(t=>t.dataset.m==='today')?.click());
+ await goNav(p,'today');
 
  /* ============ שום טאב לא מציג HTML כטקסט ============
     נמדד אחרי באג אמיתי: כותרת המשנה של «הקטלוג» הציגה על המסך את
@@ -157,13 +168,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {onScreen:d.right>0&&d.left<innerWidth,open:document.body.classList.contains('dopen'),
      rowsW:rows.clientWidth,tblW:tbl.scrollWidth,
      railW:Math.round((document.querySelector('.wfilters')||{getBoundingClientRect:()=>({width:0})}).getBoundingClientRect().width),
-     cols:getComputedStyle(document.querySelector('.dash')).gridTemplateColumns.split(' ').length}});
+     dashW:Math.round(document.querySelector('.dash').getBoundingClientRect().width)}});
  ok('בטעינה, לפני שנבחר פריט, המגירה סגורה ומחוץ למסך',!fresh.open&&!fresh.onScreen);
  ok('סגירה מוציאה את המגירה מהמסך',!dr.onScreen&&!dr.open);
  /* המסילה מקופלת בפתיחה לפי החלטת המתכנן, ולכן הגריד הוא עמודה
     אחת עד שפותחים אותה. הבדיקה שמסילה *פתוחה* חולקת את הגריד
     עברה למטה, אחרי שהכפתור פותח אותה. */
- ok('בלי מסילה הרשימה מקבלת את כל הרוחב',dr.cols===1,dr.cols+' עמודות');
+ /* היה: נמדד על gridTemplateColumns של .dash. אזור העבודה אינו גריד
+    יותר אלא עמודה אחת, ולכן נמדד מה שהכלל באמת אומר — הרשימה תופסת
+    את כל רוחב אזור העבודה כשמסילת הסינון מקופלת. */
+ ok('בלי מסילה הרשימה מקבלת את כל הרוחב',dr.rowsW>=dr.dashW*0.94,
+    `רשימה ${dr.rowsW} מתוך ${dr.dashW}`);
  /* היה: «מסילת הסינון פתוחה כברירת מחדל». המתכנן הכריע אחרת —
     220px שעומדים ריקים ברוב הבקרים. עכשיו היא מקופלת בפתיחה,
     והסינונים הפעילים מוצגים כשבבים מעל הטבלה כדי שסינון שנשכח
@@ -494,26 +509,41 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     הכלל החדש מיישם את החלטת 14.9 במלואה ולא סותר אותה: «הספירה
     עוזרת לבחור לאן ללכת, הסכום עוזר להחליט מה לעשות בפנים» —
     ולכן מחוץ למסלול ספירה בלבד, ובתוכו ספירה וסכום. */
- const navTo=async k=>{await p.evaluate(m=>{
-   const t=[...document.querySelectorAll('#tabs .tab')].find(x=>x.dataset.m===m);
-   if(t)t.click();else setMode(m)},k)};
- const navSeen=k=>p.evaluate(m=>{const t=[...document.querySelectorAll('#tabs .tab')]
-   .find(e=>e.dataset.m===m);return !!t&&t.getBoundingClientRect().width>0},k);
+ /* אחרי המעבר למסילה האנכית יש שתי רמות ניווט: תחום ב-#tabs ודלת
+    משנה ב-#railsub. שלוש העזר האלה הולכות באותו מסלול שהמעתד הולך
+    בו — קודם התחום, ואז הדלת שבתוכו. */
+ const navEl=`#tabs .tab,#railsub .railsub2`;
+ const navTo=async k=>{await p.evaluate(([m,sel])=>{
+   const area=(typeof AREA_OF!=='undefined'&&AREA_OF[m])||m;
+   const a=[...document.querySelectorAll('#tabs .tab')].find(x=>x.dataset.m===area);
+   if(a)a.click();
+   const t=[...document.querySelectorAll(sel)].find(x=>x.dataset.m===m);
+   if(t)t.click();else setMode(m)},[k,navEl])};
+ const navSeen=k=>p.evaluate(([m,sel])=>{const t=[...document.querySelectorAll(sel)]
+   .find(e=>e.dataset.m===m);return !!t&&t.getBoundingClientRect().width>0},[k,navEl]);
+ const navBdg=k=>p.evaluate(([m,sel])=>{const t=[...document.querySelectorAll(sel)]
+   .find(e=>e.dataset.m===m);
+   return t?((t.querySelector('.bdg')||{}).textContent||'').trim():null},[k,navEl]);
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
  /* היה: «נגיש מסרגל הטאבים». הסרגל צומצם לשניים ברפורמה, והמסלול
     נשאר נגיש דרך setMode. מה שחשוב לא השתנה: שהוא קיים ומציג פריטים. */
  ok('מסלול "רצפת SS" עדיין קיים ומציג פריטים',
     await p.evaluate(()=>floorRows().length>0),
     await p.evaluate(()=>floorRows().length+' פריטים'));
- /* היה: `ok('ב"היום" הסיכום הכספי של המסלול אינו מוצג',!(await seen('floorBtn')))`
-    — הכפתור נדרש להיות מוסתר לגמרי מחוץ למסלול. זה מה שהפך אותו
-    לדלת מתה. עכשיו הוא גלוי מחוץ למסלול, אבל בלי סכום: הסכום הוא
-    מה שנשאר בלעדי למסלול עצמו, וזו הייתה כוונת ההחלטה. */
+ /* היה: הכפתור נדרש להיות גלוי *מחוץ* למסלול, כדי שלא יהיה דלת מתה
+    (PR #69). המסילה האנכית פתרה את אותה בעיה במקום טוב יותר: «רצפת
+    SS» היא דלת משנה קבועה בתוך «תכנון ו-MRP», עם ספירה, ולכן שבב
+    ניווט נוסף בשורת הכותרת הוא אותו ניווט בשני מקומות — והוא עלה
+    שם 690px מתוך 1008 ב-1280px.
+    הכלל החדש: מחוץ למסלול אין שבב בכותרת אבל יש דלת במסילה עם אותה
+    ספירה בדיוק; בתוך המסלול השבב חוזר ונושא את הסיכום הכספי. */
  const flOut=await p.evaluate(()=>{const e=document.getElementById('floorBtn');
    return {seen:!!e&&e.offsetParent!==null&&e.getBoundingClientRect().width>0,
-     txt:(e.textContent||'').replace(/\s+/g,' ').trim(),n:floorRows().length}});
- ok('ב"היום" הכפתור מוצג כדלת — ספירה בלי סכום',
-    flOut.n>0&&flOut.seen&&!/[$€₪]/.test(flOut.txt),flOut.txt);
+     inSub:(SUBNAV.month||[]).some(x=>x[0]==='floor'),
+     railN:navCount('floor').n,n:floorRows().length}});
+ ok('ב"היום" אין שבב רצפה בכותרת — הדלת יושבת במסילה עם אותה ספירה',
+    flOut.n>0&&!flOut.seen&&flOut.inSub&&flOut.railN===flOut.n,
+    `כותרת=${flOut.seen} · מסילה=${flOut.railN} · בפועל=${flOut.n}`);
  await p.evaluate(()=>setMode('month'));await p.waitForTimeout(700);
  const fl=await p.evaluate(()=>({vis:!document.getElementById('floorBtn').hidden,
    txt:document.getElementById('floorBtn').textContent.trim(),
@@ -589,17 +619,18 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* בדיקות קודמות בקובץ מסמנות פריטים — מתחילים מלוח נקי */
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
- const dHid=()=>p.evaluate(()=>document.getElementById('doneBtn').hidden);
  const dTab=()=>navSeen('done');
- ok('בלי סימונים הטאב "טופלו" אינו קיים',!(await dTab()));
+ /* היה: «בלי סימונים הטאב אינו קיים». הכלל הוחלף בהחלטת המתכנן —
+    «היעדים אינם נעלמים כשהמונה אפס». דלת שנעלמת מסתירה מהמעתד
+    שהיכולת קיימת, וזו בדיוק הסיבה שהמסלול הזה נבנה מלכתחילה. */
+ ok('בלי סימונים דלת «טופלו» קיימת עם מונה אפס',
+    (await dTab())&&'0'===(await navBdg('done')),'מונה '+(await navBdg('done')));
  const n0=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  for(let k=0;k<3;k++){
   await p.evaluate(()=>document.querySelector('#tbl tbody tr[data-i] .dn[data-done]').click());
   await p.waitForTimeout(400)}
- ok('אחרי סימון הטאב מופיע',await dTab());
- ok('תג הטאב מציג את המספר הנכון',
-   '3'===await p.evaluate(()=>[...document.querySelectorAll('#tabs .tab')]
-     .find(t=>t.dataset.m==='done')?.querySelector('.bdg')?.textContent.trim()));
+ ok('אחרי סימון הדלת עדיין שם',await dTab());
+ ok('תג הדלת מציג את המספר הנכון','3'===await navBdg('done'),'מונה '+(await navBdg('done')));
  ok('הפריטים ירדו מתור העבודה',
    (await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))===n0-3);
  await navTo('done');await p.waitForTimeout(600);
@@ -617,12 +648,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ביטול מוריד את הפריט מהמסך',
    2===await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length));
  await p.click('#doneBtn');await p.waitForTimeout(500);
- ok('לחיצה על הסיכום מחזירה ל"היום"','today'===await p.evaluate(()=>mode));
+ ok('לחיצה על שבב הסיכום מחזירה ל"היום"','today'===await p.evaluate(()=>mode));
  ok('הפריט שבוטל חזר לתור העבודה',
    (await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))===n0-2);
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.waitForTimeout(600);
- ok('ניקוי הסימונים מסיר את הטאב שוב',!(await dTab()));
+ ok('ניקוי הסימונים מחזיר את המונה לאפס, והדלת נשארת',
+    (await dTab())&&'0'===(await navBdg('done')),'מונה '+(await navBdg('done')));
 
  /* ============ מלאי · בדרך · לקוח ממתין ============
     שלוש העמודות שמכריעות אם לפתוח הזמנה. "בדרך" מעומעם בכוונה:
@@ -894,11 +926,20 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     .filter(id=>{const e=document.getElementById(id);return !!e&&e.offsetParent!==null}),
    cust:(e=>e&&e.offsetParent!==null?(e.textContent||'').replace(/\s+/g,' ').trim():'')(document.getElementById('custBtn')),
    n:{cust:custRows().length,floor:floorRows().length,trend:trendRows().length}}));
- ok('הכפתור גלוי מחוץ למסלול כשיש מה למצוא — זו הדלת',
-    dOut.n.cust>0?dOut.vis.includes('custBtn'):!dOut.vis.includes('custBtn'),
-    `גלויים: ${dOut.vis.join(', ')||'אין'} · לקוח ממתין=${dOut.n.cust}`);
- ok('מחוץ למסלול — ספירה בלבד, בלי סכום',
-    dOut.n.cust>0&&!/[$€₪]/.test(dOut.cust),dOut.cust||'(מוסתר)');
+ /* היה: «הכפתור גלוי מחוץ למסלול — זו הדלת». הדלת עברה למסילה,
+    ולכן מחוץ למסלול שורת הכותרת נקייה משבבי ניווט לגמרי. מה שנועל
+    שלא איבדנו את היכולת: לכל אחת מחמש הדלתות יש כניסה ב-SUBNAV,
+    והספירה שם היא אותה ספירה בדיוק. */
+ const dRail=await p.evaluate(()=>{const all=[].concat(...Object.values(SUBNAV)).map(x=>x[0]);
+   return {all,counts:{cust:navCount('cust').n,floor:navCount('floor').n,
+     trend:navCount('trend').n,applied:navCount('applied').n,done:navCount('done').n}}});
+ ok('מחוץ למסלול אין אף שבב ניווט בשורת הכותרת',!dOut.vis.length,
+    `גלויים: ${dOut.vis.join(', ')||'אין'}`);
+ ok('וחמש הדלתות נגישות מהמסילה עם אותה ספירה',
+    ['cust','floor','trend','applied','done'].every(k=>dRail.all.includes(k))
+      &&dRail.counts.cust===dOut.n.cust&&dRail.counts.floor===dOut.n.floor
+      &&dRail.counts.trend===dOut.n.trend,
+    `לקוח ${dRail.counts.cust}/${dOut.n.cust} · רצפה ${dRail.counts.floor}/${dOut.n.floor} · מגמה ${dRail.counts.trend}/${dOut.n.trend}`);
  /* הכיתוב המלא מוסתר מחוץ למסלול, וזה מה שמאפשר לשש הדלתות לשבת
     בשורה אחת. בלי זה הן דרסו את קיבוץ הקבוצות ואת שבב ההשוואה. */
  /* הכיתובים חוזרים כברירת מחדל; fitDoors מקפל רק אם השורה נשברת.
@@ -907,15 +948,26 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const dLbl=await p.evaluate(()=>{
    const phd=document.querySelector('#w_queue .phd');
    const vis=[...document.querySelectorAll('.doors .btn')].filter(b=>!b.hidden);
-   const shown=vis.filter(b=>{const d=b.querySelector('.dl');return d&&d.offsetParent!==null});
-   return {n:vis.length,shown:shown.length,
+   const onScreen=[...document.querySelectorAll('.doors .btn')]
+     .filter(b=>b.offsetParent!==null&&b.getBoundingClientRect().width>0)
+     .map(b=>({id:b.id,on:b.classList.contains('on')}));
+   const shown=[...document.querySelectorAll('.doors .btn')]
+     .filter(b=>b.offsetParent!==null)
+     .filter(b=>{const d=b.querySelector('.dl');return d&&d.offsetParent!==null});
+   return {n:vis.length,shown:shown.length,onScreen,
      compact:document.getElementById('doors').classList.contains('compact'),
      names:shown.map(b=>b.textContent.replace(/\s+/g,' ').trim()),
      phdH:Math.round(phd.getBoundingClientRect().height)}});
- ok('הדלתות נושאות שם ולא סמל בלבד',
-    dLbl.compact?dLbl.shown===0:dLbl.shown===dLbl.n,
-    dLbl.compact?`מקופל (${dLbl.n} דלתות)`:dLbl.names.join(' · '));
- ok('ושורת הכותרת נשארת בשורה אחת עם הדלתות',dLbl.phdH<=48,dLbl.phdH+'px');
+ /* היה: «הדלתות נושאות שם ולא סמל בלבד» — כלל שנולד כשכל שש ישבו
+    בשורה. עכשיו יש לכל היותר שבב אחד, של המסלול הנוכחי, ולכן אין
+    לחץ על השורה והשם תמיד מלא. */
+ ok('לכל היותר שבב אחד בכותרת, והוא של המסלול הנוכחי',
+    dLbl.onScreen.length<=1&&dLbl.onScreen.every(b=>b.on),
+    dLbl.onScreen.map(b=>b.id).join(' · ')||'אין');
+ ok('והשבב נושא שם מלא, לא סמל בלבד',
+    !dLbl.onScreen.length||dLbl.shown===dLbl.onScreen.length,
+    dLbl.names.join(' · ')||'(אין שבב)');
+ ok('ושורת הכותרת נשארת בשורה אחת',dLbl.phdH<=48,dLbl.phdH+'px');
  /* ============ UX_PASS · מה שהמתכנן הכריע ============ */
  const ux=await p.evaluate(()=>{
   const band=document.querySelector('.lband'),rows=document.querySelector('.rows');
@@ -928,20 +980,35 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     hasToggle:!!document.getElementById('bandx'),
     rowH:Math.round(rh),
     listPct:Math.round((rows?rows.getBoundingClientRect().height:0)/innerHeight*100),
+    rowsTop:Math.round(rows?rows.getBoundingClientRect().top:0),vh:innerHeight,
+    above:[...document.querySelectorAll('.top,.lband,.wkpi,.wfilters,#w_queue .phd')]
+      .filter(e=>e.offsetParent!==null)
+      .map(e=>`${(e.id||e.className).toString().split(' ')[0]}:${Math.round(e.getBoundingClientRect().height)}`),
     flagUses:flags.length,
     nopxVisible:(e=>!!e&&e.offsetParent!==null)(document.querySelector('.nopx')),
-    tabs:[...document.querySelectorAll('#tabs .tab')].map(t=>t.textContent.replace(/\s+/g,' ').trim())}});
+    tabs:[...document.querySelectorAll('#tabs .tab')].map(t=>t.textContent.replace(/\s+/g,' ').trim()),
+    tabNames:[...document.querySelectorAll('#tabs .tab .t')].map(t=>t.textContent.trim())}});
  ok('הרצועה מקופלת בפתיחה, עם כפתור לפתוח',
     ux.mini&&ux.hasToggle&&ux.bandH<90,`${ux.bandH}px · מקופלת ${ux.mini}`);
  /* הסייג «כל סכום כאן הוא רצפה» אינו מתקפל עם הרצועה. */
  ok('מונה «בלי מחיר» נשאר גלוי גם ברצועה מקופלת',ux.nopxVisible);
- ok('הרשימה מקבלת יותר מ-65% מהמסך',ux.listPct>=65,ux.listPct+'%');
+ ok('הרשימה מקבלת יותר מ-65% מהמסך',ux.listPct>=65,
+    `${ux.listPct}% · ראש הרשימה ${ux.rowsTop}px מתוך ${ux.vh} · ${ux.above.join(' · ')}`);
  /* הדגל ⚑ סימן גם סימון קבוצתי וגם מסלול פרמטרים, שניהם על המסך
     בו-זמנית. עכשיו הוא שייך לסימון בלבד. */
  ok('הדגל ⚑ משמש למשמעות אחת בלבד',ux.flagUses<=1,ux.flagUses+' שימושים גלויים');
- ok('המסך הראשי נקרא «לטיפול היום»',
-    ux.tabs.some(t=>/לטיפול היום/.test(t))&&!ux.tabs.some(t=>/ציר הזמן/.test(t)),
-    ux.tabs.join(' | '));
+ /* היה: «המסך הראשי נקרא לטיפול היום» (PR #68, במקום «ציר הזמן»).
+    המפרט החדש קבע שישה שמות תחום, והורה במפורש להימנע מהשמות
+    החופפים «היום» / «לטיפול היום» / «החודש» — כולם נקראים כחלון
+    זמן ולא כתחום עבודה, וזו הייתה אותה תקלה בדיוק בשם אחר. */
+ const AREAN=['מרכז עבודה','חוסרים ולקוחות','רכש ואספקות','תכנון ו-MRP',
+              'בריאות המלאי','קטלוג פריטים'];
+ ok('המסילה נושאת את שישה שמות התחומים שנקבעו',
+    ux.tabNames.length===6&&AREAN.every((n,i)=>ux.tabNames[i]===n),
+    ux.tabNames.join(' | '));
+ ok('ואין בשמות שם שנקרא כחלון זמן',
+    !ux.tabNames.some(t=>/לטיפול היום|ציר הזמן|היום|החודש/.test(t)),
+    ux.tabNames.join(' | '));
  /* ============ אזור החלטה אחד ============
     קודם נבדק כאן ש-`.oact` קיים בראש הכרטיס ושהמקטע «מה לעשות» בא
     לפני «מה מצדיק את זה». שניהם תיארו את המבנה שאוחד: אותה המלצה
@@ -1011,11 +1078,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     /לא יישרדו רענון/.test(store.tip)&&/מלא/.test(store.tip),store.tip.slice(0,80));
  ok('כשהמקום מתפנה השבב יורד',store.cleared&&!store.failKey,
     'שבב מוסתר '+store.cleared);
- ok('כפתור בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
-    !dOut.vis.includes('doneBtn')&&!dOut.vis.includes('apBtn'),
-    dOut.vis.join(', '));
+ /* שבב הסיכום שותק כשאין מה לומר — גם בתוך המסלול. נבדק על
+    התכונה hidden עצמה, כי בפריסה החדשה שבב מחוץ למסלול ממילא אינו
+    מוצג, והבדיקה הקודמת הייתה נכונה מסיבה אחרת. */
+ ok('שבב בלי תוכן נשאר מוסתר — שותק כשאין מה לומר',
+    await p.evaluate(()=>document.getElementById('doneBtn').hidden
+      &&document.getElementById('apBtn').hidden));
 
- await p.click('#custBtn');await p.waitForTimeout(900);
+ await navTo('cust');await p.waitForTimeout(900);
  const dIn=await p.evaluate(()=>({mode,track,
    txt:(document.getElementById('custBtn').textContent||'').replace(/\s+/g,' ').trim(),
    on:document.getElementById('custBtn').classList.contains('on'),
@@ -1026,9 +1096,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    withPo:custRows().filter(r=>r.po>0).length,
    burnIn:custRows().filter(r=>r.burn).length,
    allBurn:QF.waiting.every(x=>custRows().some(r=>r.pn===x.pn))}));
- ok('לחיצה מבחוץ נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
+ ok('הכניסה מהמסילה נכנסת למסלול',dIn.mode==='cust'&&dIn.track==='cust'&&dIn.on,
     `mode=${dIn.mode} track=${dIn.track}`);
- ok('בתוך המסלול הכפתור מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
+ ok('בתוך המסלול השבב מוסיף את הסכום',/[$€₪]/.test(dIn.txt),dIn.txt);
  ok('ובתוכו הכיתוב המלא חוזר',/לקוח ממתין ללא כיסוי/.test(dIn.txt),dIn.txt);
  ok('המסלול מציג בדיוק את הפריטים שנספרו',dIn.rows===dIn.n,`${dIn.rows} שורות · ${dIn.n} נספרו`);
  /* ============ הכלל השתנה: פער כיסוי, לא מדף ריק ============
@@ -1042,23 +1112,30 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('וכל הבוערים בפנים',dIn.allBurn&&dIn.burnIn>0,
     `${dIn.burnIn} בוערים מתוך ${dIn.n}`);
 
+ /* השבב בתוך המסלול הוא גם דרך היציאה — וזו הדרך שבה נבדק שהיציאה
+    מחזירה בדיוק לאן שהיית. */
  await p.click('#custBtn');await p.waitForTimeout(900);
- ok('לחיצה שנייה חוזרת למסלול שממנו נכנסת',
-    (await p.evaluate(()=>mode))==='line',await p.evaluate(()=>mode));
+ /* הכניסה היא דו-שלבית: התחום «חוסרים ולקוחות» ואז הדלת שבתוכו,
+    ולכן המקום שחוזרים אליו הוא התחום — לא המסלול שהיית בו לפניו.
+    מה שנעול כאן הוא שהיציאה חוזרת למקום שממנו נכנסת בפועל. */
+ ok('לחיצה על השבב חוזרת לתחום שממנו נכנסת',
+    (await p.evaluate(()=>mode))==='today',await p.evaluate(()=>mode));
 
  await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(700);
- await p.click('#floorBtn');await p.waitForTimeout(900);
+ await navTo('floor');await p.waitForTimeout(900);
  const backFrom=await p.evaluate(()=>mode);
  await p.click('#floorBtn');await p.waitForTimeout(900);
+ /* שתי יציאות, שני יעדים שונים (today ו-month) — זה מה שמוכיח
+    שהיציאה אינה מסך קבוע אלא המקום שממנו נכנסת. */
  ok('היציאה מחזירה לאן שהיית ולא למסך קבוע',
-    backFrom==='floor'&&(await p.evaluate(()=>mode))==='catalog',
-    `catalog → ${backFrom} → ${await p.evaluate(()=>mode)}`);
+    backFrom==='floor'&&(await p.evaluate(()=>mode))==='month',
+    `catalog → תכנון → ${backFrom} → ${await p.evaluate(()=>mode)}`);
 
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
  const dBud=await p.evaluate(()=>{const r=document.querySelector('.rows');
    return {chrome:r?Math.round(r.getBoundingClientRect().top):0,
      vis:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
- ok('הדלתות לא שברו את תקציב הגובה',dBud.chrome>0&&dBud.chrome<360,dBud.chrome+'px');
+ ok('הכותרת לא שברה את תקציב הגובה',dBud.chrome>0&&dBud.chrome<360,dBud.chrome+'px');
 
 /* ============ DOOR_ETA · ה-ETA בכל ארבע הדלתות ============
     תא אחד משותף, ארבע דלתות. נבדק כאן ולא ב-eta.test.js, כי שם
@@ -1140,5 +1217,94 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
+
+ /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
+    סעיף 4 במפרט. שני כללים נעולים כאן:
+    · רצועת המספרים מציגה את שדות המנוע כפי שהם — לא חישוב מחדש
+      בתוך התצוגה, ולא כמות שנשלפת מטקסט ההמלצה.
+    · «בהעברה» אומר «לא ידוע» כשאין עמודת CK בדוח. 0 ו«לא יודעים»
+      אינם אותו דבר, וזה בדיוק הדפוס של custBlockedKnown. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ const cst=await p.evaluate(()=>{const s=document.querySelector('#detail .cstrip');
+   const r=CURRENT_DETAIL,g=l=>{const e=[...s.querySelectorAll('.cs')]
+     .find(x=>x.querySelector('i').textContent===l);
+     return e?e.querySelector('b').textContent.replace(/[^\d]/g,''):null};
+   return {seen:!!s&&s.offsetParent!==null,
+     order:[...s.querySelectorAll('.cs i')].map(e=>e.textContent).join('|'),
+     eq:{cust:g('לקוח')==String(Math.max(0,r.cust||0)),
+         free:g('פנוי')==String(Math.max(0,r.free||0)),
+         po:g('רכש פתוח')==String(Math.max(0,r.po||0)),
+         miss:g('פער')==String(Math.max(0,r.miss||0))},
+     vals:`לקוח ${g('לקוח')} · פנוי ${g('פנוי')} · רכש ${g('רכש פתוח')} · פער ${g('פער')}`,
+     unknown:coverStrip({cust:8,free:2,po:0,transfer:0,transferKnown:false,miss:6})}});
+ ok('רצועת המספרים פותחת את הכרטיס בסדר שנקבע',
+   cst.seen&&cst.order==='לקוח|פנוי|רכש פתוח|בהעברה|פער',cst.order);
+ ok('וכל מספר בה הוא שדה המנוע עצמו',
+   cst.eq.cust&&cst.eq.free&&cst.eq.po&&cst.eq.miss,cst.vals);
+ ok('«בהעברה» אומר «לא ידוע» כשאין עמודת CK — לא 0',
+   /לא ידוע/.test(cst.unknown)&&!/>0<\/b>\s*<i>בהעברה/.test(cst.unknown),
+   (cst.unknown.match(/בהעברה/)?'נמצא':'חסר'));
+
+ const nav1=await p.evaluate(()=>({pn:document.querySelector('#detail .opnt').textContent.trim(),
+   pos:(document.querySelector('#detail .opos')||{}).textContent,
+   prevOff:(document.querySelector('#detail [data-dnav="-1"]')||{}).disabled}));
+ await p.click('#detail [data-dnav="1"]');await p.waitForTimeout(450);
+ const nav2=await p.evaluate(()=>({pn:document.querySelector('#detail .opnt').textContent.trim(),
+   pos:(document.querySelector('#detail .opos')||{}).textContent,
+   open:document.body.classList.contains('dopen'),
+   selPn:(()=>{const t=document.querySelector('#tbl tbody tr.sel');
+     return t?t.children[1].textContent.replace('העתק','').replace('✓ טופל','').trim():null})()}));
+ ok('בפריט הראשון אין «הקודם» לאן ללחוץ',nav1.prevOff===true,String(nav1.prevOff));
+ ok('«הבא» מעביר לפריט אחר בלי לסגור את הכרטיס',
+   nav2.pn!==nav1.pn&&nav2.open,`${nav1.pn} → ${nav2.pn}`);
+ ok('והשורה המסומנת בטבלה היא הפריט שבכרטיס',nav2.selPn===nav2.pn,
+   `שורה ${nav2.selPn} · כרטיס ${nav2.pn}`);
+ ok('והמיקום ברשימה מתעדכן',nav2.pos!==nav1.pos,`${nav1.pos} → ${nav2.pos}`);
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
+
+ /* ============ שתי בקרות הגובה: מדדים וצפיפות ============
+    סעיף 3ג במפרט: «צפיפות רגילה וצפופה», ויעד של 18-24 שורות קריאות,
+    עם איסור מפורש להגיע לשם בהקטנת טקסט. שתיהן נבדקות על אותה
+    מידה בדיוק: כמה שורות נכנסו, ובאיזה גופן. */
+ const rowsFit=()=>p.evaluate(()=>{const box=document.querySelector('.rows');
+   const trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   if(!box||!trs.length)return null;
+   const b=box.getBoundingClientRect();
+   return {h:Math.round(trs[0].getBoundingClientRect().height),
+     n:trs.filter(t=>{const r=t.getBoundingClientRect();
+       return r.top>=b.top-1&&r.bottom<=b.bottom+1}).length,
+     font:parseFloat(getComputedStyle(trs[0].querySelector('td')).fontSize),
+     dense:document.body.classList.contains('dense')}});
+ await p.evaluate(()=>{document.body.classList.remove('dense');
+   try{localStorage.setItem('planner_dense','0')}catch(_){}});
+ await p.waitForTimeout(250);
+ const den0=await rowsFit();
+ await p.click('#denTog');await p.waitForTimeout(300);
+ const den1=await rowsFit();
+ ok('מתג הצפיפות קיים ומסומן כשהוא פעיל',
+   await p.evaluate(()=>{const b=document.getElementById('denTog');
+     return !!b&&b.offsetParent!==null&&b.getAttribute('aria-pressed')==='true'}));
+ ok('«צפופה» מכניסה יותר שורות',den1.n>den0.n&&den1.h<den0.h,
+   `${den0.n} שורות ב-${den0.h}px → ${den1.n} שורות ב-${den1.h}px`);
+ /* הגופן של המסלול הזה הוא 11.5px גם ב«רגילה» — זו בחירה קודמת
+    ולא תוצר הצפיפות. מה שנעול כאן: הצפיפות אינה נוגעת בו. */
+ ok('והיא עושה זאת בלי להקטין את הטקסט',den1.font===den0.font,
+   `${den0.font}px → ${den1.font}px`);
+ await p.reload();await p.waitForTimeout(1800);
+ ok('הבחירה שורדת רענון',
+   await p.evaluate(()=>document.body.classList.contains('dense')));
+ await p.evaluate(()=>{const b=document.getElementById('denTog');if(b)b.click()});
+ await p.waitForTimeout(250);
+ ok('ומתג המדדים מקפל את הרצועה ומחזיר גובה לרשימה',await (async()=>{
+   await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+   const a=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
+   await p.click('#kpiTog');await p.waitForTimeout(300);
+   const b2=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
+   await p.click('#kpiTog');await p.waitForTimeout(200);
+   return b2>a})());
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

@@ -78,25 +78,30 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
    return {what:tabs.map(t=>({m:t.dataset.m,
       w:((t.querySelector('.m.what')||{}).textContent||'').trim(),
       sel:t.classList.contains('sel')})),
-    /* הכניסות המשניות הן קישורים ולא מסלולים ראשיים: אין להן בלוק
-       תיאור, ולכן השם וההסבר שלהן נבדקים ב-title וב-aria-label. */
-    mini:[...document.querySelectorAll('#tabs .tab.navtab.mini')]
-      .map(t=>({m:t.dataset.m,t:(t.title||''),a:(t.getAttribute('aria-label')||'')})),
-    hint:(document.getElementById('navhint').innerText||'').replace(/\s+/g,' '),
-    hintSeen:document.getElementById('navhint').offsetParent!==null,
+    /* דלתות המשנה הן קישורים בתוך תחום ולא תחום בפני עצמו: אין להן
+       בלוק תיאור, ולכן השם וההסבר שלהן נבדקים ב-title. */
+    subs:[...document.querySelectorAll('#railsub .railsub2')]
+      .map(t=>({m:t.dataset.m,nm:((t.querySelector('.t')||{}).textContent||'').trim(),
+        t:(t.title||'')})),
+    subLbl:[].concat(...Object.values(SUBNAV)).map(x=>x[1]),
+    areaNames:[...document.querySelectorAll('#tabs .tab .t')].map(e=>e.textContent.trim()),
     rdLabel:((document.querySelector('.rdwrap .tl')||{}).textContent||'').trim(),
     rdTitle:(document.getElementById('rd')||{}).title||''}});
   ok(`${W} · לכל מסלול יש הסבר — גם למסלול שאינו הפעיל`,
     nav.what.length>=2&&nav.what.every(x=>x.w.length>5),
     nav.what.map(x=>`${x.m}${x.sel?'*':''}: ${x.w}`).join(' · '));
-  ok(`${W} · לכניסות המשניות יש שם והסבר בריחוף ובקורא מסך`,
-    nav.mini.length===2&&nav.mini.every(x=>x.t.length>15&&x.a.length>5),
-    nav.mini.map(x=>`${x.m}: "${x.t.slice(0,50)}"`).join(' · '));
-  ok(`${W} · נאמר במפורש שאלה מסלולי עבודה ולא מסנני תאריך`,
-    nav.hintSeen&&/מסלולי עבודה/.test(nav.hint)&&/לא מסנני תאריך/.test(nav.hint));
-  ok(`${W} · ונאמר איפה מוצאים פרמטרים, אספקות, טופלו ותנועות`,
-    /תיקוני פרמטרים/.test(nav.hint)&&/אספקות צפויות/.test(nav.hint)
-    &&/טופלו/.test(nav.hint)&&/תנועות/.test(nav.hint),nav.hint.slice(0,150));
+  ok(`${W} · לדלתות המשנה של התחום הפעיל יש שם והסבר בריחוף`,
+    nav.subs.length>=2&&nav.subs.every(x=>x.nm.length>2&&x.t.length>15),
+    nav.subs.map(x=>`${x.m}: "${x.t.slice(0,44)}"`).join(' · '));
+  /* היה: פסקת «אלה מסלולי עבודה, לא מסנני תאריך». היא נכתבה כדי
+     לתקן שמות שנקראו כחלון זמן — «לטיפול היום» ו«החודש». השמות
+     החדשים אינם נקראים כך, ולכן מה שנבדק הוא המקור ולא התיקון. */
+  ok(`${W} · אין שם תחום שנקרא כחלון זמן`,
+    nav.areaNames.length===6&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
+    nav.areaNames.join(' · '));
+  ok(`${W} · ופרמטרים, אספקות, טופלו ותנועות יושבים במסילה בשמם`,
+    ['תיקוני פרמטרים','ציר האספקות','טופלו','תנועות אחרונות']
+      .every(n=>nav.subLbl.includes(n)),nav.subLbl.join(' · '));
   ok(`${W} · «חודש בסיס» קיבל תווית גלויה והסבר`,
     /חודש בסיס/.test(nav.rdLabel)&&/החודש המלא האחרון/.test(nav.rdTitle),
     `תווית="${nav.rdLabel}"`);
@@ -160,10 +165,19 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
       return !!b&&/בטל סימון טופל/.test(b.textContent||'')}));
   /* --- פותחים אותו מתוך «טופלו», דרך לחיצה על רכיב גלוי --- */
   await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
-  const doneTab=await p.evaluate(()=>{const e=document.querySelector('#tabs .tab[data-m="done"]');
-    return !!e&&e.offsetParent!==null});
-  ok('«טופלו» מופיע בניווט אחרי שיש פריט מסומן',doneTab);
-  await p.click('#tabs .tab[data-m="done"]');await p.waitForTimeout(500);
+  /* «טופלו» היא דלת משנה בתוך «חוסרים ולקוחות» במסילה האנכית. היא
+     קיימת תמיד (יעד אינו נעלם כשהמונה אפס), והמונה הוא מה שמשתנה
+     אחרי הסימון. */
+  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+    .find(t=>t.dataset.m==='today');if(a)a.click()});
+  await p.waitForTimeout(400);
+  const doneTab=await p.evaluate(()=>{
+    const e=document.querySelector('#railsub .railsub2[data-m="done"]');
+    return {seen:!!e&&e.offsetParent!==null,
+      n:e?((e.querySelector('.bdg')||{}).textContent||'').trim():null}});
+  ok('«טופלו» נגיש במסילה והמונה מראה את הפריט שסומן',
+     doneTab.seen&&doneTab.n==='1',`מונה ${doneTab.n}`);
+  await p.click('#railsub .railsub2[data-m="done"]');await p.waitForTimeout(500);
   const inDone=await p.evaluate(pn=>[...document.querySelectorAll('#tbl tbody tr[data-i]')]
     .some(tr=>(tr.textContent||'').includes(pn)),pn0);
   ok('והפריט המסומן נמצא שם',inDone,pn0);
