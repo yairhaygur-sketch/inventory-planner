@@ -1,0 +1,840 @@
+<!doctype html><html lang="he" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventory Planner — תצוגה מקדימה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   מערכת עיצוב אחת. כל טוקן מוגדר פעם אחת ב-:root, ו-[data-theme=dark]
+   מגדיר מחדש ערכים בלבד — לא טוקנים חדשים. אין שכבה שדורסת שכבה.
+   ============================================================ */
+:root{
+ /* משטחים */
+ --bg:#F3F6FA; --surface:#FFFFFF; --surface-2:#F7F9FC; --surface-3:#EDF1F7;
+ --nav:#172B45; --nav-2:#1F3A5C; --nav-ink:#C7D6EA; --nav-ink-on:#FFFFFF;
+ --line:#DDE4ED; --line-2:#E9EEF4; --ring:#C3D2E6;
+ /* דיו */
+ --ink:#101828; --ink-2:#475467; --ink-3:#5D6878; --on-fill:#FFFFFF;
+ /* סמנטיקה — צבע מילוי מול צבע טקסט, בנפרד.
+    הכתום המקורי #B76A08 נותן 3.81 על הרקע הכללי; לטקסט נדרש 4.5.
+    לכן: מילוי=#B76A08 (רכיב גרפי, סף 3), טקסט=#9A5806 (5.14). */
+ --crit:#C93636;  --crit-tx:#B02B2B;  --crit-bg:#FDECEC; --crit-line:#F3C4C4;
+ --warn:#B76A08;  --warn-tx:#9A5806;  --warn-bg:#FDF3E3; --warn-line:#F0D9AE;
+ --done:#207653;  --done-tx:#1B6446;  --done-bg:#E8F5EE; --done-line:#B9DFCB;
+ --param:#7357B5; --param-tx:#63489F; --param-bg:#F1ECFA; --param-line:#D9CCEF;
+ --acc:#2563EB;   --acc-tx:#1D4FD0;   --acc-bg:#E8F0FE; --acc-line:#C2D6FB;
+ --neutral:#5B6B7F; --neutral-bg:#EEF1F5;
+ /* גרפים — «קיים» אפור־צפחה מול «מוצע» סגול, מופרדים גם בצורה */
+ --c-now:#334155; --c-sug:#7357B5; --c-bar:#5B6B7F; --c-track:#E3E9F1;
+ /* מידות */
+ --top-h:52px; --nav-w:224px; --r:8px; --r-sm:5px;
+ --row-h:34px; --row-h-tight:27px;
+ --f-xs:11px; --f-sm:12px; --f-md:13px; --f-lg:15px; --f-xl:19px; --f-hero:30px;
+ --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+ --shadow-lg:0 8px 24px rgba(16,24,40,.12);
+ --num:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+[data-theme="dark"]{
+ --bg:#0F1720; --surface:#17212E; --surface-2:#1C2735; --surface-3:#243144;
+ --nav:#0B131C; --nav-2:#16222F; --nav-ink:#93A6BE; --nav-ink-on:#FFFFFF;
+ --line:#2A3949; --line-2:#222F3E; --ring:#3A4C61;
+ --ink:#E8EDF5; --ink-2:#9BA8BC; --ink-3:#8B9AB0; --on-fill:#0B131C;
+ --crit:#FF7B7B; --crit-tx:#FF9B9B; --crit-bg:#3A1E20; --crit-line:#5C2E31;
+ --warn:#F0A93C; --warn-tx:#F5BC63; --warn-bg:#3A2C15; --warn-line:#5C4622;
+ --done:#4FC48A; --done-tx:#6FD3A1; --done-bg:#17301F; --done-line:#265037;
+ --param:#B49BEA; --param-tx:#C4B0F0; --param-bg:#2A2340; --param-line:#443666;
+ --acc:#6BA0FF;  --acc-tx:#8DB6FF;  --acc-bg:#16263F; --acc-line:#274263;
+ --neutral:#9BA8BC; --neutral-bg:#222F3E;
+ --c-now:#9BA8BC; --c-sug:#B49BEA; --c-bar:#7E8DA3; --c-track:#26344A;
+ --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 8px 24px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 var(--f-md)/1.45 Heebo,system-ui,sans-serif;
+ -webkit-font-smoothing:antialiased;overflow:hidden}
+/* מספרים מיושרים — טבלאיים בכל מקום שמציג כמות */
+.n{font-family:var(--num);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:3px}
+
+/* ==================== סרגל עליון ==================== */
+.top{height:var(--top-h);background:var(--surface);border-bottom:1px solid var(--line);
+ display:flex;align-items:center;gap:10px;padding-inline:12px;position:relative;z-index:40}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:var(--f-md);white-space:nowrap}
+.brand i{width:24px;height:24px;border-radius:6px;background:var(--nav);color:#FFFFFF;
+ display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
+.search{flex:1 1 260px;max-width:420px;position:relative}
+.search input{width:100%;height:32px;border:1px solid var(--line);border-radius:var(--r-sm);
+ background:var(--surface-2);padding-inline:30px 10px;font-size:var(--f-md)}
+.search input::placeholder{color:var(--ink-3)}
+.search .ic{position:absolute;inset-inline-start:9px;inset-block-start:7px;color:var(--ink-3);font-size:13px}
+.tsel{display:flex;gap:6px}
+.tsel select{height:32px;border:1px solid var(--line);border-radius:var(--r-sm);
+ background:var(--surface-2);padding-inline:8px 24px;font-size:var(--f-sm);max-width:130px}
+/* תאריך דוח מול מועד העלאה — שתי עובדות שונות, ולכן שתי שורות */
+.stamp{display:flex;gap:7px;margin-inline-start:auto}
+.stamp .card{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);
+ padding:3px 9px;min-width:104px}
+.stamp .k{font-size:10px;color:var(--ink-2);font-weight:600;letter-spacing:.02em;
+ display:flex;align-items:center;gap:4px}
+.stamp .v{font-size:var(--f-sm);font-weight:700;line-height:1.25}
+.stamp .sub{font-size:10px;color:var(--ink-2);line-height:1.25}
+.stamp .card.none{background:var(--warn-bg);border-color:var(--warn-line)}
+.stamp .card.none .v{color:var(--warn-tx)}
+.tbtn{height:32px;padding-inline:11px;border:1px solid var(--line);border-radius:var(--r-sm);
+ background:var(--surface);font-size:var(--f-sm);font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tbtn:hover{background:var(--surface-2)}
+.tbtn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill)}
+.tbtn.ico{padding-inline:8px}
+
+/* ==================== שלד ==================== */
+.shell{display:grid;grid-template-columns:var(--nav-w) 1fr;height:calc(100% - var(--top-h))}
+/* ==================== ניווט קבוע בצד ימין ==================== */
+.nav{background:var(--nav);color:var(--nav-ink);display:flex;flex-direction:column;overflow:auto}
+.nav .sect{font-size:10px;font-weight:700;letter-spacing:.06em;color:#9DB2CC;
+ padding:13px 14px 5px}
+.nav a{display:flex;align-items:center;gap:9px;padding:8px 14px;color:inherit;text-decoration:none;
+ border-inline-start:3px solid transparent;font-size:var(--f-md);position:relative}
+.nav a .ni{width:17px;text-align:center;font-size:13px;opacity:.85;flex:0 0 auto}
+.nav a .nt{flex:1;font-weight:500}
+.nav a .nb{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-xs);font-weight:700;
+ background:#27405C;color:#D8E4F2;border-radius:99px;padding:1px 7px;min-width:26px;text-align:center}
+.nav a:hover{background:var(--nav-2);color:var(--nav-ink-on)}
+.nav a.on{background:var(--nav-2);color:var(--nav-ink-on);border-inline-start-color:var(--acc);font-weight:700}
+.nav a.on .nt{font-weight:700}
+/* מונה אפס אינו מעלים את היעד — הוא משנה את מראה המונה */
+.nav a .nb.zero{background:transparent;color:#93A9C4;border:1px solid #33506F}
+.nav a.hot .nb{background:var(--crit);color:var(--on-fill)}
+.nav .sp{flex:1}
+.nav .foot{padding:10px 14px;border-block-start:1px solid #24394F;font-size:var(--f-xs);color:#9DB2CC}
+.nav .foot b{color:#B9CBE0}
+
+/* ==================== אזור עבודה ==================== */
+.work{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.crumb{display:flex;align-items:baseline;gap:10px;padding:8px 14px 0;flex-wrap:wrap}
+.crumb h1{font-size:var(--f-lg);font-weight:800;margin:0}
+.crumb .sub{font-size:var(--f-sm);color:var(--ink-2)}
+.demo{margin-inline-start:auto;background:var(--warn-bg);border:1px solid var(--warn-line);
+ color:var(--warn-tx);font-size:var(--f-xs);font-weight:700;border-radius:99px;padding:2px 10px}
+
+/* רצועת מדדים קומפקטית */
+.kpis{display:flex;gap:8px;padding:8px 14px;flex-wrap:wrap}
+/* רצועת המדדים היא סיכום; הטבלה היא העבודה. במסך נמוך אפשר לקפל
+   אותה ולהחזיר ~70px לשורות. המצב נשמר לכל תחום בנפרד. */
+body.nokpi .kpis{display:none}
+.kpitog{border:0;background:none;color:var(--ink-3);font-size:var(--f-xs);font-weight:700;
+ padding:2px 6px;border-radius:var(--r-sm)}
+.kpitog:hover{background:var(--surface-3);color:var(--ink-2)}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+ padding:5px 11px;min-width:126px;display:flex;flex-direction:column;gap:1px;position:relative;
+ border-inline-start:3px solid var(--c,var(--neutral));text-align:start}
+.kpi:hover{box-shadow:var(--shadow)}
+.kpi .kl{font-size:var(--f-xs);color:var(--ink-2);font-weight:600;display:flex;align-items:center;gap:4px}
+.kpi .kv{font-size:20px;font-weight:800;line-height:1.1;font-family:var(--num);font-variant-numeric:tabular-nums}
+.kpi .ks{font-size:11px;color:var(--ink-2);line-height:1.3}
+.kpi.crit{--c:var(--crit)} .kpi.crit .kv{color:var(--crit-tx)}
+.kpi.warn{--c:var(--warn)} .kpi.warn .kv{color:var(--warn-tx)}
+.kpi.done{--c:var(--done)} .kpi.done .kv{color:var(--done-tx)}
+.kpi.param{--c:var(--param)} .kpi.param .kv{color:var(--param-tx)}
+.kpi.acc{--c:var(--acc)}
+
+/* סרגל סינון מקומי */
+.fbar{display:flex;align-items:center;gap:7px;padding:0 14px 8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:5px;height:27px;padding-inline:9px;
+ border:1px solid var(--line);border-radius:99px;background:var(--surface);
+ font-size:var(--f-sm);font-weight:600;color:var(--ink-2)}
+.chip:hover{border-color:var(--ring);background:var(--surface-2)}
+.chip.on{background:var(--acc-bg);border-color:var(--acc-line);color:var(--acc-tx)}
+.chip .x{opacity:.6;font-weight:700}
+.fbar .grow{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:4px 10px;font-size:var(--f-sm);font-weight:600;color:var(--ink-2)}
+.seg button.on{background:var(--acc);color:var(--on-fill)}
+
+/* ==================== הטבלה ==================== */
+.tablewrap{flex:1;display:flex;min-height:0;padding:0 14px 12px;gap:10px}
+.tcard{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);
+ border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+.tscroll{flex:1;overflow:auto;min-height:0}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:var(--f-md)}
+thead th{position:sticky;inset-block-start:0;z-index:3;background:var(--surface-2);
+ text-align:start;font-size:var(--f-xs);font-weight:700;color:var(--ink-2);
+ padding:7px 9px;border-block-end:1px solid var(--line);white-space:nowrap;
+ letter-spacing:.01em}
+thead th.num,tbody td.num{text-align:end}
+/* הקפאת מק״ט ותיאור */
+th.f1,td.f1{position:sticky;inset-inline-start:0;z-index:2;background:var(--surface)}
+th.f2,td.f2{position:sticky;inset-inline-start:96px;z-index:2;background:var(--surface)}
+thead th.f1,thead th.f2{z-index:4;background:var(--surface-2)}
+th.f2::after,td.f2::after{content:"";position:absolute;inset-block:0;inset-inline-end:0;
+ width:1px;background:var(--line)}
+tbody td{padding:5px 9px;border-block-end:1px solid var(--line-2);height:var(--row-h);
+ vertical-align:middle;white-space:nowrap}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr:hover td.f1,tbody tr:hover td.f2{background:var(--surface-2)}
+tbody tr.sel td{background:var(--acc-bg)}
+tbody tr.sel td.f1,tbody tr.sel td.f2{background:var(--acc-bg)}
+tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+body.tight tbody td{height:var(--row-h-tight);padding-block:2px;font-size:var(--f-sm)}
+.pn{font-family:var(--num);font-weight:700;font-size:var(--f-sm);letter-spacing:-.02em}
+.desc{max-width:210px;overflow:hidden;text-overflow:ellipsis;display:block}
+td.num{font-family:var(--num);font-variant-numeric:tabular-nums}
+.z{color:var(--ink-3)}
+.unk{color:var(--ink-3);font-style:normal}
+/* תא שנושא התרעה — סימון ממוקד, לא צביעת מסך */
+.cell-crit{color:var(--crit-tx);font-weight:800}
+.cell-warn{color:var(--warn-tx);font-weight:700}
+/* תגיות */
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:var(--f-xs);font-weight:700;
+ border-radius:var(--r-sm);padding:1px 7px;border:1px solid transparent;white-space:nowrap}
+.tag.crit{background:var(--crit-bg);color:var(--crit-tx);border-color:var(--crit-line)}
+.tag.warn{background:var(--warn-bg);color:var(--warn-tx);border-color:var(--warn-line)}
+.tag.done{background:var(--done-bg);color:var(--done-tx);border-color:var(--done-line)}
+.tag.param{background:var(--param-bg);color:var(--param-tx);border-color:var(--param-line)}
+.tag.neutral{background:var(--neutral-bg);color:var(--ink-2);border-color:var(--line)}
+.tag.acc{background:var(--acc-bg);color:var(--acc-tx);border-color:var(--acc-line)}
+.act{font-size:var(--f-sm);color:var(--ink-2);max-width:230px;overflow:hidden;text-overflow:ellipsis;display:block}
+.tfoot{border-block-start:1px solid var(--line);padding:6px 11px;font-size:var(--f-sm);
+ color:var(--ink-2);display:flex;align-items:center;gap:12px;background:var(--surface-2)}
+
+/* ==================== פאנל הפריט ==================== */
+.panel{width:var(--pw,400px);flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
+ border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow);position:relative}
+.panel[hidden]{display:none}
+.pgrip{position:absolute;inset-inline-end:-3px;inset-block:0;width:7px;cursor:col-resize;z-index:5}
+.pgrip:hover{background:var(--acc-line)}
+.phead{padding:9px 12px;border-block-end:1px solid var(--line);display:flex;align-items:center;gap:9px;
+ background:var(--surface-2)}
+.phead .pn{font-size:var(--f-lg)}
+.phead .nav2{margin-inline-start:auto;display:flex;gap:3px}
+.iconbtn{width:26px;height:26px;border:1px solid var(--line);border-radius:var(--r-sm);
+ background:var(--surface);display:grid;place-items:center;font-size:13px;color:var(--ink-2)}
+.iconbtn:hover{background:var(--surface-3)}
+.pbody{flex:1;overflow:auto;padding:11px 12px;display:flex;flex-direction:column;gap:11px}
+.psec{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.psec>h3{margin:0;font-size:var(--f-xs);font-weight:700;color:var(--ink-2);letter-spacing:.02em;
+ padding:6px 10px;background:var(--surface-2);border-block-end:1px solid var(--line-2);
+ display:flex;align-items:center;gap:6px}
+.psec>.in{padding:10px}
+/* 1 · הבעיה והפעולה — המספרים קודם */
+.nums{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+ background:var(--surface-2)}
+.nums div{flex:1;min-width:66px;padding:7px 9px;border-inline-end:1px solid var(--line-2);text-align:center}
+.nums div:last-child{border-inline-end:0}
+.nums .k{font-size:10px;color:var(--ink-3);font-weight:600}
+.nums .v{font-size:var(--f-lg);font-weight:800;font-family:var(--num);font-variant-numeric:tabular-nums;line-height:1.2}
+.nums .gap{background:var(--crit-bg)} .nums .gap .v{color:var(--crit-tx)}
+.nums .gap .k{color:var(--crit-tx)}
+.problem{background:var(--crit-bg);border:1px solid var(--crit-line);border-radius:var(--r);padding:9px 11px}
+.problem.w{background:var(--warn-bg);border-color:var(--warn-line)}
+.problem.p{background:var(--param-bg);border-color:var(--param-line)}
+.problem.g{background:var(--done-bg);border-color:var(--done-line)}
+.problem .t{font-size:var(--f-xs);font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:5px}
+.problem .a{font-size:var(--f-lg);font-weight:800;margin-block-start:2px;line-height:1.35}
+.pacts{display:flex;gap:6px;margin-block-start:9px;flex-wrap:wrap}
+.pacts button{height:30px;padding-inline:12px;border-radius:var(--r-sm);border:1px solid var(--line);
+ background:var(--surface);font-size:var(--f-sm);font-weight:700}
+.pacts button.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill)}
+.reasons{display:flex;flex-direction:column;gap:5px}
+.reason{display:flex;gap:7px;font-size:var(--f-sm);line-height:1.45;color:var(--ink-2)}
+.reason .ri{flex:0 0 auto;font-size:11px;margin-block-start:2px}
+.reason.err .ri{color:var(--crit-tx)} .reason.warn .ri{color:var(--warn-tx)}
+.reason.ok .ri{color:var(--done-tx)} .reason.info .ri{color:var(--acc-tx)}
+.reason.idea .ri{color:var(--param-tx)}
+/* טבלת מפתח־ערך */
+.kv{display:grid;grid-template-columns:1fr auto;gap:0}
+.kv>*{padding:5px 9px;border-block-end:1px solid var(--line-2);font-size:var(--f-sm)}
+.kv>*:nth-child(2n){text-align:end;font-family:var(--num);font-variant-numeric:tabular-nums;font-weight:600}
+.kv>*:nth-last-child(-n+2){border-block-end:0}
+.kv .lbl{color:var(--ink-2)}
+/* מידע חסר */
+.missing{background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--r);
+ padding:8px 10px;font-size:var(--f-sm);color:var(--ink-2);display:flex;flex-direction:column;gap:4px}
+.missing b{color:var(--ink)}
+
+/* ==================== גרפים ==================== */
+/* צריכה חודשית — סדרה אחת, ולכן בלי מקרא. הכותרת מזהה אותה.
+   פיק וצניחה מסומנים בצבע סטטוס *וגם* בסמל — לעולם לא בצבע לבד. */
+.bars{display:flex;align-items:flex-end;gap:3px;height:74px;padding-block-start:4px}
+.bars .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+.bars .bw{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;position:relative}
+.bars .b{width:100%;max-width:19px;background:var(--c-bar);border-radius:4px 4px 0 0;min-height:2px;
+ position:relative}
+.bars .b.spike{background:var(--warn)} .bars .b.drop{background:var(--crit)}
+.bars .lb{font-size:10px;color:var(--ink-2);font-family:var(--num)}
+.bars .mk{position:absolute;inset-block-start:-13px;inset-inline-start:50%;transform:translateX(50%);
+ font-size:10px;line-height:1}
+.bars .b.spike .mk{color:var(--warn-tx)} .bars .b.drop .mk{color:var(--crit-tx)}
+.chartnote{font-size:var(--f-xs);color:var(--ink-3);margin-block-start:6px;display:flex;gap:11px;flex-wrap:wrap}
+.chartnote span{display:inline-flex;align-items:center;gap:4px}
+.swatch{width:9px;height:9px;border-radius:2px;display:inline-block}
+/* bullet — «קיים» מול «מוצע». קידוד לפי מיקום וצורה, לא לפי גוון בלבד. */
+.bullet{display:flex;flex-direction:column;gap:9px}
+.blt{display:grid;grid-template-columns:52px 1fr 78px;align-items:center;gap:9px}
+.blt .bk{font-size:var(--f-sm);font-weight:700;color:var(--ink-2)}
+.blt .tr{position:relative;height:19px;background:var(--c-track);border-radius:4px}
+.blt .now{position:absolute;inset-block:4px;inset-inline-start:0;background:var(--c-now);border-radius:4px}
+.blt .sug{position:absolute;inset-block:-2px;width:3px;background:var(--c-sug);border-radius:2px}
+.blt .sug::after{content:"";position:absolute;inset-block-start:-4px;inset-inline-start:-3px;
+ border:4px solid transparent;border-block-start-color:var(--c-sug)}
+.blt .bv{font-size:var(--f-sm);font-family:var(--num);font-variant-numeric:tabular-nums;text-align:end}
+.blt .bv b{color:var(--param-tx)}
+/* ציר אספקות — בפועל / מתוכנן / בלי תאריך */
+.tl{display:flex;flex-direction:column;gap:7px}
+.tlrow{display:grid;grid-template-columns:86px 1fr;gap:9px;align-items:center}
+.tlrow .tk{font-size:var(--f-xs);color:var(--ink-2);font-weight:600;text-align:start}
+.tlbar{height:21px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+ font-size:var(--f-xs);font-weight:700;color:var(--on-fill);min-width:34px}
+.tlbar.actual{background:var(--done)}
+.tlbar.planned{background:var(--acc);
+ background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.28) 0 4px,transparent 4px 8px)}
+.tlbar.nodate{background:var(--surface-3);color:var(--warn-tx);border:1px dashed var(--warn-line)}
+.tlaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-2);
+ padding-block-start:3px;border-block-start:1px solid var(--line-2)}
+
+/* ==================== מרכז העבודה ==================== */
+.center{flex:1;overflow:auto;padding:0 14px 14px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:10px;align-content:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+ overflow:hidden;box-shadow:var(--shadow)}
+.card>h2{margin:0;font-size:var(--f-md);font-weight:700;padding:9px 12px;
+ border-block-end:1px solid var(--line-2);display:flex;align-items:center;gap:7px;background:var(--surface-2)}
+.card>h2 .cnt{margin-inline-start:auto;font-family:var(--num);font-weight:800;font-size:var(--f-lg)}
+.card>h2 a{margin-inline-start:auto;font-size:var(--f-sm);color:var(--acc-tx);text-decoration:none;font-weight:600}
+.qlist{display:flex;flex-direction:column}
+.qrow{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;
+ padding:7px 12px;border-block-end:1px solid var(--line-2);text-align:start;border:0;background:none;width:100%}
+.qrow:last-child{border-block-end:0}
+.qrow:hover{background:var(--surface-2)}
+.qrow .qp{font-family:var(--num);font-weight:700;font-size:var(--f-sm);color:var(--ink)}
+.qrow .qd{font-size:var(--f-sm);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qrow .qv{font-family:var(--num);font-weight:800;font-size:var(--f-md);text-align:end;white-space:nowrap}
+.empty{padding:26px 14px;text-align:center;color:var(--ink-3);font-size:var(--f-sm)}
+.empty .ei{font-size:24px;display:block;margin-block-end:6px;opacity:.5}
+/* כסף — לכל מטבע בנפרד, לעולם לא מחוברים */
+.money{display:flex;gap:9px;flex-wrap:wrap;font-family:var(--num);font-variant-numeric:tabular-nums}
+.money i{font-style:normal;background:var(--surface-3);border-radius:var(--r-sm);padding:1px 7px;
+ font-size:var(--f-sm);font-weight:700;color:var(--ink)}
+.warnbar{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:var(--r);
+ padding:8px 11px;font-size:var(--f-sm);color:var(--warn-tx);display:flex;gap:8px;align-items:flex-start;margin-block-end:10px}
+/* ==================== רספונסיבי ==================== */
+@media(max-width:1180px){
+ :root{--nav-w:60px}
+ .nav .nt,.nav .sect,.nav .foot{display:none}
+ .nav a{justify-content:center;padding-inline:0}
+ .nav a .nb{position:absolute;inset-block-start:2px;inset-inline-end:4px;font-size:9px;padding:0 4px;min-width:0}
+}
+@media(max-width:900px){
+ body{overflow:auto}
+ .shell{grid-template-columns:1fr;height:auto}
+ .nav{flex-direction:row;overflow-x:auto;position:sticky;inset-block-start:0;z-index:30}
+ .nav a{flex-direction:column;gap:2px;padding:7px 11px;border-inline-start:0;border-block-end:3px solid transparent}
+ .nav a.on{border-block-end-color:var(--acc)}
+ .nav a .nt{display:block;font-size:10px;white-space:nowrap}
+ .tablewrap{flex-direction:column;padding-inline:8px}
+ /* במסך צר הפאנל אינו מועך את הטבלה — הוא יורד מתחתיה ברוחב מלא */
+ .panel{width:auto;max-height:none}
+ .stamp{display:none}
+ .top{flex-wrap:wrap;height:auto;padding-block:7px;gap:7px}
+}
+</style>
+</head><body>
+<div id="app"></div>
+<script>
+/* ============================================================
+   נתוני הדגמה — פלט אמיתי של המנוע (build/classify/analyze) על דוח
+   ה-ZMRP הסינתטי, שנשלף פעם אחת ונשמר כאן כ-JSON. התצוגה *צורכת*
+   שדות; היא אינה מחשבת מחדש חוסר, כיסוי או המלצה.
+   אותו מערך משמש בשלושת המסכים.
+   ============================================================ */
+const DEMO={"items":[{"pn":"71O747136","desc":"Part מרכב 298","sup":"אלפא רכיבים","brand":"LINK&CO","planner":"מתכנן א׳","free":1,"stock":2,"cust":32,"custRaw":32,"po":0,"transfer":6,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":0,"miss":31,"uns":6,"unsGross":6,"rate":6.67,"d12":83,"cons3y":214,"months":[8,5,9,4,10,4,6,9,10,14,4],"cov":1.1,"ltD":81,"ltM":2.7,"rop":2,"ss":6,"ssMin":7,"sugROP":28,"sugSS":9,"ssStat":9,"ssMinEff":7,"lowFloor":0,"ssSrc":"stat","dLT":18,"cat":"לקוח ממתין – אין רכש","sev":3,"act":["לפתוח הזמנת רכש ל-31 יח׳"],"why":[["err","הזמנת לקוח 32 מול מלאי 1 — אין הזמנת רכש"]],"price":3177.03,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":true,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-16,"spikes":0,"drops":0},{"pn":"95X440153","desc":"Part בלמים 709","sup":"אלפא רכיבים","brand":"ZT","planner":"מתכנן א׳","free":3,"stock":4,"cust":29,"custRaw":29,"po":0,"transfer":6,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":0,"miss":26,"uns":3,"unsGross":3,"rate":5.83,"d12":59,"cons3y":296,"months":[1,12,5,8,1,6,2,1,4,7,12],"cov":1.5,"ltD":22,"ltM":0.7,"rop":30,"ss":18,"ssMin":4,"sugROP":0,"sugSS":0,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"od","dLT":4.3,"cat":"לקוח ממתין – אין רכש","sev":3,"act":["לפתוח הזמנת רכש ל-26 יח׳"],"why":[["err","הזמנת לקוח 29 מול מלאי 3 — אין הזמנת רכש"]],"price":3161.59,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":true,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"PD","srv":50,"noStock":false,"isPD":true,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":19,"spikes":2,"drops":1},{"pn":"84Q851347","desc":"Part פנים 679","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":1,"stock":2,"cust":32,"custRaw":32,"po":0,"transfer":2,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":0,"miss":31,"uns":8,"unsGross":8,"rate":8.5,"d12":68,"cons3y":196,"months":[10,11,4,0,14,8,6,6,1,2,6],"cov":0.4,"ltD":156,"ltM":5.2,"rop":4,"ss":4,"ssMin":2,"sugROP":60,"sugSS":15,"ssStat":15,"ssMinEff":2,"lowFloor":0,"ssSrc":"stat","dLT":44.2,"cat":"לקוח ממתין – אין רכש","sev":3,"act":["לפתוח הזמנת רכש ל-31 יח׳"],"why":[["err","הזמנת לקוח 32 מול מלאי 1 — אין הזמנת רכש"]],"price":2517.44,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":true,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":114,"spikes":1,"drops":1},{"pn":"74P642810","desc":"Part מרכב 637","sup":"דלתא מוטורס","brand":"LINK&CO","planner":"מתכנן א׳","free":1,"stock":1,"cust":31,"custRaw":31,"po":0,"transfer":8,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":0,"miss":30,"uns":6,"unsGross":6,"rate":7.33,"d12":57,"cons3y":249,"months":[8,0,9,1,4,10,1,10,6,1,7],"cov":1.2,"ltD":58,"ltM":1.9,"rop":9,"ss":0,"ssMin":5,"sugROP":20,"sugSS":5,"ssStat":5,"ssMinEff":5,"lowFloor":0,"ssSrc":"stat","dLT":14.2,"cat":"לקוח ממתין – אין רכש","sev":3,"act":["לפתוח הזמנת רכש ל-30 יח׳"],"why":[["err","הזמנת לקוח 31 מול מלאי 1 — אין הזמנת רכש"]],"price":1794.74,"cur":"ILS","expCap":0,"orderQty":null,"excessQty":null,"burn":true,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-6,"spikes":0,"drops":4},{"pn":"19U920385","desc":"Part מנוע 250","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":0,"stock":25,"cust":40,"custRaw":40,"po":1,"transfer":2,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":1,"miss":39,"uns":9,"unsGross":9,"rate":9.33,"d12":79,"cons3y":195,"months":[11,6,12,5,11,11,8,2,3,8,2],"cov":0.3,"ltD":24,"ltM":0.8,"rop":21,"ss":18,"ssMin":2,"sugROP":11,"sugSS":3,"ssStat":3,"ssMinEff":2,"lowFloor":0,"ssSrc":"stat","dLT":7.5,"cat":"פער כיסוי להזמנת לקוח","sev":3,"act":["להשלים רכש ב-39 יח׳ לפחות"],"why":[["err","הזמנת לקוח 40 מול מלאי 0 ורכש 1 — חסרות 39 יח׳"]],"price":1159.01,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":96,"spikes":0,"drops":0},{"pn":"86B540538","desc":"Part מנוע 761","sup":"דלתא מוטורס","brand":"LINK&CO","planner":"מתכנן א׳","free":2,"stock":4,"cust":39,"custRaw":39,"po":1,"transfer":3,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":1,"miss":36,"uns":5,"unsGross":5,"rate":7,"d12":74,"cons3y":165,"months":[10,8,11,4,2,7,13,1,1,3,14],"cov":0.9,"ltD":90,"ltM":3,"rop":28,"ss":15,"ssMin":8,"sugROP":35,"sugSS":14,"ssStat":14,"ssMinEff":8,"lowFloor":0,"ssSrc":"stat","dLT":21,"cat":"פער כיסוי להזמנת לקוח","sev":3,"act":["להשלים רכש ב-36 יח׳ לפחות"],"why":[["err","הזמנת לקוח 39 מול מלאי 2 ורכש 1 — חסרות 36 יח׳"]],"price":2697.04,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":9,"spikes":1,"drops":0},{"pn":"67G229935","desc":"Part בלמים 284","sup":"אלפא רכיבים","brand":"LINK&CO","planner":"מתכנן א׳","free":2,"stock":3,"cust":38,"custRaw":38,"po":2,"transfer":1,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":2,"miss":34,"uns":7,"unsGross":7,"rate":8.5,"d12":93,"cons3y":191,"months":[10,12,4,7,10,8,11,3,8,11,9],"cov":0.6,"ltD":36,"ltM":1.2,"rop":17,"ss":6,"ssMin":4,"sugROP":0,"sugSS":0,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"od","dLT":10.2,"cat":"פער כיסוי להזמנת לקוח","sev":3,"act":["להשלים רכש ב-34 יח׳ לפחות"],"why":[["err","הזמנת לקוח 38 מול מלאי 2 ורכש 2 — חסרות 34 יח׳"]],"price":1546.47,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":2,"spikes":0,"drops":0},{"pn":"27G375199","desc":"Part חשמל 743","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":3,"stock":4,"cust":39,"custRaw":39,"po":2,"transfer":0,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":2,"miss":34,"uns":8,"unsGross":8,"rate":10.67,"d12":101,"cons3y":216,"months":[14,8,9,12,14,7,10,8,13,6,0],"cov":0.5,"ltD":33,"ltM":1.1,"rop":30,"ss":13,"ssMin":6,"sugROP":20,"sugSS":8,"ssStat":8,"ssMinEff":6,"lowFloor":0,"ssSrc":"stat","dLT":11.7,"cat":"פער כיסוי להזמנת לקוח","sev":3,"act":["להשלים רכש ב-34 יח׳ לפחות"],"why":[["err","הזמנת לקוח 39 מול מלאי 3 ורכש 2 — חסרות 34 יח׳"]],"price":3092.49,"cur":"ILS","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":54,"spikes":0,"drops":0},{"pn":"22K322771","desc":"Part מרכב 0","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":11,"stock":11,"cust":0,"custRaw":0,"po":1,"transfer":6,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":1,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":0,"cons3y":0,"months":[0,0,0,0,0,0,0,0,0,0,0],"cov":null,"ltD":48,"ltM":1.6,"rop":11,"ss":15,"ssMin":4,"sugROP":4,"sugSS":4,"ssStat":0,"ssMinEff":4,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי מת","sev":1,"act":["לבחון חיסול / החזרה לספק / קמפיין — $25,432 מוקפאים","להכריע: לשחרר את רצפת ה-SS (4) ואז לחסל, או להשאיר אותה ולהחזיק 4 יח׳","לבדוק רכש פתוח לפני החלטה"],"why":[["err","אין צריכה 3 שנים · הכניסה האחרונה לפני 7.1 שנים — מלאי מת לפי מדיניות 3 השנים"],["warn","הון כלוא $25,432 · 11 יח׳ במחסן"],["info","מכירה אחרונה לפני 5.4 שנים"],["err","נקודת הזמנה 11 עדיין פעילה ומלאי פנוי 11 ≤ ROP — סיכון להזמנה חוזרת של מלאי מת"],["warn","התנגשות מדיניות: אין צריכה 3 שנים, אבל רצפת ssMin מ-SAP היא 4 יח׳. הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד"],["warn","ב-SAP יושבים נקודת הזמנה 11 ומלאי ביטחון 15, מול 0 יח׳ שנמכרו בשלוש שנים"]],"price":2311.96,"cur":"USD","expCap":25432,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"dead","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"24S618707","desc":"Part חשמל 1","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":66,"stock":66,"cust":0,"custRaw":0,"po":5,"transfer":5,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":5,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":0,"cons3y":0,"months":[0,0,0,0,0,0,0,0,0,0,0],"cov":null,"ltD":188,"ltM":6.3,"rop":10,"ss":17,"ssMin":4,"sugROP":4,"sugSS":4,"ssStat":0,"ssMinEff":4,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי מת","sev":1,"act":["לבחון חיסול / החזרה לספק / קמפיין — $160,199 מוקפאים","להכריע: לשחרר את רצפת ה-SS (4) ואז לחסל, או להשאיר אותה ולהחזיק 4 יח׳","לבדוק רכש פתוח לפני החלטה"],"why":[["err","אין צריכה 3 שנים · הכניסה האחרונה לפני 5.2 שנים — מלאי מת לפי מדיניות 3 השנים"],["warn","הון כלוא $160,199 · 66 יח׳ במחסן"],["info","מכירה אחרונה לפני 6.1 שנים"],["warn","התנגשות מדיניות: אין צריכה 3 שנים, אבל רצפת ssMin מ-SAP היא 4 יח׳. הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד"],["warn","ב-SAP יושבים נקודת הזמנה 10 ומלאי ביטחון 17, מול 0 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":2427.26,"cur":"USD","expCap":160199,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"dead","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"67H591034","desc":"Part חשמל 4","sup":"אלפא רכיבים","brand":"ZT","planner":"מתכנן א׳","free":5,"stock":10,"cust":2,"custRaw":2,"po":5,"transfer":1,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":5,"miss":7,"uns":6,"unsGross":6,"rate":11,"d12":107,"cons3y":430,"months":[6,12,16,16,3,6,13,14,3,8,10],"cov":1,"ltD":108,"ltM":3.6,"rop":2,"ss":14,"ssMin":8,"sugROP":48,"sugSS":8,"ssStat":6,"ssMinEff":8,"lowFloor":0,"ssSrc":"sap","dLT":39.6,"cat":"חשד אזילה","sev":2,"act":["להשלים 7 יח׳ כדי לכסות את החודש הקרוב","לדרוש ETA ל-5 היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה","להעלות נקודת הזמנה מ-2 ל-48","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","5 יח׳ במלאי מול צריכה 34 יח׳ ברבעון — 11.3 לחודש"],["idea","זוהתה אזילה באפריל — הקצב האמיתי גבוה מהמדווח, 11 ולא 10"],["err","2 יח׳ בהזמנת לקוח פתוחה"],["warn","5 יח׳ בהזמנת רכש פתוחה — אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה"],["idea","נקודת ההזמנה 2 נמוכה מ-48 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":0,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":true,"hNew":true,"hWorse":false,"mark":null,"trendPct":9,"spikes":0,"drops":2},{"pn":"95B880787","desc":"Part בלמים 5","sup":"אלפא רכיבים","brand":"LINK&CO","planner":"מתכנן א׳","free":0,"stock":1,"cust":27,"custRaw":27,"po":3,"transfer":0,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":3,"miss":24,"uns":6,"unsGross":6,"rate":6.33,"d12":74,"cons3y":192,"months":[5,9,7,5,10,2,4,14,9,8,1],"cov":0.5,"ltD":34,"ltM":1.1,"rop":15,"ss":11,"ssMin":7,"sugROP":0,"sugSS":0,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"od","dLT":7.2,"cat":"פער כיסוי להזמנת לקוח","sev":3,"act":["להשלים רכש ב-24 יח׳ לפחות"],"why":[["err","הזמנת לקוח 27 מול מלאי 0 ורכש 3 — חסרות 24 יח׳"]],"price":2171.68,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":true,"paramFix":false,"ageTier":"active","mrp":"PD","srv":50,"noStock":false,"isPD":true,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":0,"spikes":1,"drops":0},{"pn":"83G768232","desc":"Part חשמל 76","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":4,"stock":6,"cust":2,"custRaw":2,"po":5,"transfer":1,"etaQty":3,"etaMonth":0,"etaFirst":"2026-10-03","etaHas":true,"stuck":2,"miss":7,"uns":7,"unsGross":7,"rate":11,"d12":131,"cons3y":458,"months":[3,9,19,17,7,12,18,20,9,8,9],"cov":0.9,"ltD":166,"ltM":5.5,"rop":20,"ss":13,"ssMin":3,"sugROP":84,"sugSS":23,"ssStat":23,"ssMinEff":3,"lowFloor":0,"ssSrc":"stat","dLT":60.9,"cat":"אוזל החודש","sev":2,"act":["להשלים 7 יח׳ כדי לכסות את החודש הקרוב","3 יח׳ משובצות ל-3.10 — לצמצם את ההשלמה בהתאם","להעלות נקודת הזמנה מ-20 ל-84"],"why":[["err","4 יח׳ במלאי מול צריכה 31 יח׳ ברבעון — 10.3 לחודש"],["err","2 יח׳ בהזמנת לקוח פתוחה"],["warn","5 יח׳ בהזמנת רכש פתוחה — 3 יח׳ שובצו לאספקה (המוקדמת 3.10) ו-2 יח׳ בלי שום תאריך"],["idea","נקודת ההזמנה 20 נמוכה מ-84 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":0,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":true,"hNew":true,"hWorse":false,"mark":null,"trendPct":-14,"spikes":3,"drops":0},{"pn":"19F219047","desc":"Part חשמל 83","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":7,"stock":12,"cust":1,"custRaw":1,"po":11,"transfer":1,"etaQty":6,"etaMonth":0,"etaFirst":"2026-10-06","etaHas":true,"stuck":5,"miss":5,"uns":3,"unsGross":3,"rate":10.17,"d12":118,"cons3y":382,"months":[5,10,19,11,9,7,15,17,5,15,5],"cov":1.9,"ltD":102,"ltM":3.4,"rop":15,"ss":13,"ssMin":8,"sugROP":43,"sugSS":8,"ssStat":8,"ssMinEff":8,"lowFloor":0,"ssSrc":"stat","dLT":34.6,"cat":"אוזל החודש","sev":2,"act":["להשלים 5 יח׳ כדי לכסות את החודש הקרוב","6 יח׳ משובצות ל-6.10 — לצמצם את ההשלמה בהתאם","להעלות נקודת הזמנה מ-15 ל-43"],"why":[["err","7 יח׳ במלאי מול צריכה 34 יח׳ ברבעון — 11.3 לחודש"],["err","1 יח׳ בהזמנת לקוח פתוחה"],["warn","11 יח׳ בהזמנת רכש פתוחה — 6 יח׳ שובצו לאספקה (המוקדמת 6.10) ו-5 יח׳ בלי שום תאריך"],["idea","נקודת ההזמנה 15 נמוכה מ-43 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":0,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":true,"hNew":true,"hWorse":false,"mark":null,"trendPct":-5,"spikes":0,"drops":0},{"pn":"85D731503","desc":"Part בלמים 90","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":6,"stock":7,"cust":4,"custRaw":4,"po":2,"transfer":7,"etaQty":1,"etaMonth":0,"etaFirst":"2026-10-10","etaHas":true,"stuck":1,"miss":8,"uns":8,"unsGross":8,"rate":14,"d12":135,"cons3y":458,"months":[15,15,10,12,15,17,11,12,18,7,3],"cov":1.1,"ltD":136,"ltM":4.5,"rop":27,"ss":16,"ssMin":7,"sugROP":80,"sugSS":16,"ssStat":16,"ssMinEff":7,"lowFloor":0,"ssSrc":"stat","dLT":63.5,"cat":"אוזל החודש","sev":2,"act":["להשלים 8 יח׳ כדי לכסות את החודש הקרוב","1 יח׳ משובצות ל-10.10 — לצמצם את ההשלמה בהתאם","להעלות נקודת הזמנה מ-27 ל-80"],"why":[["err","6 יח׳ במלאי מול צריכה 40 יח׳ ברבעון — 13.3 לחודש"],["err","4 יח׳ בהזמנת לקוח פתוחה"],["warn","2 יח׳ בהזמנת רכש פתוחה — 1 יח׳ שובצו לאספקה (המוקדמת 10.10) ו-1 יח׳ בלי שום תאריך"],["idea","נקודת ההזמנה 27 נמוכה מ-80 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":2012.03,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":31,"spikes":0,"drops":0},{"pn":"69Z994381","desc":"Part חשמל 109","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":5,"stock":8,"cust":4,"custRaw":4,"po":6,"transfer":6,"etaQty":6,"etaMonth":0,"etaFirst":"2026-10-18","etaHas":true,"stuck":0,"miss":2,"uns":1,"unsGross":1,"rate":6.17,"d12":92,"cons3y":377,"months":[2,13,5,6,6,5,7,11,15,9,13],"cov":2.8,"ltD":178,"ltM":5.9,"rop":2,"ss":12,"ssMin":0,"sugROP":46,"sugSS":9,"ssStat":9,"ssMinEff":0,"lowFloor":0,"ssSrc":"stat","dLT":36.6,"cat":"אוזל החודש","sev":2,"act":["להשלים 2 יח׳ כדי לכסות את החודש הקרוב","6 יח׳ משובצות ל-18.10 — לצמצם את ההשלמה בהתאם","להעלות נקודת הזמנה מ-2 ל-46"],"why":[["err","5 יח׳ במלאי מול צריכה 20 יח׳ ברבעון — 6.7 לחודש"],["err","4 יח׳ בהזמנת לקוח פתוחה"],["warn","6 יח׳ בהזמנת רכש פתוחה — כל הכמות שובצה לאספקה — המוקדמת 18.10"],["idea","נקודת ההזמנה 2 נמוכה מ-46 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":1374.05,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-42,"spikes":1,"drops":0},{"pn":"81G301337","desc":"Part מרכב 37","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":9,"stock":13,"cust":1,"custRaw":1,"po":4,"transfer":3,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":true,"stuck":4,"miss":3,"uns":3,"unsGross":3,"rate":12.17,"d12":108,"cons3y":351,"months":[7,10,17,17,3,12,17,5,2,7,11],"cov":1.3,"ltD":127,"ltM":4.2,"rop":21,"ss":11,"ssMin":3,"sugROP":70,"sugSS":18,"ssStat":18,"ssMinEff":3,"lowFloor":0,"ssSrc":"stat","dLT":51.5,"cat":"חשד אזילה","sev":2,"act":["להשלים 3 יח׳ כדי לכסות את החודש הקרוב","לדרוש ETA ל-4 היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה","להעלות נקודת הזמנה מ-21 ל-70","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","9 יח׳ במלאי מול צריכה 34 יח׳ ברבעון — 11.3 לחודש"],["idea","זוהתה אזילה באפריל — הקצב האמיתי גבוה מהמדווח, 12 ולא 11"],["err","1 יח׳ בהזמנת לקוח פתוחה"],["warn","4 יח׳ בהזמנת רכש פתוחה — אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה"],["idea","נקודת ההזמנה 21 נמוכה מ-70 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":299.46,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":45,"spikes":0,"drops":1},{"pn":"50B116544","desc":"Part מנוע 82","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":6,"stock":8,"cust":1,"custRaw":1,"po":5,"transfer":1,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":true,"stuck":5,"miss":9,"uns":9,"unsGross":9,"rate":15.17,"d12":141,"cons3y":452,"months":[17,7,19,20,17,11,16,3,12,4,15],"cov":0.8,"ltD":148,"ltM":4.9,"rop":38,"ss":17,"ssMin":1,"sugROP":82,"sugSS":7,"ssStat":7,"ssMinEff":1,"lowFloor":0,"ssSrc":"stat","dLT":74.8,"cat":"חשד אזילה","sev":2,"act":["להשלים 9 יח׳ כדי לכסות את החודש הקרוב","לדרוש ETA ל-5 היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה","להעלות נקודת הזמנה מ-38 ל-82","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","6 יח׳ במלאי מול צריכה 43 יח׳ ברבעון — 14.3 לחודש"],["idea","זוהתה אזילה בינואר — הקצב האמיתי גבוה מהמדווח, 15 ולא 15"],["err","1 יח׳ בהזמנת לקוח פתוחה"],["warn","5 יח׳ בהזמנת רכש פתוחה — אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה"],["idea","נקודת ההזמנה 38 נמוכה מ-82 הנדרש לפי הקצב — התיקון עצמו במסלול הפרמטרים"]],"price":337.3,"cur":"EUR","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":10,"spikes":0,"drops":2},{"pn":"94K372369","desc":"Part בלמים 110","sup":"דלתא מוטורס","brand":"LINK&CO","planner":"מתכנן א׳","free":6,"stock":7,"cust":3,"custRaw":3,"po":6,"transfer":8,"etaQty":1,"etaMonth":0,"etaFirst":"2026-10-19","etaHas":true,"stuck":5,"miss":9,"uns":8,"unsGross":8,"rate":14.17,"d12":138,"cons3y":299,"months":[14,14,15,13,10,19,7,7,15,17,7],"cov":1.4,"ltD":49,"ltM":1.6,"rop":37,"ss":10,"ssMin":4,"sugROP":33,"sugSS":9,"ssStat":9,"ssMinEff":4,"lowFloor":0,"ssSrc":"stat","dLT":23.1,"cat":"אוזל החודש","sev":2,"act":["להשלים 9 יח׳ כדי לכסות את החודש הקרוב","1 יח׳ משובצות ל-19.10 — לצמצם את ההשלמה בהתאם","נקודת ההזמנה תקינה"],"why":[["err","6 יח׳ במלאי מול צריכה 43 יח׳ ברבעון — 14.3 לחודש"],["err","3 יח׳ בהזמנת לקוח פתוחה"],["warn","6 יח׳ בהזמנת רכש פתוחה — 1 יח׳ שובצו לאספקה (המוקדמת 19.10) ו-5 יח׳ בלי שום תאריך"]],"price":182.23,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":25,"spikes":0,"drops":0},{"pn":"55G610612","desc":"Part חשמל 21","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":84,"stock":86,"cust":0,"custRaw":0,"po":18,"transfer":5,"etaQty":14,"etaMonth":0,"etaFirst":"2026-10-09","etaHas":true,"stuck":4,"miss":0,"uns":0,"unsGross":0,"rate":16.83,"d12":151,"cons3y":683,"months":[13,14,24,12,23,15,12,4,11,13,10],"cov":6.4,"ltD":132,"ltM":4.4,"rop":20,"ss":0,"ssMin":3,"sugROP":95,"sugSS":20,"ssStat":20,"ssMinEff":3,"lowFloor":0,"ssSrc":"stat","dLT":74.1,"cat":"עדכון פרמטרים","sev":1,"act":["לעדכן נקודת הזמנה מ-20 ל-95","לעדכן מלאי ביטחון מ-0 ל-20"],"why":[["warn","פרמטרים בסטייה מהמומלץ · ROP 20→95 (▲75) · SS 0→20 (▲20)"],["info","אין סיכון חוסר/עודף מיידי — אך כדאי ליישר את הפרמטרים ב-SAP"]],"price":3129.88,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":true,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":72,"spikes":0,"drops":0},{"pn":"68K368944","desc":"Part מרכב 26","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":190,"stock":195,"cust":9,"custRaw":9,"po":5,"transfer":6,"etaQty":2,"etaMonth":0,"etaFirst":"2026-10-10","etaHas":true,"stuck":3,"miss":0,"uns":0,"unsGross":0,"rate":14.33,"d12":170,"cons3y":685,"months":[10,17,6,23,13,5,24,15,19,17,21],"cov":14,"ltD":125,"ltM":4.2,"rop":30,"ss":16,"ssMin":9,"sugROP":79,"sugSS":19,"ssStat":19,"ssMinEff":9,"lowFloor":0,"ssSrc":"stat","dLT":59.7,"cat":"עדכון פרמטרים","sev":1,"act":["להעלות נקודת הזמנה מ-30 ל-79 כדי למנוע הישנות","להעלות מלאי ביטחון מ-16 ל-19","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","צניחה חריגה במרץ: מול חציון 17 — כשהחודשים משני הצדדים תקינים"],["idea","זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה"],["warn","פער משוער: 12 יח׳ מתחת לחציון"],["ok","היום הפריט מכוסה — כיסוי 14.0 חודשים מול זמן אספקה 4.2. האזילה בעבר, ואין חוסר למנוע היום"],["warn","הלקח מהאזילה — נקודת הזמנה 30 מול 79 הנדרש · מלאי ביטחון 16 מול 19"]],"price":1894.32,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":true,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-28,"spikes":0,"drops":1},{"pn":"62T282402","desc":"Part חשמל 42","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":65,"stock":75,"cust":5,"custRaw":5,"po":13,"transfer":5,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":true,"stuck":13,"miss":0,"uns":0,"unsGross":0,"rate":17.33,"d12":154,"cons3y":735,"months":[13,22,18,20,8,23,3,20,15,8,4],"cov":4.8,"ltD":29,"ltM":1,"rop":14,"ss":11,"ssMin":9,"sugROP":26,"sugSS":9,"ssStat":6,"ssMinEff":9,"lowFloor":0,"ssSrc":"sap","dLT":16.8,"cat":"עדכון פרמטרים","sev":1,"act":["להעלות נקודת הזמנה מ-14 ל-26 כדי למנוע הישנות","הקצב האמיתי גבוה מהמדווח — לחשב ROP לפי 17 ולא 17","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","צניחה חריגה בפברואר: מול חציון 15 — כשהחודשים משני הצדדים תקינים"],["idea","זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה"],["warn","פער משוער: 12 יח׳ מתחת לחציון"],["ok","היום הפריט מכוסה — כיסוי 4.8 חודשים מול זמן אספקה 1.0. האזילה בעבר, ואין חוסר למנוע היום"],["warn","הלקח מהאזילה — נקודת הזמנה 14 מול 26 הנדרש"]],"price":1333.58,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":true,"ageTier":"active","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":31,"spikes":0,"drops":1},{"pn":"36Q828924","desc":"Part מתלים 48","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":7,"stock":7,"cust":0,"custRaw":0,"po":6,"transfer":2,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":true,"stuck":6,"miss":0,"uns":2,"unsGross":2,"rate":8.5,"d12":97,"cons3y":528,"months":[14,4,3,13,3,15,2,17,7,4,15],"cov":1.8,"ltD":32,"ltM":1.1,"rop":10,"ss":0,"ssMin":4,"sugROP":20,"sugSS":10,"ssStat":10,"ssMinEff":4,"lowFloor":0,"ssSrc":"stat","dLT":9.1,"cat":"עדכון פרמטרים","sev":1,"act":["להעלות נקודת הזמנה מ-10 ל-20 כדי למנוע הישנות","להעלות מלאי ביטחון מ-0 ל-10","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","צניחה חריגה בפברואר: מול חציון 7 — כשהחודשים משני הצדדים תקינים"],["idea","זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה"],["warn","פער משוער: 5 יח׳ מתחת לחציון"],["ok","היום הפריט מכוסה — כיסוי 1.8 חודשים מול זמן אספקה 1.1. האזילה בעבר, ואין חוסר למנוע היום"],["warn","הלקח מהאזילה — נקודת הזמנה 10 מול 20 הנדרש · מלאי ביטחון 0 מול 10"]],"price":2730.72,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":true,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-26,"spikes":4,"drops":1},{"pn":"96R188030","desc":"Part מתלים 55","sup":"גמא חלפים","brand":"LINK&CO","planner":"מתכנן א׳","free":90,"stock":94,"cust":8,"custRaw":8,"po":12,"transfer":2,"etaQty":8,"etaMonth":0,"etaFirst":"2026-10-24","etaHas":true,"stuck":4,"miss":0,"uns":0,"unsGross":0,"rate":16,"d12":176,"cons3y":453,"months":[8,16,13,5,25,17,21,18,21,24,8],"cov":6.5,"ltD":181,"ltM":6,"rop":22,"ss":15,"ssMin":3,"sugROP":121,"sugSS":24,"ssStat":24,"ssMinEff":3,"lowFloor":0,"ssSrc":"stat","dLT":96.5,"cat":"עדכון פרמטרים","sev":1,"act":["להעלות נקודת הזמנה מ-22 ל-121 כדי למנוע הישנות","להעלות מלאי ביטחון מ-15 ל-24","לוודא שהחודש הזה אכן היה חוסר ולא סגירת מוסך"],"why":[["err","צניחה חריגה במאי: מול חציון 17 — כשהחודשים משני הצדדים תקינים"],["idea","זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה"],["warn","פער משוער: 12 יח׳ מתחת לחציון"],["ok","היום הפריט מכוסה — כיסוי 6.5 חודשים מול זמן אספקה 6.0. האזילה בעבר, ואין חוסר למנוע היום"],["warn","הלקח מהאזילה — נקודת הזמנה 22 מול 121 הנדרש · מלאי ביטחון 15 מול 24"]],"price":303.71,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":true,"ageTier":"active","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":true,"hWorse":false,"mark":null,"trendPct":-14,"spikes":0,"drops":1},{"pn":"63L536579","desc":"Part מנוע 43","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":163,"stock":163,"cust":0,"custRaw":0,"po":4,"transfer":0,"etaQty":2,"etaMonth":0,"etaFirst":"2026-10-21","etaHas":true,"stuck":2,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":1,"cons3y":11,"months":[0,0,0,0,0,1,0,0,0,0,0],"cov":null,"ltD":52,"ltM":1.7,"rop":28,"ss":13,"ssMin":6,"sugROP":6,"sugSS":6,"ssStat":0,"ssMinEff":6,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי איטי","sev":1,"act":["לבחון הקטנת מלאי ב-154 יח׳ — $0","לבדוק ROP/SS מול קצב אמיתי של 3 שנים","לא להזמין עד שהמלאי יירד","לעדכן נקודת הזמנה ל-6 ומלאי ביטחון ל-6 — אחרת המלאי יחזור"],"why":[["warn","צריכה 11 יח׳ בלבד ב-3 שנים · כיסוי 474 חודשים בקצב הזה"],["info","מעל 24 חודשי כיסוי יושבות 154 יח׳ בשווי $0"],["info","מכירה אחרונה לפני 2.2 שנים"],["warn","ב-SAP יושבים נקודת הזמנה 28 ומלאי ביטחון 13, מול 11 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":0,"cur":"USD","expCap":0,"orderQty":null,"excessQty":154,"burn":false,"custGap":false,"paramFix":true,"ageTier":"slow","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":true,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"66B641547","desc":"Part חשמל 114","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":385,"stock":385,"cust":0,"custRaw":0,"po":3,"transfer":1,"etaQty":1,"etaMonth":0,"etaFirst":"2026-10-22","etaHas":true,"stuck":2,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":3,"cons3y":10,"months":[2,0,0,1,0,0,0,0,0,0,0],"cov":null,"ltD":175,"ltM":5.8,"rop":31,"ss":12,"ssMin":4,"sugROP":4,"sugSS":4,"ssStat":0,"ssMinEff":4,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי איטי","sev":1,"act":["לבחון הקטנת מלאי ב-377 יח׳ — $1,043,725","לבדוק ROP/SS מול קצב אמיתי של 3 שנים","לא להזמין עד שהמלאי יירד","לעדכן נקודת הזמנה ל-4 ומלאי ביטחון ל-4 — אחרת המלאי יחזור"],"why":[["warn","צריכה 10 יח׳ בלבד ב-3 שנים · כיסוי 1232 חודשים בקצב הזה"],["info","מעל 24 חודשי כיסוי יושבות 377 יח׳ בשווי $1,043,725"],["info","מכירה אחרונה לפני 232 ימים"],["warn","ב-SAP יושבים נקודת הזמנה 31 ומלאי ביטחון 12, מול 10 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":2768.5,"cur":"USD","expCap":1043725,"orderQty":null,"excessQty":377,"burn":false,"custGap":false,"paramFix":true,"ageTier":"slow","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":999,"spikes":0,"drops":0},{"pn":"40D870294","desc":"Part מתלים 205","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":217,"stock":217,"cust":0,"custRaw":0,"po":3,"transfer":2,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":3,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":3,"cons3y":11,"months":[0,2,0,0,0,0,0,0,0,0,1],"cov":null,"ltD":119,"ltM":4,"rop":31,"ss":16,"ssMin":9,"sugROP":9,"sugSS":9,"ssStat":0,"ssMinEff":9,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי איטי","sev":1,"act":["לבחון הקטנת מלאי ב-208 יח׳ — $0","לבדוק ROP/SS מול קצב אמיתי של 3 שנים","לא להזמין עד שהמלאי יירד","לעדכן נקודת הזמנה ל-9 ומלאי ביטחון ל-9 — אחרת המלאי יחזור"],"why":[["warn","צריכה 11 יח׳ בלבד ב-3 שנים · כיסוי 631 חודשים בקצב הזה"],["info","מעל 24 חודשי כיסוי יושבות 208 יח׳ בשווי $0"],["info","מכירה אחרונה לפני 2.0 שנים"],["warn","ב-SAP יושבים נקודת הזמנה 31 ומלאי ביטחון 16, מול 11 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":0,"cur":"USD","expCap":0,"orderQty":null,"excessQty":208,"burn":false,"custGap":false,"paramFix":true,"ageTier":"slow","mrp":"ND","srv":95,"noStock":false,"isPD":false,"priceMissing":true,"hNew":false,"hWorse":false,"mark":null,"trendPct":100,"spikes":0,"drops":0},{"pn":"71H791367","desc":"Part מתלים 36","sup":"גמא חלפים","brand":"ZT","planner":"מתכנן א׳","free":262,"stock":262,"cust":0,"custRaw":0,"po":4,"transfer":4,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":4,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":0,"cons3y":0,"months":[0,0,0,0,0,0,0,0,0,0,0],"cov":null,"ltD":167,"ltM":5.6,"rop":30,"ss":9,"ssMin":7,"sugROP":7,"sugSS":7,"ssStat":0,"ssMinEff":7,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי מת","sev":1,"act":["לבחון חיסול / החזרה לספק / קמפיין — €20,352 מוקפאים","להכריע: לשחרר את רצפת ה-SS (7) ואז לחסל, או להשאיר אותה ולהחזיק 7 יח׳","לבדוק רכש פתוח לפני החלטה"],"why":[["err","אין צריכה 3 שנים · הכניסה האחרונה לפני 5.8 שנים — מלאי מת לפי מדיניות 3 השנים"],["warn","הון כלוא €20,352 · 262 יח׳ במחסן"],["info","מכירה אחרונה לפני 6.9 שנים"],["warn","התנגשות מדיניות: אין צריכה 3 שנים, אבל רצפת ssMin מ-SAP היא 7 יח׳. הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד"],["warn","ב-SAP יושבים נקודת הזמנה 30 ומלאי ביטחון 9, מול 0 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":77.68,"cur":"EUR","expCap":20352,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"dead","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"83L503446","desc":"Part מתלים 46","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":220,"stock":220,"cust":0,"custRaw":0,"po":1,"transfer":6,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":1,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":0,"cons3y":0,"months":[0,0,0,0,0,0,0,0,0,0,0],"cov":null,"ltD":46,"ltM":1.5,"rop":32,"ss":8,"ssMin":4,"sugROP":4,"sugSS":4,"ssStat":0,"ssMinEff":4,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי מת","sev":1,"act":["לבחון חיסול / החזרה לספק / קמפיין — $575,560 מוקפאים","להכריע: לשחרר את רצפת ה-SS (4) ואז לחסל, או להשאיר אותה ולהחזיק 4 יח׳","לבדוק רכש פתוח לפני החלטה"],"why":[["err","אין צריכה 3 שנים · הכניסה האחרונה לפני 3.6 שנים — מלאי מת לפי מדיניות 3 השנים"],["warn","הון כלוא $575,560 · 220 יח׳ במחסן"],["info","מכירה אחרונה לפני 4.5 שנים"],["warn","התנגשות מדיניות: אין צריכה 3 שנים, אבל רצפת ssMin מ-SAP היא 4 יח׳. הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד"],["warn","ב-SAP יושבים נקודת הזמנה 32 ומלאי ביטחון 8, מול 0 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":2616.18,"cur":"USD","expCap":575560,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"dead","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"89U438961","desc":"Part פנים 84","sup":"אלפא רכיבים","brand":"ZT","planner":"מתכנן א׳","free":24,"stock":24,"cust":0,"custRaw":0,"po":2,"transfer":8,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":2,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":0,"cons3y":0,"months":[0,0,0,0,0,0,0,0,0,0,0],"cov":null,"ltD":186,"ltM":6.2,"rop":9,"ss":6,"ssMin":6,"sugROP":6,"sugSS":6,"ssStat":0,"ssMinEff":6,"lowFloor":0,"ssSrc":"sap","dLT":0,"cat":"מלאי מת","sev":1,"act":["לבחון חיסול / החזרה לספק / קמפיין — ₪19,312 מוקפאים","להכריע: לשחרר את רצפת ה-SS (6) ואז לחסל, או להשאיר אותה ולהחזיק 6 יח׳","לבדוק רכש פתוח לפני החלטה"],"why":[["err","אין צריכה 3 שנים · הכניסה האחרונה לפני 6.9 שנים — מלאי מת לפי מדיניות 3 השנים"],["warn","הון כלוא ₪19,312 · 24 יח׳ במחסן"],["info","מכירה אחרונה לפני 5.0 שנים"],["warn","התנגשות מדיניות: אין צריכה 3 שנים, אבל רצפת ssMin מ-SAP היא 6 יח׳. הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד"],["warn","ב-SAP יושבים נקודת הזמנה 9 ומלאי ביטחון 6, מול 0 יח׳ שנמכרו בשלוש שנים"],["idea","הקטנת המלאי לבדה לא תחזיק — SAP יזמין בחזרה עד נקודת ההזמנה"]],"price":804.67,"cur":"ILS","expCap":19312,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"dead","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":0,"spikes":0,"drops":0},{"pn":"36E689118","desc":"Part מתלים 2","sup":"בטא ייבוא","brand":"ZT","planner":"מתכנן א׳","free":208,"stock":208,"cust":0,"custRaw":0,"po":2,"transfer":4,"etaQty":1,"etaMonth":0,"etaFirst":"2026-10-03","etaHas":true,"stuck":1,"miss":0,"uns":0,"unsGross":0,"rate":0.17,"d12":6,"cons3y":8,"months":[0,1,0,0,0,0,0,0,2,0,3],"cov":1284,"ltD":135,"ltM":4.5,"rop":12,"ss":1,"ssMin":1,"sugROP":3,"sugSS":2,"ssStat":2,"ssMinEff":1,"lowFloor":0,"ssSrc":"stat","dLT":0.8,"cat":"עודף מלאי","sev":1,"act":["לבדוק ביטול רכש פתוח (2 יח׳)","להקטין נקודת הזמנה מ-12 ל-3","מלאי ביטחון סביר","לסמן למעקב"],"why":[["warn","כיסוי 1248.0 חודשים — עודף של כ-206 יח׳ מעל 12 חודשי כיסוי"],["info","שווי העודף $563,715"],["err","רכש פתוח של 2 יח׳ ימשיך להגדיל את העודף"],["idea","הביקוש בירידה של 80% — העודף צפוי להחמיר, לא להיפתר מעצמו"]],"price":2736.48,"cur":"USD","expCap":563715,"orderQty":null,"excessQty":206,"burn":false,"custGap":false,"paramFix":false,"ageTier":"slow","mrp":"ND","srv":80,"noStock":false,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":-80,"spikes":0,"drops":0},{"pn":"28H937874","desc":"Part מרכב 3","sup":"אלפא רכיבים","brand":"ZT","planner":"מתכנן א׳","free":46,"stock":68,"cust":1,"custRaw":1,"po":12,"transfer":2,"etaQty":4,"etaMonth":0,"etaFirst":"2026-10-04","etaHas":true,"stuck":8,"miss":0,"uns":0,"unsGross":0,"rate":11.83,"d12":148,"cons3y":625,"months":[22,3,7,4,25,10,19,22,5,9,22],"cov":5.1,"ltD":82,"ltM":2.7,"rop":31,"ss":1,"ssMin":1,"sugROP":1,"sugSS":1,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"nostock","dLT":32.3,"cat":"רקע","sev":0,"act":["לטפל בהזמנת הלקוח — אספקה חלופית או עדכון סטטוס ב-SAP","לבדוק חיסול/העברה של יתרת המלאי"],"why":[["warn","סטטוס 04 (לא פעיל) · יש מלאי 68 יח׳ · שווי €138,234 — מועמד לחיסול"],["info","כניסה אחרונה לפני 81 ימים · צריכה 3 שנים 625 יח׳"],["err","1 יח׳ בהזמנת לקוח פתוחה על פריט לא פעיל — 0 יח׳ ללא כיסוי מהמדף. הפריט אינו בתור העבודה כי סטטוס 04 מוחרג מהמלצות רכש; ההחלטה כאן היא אספקה חלופית או עדכון הסטטוס ב-SAP"]],"price":2032.85,"cur":"EUR","expCap":138234,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"active","mrp":"ND","srv":95,"noStock":true,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":-12,"spikes":4,"drops":1},{"pn":"38T130708","desc":"Part חשמל 7","sup":"אלפא רכיבים","brand":"LINK&CO","planner":"מתכנן א׳","free":242,"stock":242,"cust":0,"custRaw":0,"po":3,"transfer":5,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":true,"stuck":3,"miss":0,"uns":0,"unsGross":0,"rate":0,"d12":1,"cons3y":17,"months":[0,0,0,0,0,0,0,0,0,0,1],"cov":null,"ltD":128,"ltM":4.3,"rop":16,"ss":6,"ssMin":6,"sugROP":0,"sugSS":0,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"nostock","dLT":0,"cat":"רקע","sev":0,"act":["לבדוק חיסול/העברה של המלאי"],"why":[["warn","סטטוס 04 (לא פעיל) · יש מלאי 242 יח׳ · שווי $100,103 — מועמד לחיסול"],["info","כניסה אחרונה לפני 1.0 שנים · צריכה 3 שנים 17 יח׳"]],"price":413.65,"cur":"USD","expCap":100103,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"slow","mrp":"ND","srv":95,"noStock":true,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":-100,"spikes":0,"drops":0},{"pn":"68N535974","desc":"Part פנים 8","sup":"בטא ייבוא","brand":"LINK&CO","planner":"מתכנן א׳","free":552,"stock":566,"cust":0,"custRaw":0,"po":2,"transfer":2,"etaQty":0,"etaMonth":0,"etaFirst":null,"etaHas":false,"stuck":2,"miss":0,"uns":0,"unsGross":0,"rate":2.67,"d12":27,"cons3y":30,"months":[4,4,2,1,3,2,2,4,1,4,0],"cov":208.5,"ltD":79,"ltM":2.6,"rop":22,"ss":1,"ssMin":2,"sugROP":0,"sugSS":0,"ssStat":0,"ssMinEff":0,"lowFloor":0,"ssSrc":"od","dLT":7,"cat":"לפי דרישה","sev":0,"act":["לא נדרשת פעולת מלאי — יוזמן כשתגיע דרישה","—"],"why":[["info","אביזרים — אינם מנוהלים במלאי — אינו מנוהל במלאי, ולכן אין המלצת מלאי ביטחון או נקודת הזמנה"],["idea","נצרכו 27 יח׳ ב-11 החודשים — הצריכה נמדדת וממשיכה להופיע בכרטיס ובקטלוג"]],"price":616.08,"cur":"USD","expCap":0,"orderQty":null,"excessQty":null,"burn":false,"custGap":false,"paramFix":false,"ageTier":"slow","mrp":"ND","srv":95,"noStock":true,"isPD":false,"priceMissing":false,"hNew":false,"hWorse":false,"mark":null,"trendPct":27,"spikes":0,"drops":0}],"kpi":{"burn":16,"burnUnits":316,"burnMoney":{"EUR":5135.039999999999,"ILS":65682.18,"USD":477374.49},"custGap":134,"shortage":168,"prevent":76,"follow":5,"paramFix":49,"excess":140,"excessCap":{"USD":23411252,"ILS":8005632,"EUR":13134470},"dead":43,"slow":15,"total":900,"noEta":780,"noEtaUnits":3415,"etaParts":60,"etaRows":60,"stuck":835,"noPrice":172},"anchor":"2026-08","diag":["עמודת הזמנות לקוח חסומות אינה בדוח — כמות חסומה אינה מנוכה משום פער כיסוי, והעמודה בייצוא מציגה «—» ולא 0. פער הלקוח המוצג הוא לכן חסם עליון.","172 פריטים ללא מחיר FOB — ההון הכלוא והחוסר אינם מכומתים עבורם."]};
+const IT=DEMO.items, K=DEMO.kpi;
+const $=(h)=>{const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstElementChild};
+const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf=n=>Number(n||0).toLocaleString('he-IL');
+const SY={USD:'$',EUR:'€',ILS:'₪'};
+const money=(v,c)=>(SY[c]||'')+nf(Math.round(v||0));
+/* כסף לפי מטבע — לעולם לא מסכמים בין מטבעות (BUSINESS-DECISIONS) */
+const moneyMix=o=>Object.entries(o||{}).filter(([,v])=>v>0)
+  .sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<i>${money(v,c)}</i>`).join('');
+const HE=['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב'];
+
+/* ---------- מצב תצוגה ---------- */
+let S={screen:'center',sel:null,dense:false,theme:'light',pw:400,nokpi:false,
+  filters:new Set(),sort:{k:'miss',dir:'desc'}};
+
+/* ---------- עזרי הצגה ---------- */
+/* «לא ידוע» אינו אפס. שדה שאין לו מקור בדוח מוצג ככזה. */
+const unk=()=>'<span class="unk" title="אין נתון בדוח">לא ידוע</span>';
+const zero=n=>n>0?nf(n):'<span class="z">0</span>';
+/* חומרת הבעיה — נגזרת מהמנוע (sev/cat), לא מחושבת כאן */
+function sevTag(r){
+ if(r.burn)return'<span class="tag crit">● חוסר ללקוח</span>';
+ if(r.custGap)return'<span class="tag crit">● כיסוי חלקי ללקוח</span>';
+ if(r.cat==='חשד אזילה'||r.cat==='אוזל החודש')return'<span class="tag warn">▲ סיכון לחוסר</span>';
+ if(r.cat==='מעקב אספקה')return'<span class="tag warn">▲ אספקה לבירור</span>';
+ if(r.paramFix)return'<span class="tag param">◆ המלצת MRP</span>';
+ if(r.cat==='מלאי מת'||r.cat==='מלאי איטי'||r.cat==='עודף מלאי')return'<span class="tag neutral">■ '+esc(r.cat)+'</span>';
+ return'<span class="tag neutral">■ '+esc(r.cat)+'</span>'}
+/* מצב הטיפול — ציר נפרד לחלוטין מהחומרה.
+   בהדגמה הוא נגזר מסימון קיים; «חדש/החמיר» רק כשיש השוואה תקפה. */
+function stateTag(r){
+ if(r.mark==='handled')return'<span class="tag done">✓ טופל</span>';
+ if(r.mark)return'<span class="tag neutral">◷ '+esc(r.mark)+'</span>';
+ if(r.po>0&&!r.etaHas)return'<span class="tag warn">◷ ממתין לספק</span>';
+ if(r.po>0)return'<span class="tag acc">◷ הוזמן</span>';
+ return'<span class="tag neutral">◦ חדש</span>'}
+/* ETA — רק אם קיים בדוח. רכש בלי תאריך אינו הופך לתאריך מומצא. */
+function etaCell(r){
+ if(r.etaHas&&r.etaFirst)return`<span class="n">${esc(r.etaFirst.slice(5).split('-').reverse().join('.'))}</span>`
+   +(r.etaQty?`<span class="z" style="font-size:var(--f-xs)"> · ${nf(r.etaQty)} יח׳</span>`:'');
+ if(r.po>0)return'<span class="tag warn">⚑ ללא תאריך</span>';
+ return'<span class="z">—</span>'}
+</script>
+
+
+<script>
+/* ==================== שלד: סרגל עליון + ניווט ==================== */
+/* ששת תחומי העבודה. לכל אחד תפקיד אחד וברור — אין «היום» מול
+   «לטיפול היום» מול «החודש». המונה אינו מעלים יעד: אפס מוצג אחרת. */
+const AREAS=[
+ {id:'center',  ic:'◱', t:'מרכז עבודה',      n:()=>K.burn+K.prevent, hot:()=>K.burn>0,
+  sub:'מה דורש החלטה עכשיו'},
+ {id:'short',   ic:'⚠', t:'חוסרים ולקוחות',  n:()=>K.shortage, hot:()=>K.burn>0,
+  sub:'הזמנות לקוח וחוסר צפוי'},
+ {id:'supply',  ic:'⇄', t:'רכש ואספקות',     n:()=>K.noEta,
+  sub:'רכש פתוח, ETA וזירוז'},
+ {id:'mrp',     ic:'◆', t:'תכנון ו-MRP',     n:()=>K.paramFix,
+  sub:'ROP ו-SS — קיים מול מוצע'},
+ {id:'health',  ic:'❤', t:'בריאות המלאי',    n:()=>K.excess,
+  sub:'עודף, איטי, מת והון כלוא'},
+ {id:'catalog', ic:'☰', t:'קטלוג פריטים',    n:()=>K.total,
+  sub:'חיפוש ובדיקה של הכול'}];
+/* מסלולים שהיו קיימים — לאן כל אחד עבר. אין יכולת שנעלמת. */
+const MOVED={
+ 'לטיפול היום / היום':'חוסרים ולקוחות', 'לקוח ממתין ללא רכש':'חוסרים ולקוחות → מסנן «אין רכש»',
+ 'לקוח ממתין ללא כיסוי':'חוסרים ולקוחות → מסנן «כיסוי חלקי»',
+ 'אספקות צפויות / ציר הזמן':'רכש ואספקות', 'מעקב אספקה':'רכש ואספקות',
+ 'החודש / תיקוני פרמטרים':'תכנון ו-MRP', 'רצפת SS':'תכנון ו-MRP → מסנן «רצפה»',
+ 'ביקוש יורד / עולה':'תכנון ו-MRP → מסנן «מגמה»', 'מעקב יישום':'תכנון ו-MRP → «יושמו»',
+ 'הון כלוא / עודף':'בריאות המלאי', 'מלאי מת / איטי':'בריאות המלאי',
+ 'טופלו':'כל מסך → מסנן «מצב טיפול»', 'תנועות':'קטלוג → לשונית תנועות'};
+
+function topBar(){
+ const et=DEMO.kpi.etaParts>0;
+ return `<header class="top">
+  <div class="brand"><i>מ</i><span>Inventory Planner</span></div>
+  <div class="search"><span class="ic">⌕</span>
+   <input type="search" placeholder="חיפוש מק״ט או תיאור…  (/)" aria-label="חיפוש מק״ט או תיאור"></div>
+  <div class="tsel">
+   <select aria-label="מעתד"><option>כל המעתדים</option><option>מתכנן א׳</option><option>מתכנן ב׳</option></select>
+   <select aria-label="מותג"><option>כל המותגים</option><option>ZT</option><option>LINK&amp;CO</option></select>
+  </div>
+  <div class="stamp">
+   <div class="card"><div class="k">📄 דוח ZMRP</div>
+    <div class="v n">אוגוסט 2026</div><div class="sub">הועלה היום 08:14</div></div>
+   <div class="card${et?'':' none'}"><div class="k">🚚 דוח ETA</div>
+    <div class="v n">${et?'12.9.2026':'לא נטען'}</div>
+    <div class="sub">${et?'הועלה היום 08:15 · '+nf(DEMO.kpi.etaParts)+' מק״טים':'אין תאריכי הגעה'}</div></div>
+  </div>
+  <button class="tbtn pri">⭱ העלאת דוח</button>
+  <button class="tbtn ico" id="thBtn" title="מצב בהיר/כהה" aria-label="מצב בהיר/כהה">◐</button>
+  <button class="tbtn ico" title="פעולות נוספות" aria-label="פעולות נוספות">⋯</button>
+ </header>`}
+
+function navBar(){
+ return `<nav class="nav" aria-label="תחומי עבודה">
+  <div class="sect">תחומי עבודה</div>
+  ${AREAS.map(a=>{const n=a.n(),hot=a.hot&&a.hot();
+   return `<a href="#" data-go="${a.id}" class="${S.screen===a.id?'on':''}${hot?' hot':''}"
+    title="${esc(a.t)} — ${esc(a.sub)}">
+    <span class="ni" aria-hidden="true">${a.ic}</span><span class="nt">${esc(a.t)}</span>
+    <span class="nb${n?'':' zero'}">${n?nf(n):'0'}</span></a>`}).join('')}
+  <div class="sp"></div>
+  <div class="foot">נתוני הדגמה סינתטיים<br><b>${nf(K.total)}</b> פריטים · ${nf(K.noPrice)} ללא מחיר FOB</div>
+ </nav>`}
+</script>
+
+<script>
+/* ==================== מסך 1 · מרכז העבודה ====================
+   לא קנבן ולא לוח מחוונים. ארבע שאלות שמוליכות לפעולה, וכל שורה
+   בהן היא פריט אמיתי שאפשר ללחוץ עליו ולהגיע לטבלה. */
+function kpiStrip(){
+ const K2=K;
+ return `<div class="kpis">
+  <button class="kpi crit" data-go="short"><span class="kl">🔥 לקוח ממתין ללא רכש</span>
+   <span class="kv">${nf(K2.burn)}</span>
+   <span class="ks">${nf(K2.burnUnits)} יח׳ ללא כיסוי</span></button>
+  <button class="kpi crit" data-go="short"><span class="kl">👤 כיסוי חלקי ללקוח</span>
+   <span class="kv">${nf(K2.custGap)}</span><span class="ks">הזמנה שאינה מכוסה במלאי וברכש</span></button>
+  <button class="kpi warn" data-go="short"><span class="kl">▲ סיכון לחוסר החודש</span>
+   <span class="kv">${nf(K2.prevent)}</span><span class="ks">כיסוי קצר מזמן האספקה</span></button>
+  <button class="kpi warn" data-go="supply"><span class="kl">🚚 רכש ללא תאריך</span>
+   <span class="kv">${nf(K2.noEta)}</span><span class="ks">${nf(K2.noEtaUnits)} יח׳ — אין ETA בדוח</span></button>
+  <button class="kpi param" data-go="mrp"><span class="kl">◆ תיקוני פרמטרים</span>
+   <span class="kv">${nf(K2.paramFix)}</span><span class="ks">ROP/SS לעדכון ב-SAP</span></button>
+  <button class="kpi" data-go="health"><span class="kl">■ הון כלוא בעודף</span>
+   <span class="kv">${nf(K2.excess)}</span>
+   <span class="ks money">${moneyMix(K2.excessCap)}</span></button>
+ </div>`}
+
+function qRow(r,val){
+ return `<button class="qrow" data-pn="${esc(r.pn)}">
+  <span class="qp">${esc(r.pn)}</span>
+  <span class="qd">${esc(r.desc)} · ${esc(r.sup)}</span>
+  <span class="qv">${val}</span></button>`}
+
+function screenCenter(){
+ const burn=IT.filter(r=>r.burn).sort((a,b)=>b.miss*b.price-a.miss*a.price);
+ const noEta=IT.filter(r=>r.po>0&&!r.etaHas).sort((a,b)=>b.po-a.po);
+ const mrp=IT.filter(r=>r.paramFix&&r.sugROP>r.rop).sort((a,b)=>(b.sugROP-b.rop)-(a.sugROP-a.rop));
+ const cap=IT.filter(r=>r.expCap>0).sort((a,b)=>b.expCap-a.expCap);
+ const card=(title,ic,cls,list,val,go,emptyTx)=>`<section class="card">
+   <h2><span class="${cls}">${ic}</span> ${esc(title)}
+     <a href="#" data-go="${go}">כל הרשימה ←</a></h2>
+   ${list.length?`<div class="qlist">${list.slice(0,5).map(r=>qRow(r,val(r))).join('')}</div>`
+     :`<div class="empty"><span class="ei">✓</span>${esc(emptyTx)}</div>`}
+ </section>`;
+ return `<div class="crumb"><h1>מרכז עבודה</h1>
+   <span class="sub">מה דורש החלטה עכשיו · דוח אוגוסט 2026</span>
+   <span class="demo">נתוני הדגמה סינתטיים</span></div>
+  ${kpiStrip()}
+  <div class="center">
+   <div class="warnbar"><span>⚠</span><span>
+    <b>${nf(K.noPrice)} פריטים ללא מחיר FOB</b> — ההון הכלוא והחוסר אינם מכומתים עבורם.
+    <b>${nf(K.noEta)} פריטים עם רכש פתוח ללא ETA</b> — הכמות אינה נספרת ככיסוי בזמן.
+   </span></div>
+   <div class="grid2">
+    ${card('לקוח ממתין ללא רכש','🔥','',burn,r=>`<span class="cell-crit">${nf(r.miss)} יח׳</span>`,'short','אין פריטים בוערים')}
+    ${card('רכש פתוח ללא תאריך הגעה','🚚','',noEta,r=>`${nf(r.po)} יח׳`,'supply','לכל הרכש יש ETA')}
+    ${card('נקודת הזמנה נמוכה מהנדרש','◆','',mrp,r=>`<span class="n">${nf(r.rop)} → <b style="color:var(--param-tx)">${nf(r.sugROP)}</b></span>`,'mrp','אין תיקוני פרמטרים')}
+    ${card('הון כלוא — המועמדים הגדולים','■','',cap,r=>money(r.expCap,r.cur),'health','אין הון כלוא')}
+   </div>
+  </div>`}
+</script>
+
+<script>
+/* ==================== מסך 2 · רכש ואספקות ====================
+   ההפרדה המרכזית: כמות שהוזמנה אינה כמות שתגיע בזמן. רכש בלי ETA
+   אינו ממוקם על ציר תאריכים — הוא יושב בדלי נפרד «ללא תאריך», כי
+   תאריך מומצא הוא הדבר המסוכן ביותר שמסך כזה יכול לעשות. */
+function supplyTimeline(){
+ const dated=IT.filter(r=>r.etaHas&&r.etaQty>0);
+ const noD=IT.filter(r=>r.po>0&&!r.etaHas);
+ const byWeek={};
+ dated.forEach(r=>{const d=r.etaFirst||'';const k=d.slice(0,7);
+   (byWeek[k]=byWeek[k]||{u:0,n:0});byWeek[k].u+=r.etaQty;byWeek[k].n++});
+ const keys=Object.keys(byWeek).sort();
+ const mx=Math.max(1,...keys.map(k=>byWeek[k].u),noD.reduce((a,r)=>a+r.po,0));
+ const noU=noD.reduce((a,r)=>a+r.po,0);
+ return `<div class="tl">
+  ${keys.map(k=>{const o=byWeek[k];const w=Math.max(9,o.u/mx*100);
+   const [y,m]=k.split('-');
+   return `<div class="tlrow"><span class="tk">${HE[+m-1]||m} ${y}</span>
+    <div><div class="tlbar planned" style="width:${w}%" title="מתוכנן לפי דוח ETA">
+     ${nf(o.u)} יח׳ · ${o.n} מק״ט</div></div></div>`}).join('')}
+  <div class="tlrow"><span class="tk" style="color:var(--warn-tx)">ללא תאריך</span>
+   <div><div class="tlbar nodate" style="width:${Math.max(9,noU/mx*100)}%"
+     title="רכש פתוח שאין לו שורה בדוח ה-ETA">${nf(noU)} יח׳ · ${noD.length} מק״ט</div></div></div>
+ </div>
+ <div class="chartnote">
+  <span><i class="swatch" style="background:var(--done)"></i> בפועל — התקבל</span>
+  <span><i class="swatch" style="background:var(--acc);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.4) 0 3px,transparent 3px 6px)"></i> מתוכנן — יש ETA</span>
+  <span><i class="swatch" style="background:var(--surface-3);border:1px dashed var(--warn-line)"></i> ללא תאריך — לא ממוקם על הציר</span>
+ </div>`}
+
+const SUPPLY_COLS=[
+ ['pn','מק״ט','f1'],['desc','תיאור','f2'],['sup','ספק',''],
+ ['free','מלאי פנוי','num'],['cust','דרישת לקוח','num'],['po','רכש פתוח','num'],
+ ['transfer','בהעברה','num'],['stuck','לא משובץ','num'],['eta','ETA',''],
+ ['act','הפעולה הנדרשת',''],['state','מצב טיפול','']];
+
+function screenSupply(){
+ const rows=IT.filter(r=>r.po>0||r.transfer>0||r.etaHas)
+   .sort((a,b)=>(b.po+b.transfer)-(a.po+a.transfer));
+ return `<div class="crumb"><h1>רכש ואספקות</h1>
+   <span class="sub">מה הוזמן, מה יגיע ומתי — ומה אין לו תאריך</span>
+   <span class="demo">נתוני הדגמה סינתטיים</span></div>
+  <div class="kpis">
+   <div class="kpi warn"><span class="kl">🚚 רכש ללא ETA</span><span class="kv">${nf(K.noEta)}</span>
+    <span class="ks">${nf(K.noEtaUnits)} יח׳ · אין תאריך הגעה</span></div>
+   <div class="kpi acc"><span class="kl">📅 משובץ בדוח ETA</span><span class="kv">${nf(K.etaParts)}</span>
+    <span class="ks">${nf(K.etaRows)} שורות אספקה</span></div>
+   <div class="kpi warn"><span class="kl">⌛ כמות לא משובצת</span><span class="kv">${nf(K.stuck)}</span>
+    <span class="ks">רכש פתוח שאין מולו שורת אספקה</span></div>
+  </div>
+  <div class="tablewrap" style="flex-direction:column;gap:10px">
+   <section class="card" style="flex:0 0 auto">
+    <h2>⇄ מתי הסחורה נוחתת</h2>
+    <div style="padding:11px 12px">${supplyTimeline()}</div>
+   </section>
+   <div class="tcard">
+    <div class="tscroll"><table><thead><tr>
+     ${SUPPLY_COLS.map(c=>`<th class="${c[2]}">${esc(c[1])}</th>`).join('')}
+    </tr></thead><tbody>
+     ${rows.map(r=>`<tr data-pn="${esc(r.pn)}">
+      <td class="f1"><span class="pn">${esc(r.pn)}</span></td>
+      <td class="f2"><span class="desc">${esc(r.desc)}</span></td>
+      <td>${esc(r.sup)}</td>
+      <td class="num">${zero(r.free)}</td>
+      <td class="num ${r.cust>0?'cell-crit':''}">${zero(r.cust)}</td>
+      <td class="num">${zero(r.po)}</td>
+      <td class="num">${zero(r.transfer)}</td>
+      <td class="num ${r.stuck>0?'cell-warn':''}">${zero(r.stuck)}</td>
+      <td>${etaCell(r)}</td>
+      <td><span class="act">${esc((r.act||[])[0]||'—')}</span></td>
+      <td>${stateTag(r)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="tfoot"><span>${rows.length} פריטים עם רכש או אספקה</span>
+     <span style="margin-inline-start:auto">«לא משובץ» = רכש פתוח שאין מולו שורה בדוח ה-ETA</span></div>
+   </div>
+  </div>`}
+</script>
+
+<script>
+/* ==================== גרפים ==================== */
+/* צריכה חודשית — סדרה אחת (עובדה מדודה), ולכן בלי מקרא: הכותרת מזהה
+   אותה. פיק וצניחה שהמנוע זיהה מסומנים בצבע *וגם* בסמל. */
+function barsChart(r){
+ const m=r.months||[];
+ if(!m.length||m.every(v=>!v))
+  return `<div class="missing"><b>אין היסטוריית צריכה בדוח</b>
+   <span>11 חודשי הצריכה ריקים. זה מוצג כמידע חסר ולא כגרף אפסים.</span></div>`;
+ const mx=Math.max(...m.map(v=>Math.max(0,v)))||1;
+ return `<div class="bars">${m.map((v,i)=>{
+   const h=Math.max(3,Math.round(Math.max(0,v)/mx*52));
+   const spike=r.spikes&&v>0&&v>=mx*.9&&r.spikes>0;
+   const drop=r.drops>0&&v===0;
+   return `<div class="col"><div class="bw">
+     <div class="b${spike?' spike':drop?' drop':''}" style="height:${h}px"
+       title="${HE[10-i]||''}: ${nf(v)} יח׳">
+       ${spike?'<span class="mk">▲</span>':drop?'<span class="mk">▼</span>':''}</div></div>
+     <span class="lb">${nf(v)}</span></div>`}).reverse().join('')}</div>
+  <div class="chartnote">
+   <span>מהישן לחדש · סה״כ <b class="n">${nf(r.d12)}</b> יח׳ ב-11 חודשים</span>
+   ${r.spikes>0?'<span style="color:var(--warn-tx)">▲ פיק שזוהה — נוטרל מחישוב הקצב</span>':''}
+   ${r.drops>0?'<span style="color:var(--crit-tx)">▼ חשד אזילה</span>':''}
+  </div>`}
+/* קיים מול מוצע — bullet. הקידוד הוא מיקום וצורה: עמודה כהה = קיים,
+   סמן משולש = מוצע. אין שני גוונים שצריך להבדיל ביניהם. */
+function bulletChart(r){
+ const mx=Math.max(r.rop,r.sugROP,r.ss,r.sugSS,1)*1.15;
+ const row=(k,now,sug)=>{
+  const d=sug-now;
+  return `<div class="blt"><span class="bk">${k}</span>
+   <div class="tr"><div class="now" style="width:${Math.max(1,now/mx*100)}%"></div>
+    <div class="sug" style="inset-inline-start:${sug/mx*100}%" title="מוצע ${nf(sug)}"></div></div>
+   <span class="bv">${nf(now)} → <b>${nf(sug)}</b>${d?` <span style="color:${d>0?'var(--param-tx)':'var(--ink-3)'}">(${d>0?'+':''}${nf(d)})</span>`:''}</span></div>`};
+ return row('ROP',r.rop,r.sugROP)+row('SS',r.ss,r.sugSS)+
+  `<div class="chartnote">
+    <span><i class="swatch" style="background:var(--c-now)"></i> קיים ב-SAP</span>
+    <span><i class="swatch" style="background:var(--c-sug)"></i> ▲ מוצע ע״י הכלי</span>
+    <span>מקור SS: <b>${esc({stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin',policy:'רצפת מדיניות',od:'לפי דרישה',nostock:'סטטוס שאינו לחידוש',none:'—'}[r.ssSrc]||r.ssSrc)}</b></span>
+  </div>`}
+
+/* ==================== כרטיס הפריט ==================== */
+/* הסדר קבוע: הבעיה והפעולה → המספרים שהובילו אליה → צריכה →
+   רכש ואספקות → פרמטרים → מה חסר. */
+function panel(){
+ const r=IT.find(x=>x.pn===S.sel);
+ if(!r)return'<aside class="panel" hidden></aside>';
+ const idx=VIEW.findIndex(x=>x.pn===r.pn);
+ const kind=r.burn||r.custGap?'':r.paramFix?' p':r.cat==='מלאי מת'||r.cat==='מלאי איטי'?' g':' w';
+ const miss=[];
+ if(r.priceMissing)miss.push('<b>מחיר FOB חסר</b> — אי אפשר לכמת את החוסר ואת ההון הכלוא. שאר הנתונים על הפריט תקפים.');
+ if(!r.etaHas&&r.po>0)miss.push(`<b>אין ETA ל-${nf(r.po)} יח׳ ברכש פתוח</b> — הכמות אינה נספרת ככיסוי בזמן, ואינה ממוקמת על ציר האספקות.`);
+ miss.push('<b>הזמנות לקוח חסומות</b> — העמודה אינה בדוח, ולכן דרישת הלקוח היא חסם עליון.');
+ miss.push('<b>MOQ וגודל אריזה</b> — אינם בדוח. הכמות המוצעת אינה מעוגלת לכפולת אריזה.');
+ return `<aside class="panel" style="--pw:${S.pw}px">
+  <div class="pgrip" id="grip" title="שינוי רוחב"></div>
+  <div class="phead">
+   <span class="pn">${esc(r.pn)}</span>
+   <span class="tag neutral">סוג MRP ${esc(r.mrp)}</span>
+   <div class="nav2">
+    <button class="iconbtn" data-step="-1" title="הפריט הקודם (↑)" aria-label="הפריט הקודם">‹</button>
+    <span class="n" style="font-size:var(--f-xs);color:var(--ink-3);align-self:center">${idx+1}/${VIEW.length}</span>
+    <button class="iconbtn" data-step="1" title="הפריט הבא (↓)" aria-label="הפריט הבא">›</button>
+    <button class="iconbtn" data-close title="סגירה (Esc)" aria-label="סגירה">✕</button>
+   </div>
+  </div>
+  <div class="pbody">
+   <div class="problem${kind}">
+    <div class="t">${sevTag(r)} ${stateTag(r)}</div>
+    <div class="a">${esc((r.act||[])[0]||'אין פעולה נדרשת')}</div>
+    <div class="pacts">
+     <button class="pri">✓ סמן כטופל</button>
+     <button>הוסף לרשימת ספק</button>
+     <button>העתק מק״ט</button></div>
+   </div>
+   <div class="nums">
+    <div><div class="k">דרישת לקוח</div><div class="v">${nf(r.cust)}</div></div>
+    <div><div class="k">מלאי פנוי</div><div class="v">${nf(r.free)}</div></div>
+    <div><div class="k">רכש פתוח</div><div class="v">${nf(r.po)}</div></div>
+    <div><div class="k">בהעברה</div><div class="v">${nf(r.transfer)}</div></div>
+    <div class="gap"><div class="k">פער</div><div class="v">${nf(r.miss)}</div></div>
+   </div>
+   <section class="psec"><h3>מה הוביל להחלטה</h3><div class="in">
+    <div class="reasons">${(r.why||[]).map(w=>`<div class="reason ${esc(w[0])}">
+      <span class="ri">${({err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'})[w[0]]||'ℹ'}</span>
+      <span>${w[1]}</span></div>`).join('')||'<span class="z">—</span>'}</div></div></section>
+   <section class="psec"><h3>צריכה — 11 חודשים</h3><div class="in">${barsChart(r)}</div></section>
+   <section class="psec"><h3>רכש ואספקות</h3><div class="in">
+    <div class="kv">
+     <span class="lbl">רכש פתוח</span><span>${nf(r.po)} יח׳</span>
+     <span class="lbl">משובץ בדוח ETA</span><span>${r.etaHas?nf(r.etaQty)+' יח׳':unk()}</span>
+     <span class="lbl">תאריך הגעה ראשון</span><span>${r.etaFirst?esc(r.etaFirst.split('-').reverse().join('.')):unk()}</span>
+     <span class="lbl">לא משובץ</span><span class="${r.stuck>0?'cell-warn':''}">${nf(r.stuck)} יח׳</span>
+     <span class="lbl">זמן אספקה</span><span>${nf(r.ltD)} ימים</span>
+    </div></div></section>
+   <section class="psec"><h3>פרמטרים — קיים מול מוצע</h3><div class="in">${bulletChart(r)}</div></section>
+   <section class="psec"><h3>מה חסר ומה הונח</h3><div class="in">
+    <div class="missing">${miss.map(m=>'<span>'+m+'</span>').join('')}</div></div></section>
+  </div></aside>`}
+</script>
+
+<script>
+/* ==================== מסך 3 · חוסרים ולקוחות ====================
+   עמודות ברירת המחדל הן בדיוק מה שהמפרט דורש, וכל אחת מהן היא שדה
+   של המנוע — לא כמות שנחלצה מטקסט של המלצה. */
+const SHORT_COLS=[
+ {k:'pn',  t:'מק״ט',        cls:'f1'},
+ {k:'desc',t:'תיאור',       cls:'f2'},
+ {k:'sev', t:'הבעיה',       cls:''},
+ {k:'free',t:'מלאי פנוי',   cls:'num'},
+ {k:'cust',t:'דרישת לקוח',  cls:'num'},
+ {k:'po',  t:'רכש פתוח',    cls:'num'},
+ {k:'transfer',t:'בהעברה',  cls:'num'},
+ {k:'miss',t:'פער',         cls:'num'},
+ {k:'eta', t:'ETA',         cls:''},
+ {k:'act', t:'הפעולה הנדרשת',cls:''},
+ {k:'state',t:'מצב טיפול',  cls:''}];
+const FILTERS=[
+ {id:'burn',  t:'אין רכש',       f:r=>r.burn},
+ {id:'part',  t:'כיסוי חלקי',    f:r=>r.custGap&&!r.burn},
+ {id:'noeta', t:'רכש ללא ETA',   f:r=>r.po>0&&!r.etaHas},
+ {id:'eta',   t:'יש ETA',        f:r=>r.etaHas&&r.etaQty>0},
+ {id:'mrp',   t:'המלצת MRP',     f:r=>r.paramFix}];
+let VIEW=[];
+function rowsFor(){
+ let rows=IT.filter(r=>r.miss>0||r.cust>0||r.custGap||r.burn);
+ for(const id of S.filters){const F=FILTERS.find(x=>x.id===id);if(F)rows=rows.filter(F.f)}
+ const k=S.sort.k,dir=S.sort.dir==='desc'?-1:1;
+ return rows.sort((a,b)=>{const x=a[k],y=b[k];
+   return (typeof x==='number'?x-y:String(x).localeCompare(String(y),'he'))*dir})}
+
+function screenShort(){
+ VIEW=rowsFor();
+ const units=VIEW.reduce((a,r)=>a+(r.miss||0),0);
+ const byCur={};VIEW.forEach(r=>{const c=r.cur||'—';byCur[c]=(byCur[c]||0)+(r.miss||0)*(r.price||0)});
+ return `<div class="crumb"><h1>חוסרים ולקוחות</h1>
+   <span class="sub">הזמנות לקוח שאינן מכוסות, וחוסר צפוי החודש</span>
+   <button class="kpitog" id="ktog">${S.nokpi?'▾ הצג מדדים':'▴ קפל מדדים'}</button>
+   <span class="demo">נתוני הדגמה סינתטיים</span></div>
+  <div class="kpis">
+   <div class="kpi crit"><span class="kl">🔥 ללא רכש כלל</span>
+    <span class="kv">${nf(IT.filter(r=>r.burn).length)}</span><span class="ks">ההבטחה ניתנה, אין מולה כלום</span></div>
+   <div class="kpi crit"><span class="kl">👤 כיסוי חלקי</span>
+    <span class="kv">${nf(IT.filter(r=>r.custGap&&!r.burn).length)}</span><span class="ks">רכש פתוח שאינו סוגר את הפער</span></div>
+   <div class="kpi warn"><span class="kl">⚠ יח׳ ללא כיסוי</span>
+    <span class="kv">${nf(units)}</span><span class="ks money">${moneyMix(byCur)}</span></div>
+  </div>
+  <div class="fbar">
+   ${FILTERS.map(f=>`<button class="chip${S.filters.has(f.id)?' on':''}" data-filt="${f.id}">
+     ${esc(f.t)}${S.filters.has(f.id)?'<span class="x">✕</span>':''}</button>`).join('')}
+   <span class="grow"></span>
+   <div class="seg" role="group" aria-label="צפיפות">
+    <button data-dense="0" class="${S.dense?'':'on'}">רגיל</button>
+    <button data-dense="1" class="${S.dense?'on':''}">צפוף</button></div>
+   <button class="chip">▦ עמודות</button>
+   <button class="chip">⭳ ייצוא התצוגה</button>
+  </div>
+  <div class="tablewrap">
+   <div class="tcard"><div class="tscroll" id="scroll"><table><thead><tr>
+    ${SHORT_COLS.map(c=>`<th class="${c.cls}" data-sort="${c.k}">${esc(c.t)}${S.sort.k===c.k?(S.sort.dir==='desc'?' ▾':' ▴'):''}</th>`).join('')}
+   </tr></thead><tbody>
+    ${VIEW.map(r=>`<tr data-pn="${esc(r.pn)}" class="${S.sel===r.pn?'sel':''}" tabindex="0">
+     <td class="f1"><span class="pn">${esc(r.pn)}</span></td>
+     <td class="f2"><span class="desc">${esc(r.desc)}</span></td>
+     <td>${sevTag(r)}</td>
+     <td class="num">${zero(r.free)}</td>
+     <td class="num ${r.cust>0?'cell-crit':''}">${zero(r.cust)}</td>
+     <td class="num">${zero(r.po)}</td>
+     <td class="num">${zero(r.transfer)}</td>
+     <td class="num ${r.miss>0?'cell-crit':''}">${r.priceMissing&&!r.miss?unk():zero(r.miss)}</td>
+     <td>${etaCell(r)}</td>
+     <td><span class="act" title="${esc((r.act||[])[0]||'')}">${esc((r.act||[])[0]||'—')}</span></td>
+     <td>${stateTag(r)}</td></tr>`).join('')}
+   </tbody></table></div>
+   <div class="tfoot"><span><b>${VIEW.length}</b> שורות</span>
+    <span>${nf(units)} יח׳ ללא כיסוי</span>
+    <span class="money">${moneyMix(byCur)}</span>
+    <span style="margin-inline-start:auto">↑↓ מעבר · Enter פתיחה · Esc סגירה</span></div>
+   </div>
+   ${panel()}
+  </div>`}
+
+/* מסכים שטרם נבנו בתצוגה הזאת — מצב ריק כן, לא עמוד שבור */
+function stub(t,sub,n){return `<div class="crumb"><h1>${esc(t)}</h1>
+  <span class="sub">${esc(sub)}</span><span class="demo">נתוני הדגמה סינתטיים</span></div>
+ <div class="center"><div class="card"><div class="empty">
+  <span class="ei">◱</span><b>${nf(n)} פריטים בתחום הזה</b><br>
+  המסך הזה אינו חלק משלוש התצוגות שהוגשו לאישור הכיוון.<br>
+  הפריסה שלו זהה: רצועת מדדים · סינון · טבלה רחבה · פאנל פריט.
+ </div></div></div>`}
+
+/* ==================== ציור וקישוריות ==================== */
+function render(){
+ const scr=S.screen;
+ const body=scr==='center'?screenCenter()
+  :scr==='short'?screenShort()
+  :scr==='supply'?screenSupply()
+  :scr==='mrp'?stub('תכנון ו-MRP','ROP ו-SS — קיים מול מוצע, רצפות ומגמות',K.paramFix)
+  :scr==='health'?stub('בריאות המלאי','עודף, מלאי איטי, מלאי מת והון כלוא',K.excess)
+  :stub('קטלוג פריטים','חיפוש ובדיקה של כל הפריטים',K.total);
+ document.getElementById('app').innerHTML=topBar()+
+  `<div class="shell">${navBar()}<main class="work">${body}</main></div>`;
+ document.body.classList.toggle('tight',S.dense);
+ document.body.classList.toggle('nokpi',S.nokpi&&S.screen==='short');
+ wire()}
+function go(id){S.screen=id;if(id!=='short')S.sel=null;render();
+ document.querySelector('.work h1')?.focus?.()}
+function open(pn){S.sel=pn;render();
+ document.querySelector('tr.sel')?.scrollIntoView({block:'nearest'})}
+function step(d){const i=VIEW.findIndex(x=>x.pn===S.sel);
+ const n=VIEW[Math.min(VIEW.length-1,Math.max(0,i+d))];if(n)open(n.pn)}
+function wire(){
+ document.querySelectorAll('[data-go]').forEach(e=>e.onclick=ev=>{ev.preventDefault();go(e.dataset.go)});
+ document.querySelectorAll('tr[data-pn],[data-pn].qrow').forEach(e=>e.onclick=()=>{
+   if(S.screen!=='short'){S.screen='short';S.filters.clear()}open(e.dataset.pn)});
+ document.querySelectorAll('[data-filt]').forEach(e=>e.onclick=()=>{
+   S.filters.has(e.dataset.filt)?S.filters.delete(e.dataset.filt):S.filters.add(e.dataset.filt);render()});
+ document.querySelectorAll('[data-dense]').forEach(e=>e.onclick=()=>{S.dense=e.dataset.dense==='1';render()});
+ document.querySelectorAll('[data-sort]').forEach(e=>e.onclick=()=>{
+   const k=e.dataset.sort;if(['sev','eta','act','state'].includes(k))return;
+   S.sort=S.sort.k===k?{k,dir:S.sort.dir==='desc'?'asc':'desc'}:{k,dir:'desc'};render()});
+ document.querySelectorAll('[data-step]').forEach(e=>e.onclick=()=>step(+e.dataset.step));
+ document.querySelector('[data-close]')?.addEventListener('click',()=>{S.sel=null;render()});
+ const kt=document.getElementById('ktog');
+ if(kt)kt.onclick=()=>{S.nokpi=!S.nokpi;render()};
+ const th=document.getElementById('thBtn');
+ if(th)th.onclick=()=>{S.theme=S.theme==='light'?'dark':'light';
+   document.documentElement.dataset.theme=S.theme;th.textContent=S.theme==='dark'?'◑':'◐'};
+ const g=document.getElementById('grip');
+ if(g)g.onpointerdown=ev=>{ev.preventDefault();g.setPointerCapture(ev.pointerId);
+   const x0=ev.clientX,w0=S.pw;
+   const mv=e2=>{S.pw=Math.min(620,Math.max(300,w0+(e2.clientX-x0)));
+     document.querySelector('.panel').style.setProperty('--pw',S.pw+'px')};
+   const up=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up)};
+   g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up)};
+}
+addEventListener('keydown',e=>{
+ if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return;
+ if(e.key==='Escape'&&S.sel){S.sel=null;render();return}
+ if(S.screen!=='short')return;
+ if(e.key==='ArrowDown'){e.preventDefault();S.sel?step(1):open(VIEW[0]&&VIEW[0].pn)}
+ if(e.key==='ArrowUp'){e.preventDefault();step(-1)}
+ if(e.key==='Enter'&&!S.sel&&VIEW[0]){e.preventDefault();open(VIEW[0].pn)}});
+render();
+</script>
+</body></html>
