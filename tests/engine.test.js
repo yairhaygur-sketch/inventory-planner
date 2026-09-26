@@ -724,7 +724,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* לחיצה על שורה פותחת את הפריט שבשורה — לא פריט אחר */
  const click=await p.evaluate(()=>{const t=[...document.querySelectorAll('#tbl tbody tr[data-i]')].pop();
    const pn=t.children[1].textContent.replace('העתק','').trim();t.click();
-   const c=document.querySelector('#detail .opn');
+   const c=document.querySelector('#detail .opn .opnt');
    return {pn,card:c?c.textContent.replace('העתק','').trim():'—'}});
  ok('לחיצה על השורה האחרונה פותחת את הפריט הנכון',click.pn===click.card,click.pn+' / '+click.card);
  await p.evaluate(()=>{closeDetail();setMode('today')});await p.waitForTimeout(400);

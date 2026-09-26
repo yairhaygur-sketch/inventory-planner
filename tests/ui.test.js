@@ -37,14 +37,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // 1. ניווט מקלדת ↓
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
- let pn1=await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim());
+ let pn1=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ למטה בוחר פריט ומעדכן את הכרטיס',!!pn1,pn1);
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
- let pn2=await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim());
+ let pn2=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ נוסף מתקדם לפריט הבא',pn2&&pn2!==pn1,pn1+' → '+pn2);
  await p.keyboard.press('ArrowUp');await p.waitForTimeout(250);
  ok('חץ למעלה חוזר אחורה',
-   (await p.evaluate(()=>document.querySelector('#detail .opn')?.textContent.replace('העתק','').trim()))===pn1);
+   (await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim()))===pn1);
 
  // 2. Enter מסמן כטופל וממשיך
  const before=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
@@ -1217,6 +1217,53 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
+
+ /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
+    סעיף 4 במפרט. שני כללים נעולים כאן:
+    · רצועת המספרים מציגה את שדות המנוע כפי שהם — לא חישוב מחדש
+      בתוך התצוגה, ולא כמות שנשלפת מטקסט ההמלצה.
+    · «בהעברה» אומר «לא ידוע» כשאין עמודת CK בדוח. 0 ו«לא יודעים»
+      אינם אותו דבר, וזה בדיוק הדפוס של custBlockedKnown. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ const cst=await p.evaluate(()=>{const s=document.querySelector('#detail .cstrip');
+   const r=CURRENT_DETAIL,g=l=>{const e=[...s.querySelectorAll('.cs')]
+     .find(x=>x.querySelector('i').textContent===l);
+     return e?e.querySelector('b').textContent.replace(/[^\d]/g,''):null};
+   return {seen:!!s&&s.offsetParent!==null,
+     order:[...s.querySelectorAll('.cs i')].map(e=>e.textContent).join('|'),
+     eq:{cust:g('לקוח')==String(Math.max(0,r.cust||0)),
+         free:g('פנוי')==String(Math.max(0,r.free||0)),
+         po:g('רכש פתוח')==String(Math.max(0,r.po||0)),
+         miss:g('פער')==String(Math.max(0,r.miss||0))},
+     vals:`לקוח ${g('לקוח')} · פנוי ${g('פנוי')} · רכש ${g('רכש פתוח')} · פער ${g('פער')}`,
+     unknown:coverStrip({cust:8,free:2,po:0,transfer:0,transferKnown:false,miss:6})}});
+ ok('רצועת המספרים פותחת את הכרטיס בסדר שנקבע',
+   cst.seen&&cst.order==='לקוח|פנוי|רכש פתוח|בהעברה|פער',cst.order);
+ ok('וכל מספר בה הוא שדה המנוע עצמו',
+   cst.eq.cust&&cst.eq.free&&cst.eq.po&&cst.eq.miss,cst.vals);
+ ok('«בהעברה» אומר «לא ידוע» כשאין עמודת CK — לא 0',
+   /לא ידוע/.test(cst.unknown)&&!/>0<\/b>\s*<i>בהעברה/.test(cst.unknown),
+   (cst.unknown.match(/בהעברה/)?'נמצא':'חסר'));
+
+ const nav1=await p.evaluate(()=>({pn:document.querySelector('#detail .opnt').textContent.trim(),
+   pos:(document.querySelector('#detail .opos')||{}).textContent,
+   prevOff:(document.querySelector('#detail [data-dnav="-1"]')||{}).disabled}));
+ await p.click('#detail [data-dnav="1"]');await p.waitForTimeout(450);
+ const nav2=await p.evaluate(()=>({pn:document.querySelector('#detail .opnt').textContent.trim(),
+   pos:(document.querySelector('#detail .opos')||{}).textContent,
+   open:document.body.classList.contains('dopen'),
+   selPn:(()=>{const t=document.querySelector('#tbl tbody tr.sel');
+     return t?t.children[1].textContent.replace('העתק','').replace('✓ טופל','').trim():null})()}));
+ ok('בפריט הראשון אין «הקודם» לאן ללחוץ',nav1.prevOff===true,String(nav1.prevOff));
+ ok('«הבא» מעביר לפריט אחר בלי לסגור את הכרטיס',
+   nav2.pn!==nav1.pn&&nav2.open,`${nav1.pn} → ${nav2.pn}`);
+ ok('והשורה המסומנת בטבלה היא הפריט שבכרטיס',nav2.selPn===nav2.pn,
+   `שורה ${nav2.selPn} · כרטיס ${nav2.pn}`);
+ ok('והמיקום ברשימה מתעדכן',nav2.pos!==nav1.pos,`${nav1.pos} → ${nav2.pos}`);
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
 
  /* ============ שתי בקרות הגובה: מדדים וצפיפות ============
     סעיף 3ג במפרט: «צפיפות רגילה וצפופה», ויעד של 18-24 שורות קריאות,

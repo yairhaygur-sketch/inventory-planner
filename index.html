@@ -999,6 +999,31 @@ td.miss .posq{color:var(--dim)}
 .dca{font-size:20px;font-weight:700;margin-top:8px;line-height:1.3}
 .dcq{font-family:var(--num);font-size:38px;font-weight:800;line-height:1;margin-top:6px;color:var(--acc)}
 .dcs2{font-size:14px;color:var(--dim);margin-top:4px}
+/* ============ רצועת המספרים ============
+   חמישה מספרים בשורה אחת, המספר גדול והתווית קטנה מתחתיו — כך
+   שהעין קוראת קודם את הכמויות ורק אחר כך את המילים. */
+/* ‹ › ומיקום ברשימה, בשורת המק״ט */
+.onav{display:inline-flex;align-items:center;gap:2px;margin-inline-start:auto;
+ font-family:var(--num);font-size:11px;color:var(--ink-3);font-weight:700}
+.onav button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+ width:22px;height:22px;border-radius:var(--r-ctl);cursor:pointer;font-family:inherit;
+ font-size:13px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
+.onav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.onav button:disabled{opacity:.4;cursor:default}
+.onav .opos{padding-inline:4px;white-space:nowrap}
+.ohead .opn{display:flex;align-items:center;gap:6px}
+.cstrip{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.cstrip .cs{display:flex;flex-direction:column;align-items:center;gap:1px;
+ min-width:58px;padding:5px 8px;border-radius:var(--r-ctl);
+ background:var(--surface-2);border:1px solid var(--line2)}
+.cstrip .cs b{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-size:16px;font-weight:800;color:var(--ink);line-height:1.1}
+.cstrip .cs i{font-style:normal;font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.cstrip .cs.c b{color:var(--critical)}
+.cstrip .cs.g{background:var(--critical-bg);border-color:var(--critical)}
+.cstrip .cs.g b{color:var(--critical)}
+.cstrip .cs.z b{color:var(--ink-3)}
+.cstrip .cs.u b{font-size:12px;color:var(--ink-3);font-weight:700}
 .dcb{display:flex;gap:8px;margin-top:14px}
 /* ============ אזור ההחלטה המאוחד ============ */
 .dcql{font-family:inherit;font-size:13px;font-weight:600;color:var(--dim);
@@ -2938,7 +2963,11 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rawRate=d12<=3?0:d6/6;
     const cov=rate>0?Math.max(0,free)/rate:null;
     /* מלאי בהעברה כבר בבעלותנו ובדרך למחסן — קרוב יותר לזמין מהזמנת רכש פתוחה */
-    const transfer=m.transfer>=0?Math.max(0,NUM(r[m.transfer])):0;
+    /* אותו דפוס כמו custBlockedKnown: «0 בהעברה» ו«אין עמודת בהעברה»
+       הם שני מצבים שונים, והכרטיס אומר «לא ידוע» ולא «0». הדגל הוא
+       תצוגה בלבד — הכיסוי ממשיך להתנהג בדיוק כמו קודם. */
+    const transferKnown=m.transfer>=0;
+    const transfer=transferKnown?Math.max(0,NUM(r[m.transfer])):0;
     const avail=Math.max(0,free)+Math.max(0,po)+transfer;
     const covA=rate>0?avail/rate:null;
     const mkt1=CLEAN(r[m.mkt1]),mkt2=CLEAN(r[m.mkt2]),hier3=TXT(r,m.hier3);
@@ -3064,7 +3093,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -5988,11 +6017,42 @@ function decisionQtyLabel(r){
  if(!r.isOD&&r.sugROP!==r.rop)return 'נקודת הזמנה';
  if(!r.isOD&&r.sugSS!==r.ss)return 'מלאי ביטחון';
  return ''}
+/* ============ מעבר בין פריטים בלי לסגור ============
+   סעיף 4 במפרט: «אפשר לעבור בין פריטים בלי לסגור ולפתוח מחדש».
+   המקלדת עשתה זאת כבר (↑↓ דרך moveSel), אבל שום דבר על המסך לא
+   אמר את זה. אלה אותם שני כפתורים על אותה פונקציה — לא מסלול
+   ניווט שני — ולצידם המיקום ברשימה, שעונה על «כמה נשארו». */
+function detailNav(){
+ const rows=navRows();if(!rows.length)return '';
+ const i=rows.findIndex(t=>t.classList.contains('sel'));
+ if(i<0)return '';
+ return `<span class="onav">
+  <button type="button" data-dnav="-1" ${i<=0?'disabled':''} title="הפריט הקודם ברשימה (↑)" aria-label="הפריט הקודם">‹</button>
+  <span class="opos">${(i+1).toLocaleString('he-IL')} מתוך ${rows.length.toLocaleString('he-IL')}</span>
+  <button type="button" data-dnav="1" ${i>=rows.length-1?'disabled':''} title="הפריט הבא ברשימה (↓)" aria-label="הפריט הבא">›</button></span>`}
+
+/* ============ המספרים לפני המילים ============
+   סעיף 4 במפרט: «המספרים ראשונים — לקוח 8 | פנוי 2 | רכש 0 | פער 6».
+   כל חמשת המספרים הם שדות מנוע קיימים ואינם מחושבים כאן מחדש:
+   cust · free · po · transfer · miss. «בהעברה» מוצג «לא ידוע» כשאין
+   עמודת CK בדוח, ולא 0 — זה לא אותו דבר. */
+function coverStrip(r){
+ const n=v=>Math.max(0,v||0).toLocaleString('he-IL');
+ const cells=[
+  ['לקוח',n(r.cust),(r.cust||0)>0?'c':''],
+  ['פנוי',n(r.free),(r.free||0)<=0?'z':''],
+  ['רכש פתוח',n(r.po),''],
+  ['בהעברה',r.transferKnown?n(r.transfer):'לא ידוע',r.transferKnown?'':'u'],
+  ['פער',n(r.miss),(r.miss||0)>0?'g':'']];
+ return `<div class="cstrip">${cells.map(([l,v,c])=>
+  `<span class="cs ${c}"><b>${v}</b><i>${l}</i></span>`).join('')}</div>`}
 function decisionBlock(r){
  const acts=(r.act||[]).filter(Boolean);
  const act=acts[0]||'אין פעולה נדרשת';
  const more=acts.slice(1);
- const sub=r.miss>0?`${r.miss.toLocaleString('he-IL')} יח׳ חסרות`
+ /* «19 יח׳ חסרות» ירד כשרצועת המספרים מציגה «פער 19» — אותו מספר
+    בדיוק, שתי שורות זו מתחת לזו. נשאר מה שהרצועה אינה נושאת. */
+ const sub=r.miss>0?''
   :r.expCap>0?`${money(r.expCap,r.currency)} הון כלוא`
   :'ללא חשיפה';
  const done=r.mark&&r.mark.t==='handled';
@@ -6003,7 +6063,8 @@ function decisionBlock(r){
   <div class="dcl">ההחלטה</div>
   <div class="dca">${esc(act)}</div>
   <div class="dcq">${esc(decisionQty(r))}${qlbl?`<span class="dcql">${esc(qlbl)}</span>`:''}</div>
-  <div class="dcs2">${sub}</div>
+  ${sub?`<div class="dcs2">${sub}</div>`:''}
+  ${coverStrip(r)}
   ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
   ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
@@ -6043,7 +6104,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  const anomHTML=notes.length?`<div class="anoms">${notes.join('')}</div>`:'';
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
- <div class="ohead"><div class="opn">${esc(r.pn)}${copyBtn(r.pn)}</div><h2>${esc(r.desc)}</h2>
+ <div class="ohead"><div class="opn"><bdi class="opnt">${esc(r.pn)}</bdi>${copyBtn(r.pn)}${detailNav()}</div><h2>${esc(r.desc)}</h2>
   <!-- ============ תשע תגיות ירדו לשלוש ============
        בראש הכרטיס נשאר מה שנחוץ כדי להבין את ההחלטה *הנוכחית*:
        הספק (מולו מבצעים), סוג ה-MRP (הוא שקובע אם יש המלצת מלאי
@@ -6118,6 +6179,9 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
   const draw=()=>{if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
     (d.dataset.chart==='c1'?barChart:projChart)(cv,r)};
   d.addEventListener('toggle',draw);draw()});
+ /* אותה פונקציה שהמקלדת מפעילה — לא מסלול ניווט שני */
+ document.querySelectorAll('#detail [data-dnav]').forEach(b=>b.onclick=()=>{
+   if(b.disabled)return;moveSel(+b.dataset.dnav)});
  const dm=document.querySelector('#detail [data-dmark]');
  if(dm)dm.onclick=()=>{setMark(r,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dc=document.querySelector('#detail [data-dcopy]');
