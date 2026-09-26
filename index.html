@@ -28,6 +28,13 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .top .lc{display:flex;align-items:center;gap:8px;margin-inline-start:10px}
 .top .sp{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
 .updated{font-size:11.5px;color:var(--dim);background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+/* שתי שורות זעירות במקום שני שבבים בשורה: אותו מידע, כמחצית
+   הרוחב, ובגובה שהסרגל ממילא מחזיק. */
+.dstate{display:flex;flex-direction:column;justify-content:center;gap:0;
+ line-height:1.3;min-width:0;padding-inline:2px}
+.zchip{font-size:11px;font-family:var(--num);font-variant-numeric:tabular-nums;
+ color:var(--ink-2);white-space:nowrap;font-weight:700}
+.dstate .updated{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
 .etachip{font-size:11.5px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
 .etachip.stale{color:var(--org);background:var(--orgL);border-color:var(--org)}
@@ -2184,9 +2191,6 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
   <div class="lc">
-    <div class="menuwrap"><button class="btn" id="wmBtn">⧉ וידג'טים ▾</button><div class="menu" id="wMenu"></div></div>
-    <button class="btn" id="saveView">🔖 שמור תצוגה</button>
-    <button class="btn" id="resetView">↺ אפס תצוגה</button>
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
@@ -2217,7 +2221,10 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
       <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div>
     <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
-    <span class="updated" id="updated">לא נטען קובץ</span>
+    <!-- ============ שלושה תאריכים, שלושה דברים שונים ============
+         תאריך הדוח אינו מועד ההעלאה, ודוח ה-ETA אינו הדוח הזה. עד
+         כאן שלושתם הופיעו כמחרוזת אחת מופרדת בנקודות, בלי תוויות. -->
+    <span class="dstate"><span class="zchip" id="zchip" hidden></span><span class="updated" id="updated">לא נטען קובץ</span></span>
     <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
     <button class="etachip stale" id="storechip" type="button" hidden></button>
     <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
@@ -3860,7 +3867,7 @@ function applyLayout(){normalizeLayout();
       if(sz.w!=null&&id!=='kpis')el.style.flexBasis=sz.w+'px';
       if(sz.h!=null)el.style.height=sz.h+'px';
     }else{el.classList.remove('sized');el.style.flexBasis='';el.style.height=''}});
-  renderWidgetMenu()}
+}
 function setSize(id,w,h){const c=clampSize(id,w,h);const cur=LAYOUT.sizes[id]||{};
   LAYOUT.sizes[id]={w:c.w!=null?c.w:cur.w,h:c.h!=null?c.h:cur.h};
   saveLayout();applyLayout()}
@@ -3885,10 +3892,6 @@ function wireResize(){document.querySelectorAll('.rz').forEach(h=>{
 function hideWidget(id){if(!LAYOUT.hidden.includes(id))LAYOUT.hidden.push(id);saveLayout();applyLayout()}
 function showWidget(id){LAYOUT.hidden=LAYOUT.hidden.filter(x=>x!==id);saveLayout();applyLayout()}
 function toggleWidget(id){LAYOUT.hidden.includes(id)?showWidget(id):hideWidget(id)}
-function renderWidgetMenu(){const m=document.getElementById('wMenu');
-  m.innerHTML=WIDGETS.map(([id,label])=>{const on=!LAYOUT.hidden.includes(id);
-    return `<div class="mi ${on?'on':''}" data-wt="${id}"><span class="sw"></span><span>${label}</span></div>`}).join('');
-  m.querySelectorAll('.mi').forEach(el=>el.onclick=e=>{e.stopPropagation();toggleWidget(el.dataset.wt)})}
 let dragId=null;
 function wireDrag(){
   document.querySelectorAll('.widget').forEach(w=>{
@@ -6769,9 +6772,8 @@ document.addEventListener('mousedown',e=>{const t=e.target;
 /* מיקום מחדש של הצעות החיפוש בשינוי גודל. הוא ישב באותו שומע עם
    ציור הגרף המצרפי שהוסר, ולכן הופרד ולא נמחק איתו. */
 window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))posSug()});
-document.getElementById('wmBtn').onclick=e=>{e.stopPropagation();document.getElementById('wMenu').classList.toggle('open')};
-document.getElementById('saveView').onclick=()=>saveLayout(true);
-document.getElementById('resetView').onclick=()=>resetLayout();
+/* שלושת הכפתורים האלה ירדו עם הגרירה; החיווט שלהם נשאר והתייחס
+   לאלמנטים שנמחקו מיד אחרי העלייה. */
 document.getElementById('darkToggle').onclick=()=>{DARKON=!DARKON;try{localStorage.setItem(DARK_KEY,DARKON?'1':'0')}catch(_){}applyDark(DARKON)};
 const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
  ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
@@ -7165,16 +7167,52 @@ let LOADMS=0;
 /* ============ קליטת דוח ה-ETA ============
    נטען בנפרד מ-ZMRP ובכל סדר. אם ZMRP עוד לא נטען, הדוח נשמר ומחכה
    לו; אם הוא כבר נטען, החישוב מתרענן מיד בלי לקרוא את הקובץ מחדש. */
+/* ============ מצב הנתונים בסרגל העליון ============
+   סעיף 2 במפרט: תאריך דוח ה-ZMRP ותאריך דוח ה-ETA, מובחנים ממועד
+   ההעלאה. עד כאן הכול ישב במחרוזת אחת — «900 מק״טים · 391 משימות ·
+   25.8.2026» — שבה המספר האחרון הוא תאריך הדוח, בלי תווית, ומועד
+   ההעלאה לא הופיע כלל.
+   מה שאין בקובץ לא מומצא: דוח ה-ETA אינו נושא תאריך דוח בתוכו,
+   ולכן נאמר עליו «נטען» ולא «מתאריך». */
+let ZDATE=null,ZLOAD=null,ZN=null;
+function hhmm(t){const d=new Date(t);
+ return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+function sameDayNow(t){const d=new Date(t),n=new Date();
+ return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()}
+function syncDataState(){
+ const z=document.getElementById('zchip'),u=document.getElementById('updated');
+ if(z){
+  if(!ZN){z.hidden=true}
+  else{z.hidden=false;
+   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח');
+   z.title=(ZDATE?`תאריך הדוח עצמו, כפי שהוא מופיע בקובץ: ${ZDATE.toLocaleDateString('he-IL')}.`
+     :'בקובץ אין תאריך מעל שורת הכותרות, ולכן תאריך הדוח אינו ידוע.')
+    +`\n${ZN.items.toLocaleString('he-IL')} מק״טים · ${ZN.tasks.toLocaleString('he-IL')} משימות.`
+    +`\nחודש הבסיס נבחר בנפרד — הוא החודש המלא האחרון שהדוח מכסה.`}}
+ /* ============ הסרגל נמדד גם *אחרי* שנטען דוח ============
+    fitTop() רץ פעם אחת בעלייה ובשינוי גודל חלון בלבד. השבבים
+    שמופיעים אחרי הטעינה (תאריך הדוח, דוח ה-ETA, שבב האבחון)
+    הרחיבו את הסרגל מעבר לרוחב, והוא נחתך בשקט. על main זה הוסתר
+    בטעות: שלושה כפתורים מתים בצד השני גרמו לגלישה כבר בעלייה,
+    ולכן הפעולות כבר היו בתפריט «עוד». */
+ if(typeof fitTop==='function')setTimeout(fitTop,0);
+ if(u){u.textContent=ZLOAD
+   ?`נטען ${sameDayNow(ZLOAD)?'היום':new Date(ZLOAD).toLocaleDateString('he-IL')} ${hhmm(ZLOAD)}`
+   :'לא נטען קובץ';
+  u.title=ZLOAD?'מועד ההעלאה לדפדפן — לא תאריך הדוח':''}}
 function etaChip(){const el=document.getElementById('etachip');if(!el)return;
  if(!ETA){el.hidden=true;return}
  const d=etaAgeDays(),stale=d!=null&&d>ETA_STALE_DAYS;
- const when=d===0?'היום':d===1?'אתמול':'לפני '+d+' ימים';
+ /* «לפני 3 ימים» לבדו נקרא כמו גיל הדוח. הוא מועד ההעלאה. */
+ const when=d===0?'נטען היום':d===1?'נטען אתמול':'נטען לפני '+d+' ימים';
  el.hidden=false;el.classList.toggle('stale',!!stale);
  const orph=ETA_ORPH,risk=orph&&orph.risky.length;
  el.classList.toggle('stale',!!(stale||risk));
  el.textContent=(stale||orph?'⚠ ':'')+'ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים · '+when
   +(orph?' · '+orph.rows.toLocaleString('he-IL')+' לא שויכו':'');
- el.title=(stale?'הדוח בן יותר מ-'+ETA_STALE_DAYS+' ימים — תאריכים בו כבר אינם מהימנים. ':'')
+ if(typeof fitTop==='function')setTimeout(fitTop,0);
+ el.title='דוח האספקות. הקובץ אינו נושא בתוכו תאריך דוח, ולכן מה שידוע הוא מועד ההעלאה.\n'
+  +(stale?'הועלה לפני יותר מ-'+ETA_STALE_DAYS+' ימים — תאריכים בו כבר אינם מהימנים. ':'')
   +ETA.rows.toLocaleString('he-IL')+' שורות · '+ETA.units.toLocaleString('he-IL')+' יח׳ משובצות'
   +(ETA.undated?' · '+ETA.undated+' שורות בלי תאריך הוחרגו':'')
   +(orph?'\n▲ '+etaOrphanTxt():'')
@@ -7255,7 +7293,8 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('plannerGreeting').textContent=planner?`${planner[0]} · ${tasks} פריטים דורשים טיפול`:`${tasks} פריטים דורשים טיפול`;
-  document.getElementById('updated').textContent=`${ALL.length} מק״טים · ${tasks} משימות${detected?' · '+new Date(detected).toLocaleDateString('he-IL'):''}`;
+  ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
+  syncDataState();
   colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
@@ -7497,7 +7536,7 @@ function welWire(){
  if(ex)ex.onclick=()=>{
   if(!confirm('לצאת ממצב ההדגמה? נתוני הדוגמה יימחקו מהמסך והעבודה האמיתית תחזור.'))return;
   demoExit();ALL=[];Q=QF=null;
-  document.getElementById('updated').textContent='לא נטען קובץ';
+  ZDATE=null;ZLOAD=null;ZN=null;syncDataState();
   document.getElementById('plannerGreeting').textContent='העלה דוח ZMRP כדי להתחיל';
   welToggle();render();toast('חזרת לעבודה האמיתית')};
  welToggle()}
@@ -7593,15 +7632,6 @@ const XP={
  'top-dark':{t:'מצב כהה',
   see:'מחליף בין ערכת צבעים בהירה לכהה. הבחירה נשמרת בדפדפן.',
   chk:'שני המצבים נבדקים אוטומטית על כל אלמנט עם טקסט — אין מצב שטקסט נעלם באחד מהם.'},
- 'top-widgets':{t:'וידג׳טים',
-  see:'בוחר אילו חלקי מסך מוצגים — שורת המדדים, מסילת הסינון, תור העבודה, כרטיס הפריט.',
-  chk:'אם משהו נעלם לך מהמסך, זה המקום הראשון לבדוק.'},
- 'top-save':{t:'שמור תצוגה',
-  see:'זוכר את סידור המסך הנוכחי — מה מוצג, באיזה סדר, ובאיזה גודל.',
-  chk:'שומר רק את הפריסה. הסימונים וההיסטוריה נשמרים בנפרד ותמיד.'},
- 'top-reset':{t:'אפס תצוגה',
-  see:'מחזיר את סידור המסך למצב שממנו הכלי מתחיל — אילו חלקים מוצגים, באיזה סדר ובאיזה רוחב. זה נוגע רק לפריסה, כמו לסדר מחדש ניירות על שולחן.',
-  chk:'בטוח ללחוץ בכל רגע. הסימונים, ההיסטוריה והדוח הטעון לא מושפעים — הם נשמרים בנפרד מהפריסה.'},
  'top-file':{t:'העלאת קובץ ZMRP',
   see:'טוען דוח ZMRP מ-SAP. הכול קורה בדפדפן שלך — שום נתון לא נשלח לשום מקום.',
   chk:'אחרי הטעינה, אם משהו השתנה מאז הפעם הקודמת, יוצג תדריך קצר לפני הטבלה.'},
@@ -7660,7 +7690,7 @@ function xpSet(on){XPON=on;document.body.classList.toggle('xp',on);
  btn.onclick=()=>xpSet(!XPON);
  /* הצמדת מפתחות לכפתורים הקבועים */
  const map={filtBtn:'top-filter',exportXls:'top-export',expXls:'top-expedite',stBtn:'top-state',
-   darkToggle:'top-dark',wmBtn:'top-widgets',saveView:'top-save',resetView:'top-reset',
+   darkToggle:'top-dark',
    floorBtn:'sum-floor',custBtn:'sum-cust',trendBtn:'sum-trend',apBtn:'sum-applied',
    doneBtn:'sum-done',gseg:'q-group',histChip:'q-hist',nlq:'nlq'};
  for(const [id,k] of Object.entries(map)){const e=document.getElementById(id);
@@ -8122,7 +8152,10 @@ applyDark(DARKON);
 /* לא לדרוס את התצוגה השמורה. השורה הזאת אתחלה את LAYOUT בכל טעינה,
    ולכן כל קיפול או פתיחה של מסילת הסינון נמחקו ברענון. */
 applyLayout();
-['wmBtn','saveView','resetView'].forEach(id=>{const b=document.getElementById(id);if(b)b.remove()});
+/* «וידג'טים» הוסר עם הגרירה. «שמור תצוגה»/«אפס תצוגה» היו כפתורים
+   מתים — הם נמחקו מה-DOM בעלייה ומעולם לא נראו; עכשיו הם פשוט
+   אינם בקוד. שמירת פריסת העמודות נעשית בבורר העמודות. */
+
 </script>
 </body>
 </html>
