@@ -1218,6 +1218,105 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
 
+ /* ============ עמודות הטבלה ============
+    התקלה שהולידה את הרישום, נמדדה על main: בקיבוץ «לפי ספק» הטבלה
+    הציגה 12 כותרות מול 11 תאים, וכל עמודה אחרי «תיאור» נשאה כותרת
+    של עמודה אחרת — «מלאי 39» היה בפועל דרישת הלקוח. מי שקרא את
+    הטבלה קרא מספרים נכונים תחת שמות שגויים.
+    הכלל שנעול כאן: בכל תצוגה, ובכל מצב של בורר העמודות, מספר
+    הכותרות שווה למספר התאים. */
+ const cols=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+   const tr=document.querySelector('#tbl tbody tr[data-i]');
+   return {th,nTh:th.length,nTd:tr?tr.children.length:0,
+     keys:(typeof visCols==='function')?visCols():null,
+     view:(typeof colViewKey==='function')?colViewKey():null}});
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const cDec=await cols();
+ await p.evaluate(()=>{const b=document.querySelector('#gseg button[data-gb="supplier"]');if(b)b.click()});
+ await p.waitForTimeout(600);
+ const cSup=await cols();
+ await p.evaluate(()=>{const b=document.querySelector('#gseg button[data-gb="decision"]');if(b)b.click()});
+ await p.waitForTimeout(600);
+ ok('«לפי החלטה» — כותרת לכל תא',cDec.nTh===cDec.nTd&&cDec.nTh>0,
+   `${cDec.nTh} כותרות · ${cDec.nTd} תאים`);
+ ok('«לפי ספק» — כותרת לכל תא',cSup.nTh===cSup.nTd&&cSup.nTh>0,
+   `${cSup.nTh} כותרות · ${cSup.nTd} תאים · ${cSup.th.join(' | ')}`);
+ ok('ולכל תצוגה פריסת עמודות משלה',cDec.view==='dec'&&cSup.view==='sup'
+   &&cDec.keys.join(',')!==cSup.keys.join(','),
+   `${cDec.keys.join(',')}  /  ${cSup.keys.join(',')}`);
+ /* ברירת המחדל היא בדיוק מה שהמסך הציג לפני הבורר — הרישום לא
+    שינה עמודות, רק את מקור האמת שלהן. */
+ /* עמודת הרכש תלויה בנתונים ולא בהעדפה: עם דוח ETA היא מתפצלת
+    ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך ⌛» אחת. */
+ const hasEta=await p.evaluate(()=>!!ETA);
+ ok('ברירת המחדל של «לפי החלטה» לא השתנתה',
+   cDec.th.join('|')===(hasEta
+     ?'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|ותק'
+     :'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|ותק'),
+   `ETA=${hasEta} · ${cDec.th.join('|')}`);
+
+ await p.click('#colsBtn');await p.waitForTimeout(350);
+ ok('בורר העמודות נפתח',
+   await p.evaluate(()=>document.getElementById('colspick').classList.contains('open')));
+ ok('ועמודה שאינה אפשרית במצב הנתונים מוצגת כבויה עם הסיבה',
+   await p.evaluate(k=>{const cb=document.querySelector(`#colspick input[data-ck="${k}"]`);
+     const lb=cb&&cb.closest('label');
+     return !!cb&&cb.disabled&&!!lb&&/דוח ETA/.test(lb.textContent)},hasEta?'otw':'cov'),
+   hasEta?'«בדרך ⌛» כבויה כשיש דוח':'«מכוסה» כבויה כשאין דוח');
+ await p.click('#colspick input[data-ck="po"]');await p.waitForTimeout(450);
+ await p.click('#colspick input[data-ck="tr"]');await p.waitForTimeout(450);
+ const cAdd=await cols();
+ ok('הוספת «רכש פתוח» ו«בהעברה» מוסיפה כותרת ותא לכל אחת',
+   cAdd.nTh===cDec.nTh+2&&cAdd.nTd===cAdd.nTh
+   &&cAdd.th.includes('רכש פתוח')&&cAdd.th.includes('בהעברה'),
+   `${cAdd.nTh} כותרות · ${cAdd.nTd} תאים`);
+ /* «בהעברה» הוא עמודת CK. בדוח שאין בה את העמודה הזאת התא אומר
+    «לא ידוע» ולא 0 — אותו כלל של רצועת המספרים בכרטיס. */
+ ok('ותא «בהעברה» נשען על השדה ולא על 0',
+   await p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
+       .findIndex(t=>t.textContent.trim()==='בהעברה');
+     if(i<0)return false;
+     const tr=document.querySelector('#tbl tbody tr[data-i]');
+     const cell=(tr.children[i].textContent||'').trim();
+     const r=ALL.find(x=>x.pn===tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim());
+     if(!r)return false;
+     return r.transferKnown?cell===String(r.transfer||0)||cell==='—':/לא ידוע/.test(cell)}));
+ await p.click('#colspick input[data-ck="pn"]');await p.waitForTimeout(400);
+ ok('«מק״ט» אינו ניתן להסרה — בלעדיו השורה אינה מזוהה',
+   await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>t.textContent.trim());return th.includes('מק״ט')}));
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const cKeep=await cols();
+ ok('הפריסה שורדת רענון',cKeep.th.includes('רכש פתוח')&&cKeep.nTh===cKeep.nTd,
+   `${cKeep.nTh} כותרות · ${cKeep.nTd} תאים`);
+ /* עמודות מוקפאות נדלקות רק כשיש גלילה אופקית בפועל */
+ const fz=await p.evaluate(()=>{const box=document.querySelector('#w_queue .rows');
+   const before=box.scrollWidth>box.clientWidth+1;
+   const td=document.querySelector('#tbl tbody tr[data-i] td:nth-child(2)');
+   const x0=td.getBoundingClientRect().left;
+   box.scrollLeft=-250;
+   return new Promise(res=>setTimeout(()=>res({ovf:before,
+     freeze:document.body.classList.contains('freeze'),
+     pos:getComputedStyle(td).position,
+     moved:Math.abs(td.getBoundingClientRect().left-x0)}),250))});
+ ok('בגלילה אופקית המק״ט נשאר במקומו',
+   !fz.ovf||(fz.freeze&&fz.pos==='sticky'&&fz.moved<6),
+   `גלישה=${fz.ovf} · הקפאה=${fz.freeze} · זז ${Math.round(fz.moved)}px`);
+ await p.click('#colsBtn');await p.waitForTimeout(300);
+ await p.click('#colspick [data-cpa="reset"]');await p.waitForTimeout(500);
+ const cRst=await cols();
+ ok('«חזרה לברירת המחדל» מחזירה בדיוק את העמודות שהיו',
+   cRst.th.join('|')===cDec.th.join('|'),cRst.th.join('|'));
+ await p.evaluate(()=>{try{localStorage.removeItem('planner_cols_v1')}catch(_){}});
+ await p.click('#colspick [data-cpa="close"]');await p.waitForTimeout(250);
+
  /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
     סעיף 4 במפרט. שני כללים נעולים כאן:
     · רצועת המספרים מציגה את שדות המנוע כפי שהם — לא חישוב מחדש

@@ -879,10 +879,53 @@ body.dopen .wdetail{display:flex}
 @media(max-width:1100px){.lband .lhero .hn{font-size:22px}}
 /* קיפול הרצועה מחזיר עוד ~46px לרשימה. מצב נשמר. */
 body.nokpi .lband,body.nokpi .kpis{display:none}
-#kpiTog,#denTog{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
+/* עמודות מוקפאות: המק״ט (ותיאור, כשהוא שם) נשארים בעין בזמן גלילה
+   אופקית. הרקע חייב להיות אטום — מתחת לתא דביק אין רקע שורה. */
+body.freeze #tbl thead th:nth-child(1),body.freeze #tbl tbody td:nth-child(1),
+body.freeze #tbl thead th:nth-child(2),body.freeze #tbl tbody td:nth-child(2){
+ position:sticky;z-index:4}
+body.freeze #tbl thead th:nth-child(1),body.freeze #tbl tbody td:nth-child(1){inset-inline-start:0}
+body.freeze #tbl thead th:nth-child(2),body.freeze #tbl tbody td:nth-child(2){inset-inline-start:var(--fz1,38px)}
+body.freeze.freeze3 #tbl thead th:nth-child(3),body.freeze.freeze3 #tbl tbody td:nth-child(3){
+ position:sticky;inset-inline-start:var(--fz2,160px);z-index:4}
+body.freeze #tbl thead th:nth-child(-n+3){z-index:6}
+body.freeze #tbl tbody tr td:nth-child(-n+3){background:var(--panel)}
+body.freeze #tbl tbody tr:hover td:nth-child(-n+3){background:var(--surface-2)}
+body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--accL)}
+body.freeze #tbl tbody tr.grp td{position:static;background:none}
+/* הקצה שמסמן שיש עוד מימין */
+body.freeze.freeze3 #tbl tbody td:nth-child(3),
+body.freeze:not(.freeze3) #tbl tbody td:nth-child(2),
+body.freeze.freeze3 #tbl thead th:nth-child(3),
+body.freeze:not(.freeze3) #tbl thead th:nth-child(2){
+ box-shadow:-6px 0 8px -7px rgba(16,24,40,.45)}
+
+/* ============ בורר העמודות ============
+   נפתח מתחת לכפתור, נסגר בלחיצה בחוץ או ב-Escape. הבחירה נשמרת לפי
+   תצוגה — «לפי החלטה» ו«לפי ספק» הן שתי פריסות שונות, ולכן שתי
+   רשימות שמורות. */
+.colspick{display:none;position:fixed;z-index:130;width:250px;padding:9px;
+ background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);
+ box-shadow:var(--shadowH);font-size:var(--f-sm)}
+.colspick.open{display:block}
+.colspick .cph{font-weight:800;color:var(--ink);margin:0 0 2px}
+.colspick .cpn{color:var(--ink-3);margin:0 0 7px;line-height:1.4}
+.colspick .cplist{max-height:320px;overflow:auto;display:flex;flex-direction:column}
+.colspick label{display:flex;align-items:center;gap:8px;padding:4px 6px;
+ border-radius:var(--r-ctl);cursor:pointer;color:var(--ink-2)}
+.colspick label:hover{background:var(--surface-2)}
+.colspick label.off{opacity:.45;cursor:default}
+.colspick label .cwhy{margin-inline-start:auto;font-size:var(--f-xs);color:var(--ink-3)}
+.colspick .cpa{display:flex;justify-content:space-between;gap:8px;margin-top:8px;
+ border-top:1px solid var(--line2);padding-top:8px}
+.colspick .cpa button{border:1px solid var(--line);background:var(--surface);
+ color:var(--ink-2);border-radius:var(--r-ctl);padding:5px 11px;cursor:pointer;
+ font-family:inherit;font-size:var(--f-sm);font-weight:700}
+.colspick .cpa button.ok{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
+#kpiTog,#denTog,#colsBtn{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
  padding:2px 7px;border-radius:var(--r-ctl);cursor:pointer;white-space:nowrap}
-#kpiTog:hover,#denTog:hover{background:var(--surface-2);color:var(--ink)}
-#denTog.on{color:var(--accent-ink);background:var(--accent-bg)}
+#kpiTog:hover,#denTog:hover,#colsBtn:hover{background:var(--surface-2);color:var(--ink)}
+#denTog.on,#colsBtn.on{color:var(--accent-ink);background:var(--accent-bg)}
 /* ============ שתי צפיפויות, בלי להקטין טקסט ============
    המפרט מבקש 18-24 שורות קריאות, ואוסר במפורש להגיע לשם בהקטנת
    גופן. הצפופה מורידה ריפוד בלבד: הגופן נשאר 12.5px, השורה יורדת
@@ -2167,7 +2210,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
           <span class="chips inline" id="chipsTop"></span>
-          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
+          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
@@ -2244,6 +2287,7 @@ tr.grp.sup b{font-size:var(--f-md)}
 </div>
 </div><!-- /shell -->
 <div class="colpop" id="colpop"></div>
+<div class="colspick" id="colspick" role="dialog" aria-label="בחירת עמודות"></div>
 <div class="qsug" id="qsug"></div>
 <div class="modalwrap" id="modalwrap"><div class="modal"><div class="mhd"><b id="mtitle">מאחורי החישוב</b><span class="x" id="mclose">✕</span></div><div class="mbody" id="mbody"></div></div></div>
 <div class="toast" id="toast"></div>
@@ -3915,6 +3959,81 @@ function prefsBoot(){
  try{if(localStorage.getItem('planner_dense')==='1')document.body.classList.add('dense')}catch(_){}
  try{if(localStorage.getItem('planner_nokpi')==='1')document.body.classList.add('nokpi')}catch(_){}
  prefsLbl()}
+/* ============ הקפאת המק״ט והתיאור ============
+   סעיף 3 במפרט. ההקפאה נדלקת רק כשיש גלילה אופקית בפועל — עמודה
+   דביקה בלי גלילה היא שכבת ציור מיותרת, וגם מקור לקצוות מרצדים.
+   ההיסט נמדד מהתאים עצמם ולא מקובע, כי רוחב המק״ט משתנה עם הגופן
+   ועם הצפיפות. */
+function freezeCols(){
+ const tb=document.getElementById('tbl'),box=document.querySelector('#w_queue .rows');
+ const on=!!tb&&!!box&&SHORTLIKE()&&box.scrollWidth>box.clientWidth+1;
+ document.body.classList.toggle('freeze',on);
+ if(!on)return;
+ const ths=[...tb.querySelectorAll('thead th')];
+ const w=i=>ths[i]?Math.round(ths[i].getBoundingClientRect().width):0;
+ tb.style.setProperty('--fz1',w(0)+'px');
+ tb.style.setProperty('--fz2',(w(0)+w(1))+'px');
+ /* «תיאור» מוקפא רק אם הוא באמת העמודה השלישית — הבורר יכול להסיר
+    אותו, ואז אין מה להקפיא. */
+ document.body.classList.toggle('freeze3',visCols()[1]==='desc')}
+
+/* ============ בורר העמודות ============
+   סעיף 3 במפרט. הבחירה נשמרת לכל תצוגה בנפרד («לפי החלטה» ו«לפי
+   ספק» הן שתי פריסות), ועמודה שאינה אפשרית במצב הנתונים הנוכחי
+   מוצגת כבויה עם הסיבה — לא נעלמת בשקט. */
+function colsOpen(on){
+ const b=document.getElementById('colsBtn'),pk=document.getElementById('colspick');
+ if(!b||!pk)return;
+ if(!on){pk.classList.remove('open');b.classList.remove('on');
+  b.setAttribute('aria-expanded','false');return}
+ const v=colViewKey(),vis=visCols();
+ const why=k=>SCOL[k].eta?'דורש דוח ETA':SCOL[k].noeta?'רק בלי דוח ETA':'';
+ pk.innerHTML=`<p class="cph">עמודות הטבלה</p>
+  <p class="cpn">${v==='sup'?'התצוגה «לפי ספק»':'התצוגה «לפי החלטה»'} — הבחירה נשמרת לה בנפרד.</p>
+  <div class="cplist">${SCOL_ORDER.map(k=>{const ok=colUsable(k);
+    return `<label class="${ok?'':'off'}"><input type="checkbox" data-ck="${k}"
+      ${vis.includes(k)?'checked':''} ${ok?'':'disabled'}><span>${esc(SCOL[k].t)}</span>
+      ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`}).join('')}</div>
+  <div class="cpa"><button type="button" data-cpa="reset">חזרה לברירת המחדל</button>
+   <button type="button" class="ok" data-cpa="close">סגור</button></div>`;
+ const r=b.getBoundingClientRect();
+ pk.style.insetBlockStart=Math.round(r.bottom+6)+'px';
+ pk.style.insetInlineStart='';pk.style.insetInlineEnd='';
+ pk.style.left=Math.round(Math.min(Math.max(8,r.left),innerWidth-258))+'px';
+ pk.classList.add('open');b.classList.add('on');b.setAttribute('aria-expanded','true');
+ pk.querySelectorAll('input[data-ck]').forEach(cb=>cb.onchange=()=>{
+   const picked=[...pk.querySelectorAll('input[data-ck]:checked')].map(x=>x.dataset.ck);
+   /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. */
+   if(!picked.includes('pn')){cb.checked=true;toast('«מק״ט» נשאר תמיד');return}
+   const order=SCOL_ORDER.filter(k=>picked.includes(k)||
+     (SCOL[k]&&!colUsable(k)&&(colSaved()[colViewKey()]||SCOL_DEF[colViewKey()]).includes(k)));
+   colSaveSet(colViewKey(),order);render();colsOpen(true)});
+ pk.querySelectorAll('[data-cpa]').forEach(x=>x.onclick=()=>{
+   if(x.dataset.cpa==='reset'){colReset(colViewKey());render();colsOpen(true)}
+   else colsOpen(false)})}
+function colsWire(){
+ const b=document.getElementById('colsBtn');if(!b||b.__w)return;b.__w=1;
+ b.onclick=e=>{e.stopPropagation();
+   colsOpen(!document.getElementById('colspick').classList.contains('open'))};
+ /* הסינון «נלחץ בחוץ» נעשה על המכולה עצמה ולא בהשוואה ל-e.target:
+    לחיצה בתוך הבורר מרנדרת אותו מחדש, ועד שהאירוע מגיע ל-document
+    היעד המקורי כבר מנותק מה-DOM — contains() מחזיר false, והבורר
+    נסגר בדיוק כשהמשתמש עבד בתוכו. */
+ const pk0=document.getElementById('colspick');
+ if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
+ document.addEventListener('click',()=>colsOpen(false));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')colsOpen(false)})}
+function colsSync(){
+ const b=document.getElementById('colsBtn');if(!b)return;
+ const on=SHORTLIKE();
+ b.hidden=!on;
+ if(!on)colsOpen(false);
+ else{const v=colViewKey();
+  const custom=!!colSaved()[v];
+  b.classList.toggle('on',custom&&!document.getElementById('colspick').classList.contains('open'));
+  b.textContent=custom?`▦ עמודות · ${visCols().length}`:'▦ עמודות';
+  b.title=`אילו עמודות מוצגות ב${v==='sup'?'תצוגה «לפי ספק»':'תצוגה «לפי החלטה»'}`
+   +`. הבחירה נשמרת לה בנפרד${custom?' · פריסה מותאמת פעילה':''}`}}
 function prefsLbl(){
  const dt=document.getElementById('denTog'),kt=document.getElementById('kpiTog');
  if(dt){const on=document.body.classList.contains('dense');
@@ -4928,7 +5047,7 @@ function tiles(){
    kt.onclick=()=>{const off=document.body.classList.toggle('nokpi');
     try{localStorage.setItem('planner_nokpi',off?'1':'0')}catch(_){}
     prefsLbl()}}}
- prefsLbl();
+ prefsLbl();colsWire();
  const wireNav=e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    /* «חוסרים לטיפול» נפתח דרך shortOpen כדי שקבוצה שקופלה בעבר לא
@@ -5268,7 +5387,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return SHORTLIKE()?12:track==='done'?6:track==='floor'?9:track==='trend'?9:track==='rise'?9:track==='cust'?8:track==='applied'?7:8}
+function NCOL(){return SHORTLIKE()?(1+visCols().length):track==='done'?6:track==='floor'?9:track==='trend'?9:track==='rise'?9:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -5407,6 +5526,95 @@ function custGroups(rows){
  for(const l of by.values())l.sort((a,b)=>custVal(b)-custVal(a));
  const sup=[...by.entries()].sort((a,b)=>b[1].length-a[1].length);
  return {none,sup}}
+/* ============ מקור אמת אחד לכל עמודה ============
+   נמדד על main לפני השינוי: בקיבוץ «לפי ספק» הטבלה הציגה 12 כותרות
+   מול 11 תאים, וכל עמודה אחרי «תיאור» נשאה כותרת של עמודה אחרת —
+   מי שקרא «מלאי 39» קרא בפועל את דרישת הלקוח. הסיבה מבנית: הכותרות
+   נבנו בפונקציה אחת והתאים בשתי תבניות אחרות, ושלוש רשימות נפרדות
+   אינן יכולות להישאר מסונכרנות ידנית.
+   כאן לכל עמודה יש הגדרה אחת — שם, הסבר ותא — והכותרת והשורה
+   נגזרות ממנה. אי-התאמה אינה אפשרית יותר.
+   העמודות עצמן לא השתנו: ברירת המחדל בכל תצוגה היא בדיוק מה שהיה. */
+function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
+const SCOL={
+ pn:{t:'מק״ט',ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מתור העבודה',
+  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`},
+ desc:{t:'תיאור',ttl:'תיאור הפריט בדוח',
+  cell:(r,x)=>`<td class="dsc">${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
+   +((x.maj&&r.cat&&r.cat!==x.maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:'')+'</td>'},
+ sup:{t:'ספק',ttl:'שם הספק כפי שהוא בדוח',
+  cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
+ spark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי',
+  cell:r=>`<td class="cg">${sparkline(r)}</td>`},
+ free:{t:'מלאי',ttl:'מלאי פנוי על המדף עכשיו — עובדה',
+  cell:r=>`<td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>`},
+ cust:{t:'דרישת לקוח',ttl:'הזמנת לקוח פתוחה — עובדה מה-SAP, לא תחזית',
+  cell:r=>`<td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>`},
+ /* «רכש פתוח» הוא הסכום הגולמי מול הספק, לפני הפיצול לפי תאריך.
+    «מכוסה» ו«ללא תאריך» מפצלים אותו; הוא עצמו אינו מחליף אותם. */
+ po:{t:'רכש פתוח',ttl:'סה״כ הזמנת רכש פתוחה מול הספק — לפני הפיצול לפי תאריך הגעה',
+  cell:r=>`<td class="num">${(r.po||0)>0?(r.po).toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>`},
+ tr:{t:'בהעברה',ttl:'מלאי שכבר שלנו ונע בין מחסנים (עמודת CK בדוח). «לא ידוע» = אין עמודה כזו בדוח שנטען',
+  cell:r=>`<td class="num">${!r.transferKnown
+    ?'<span class="mut" title="אין עמודת «בהעברה» בדוח שנטען — זה אינו 0">לא ידוע</span>'
+    :((r.transfer||0)>0?r.transfer.toLocaleString('he-IL'):'<span class="mut">—</span>')}</td>`},
+ cov:{t:'מכוסה',eta:1,ttl:'יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין',
+  cell:r=>shortCovered(r)},
+ stuck:{t:'ללא תאריך',eta:1,ttl:'רכש פתוח שלא שובץ לשום אספקה — עובדה מהדוח, לא תחזית. אינו נספר ככיסוי',
+  cell:r=>stuckCell(r)},
+ otw:{t:'בדרך ⌛',noeta:1,ttl:'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול',
+  cell:r=>etaCells(r)},
+ eta:{t:'הגעה',ttl:()=>doorEtaHead(),cell:r=>doorEtaCell(r)},
+ /* שני מספרי חוסר, ושניהם של המנוע: «חסר» הוא r.miss הגולמי,
+    ו«חוסר חזוי» הוא מה שנשאר אחרי ניכוי אספקה מתוארכת (unsQty).
+    תצוגת הספק הציגה תמיד את הראשון, ולכן הוא נשאר ברירת המחדל שלה. */
+ missq:{t:'חסר',ttl:'החוסר כפי שהמנוע מחשב אותו — לפני ניכוי אספקה מתוארכת',
+  cell:r=>`<td class="num"><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>`},
+ miss:{t:'חוסר חזוי',ttl:'תחזית: הקצב החודשי פחות המדף, פחות מה שמכוסה. אינו דרישת לקוח — זו העמודה «דרישת לקוח»',
+  cell:r=>shortLeft(r)},
+ buy:{t:'כמות להזמנה',ttl:'הכמות שההמלצה נוקבת בה, כשהיא שונה מהחוסר עצמו',
+  cell:r=>{const b=actQty(r);
+   return `<td class="num">${(b==null||b===(r.miss||0))?'<span class="mut">—</span>':b.toLocaleString('he-IL')}</td>`}},
+ cova:{t:'חודשי כיסוי',ttl:'מלאי פנוי, רכש פתוח ומלאי בהעברה יחד, חלקי הקצב החודשי',
+  cell:r=>`<td class="num">${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>`},
+ val:{t:'שווי',ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
+  cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
+ act:{t:'הפעולה הבאה',ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
+  cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>`},
+ cat:{t:'סיווג',ttl:'הסיווג שהמנוע נתן לפריט',
+  cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+ age:{t:'ותק',ttl:'בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע',
+  cell:r=>`<td class="age">${ageTag(r)}</td>`}};
+/* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
+const SCOL_ORDER=['pn','desc','sup','spark','free','cust','po','tr','cov','stuck','otw','eta',
+ 'missq','miss','buy','cova','val','act','cat','age'];
+/* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
+const SCOL_DEF={
+ dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','age'],
+ sup:['pn','desc','free','otw','cust','missq','buy','cova','age','cat']};
+function colViewKey(){return groupBy==='supplier'?'sup':'dec'}
+const COLKEY='planner_cols_v1';
+function colSaved(){try{return JSON.parse(localStorage.getItem(COLKEY)||'{}')||{}}catch(_){return {}}}
+function colSaveSet(v,list){const o=colSaved();o[v]=list;
+ try{localStorage.setItem(COLKEY,JSON.stringify(o))}catch(_){}}
+function colReset(v){const o=colSaved();delete o[v];
+ try{localStorage.setItem(COLKEY,JSON.stringify(o))}catch(_){}}
+/* הרשימה השמורה עוברת סינון לפי מצב ה-ETA: «מכוסה» ו«ללא תאריך»
+   קיימות רק כשנטען דוח, ו«בדרך ⌛» רק כשלא. זה אינו העדפה של
+   המשתמש אלא עובדה על הנתונים. */
+function colUsable(k){const c=SCOL[k];if(!c)return false;
+ if(c.eta&&!ETA)return false;if(c.noeta&&ETA)return false;return true}
+function visCols(){const v=colViewKey();
+ const saved=colSaved()[v];
+ const list=Array.isArray(saved)&&saved.length?saved:SCOL_DEF[v];
+ const out=list.filter(colUsable);
+ return out.length?out:SCOL_DEF[v].filter(colUsable)}
+function colHeadHTML(){
+ return visCols().map(k=>{const c=SCOL[k];
+  const ttl=typeof c.ttl==='function'?c.ttl():c.ttl;
+  return `<th data-ck="${k}"><div class="thc">${ttl?`<span title="${esc(ttl)}">${esc(c.t)}</span>`:esc(c.t)}</div></th>`}).join('')}
+function colRowHTML(r,x){return visCols().map(k=>SCOL[k].cell(r,x||{})).join('')}
+
 function decisionHead(){const cols=FIXLIKE()
   ?['מק״ט','תיאור','ROP','SS',
     '<span title="Z × σ × √LT — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
@@ -5437,21 +5645,14 @@ function decisionHead(){const cols=FIXLIKE()
     '<span title="ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה">קצב חודשי</span>',
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`]
-  /* ארבע התשובות, משמאל לימין בסדר השאלה: חסר · מכוסה · נשאר · פעולה.
-     «דגם» ירד כדי לפנות את המקום לפעולה — הוא בכרטיס הפריט. */
-  :SHORTLIKE()?['מק״ט','תיאור','ספק',
-    '<span title="צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי">11 חודשים</span>',
-    '<span title="מלאי פנוי על המדף עכשיו — עובדה">מלאי</span>','<span title="דרישת לקוח פתוחה — עובדה מה-SAP, לא תחזית">דרישת לקוח</span>',
-    ...(ETA?['<span title="יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין">מכוסה</span>',
-             '<span title="רכש פתוח שלא שובץ לשום אספקה — עובדה מהדוח, לא תחזית. אינו נספר ככיסוי">ללא תאריך</span>']
-           :['<span title="רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול">בדרך ⌛</span>']),
-    '<span title="תחזית: הקצב החודשי פחות המדף, פחות מה שמכוסה. אינו דרישת לקוח — זו העמודה «לקוח»">חוסר חזוי</span>',
-    '<span title="היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד">שווי</span>',
-    '<span title="הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים">הפעולה הבאה</span>',
-    '<span title="בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע">ותק</span>']
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר',`<span title="מוצג למידע בלבד ואינו נספר ככיסוי. ${otwHead()}">בדרך</span>`]
   :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
- return '<tr><th style="width:38px"><div class="thc">#</div></th>'+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
+ /* ארבע התשובות, משמאל לימין בסדר השאלה: חסר · מכוסה · נשאר · פעולה.
+    בטבלת העבודה הכותרות נגזרות מרישום העמודות, ולכן הן תמיד אותן
+    עמודות שהשורה מציגה — ראה SCOL. */
+ const rnk='<tr><th style="width:38px"><div class="thc">#</div></th>';
+ if(SHORTLIKE())return rnk+colHeadHTML()+'</tr>';
+ return rnk+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 
 /* ============ הגרף המצרפי — הוסר ============
    «צריכה חודשית — כל הקטלוג» סיכם יחידות של חלפים שונים לכדי מספר
@@ -5587,19 +5788,8 @@ function renderDecisions(rows){
      <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
    if(coll)continue;
    for(const r of list){if(idx>=lim)break;const i=idx++;
-    const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
-    const buy=actQty(r);
-    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-     <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
-     <td>${hlMark(r.desc.slice(0,40),SQ)}</td>
-     <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     <td class="num otw">${r.po>0?`<span title="${r.po} יח׳ ברכש פתוח — ${otwWhy(r)}">${(r.po+(r.transfer||0)).toLocaleString('he-IL')}<i>⌛</i></span>`:''}</td>
-     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):''}</td>
-     <td><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>
-     <td class="num">${(buy==null||buy===(r.miss||0))?'':buy.toLocaleString('he-IL')}</td>
-     <td>${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>
-     <td class="age">${ageTag(r)}</td>
-     <td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td></tr>`)}}
+    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+     +colRowHTML(r,{dlen:40})+'</tr>')}}
  }
  else if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
@@ -5621,19 +5811,8 @@ function renderDecisions(rows){
        <b>${esc(curName(blk))}</b><span class="gn">${inBlk.length}</span>
        <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
        <span class="gu">${money(inBlk.reduce((t,x)=>t+(x.unsVal||0),0),blk)}</span></td></tr>`)}
-    const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
-    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-     <td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtn}</span></td>
-     <td class="dsc">${hlMark(r.desc.slice(0,24),SQ)}${(r.cat&&r.cat!==maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:''}</td>
-     <td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>
-     <td class="cg">${sparkline(r)}</td>
-     <td class="num${r.free<=0?' zero':''}">${(Math.max(0,r.free)).toLocaleString('he-IL')}</td>
-     <td class="num${r.cust>0?' cust':''}">${r.cust>0?r.cust.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-     ${ETA?shortCovered(r)+stuckCell(r):etaCells(r)}
-     ${shortLeft(r)}
-     <td class="num val">${money(r.unsVal||0,r.currency)}</td>
-     <td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>
-     <td class="age">${ageTag(r)}</td></tr>`)}}
+    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+     +colRowHTML(r,{dlen:24,maj})+'</tr>')}}
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
@@ -5812,6 +5991,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
     עכשיו מאותו מקור שהמסילה מציגה. */
  document.getElementById('lt').textContent=screenName();
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
+ colsSync();setTimeout(freezeCols,0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
