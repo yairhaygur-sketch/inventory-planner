@@ -1317,6 +1317,56 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{try{localStorage.removeItem('planner_cols_v1')}catch(_){}});
  await p.click('#colspick [data-cpa="close"]');await p.waitForTimeout(250);
 
+ /* ============ מיון בתוך הקיבוץ ============
+    לטבלת העבודה לא היה מיון בכלל — הכותרת לא הייתה לחיצה. הכלל
+    שנעול: המיון פועל *בתוך* קבוצה ובתוך בלוק מטבע, ולא חוצה אותם.
+    נמדד לפני התיקון: מיון לפי «דרישת לקוח» פיצל את כותרות המטבע
+    מ-8 ל-75, כלומר הפך «דירוג בתוך המטבע בלבד» לרשימה מעורבת. */
+ const wsnap=()=>p.evaluate(()=>{
+   const ci=[...document.querySelectorAll('#tbl thead th')]
+     .findIndex(t=>/דרישת לקוח/.test(t.textContent));
+   return {ws:(typeof WSORT!=='undefined')?{...WSORT}:null,
+     groups:[...document.querySelectorAll('#tbl tbody tr.grp')].length,
+     vals:[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,8)
+       .map(tr=>+(tr.children[ci].textContent.replace(/[^\d]/g,'')||0)),
+     order:[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
+       .map(tr=>tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()).join(',')}});
+ const hitSort=()=>p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+   .find(t=>/דרישת לקוח/.test(t.textContent));if(th)th.querySelector('.thc').click()});
+ const w0=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w1=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w2=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w3=await wsnap();
+ const desc=a=>a.every((v,i)=>i===0||a[i-1]>=v), asc=a=>a.every((v,i)=>i===0||a[i-1]<=v);
+ ok('לחיצה על כותרת ממיינת יורד',w1.ws.col==='cust'&&w1.ws.dir==='desc'&&desc(w1.vals),
+   w1.vals.join(' · '));
+ ok('לחיצה שנייה הופכת לעולה',w2.ws.dir==='asc'&&asc(w2.vals),w2.vals.join(' · '));
+ ok('ושלישית מחזירה לסדר המקורי',w3.ws.col===null&&w3.order===w0.order,
+   `${w0.order}  →  ${w3.order}`);
+ ok('המיון אינו חוצה בלוק מטבע — מספר הקבוצות אינו משתנה',
+   w1.groups===w0.groups&&w2.groups===w0.groups,
+   `${w0.groups} → ${w1.groups} → ${w2.groups}`);
+
+ /* ============ מה נשמר כשחוזרים מפריט ============ */
+ await p.evaluate(()=>{document.querySelector('#w_queue .rows').scrollTop=420});
+ await p.waitForTimeout(250);
+ await hitSort();await p.waitForTimeout(500);
+ const st0=await p.evaluate(()=>({top:Math.round(document.querySelector('#w_queue .rows').scrollTop),
+   col:WSORT.col,dir:WSORT.dir,
+   first:(document.querySelector('#tbl tbody tr[data-i]')||{}).children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()}));
+ await p.evaluate(()=>{const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   rows[Math.min(6,rows.length-1)].click()});
+ await p.waitForTimeout(500);
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(400);
+ const st1=await p.evaluate(()=>({top:Math.round(document.querySelector('#w_queue .rows').scrollTop),
+   col:WSORT.col,dir:WSORT.dir,
+   first:(document.querySelector('#tbl tbody tr[data-i]')||{}).children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()}));
+ ok('פתיחת פריט וסגירתו משאירות את הגלילה, המיון והשורה הראשונה',
+   st1.top===st0.top&&st1.col===st0.col&&st1.dir===st0.dir&&st1.first===st0.first,
+   `גלילה ${st0.top}→${st1.top} · מיון ${st0.col}/${st0.dir}→${st1.col}/${st1.dir}`);
+ await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(300);
+ await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(400);
+
  /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
     סעיף 4 במפרט. שני כללים נעולים כאן:
     · רצועת המספרים מציגה את שדות המנוע כפי שהם — לא חישוב מחדש
