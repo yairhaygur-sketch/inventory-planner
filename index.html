@@ -879,6 +879,27 @@ body.dopen .wdetail{display:flex}
 @media(max-width:1100px){.lband .lhero .hn{font-size:22px}}
 /* קיפול הרצועה מחזיר עוד ~46px לרשימה. מצב נשמר. */
 body.nokpi .lband,body.nokpi .kpis{display:none}
+/* שבב מצב הטיפול: צבע תמיד עם טקסט, ולעולם לא לבדו */
+.wchip{display:inline-flex;align-items:center;gap:3px;padding:0 6px;border-radius:99px;
+ font-size:var(--f-xs);font-weight:700;white-space:nowrap;
+ border:1px solid var(--line);color:var(--ink-3);background:var(--surface-2)}
+.wchip.checking{border-color:var(--accent-line);background:var(--accent-bg);color:var(--accent-ink)}
+.wchip.supplier{border-color:var(--high);background:var(--high-bg);color:var(--high)}
+.wchip.ordered{border-color:var(--capital);background:var(--capital-bg);color:var(--capital)}
+.wchip.checking::before{content:'◔'}
+.wchip.supplier::before{content:'⌛'}
+.wchip.ordered::before{content:'✓'}
+#tbl td.wst{padding-inline:6px}
+/* מקטע מצב הטיפול בכרטיס */
+.wipsec .marks.wipm{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px}
+.wipsec .marks.wipm button{border:1px solid var(--line);background:var(--surface);
+ color:var(--ink-2);border-radius:var(--r-ctl);padding:4px 10px;cursor:pointer;
+ font-family:inherit;font-size:var(--f-sm);font-weight:700}
+.wipsec .marks.wipm button:hover{border-color:var(--accent);color:var(--accent-ink)}
+.wipsec .marks.wipm button.on{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
+.wipsec .marks.wipm button.clr{color:var(--ink-3)}
+.wipsec .marks.wipm button:disabled{opacity:.45;cursor:default}
+
 /* כותרת שניתן למיין לפיה — הסימון הוא החץ, לא צבע בלבד */
 #tbl thead th.wsrt .thc{cursor:pointer}
 #tbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
@@ -1752,7 +1773,7 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
    לוקחת 164-224px, ולכן טבלה ב-1440px עומדת היום ברוחב שהיה פעם
    1250px. בלי ההזזה הטבלה דרשה 1218px בתוך 1168 — גלישה אופקית
    בדיוק במסכים שהמפרט מבקש לבדוק (1366 ו-1440). */
-@media(max-width:1466px){
+@media(max-width:1560px){
  #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:150px}
  #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:100px}
  #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:100px}}
@@ -1762,8 +1783,19 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:70px}
  /* הגרף הקטן הוא האחרון שמוותר — הוא מה שמאפשר לזהות דפוס בלי
     לפתוח פריט. אבל ב-1180 גם הוא מתכווץ, אחרת הטבלה גולשת. */
- #tbl[data-track="short"] td.cg{width:74px}
- #tbl[data-track="short"] td.cg .spark{width:66px}}
+ #tbl[data-track="short"] td.cg,#tbl[data-track="line"] td.cg{width:74px}
+ #tbl[data-track="short"] td.cg .spark,#tbl[data-track="line"] td.cg .spark{width:66px}}
+/* ============ תא המק״ט מפנה את רוחב הפעולות ============
+   נמדד ב-1180px אחרי שנוספה עמודת «מצב טיפול»: המק״ט תפס 182px,
+   מתוכם כ-60 הם כפתורי «העתק» ו«✓ טופל» שיושבים ב-opacity:0 עד
+   ריחוף — כלומר רוחב שנתפס תמיד עבור משהו שנראה לעיתים. כאן הם
+   יוצאים מהזרימה ומופיעים מעל התא בריחוף. שום פעולה לא ירדה. */
+@media(max-width:1240px){
+ #tbl tbody tr[data-i] .ract{width:0;overflow:visible;justify-content:flex-start}
+ #tbl tbody tr[data-i] .ract>*{position:relative;z-index:3;
+  background:var(--panel);box-shadow:0 0 5px 3px var(--panel)}
+ #tbl tbody tr[data-i]:hover .ract>*{background:var(--surface-2);
+  box-shadow:0 0 5px 3px var(--surface-2)}}
 /* ============ תחת דחיפת המגירה ============
    updatePush דוחף רק אם הטבלה עדיין *נכנסת* אחרי הדחיפה. עמודת
    הפעולה הוסיפה רוחב, הטבלה הפסיקה להיכנס, והמגירה חזרה לכסות
@@ -3238,7 +3270,20 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
 const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל',
- ondemand:'לפי דרישה'};
+ ondemand:'לפי דרישה',checking:'בבדיקה',supplier:'ממתין לספק',ordered:'הוזמן'};
+/* ============ מצב טיפול — סימון שאינו מסתיר ============
+   עד כאן כל סימון הוציא את הפריט מתור העבודה ברונג הראשון של
+   classify. כלומר לא היה מצב «בטיפול ועדיין ברשימה», ועמודת «מצב
+   טיפול» הייתה מציגה «חדש» בכל שורה תמיד.
+   שלושת המצבים האלה נשארים בתור לפי הכרעת המתכנן, ומאותו טעם
+   שבמפרט: «ממתין לספק» אינו פתרון לחוסר ואינו צריך להסתיר אותו —
+   הלקוח עדיין ממתין, והחוסר עדיין חוסר.
+   הם אינם נוגעים בשום חישוב: הסיווג, החומרה, החוסר, ההמלצה וההון
+   הכלוא נשארים בדיוק מה שהמנוע קבע. הסימון הוא הערה על *מה עשית*,
+   לא על *מה המצב*. */
+const WIPMARK={checking:1,supplier:1,ordered:1};
+/* סדר לוגי: מהתחלת הטיפול לסופו. משמש גם למיון העמודה. */
+const WIPORDER=['','checking','supplier','ordered'];
 /* ============ פריטים שאינם מנוהלים במלאי ============
    PD כבר מוחרג מהמלצות SS/ROP כי הוא נרכש לפי הזמנה. יש עוד שתי
    קבוצות שמתנהגות בדיוק כך למרות היסטוריית צריכה: כלי עבודה
@@ -3278,8 +3323,12 @@ const OD_TTL=183*864e5;                      /* חצי שנה */
    באמת בוצע — רק שעבר זמן. הגרסה הנכונה יותר היא לשמור על הסימון
    את ההמלצה שהייתה בזמן הסימון, ולפוג ברגע שהדוח הבא מראה שהפרמטר
    לא זז. היא דורשת הרחבת מבנה הסימון ולא נבנתה כאן. */
+/* מצב טיפול פג אחרי 30 יום: הוא מתאר פעולה שבתהליך, ותהליך שלא זז
+   חודש שלם אינו «בטיפול». כשהוא פג הפריט קורא «חדש» שוב — ולא
+   נעלם, כי הוא ממילא לא יצא מהתור. */
+const WIP_TTL=30*864e5;
 const MARK_TTL={ondemand:OD_TTL,campaign:OD_TTL,ignore:OD_TTL,treatment:OD_TTL,
-  handled:7*864e5};
+  handled:7*864e5,checking:WIP_TTL,supplier:WIP_TTL,ordered:WIP_TTL};
 function markTTL(t){const v=MARK_TTL[t];return v==null?OD_TTL:v}
 /* ימים מתוך TTL — כדי שמספר הימים בממשק ייגזר מההגדרה ולא יקובע שוב */
 function DAYS(ms){return Math.round(ms/864e5)}
@@ -3295,13 +3344,13 @@ function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
- for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
+ for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;it.floorClash=false;
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;it.floorClash=false;it.wip=null;
   if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase;
    it.ssMinEff=it.ssMinEffBase;it.lowFloor=it.lowFloorBase;it.ssSrc=it.ssSrcBase}
   if(mk&&mk.t==='ondemand'){
@@ -3312,6 +3361,9 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0;
       it.ssMinEff=0;it.lowFloor=0;it.ssSrc='od'}}
   else if(mk&&mk.t&&markExpired(mk)){it.markStale=mk}
+  /* מצב טיפול: נרשם על הפריט וממשיך בשרשרת הסיווג הרגילה. אין
+     continue, אין Q.marked, ואין נגיעה ב-cat/sev/miss/expCap. */
+  else if(mk&&mk.t&&WIPMARK[mk.t]){it.wip=mk}
   else if(mk&&mk.t){const lbl=MARK_LABEL[mk.t]||'מסומן';const isDone=mk.t==='handled';
     it.cat=lbl;it.mark=mk;it.sev=0;it.risk=0;it.miss=0;it.expCap=0;
     it.why=[['idea',isDone?`סומן כטופל${mk.note?' — '+mk.note:''}`:`סומן ידנית: ${lbl}${mk.note?' — '+mk.note:''}`],
@@ -5369,7 +5421,10 @@ function currentRows(){if(cur==='today')return decisionList(track);
  base=base.filter(passColFilters);
  return sortRowsBy(base)}
 function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?'var(--red)':r.sev===2?'var(--acc)':r.sev===1?'#9aa1b1':'#c5cad6'}
-const BULKMARKS=[['ondemand','לפי דרישה'],['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
+/* שלושת הראשונים אינם מוציאים מהתור — ראה WIPMARK. הכיתוב בתפריט
+   אומר את ההבדל, כי «סמן 140 פריטים» שמעלים אותם הוא פעולה אחרת
+   לגמרי מ«סמן 140 פריטים» שמשנה את מצב הטיפול שלהם. */
+const BULKMARKS=[['checking','בבדיקה · נשאר בתור'],['supplier','ממתין לספק · נשאר בתור'],['ordered','הוזמן · נשאר בתור'],['ondemand','לפי דרישה'],['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
 function markTabsOverflow(){const t=document.getElementById('tabs');if(!t)return;
  const q=t.closest('.qbody');if(!q)return;
  q.classList.toggle('tabsover',t.scrollWidth-t.clientWidth>4)}
@@ -5635,14 +5690,26 @@ const SCOL={
   cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>`},
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+ /* ============ מצב טיפול — עמודה נפרדת מהחומרה ============
+    החומרה היא מה שהמנוע קבע על הפריט (צבע השורה); מצב הטיפול הוא
+    מה שאתה עשית. שני צירים, שתי עמודות, ואף אחד מהם אינו נגזר
+    מהשני. הצבע כאן מלווה תמיד בטקסט, ולכן הוא אינו נושא מידע לבדו. */
+ state:{t:'מצב טיפול',ttl:'מה כבר עשית עם הפריט — נפרד מחומרת הבעיה. «חדש» = טרם סומן. הסימון אינו מוציא את הפריט מהתור ואינו משנה את הסיווג',
+  val:r=>WIPORDER.indexOf(r.wip?r.wip.t:''),
+  xval:r=>r.wip?(MARK_LABEL[r.wip.t]||r.wip.t):'חדש',
+  cell:r=>{const t=r.wip?r.wip.t:'';
+   const short={checking:'בבדיקה',supplier:'לספק',ordered:'הוזמן'}[t]||'חדש';
+   const full=t?(MARK_LABEL[t]||t):'טרם סומן';
+   const when=t&&r.wip.ts?` · ${new Date(r.wip.ts).toLocaleDateString('he-IL')}`:'';
+   return `<td class="wst"><span class="wchip ${t||'new'}" title="${esc(full+when)}">${esc(short)}</span></td>`}},
  age:{t:'ותק',val:r=>r.hSeen||0,ttl:'בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע',
   cell:r=>`<td class="age">${ageTag(r)}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
 const SCOL_ORDER=['pn','desc','sup','spark','free','cust','po','tr','cov','stuck','otw','eta',
- 'missq','miss','buy','cova','val','act','cat','age'];
+ 'missq','miss','buy','cova','val','act','cat','state','age'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
- dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','age'],
+ dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
  sup:['pn','desc','free','otw','cust','missq','buy','cova','age','cat']};
 function colViewKey(){return groupBy==='supplier'?'sup':'dec'}
 /* ============ מיון בתוך הקיבוץ ============
@@ -6299,6 +6366,19 @@ function projChart(cv,r){
 function delta(c,n){return n>c?`<div class="dlt up">▲ להעלות ב-${n-c}</div>`:n<c?`<div class="dlt down">▼ להוריד ב-${c-n}</div>`:`<div class="dlt same">זהה</div>`}
 const PATDESC={'חלק':'ביקוש סדיר וצפוי','תנודתי':'סדיר בתדירות, משתנה בכמות',
  'ספורדי':'מפוזר עם חודשים ריקים — ממוצע מטעה','גושי':'נדיר באשכולות — עדיף לפי הזמנה','ללא ביקוש':'אין תנועה ב-11 חודשים'};
+/* ============ מצב הטיפול בכרטיס ============
+   שני דברים שונים באותו מקום היו מבלבלים, ולכן הם שני מקטעים:
+   «מצב טיפול» מתאר מה עשית ואינו מוציא את הפריט מהתור; «סימון
+   והחרגה» מוציא אותו. המשפט הזה כתוב על המסך ולא רק כאן. */
+function wipPanel(r){
+ const t=r.wip?r.wip.t:'';
+ const B=[['checking','בבדיקה'],['supplier','ממתין לספק'],['ordered','הוזמן']];
+ return `<div class="sec wipsec"><h3>מצב טיפול</h3>
+  <div class="marks wipm">${B.map(([k,l])=>
+    `<button data-w="${k}" class="${t===k?'on':''}">${esc(l)}</button>`).join('')}
+   <button data-w="" class="clr"${t?'':' disabled'}>נקה</button></div>
+  <p class="legend">המצב הזה <b>אינו מוציא את הפריט מתור העבודה</b> — «ממתין לספק» אינו פתרון לחוסר. הוא גם אינו משנה את הסיווג, את החומרה או את ההמלצה; הוא אומר מה כבר עשית.${
+   t?` · סומן ${new Date(r.wip.ts).toLocaleDateString('he-IL')}, פג אחרי ${DAYS(markTTL(t))} ימים.`:''}</p></div>`}
 function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:'';
  /* הסייג חייב להיות ליד הפעולה, לא בתוך מגירה סגורה: מי שלוחץ
     «טופל» בפעם הראשונה צריך לדעת *לפני* הלחיצה שזה לא נוגע ב-SAP. */
@@ -6458,6 +6538,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
         פתח, והפעולה ישבה אחרי ההיסטוריה — כלומר הדבר היחיד
         שמבקשים ממך לעשות היה האחרון שראית. -->
    ${anomHTML?`<div class="sec" data-dt="why"><h3>חריגות בהיסטוריה</h3>${anomHTML}</div>`:''}
+   ${wipPanel(r)}
    <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
    <div class="sec" data-dt="data"><h3>מאפייני הפריט</h3><div class="tags attrs">
     <span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
@@ -6519,9 +6600,15 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
    if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
    else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';
      document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}document.body.removeChild(ta)}};
- document.querySelectorAll('#detail .marks button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('#detail .marks button[data-t]').forEach(b=>b.onclick=()=>{
   const note=document.getElementById('mknote').value;setMark(r,b.dataset.t,note);
   const nr=(ALL.find(x=>x.pn===r.pn));if(nr){classify([nr]);detail(nr)}});
+ /* מצב טיפול: אותו אחסון ואותו setMark, אבל בלי ההערה — היא שייכת
+    להחרגה. אחרי הסימון הפריט נשאר ברשימה, ולכן גם הטבלה מצוירת. */
+ document.querySelectorAll('#detail .wipm button[data-w]').forEach(b=>b.onclick=()=>{
+  if(b.disabled)return;
+  setMark(r,b.dataset.w,'');
+  const nr=(ALL.find(x=>x.pn===r.pn));if(nr)detail(nr)});
  const eb=document.getElementById('explainBtn');if(eb)eb.onclick=()=>explain(r);
  wireCopy(document.getElementById('detail'))}
 function explain(r){const A=r.A;

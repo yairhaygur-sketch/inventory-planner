@@ -1249,13 +1249,16 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    `${cDec.keys.join(',')}  /  ${cSup.keys.join(',')}`);
  /* ברירת המחדל היא בדיוק מה שהמסך הציג לפני הבורר — הרישום לא
     שינה עמודות, רק את מקור האמת שלהן. */
- /* עמודת הרכש תלויה בנתונים ולא בהעדפה: עם דוח ETA היא מתפצלת
+ /* «מצב טיפול» נוספה לברירת המחדל אחרי שהמתכנן הכריע שסימון מסוג
+    «בבדיקה / ממתין לספק / הוזמן» משאיר את הפריט בתור. לפני ההכרעה
+    העמודה הייתה מציגה «חדש» בכל שורה תמיד.
+    עמודת הרכש תלויה בנתונים ולא בהעדפה: עם דוח ETA היא מתפצלת
     ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך ⌛» אחת. */
  const hasEta=await p.evaluate(()=>!!ETA);
  ok('ברירת המחדל של «לפי החלטה» לא השתנתה',
    cDec.th.join('|')===(hasEta
-     ?'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|ותק'
-     :'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|ותק'),
+     ?'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
+     :'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
    `ETA=${hasEta} · ${cDec.th.join('|')}`);
 
  await p.click('#colsBtn');await p.waitForTimeout(350);
@@ -1383,6 +1386,68 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    `גלילה ${st0.top}→${st1.top} · מיון ${st0.col}/${st0.dir}→${st1.col}/${st1.dir}`);
  await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(300);
  await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(400);
+
+ /* ============ מצב טיפול — סימון שאינו מסתיר ============
+    סעיף 6 במפרט: להפריד את מצב הטיפול מחומרת הבעיה. עד ההכרעה
+    הזאת כל סימון הוציא את הפריט מתור העבודה, ולכן עמודת «מצב
+    טיפול» הייתה מציגה «חדש» בכל שורה תמיד.
+    מה שנעול כאן: «ממתין לספק» אינו פתרון לחוסר ואינו מסתיר אותו,
+    ואינו נוגע בסיווג, בחומרה, בחוסר או בהון הכלוא. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const wcell=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+   const i=th.findIndex(t=>/מצב טיפול/.test(t));
+   const tr=document.querySelector('#tbl tbody tr[data-i]');
+   const pn=tr?tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim():null;
+   const r=ALL.find(x=>x.pn===pn);
+   return {i,pn,txt:i>=0&&tr?tr.children[i].textContent.trim():null,
+     cls:i>=0&&tr?(tr.children[i].querySelector('.wchip')||{className:''}).className:'',
+     sevCls:tr?tr.className:'',
+     wip:r&&r.wip?r.wip.t:null,cat:r?r.cat:null,sev:r?r.sev:null,
+     miss:r?r.miss:null,expCap:r?Math.round(r.expCap||0):null,
+     n:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+ const ws0=await wcell();
+ ok('«מצב טיפול» היא עמודה, ובלי סימון היא אומרת «חדש»',
+   ws0.i>0&&ws0.txt==='חדש',`עמודה ${ws0.i} · "${ws0.txt}"`);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ ok('ובכרטיס יש מקטע נפרד למצב הטיפול',
+   await p.evaluate(()=>{const sec=document.querySelector('#detail .wipsec');
+     return !!sec&&/אינו מוציא את הפריט מתור העבודה/.test(sec.textContent)
+       &&sec.querySelectorAll('.wipm button[data-w]').length===4}));
+ await p.click('#detail .wipm button[data-w="supplier"]');await p.waitForTimeout(700);
+ const ws1=await wcell();
+ ok('«ממתין לספק» אינו מסתיר את הפריט — הוא נשאר ברשימה ובמקומו',
+   ws1.n===ws0.n&&ws1.pn===ws0.pn,`${ws0.n} → ${ws1.n} שורות · ${ws0.pn} → ${ws1.pn}`);
+ ok('והסיווג, החומרה, החוסר וההון הכלוא לא זזו',
+   ws1.cat===ws0.cat&&ws1.sev===ws0.sev&&ws1.miss===ws0.miss&&ws1.expCap===ws0.expCap
+   &&ws1.sevCls===ws0.sevCls,
+   `${ws0.cat}/${ws0.sev}/${ws0.miss} → ${ws1.cat}/${ws1.sev}/${ws1.miss}`);
+ ok('והעמודה מציגה את המצב, עם טקסט ולא בצבע בלבד',
+   ws1.wip==='supplier'&&/לספק/.test(ws1.txt)&&/supplier/.test(ws1.cls),
+   `"${ws1.txt}" · ${ws1.cls}`);
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const ws2=await wcell();
+ ok('המצב שורד רענון',ws2.wip==='supplier'&&ws2.pn===ws0.pn,`${ws2.pn} · ${ws2.wip}`);
+ /* «טופל» לא השתנה: הוא עדיין מוציא מהתור. זה ההבדל בין שני
+    הסוגים, והוא נבדק כאן ולא מונח. */
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ await p.click('#detail .wipm button[data-w=""]');await p.waitForTimeout(600);
+ const ws3=await wcell();
+ ok('«נקה» מחזיר ל«חדש»',ws3.wip===null&&ws3.txt==='חדש'&&ws3.n===ws0.n,
+   `"${ws3.txt}" · ${ws3.n} שורות`);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ await p.click('#detail [data-dmark="handled"]');await p.waitForTimeout(700);
+ const ws4=await wcell();
+ ok('ו«טופל» ממשיך להוציא מהתור — שני סוגי סימון, שתי התנהגויות',
+   ws4.n===ws0.n-1,`${ws0.n} → ${ws4.n} שורות`);
+ await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
+ await p.waitForTimeout(600);
 
  /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
     סעיף 4 במפרט. שני כללים נעולים כאן:
