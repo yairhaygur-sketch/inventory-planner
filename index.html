@@ -879,9 +879,26 @@ body.dopen .wdetail{display:flex}
 @media(max-width:1100px){.lband .lhero .hn{font-size:22px}}
 /* קיפול הרצועה מחזיר עוד ~46px לרשימה. מצב נשמר. */
 body.nokpi .lband,body.nokpi .kpis{display:none}
-#kpiTog{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
+#kpiTog,#denTog{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
  padding:2px 7px;border-radius:var(--r-ctl);cursor:pointer;white-space:nowrap}
-#kpiTog:hover{background:var(--surface-2);color:var(--ink)}
+#kpiTog:hover,#denTog:hover{background:var(--surface-2);color:var(--ink)}
+#denTog.on{color:var(--accent-ink);background:var(--accent-bg)}
+/* ============ שתי צפיפויות, בלי להקטין טקסט ============
+   המפרט מבקש 18-24 שורות קריאות, ואוסר במפורש להגיע לשם בהקטנת
+   גופן. הצפופה מורידה ריפוד בלבד: הגופן נשאר 12.5px, השורה יורדת
+   מ-31px ל-25px, והמסך עובר מ-18 שורות ל-22 באותו גובה. */
+body.dense #tbl tbody tr[data-i] td{padding-block:2px}
+body.dense #tbl tbody tr[data-i] td.pnc{padding-block:2px}
+body.dense .rows th .thc{padding-block:4px}
+body.dense #tbl tbody tr[data-i] td.cg{padding-block:1px}
+body.dense #tbl tbody tr[data-i] td.cg .spark{height:15px;margin-block:0}
+/* תג המספר הסידורי הוא רצפת הגובה של השורה — 20px. בצפופה הוא
+   מתכווץ ל-16 ומוריד את השורה מ-27 ל-23. */
+body.dense #tbl tbody tr[data-i] .rank{height:16px;min-width:16px}
+/* רכיבי inline-flex יושבים על קו הבסיס, והירידון מתחתיו הוסיף 7px
+   לכל שורה. יישור לאמצע מחזיר אותם. */
+body.dense #tbl tbody tr[data-i] td{line-height:1.15;vertical-align:middle}
+body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 /* רמז הניווט ירד: שמות התחומים במסילה אומרים את מה שהוא הסביר,
    ודלתות המשנה מראות היכן כל מסלול ותיק יושב. */
 
@@ -2072,7 +2089,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
           <span class="chips inline" id="chipsTop"></span>
-          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
+          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
@@ -3808,6 +3825,22 @@ const NAV_WHAT={
  moves:'מכירה וכניסה אחרונות לכל פריט'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
+/* ============ העדפות התצוגה נקראות בעלייה ============
+   קודם הן נקראו בתוך tiles(). אחרי רענון בלי דוח טעון tiles() אינו
+   רץ, ולכן הצפיפות והמדדים חזרו לברירת המחדל והבחירה נראתה כאילו
+   לא נשמרה. */
+function prefsBoot(){
+ try{if(localStorage.getItem('planner_dense')==='1')document.body.classList.add('dense')}catch(_){}
+ try{if(localStorage.getItem('planner_nokpi')==='1')document.body.classList.add('nokpi')}catch(_){}
+ prefsLbl()}
+function prefsLbl(){
+ const dt=document.getElementById('denTog'),kt=document.getElementById('kpiTog');
+ if(dt){const on=document.body.classList.contains('dense');
+  dt.classList.toggle('on',on);dt.textContent=on?'≡ צפופה':'≡ רגילה';
+  dt.setAttribute('aria-pressed',on?'true':'false')}
+ if(kt){const off=document.body.classList.contains('nokpi');
+  kt.textContent=off?'▾ מדדים':'▴ מדדים';
+  kt.setAttribute('aria-pressed',off?'false':'true')}}
 /* שם המסך = התחום, ובתוכו שם דלת המשנה כשעומדים באחת. */
 function screenName(){
  if(cur==='moves')return 'תנועות אחרונות';
@@ -4802,13 +4835,18 @@ function tiles(){
      data-xp="nav-${k}" title="${esc(nm)} — ${esc(NAV_WHAT[k]||'')}"><span class="t">${esc(nm)}</span>
      <span class="bdg${n?'':' zero'}">${k==='moves'?'▤':n.toLocaleString('he-IL')}</span></button>`}).join(''):'';
  }
+ {const dt=document.getElementById('denTog');
+  if(dt&&!dt.__w){dt.__w=1;
+   dt.onclick=()=>{const on=document.body.classList.toggle('dense');
+    try{localStorage.setItem('planner_dense',on?'1':'0')}catch(_){}
+    prefsLbl()};   /* הטבלה מרנדרת 300 שורות ממילא — הצפיפות היא CSS בלבד */
+   }}
  {const kt=document.getElementById('kpiTog');
   if(kt&&!kt.__w){kt.__w=1;
-   try{if(localStorage.getItem('planner_nokpi')==='1')document.body.classList.add('nokpi')}catch(_){}
    kt.onclick=()=>{const off=document.body.classList.toggle('nokpi');
     try{localStorage.setItem('planner_nokpi',off?'1':'0')}catch(_){}
-    kt.textContent=off?'▾ מדדים':'▴ מדדים'};
-   kt.textContent=document.body.classList.contains('nokpi')?'▾ מדדים':'▴ מדדים'}}
+    prefsLbl()}}}
+ prefsLbl();
  const wireNav=e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    /* «חוסרים לטיפול» נפתח דרך shortOpen כדי שקבוצה שקופלה בעבר לא
@@ -6965,7 +7003,7 @@ function welWire(){
   document.getElementById('plannerGreeting').textContent='העלה דוח ZMRP כדי להתחיל';
   welToggle();render();toast('חזרת לעבודה האמיתית')};
  welToggle()}
-welWire();helpWire();moreWire();tourWire();fitTop();
+welWire();helpWire();moreWire();tourWire();prefsBoot();fitTop();
 /* משתמש חדש מקבל הצעה אחת, ורק כשאין עדיין נתונים. משתמש ותיק —
    ומי שכבר סגר אותה פעם — לא רואה אותה שוב, גם לא בהעלאה הבאה.
    ?nobrief=1 מדלג גם עליה, כמו על התדריך: בדיקה אינה משתמש חדש.

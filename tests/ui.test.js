@@ -1217,5 +1217,47 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
+
+ /* ============ שתי בקרות הגובה: מדדים וצפיפות ============
+    סעיף 3ג במפרט: «צפיפות רגילה וצפופה», ויעד של 18-24 שורות קריאות,
+    עם איסור מפורש להגיע לשם בהקטנת טקסט. שתיהן נבדקות על אותה
+    מידה בדיוק: כמה שורות נכנסו, ובאיזה גופן. */
+ const rowsFit=()=>p.evaluate(()=>{const box=document.querySelector('.rows');
+   const trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   if(!box||!trs.length)return null;
+   const b=box.getBoundingClientRect();
+   return {h:Math.round(trs[0].getBoundingClientRect().height),
+     n:trs.filter(t=>{const r=t.getBoundingClientRect();
+       return r.top>=b.top-1&&r.bottom<=b.bottom+1}).length,
+     font:parseFloat(getComputedStyle(trs[0].querySelector('td')).fontSize),
+     dense:document.body.classList.contains('dense')}});
+ await p.evaluate(()=>{document.body.classList.remove('dense');
+   try{localStorage.setItem('planner_dense','0')}catch(_){}});
+ await p.waitForTimeout(250);
+ const den0=await rowsFit();
+ await p.click('#denTog');await p.waitForTimeout(300);
+ const den1=await rowsFit();
+ ok('מתג הצפיפות קיים ומסומן כשהוא פעיל',
+   await p.evaluate(()=>{const b=document.getElementById('denTog');
+     return !!b&&b.offsetParent!==null&&b.getAttribute('aria-pressed')==='true'}));
+ ok('«צפופה» מכניסה יותר שורות',den1.n>den0.n&&den1.h<den0.h,
+   `${den0.n} שורות ב-${den0.h}px → ${den1.n} שורות ב-${den1.h}px`);
+ /* הגופן של המסלול הזה הוא 11.5px גם ב«רגילה» — זו בחירה קודמת
+    ולא תוצר הצפיפות. מה שנעול כאן: הצפיפות אינה נוגעת בו. */
+ ok('והיא עושה זאת בלי להקטין את הטקסט',den1.font===den0.font,
+   `${den0.font}px → ${den1.font}px`);
+ await p.reload();await p.waitForTimeout(1800);
+ ok('הבחירה שורדת רענון',
+   await p.evaluate(()=>document.body.classList.contains('dense')));
+ await p.evaluate(()=>{const b=document.getElementById('denTog');if(b)b.click()});
+ await p.waitForTimeout(250);
+ ok('ומתג המדדים מקפל את הרצועה ומחזיר גובה לרשימה',await (async()=>{
+   await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+   const a=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
+   await p.click('#kpiTog');await p.waitForTimeout(300);
+   const b2=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
+   await p.click('#kpiTog');await p.waitForTimeout(200);
+   return b2>a})());
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();
