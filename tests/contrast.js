@@ -18,9 +18,16 @@ let total=0;
     מרונדרים כלל, וצבע שלא מרונדר אינו נמדד. */
  await p.setInputFiles('#fe',path.join(__dirname,'zmrp-demo-eta.xlsx'));
  await p.waitForTimeout(1500);
- for(const mode of ['light','dark']){
+ /* ============ גם המסכים שאינם טבלה ============
+    הבדיקה מדדה את מסך ברירת המחדל בלבד. «מרכז עבודה» הוא מסך שלם
+    עם כרטיסים, תגי צבע ורצועת אזהרה שאינם מרונדרים שם — וצבע שלא
+    מרונדר אינו נמדד. כל מסך נמדד בשני המצבים. */
+ for(const [mode,scr] of [['light','line'],['light','home'],['light','cap'],
+                          ['dark','line'],['dark','home'],['dark','cap']]){
   await p.evaluate(m=>document.body.classList.toggle('dark',m==='dark'),mode);
-  await p.waitForTimeout(300);
+  await p.evaluate(k=>{const t=[...document.querySelectorAll('#tabs .tab')]
+    .find(x=>x.dataset.m===k);if(t)t.click()},scr);
+  await p.waitForTimeout(400);
   // כל אלמנט גלוי עם טקסט: מודדים צבע מול הרקע האפקטיבי
   const bad=await p.evaluate(()=>{
    const eff=el=>{let n=el;while(n&&n!==document.documentElement){
@@ -47,7 +54,7 @@ let total=0;
    if(r<need){const k=e.sel+'|'+e.fg+'|'+e.bg;if(seen.has(k))continue;seen.add(k);
     fails.push(`${r.toFixed(2)} (דרוש ${need}) ${e.sel}  «${e.txt}»  ${e.fg} על ${e.bg}`)}
   }
-  console.log(`\n=== ${mode} · ${bad.length} אלמנטים · ${fails.length} כשלים ייחודיים ===`);
+  console.log(`\n=== ${mode} · ${scr} · ${bad.length} אלמנטים · ${fails.length} כשלים ייחודיים ===`);
   total+=fails.length;
   fails.sort((a,b)=>parseFloat(a)-parseFloat(b)).slice(0,25).forEach(f=>console.log('  '+f));
  }

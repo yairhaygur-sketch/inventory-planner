@@ -354,6 +354,65 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
   await ctx.close()}
 
+ /* ================= 4 · מרכז העבודה =================
+    מסך הנחיתה אינו טבלה חמישית ואינו סיווג חדש: ארבע רשימות שכבר
+    קיימות, והקישור אל כל אחת. מה שנעול כאן הוא בדיוק זה — שכל מונה
+    בכרטיס הוא אורך הרשימה שהוא מצביע אליה, ולא ספירה משלו. */
+ {const ctx=await mkctx();const p=await ctx.newPage();
+  const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
+  await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
+  await load(p,SD+'/routes.xlsx');
+  await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
+  const h=await p.evaluate(()=>({mode,
+    shown:!!document.querySelector('#homePanel .hgrid'),
+    table:getComputedStyle(document.querySelector('#w_queue .qpanel')).display,
+    title:(document.querySelector('#homePanel .hhead h2')||{}).textContent,
+    sub:(document.querySelector('#homePanel .hhead .hsub')||{}).textContent||'',
+    cards:[...document.querySelectorAll('.hcard')].map(c=>({
+      t:(c.querySelector('h3').childNodes[1]||{}).textContent||'',
+      n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
+      go:(c.querySelector('.hgo')||{}).dataset.go,
+      rows:c.querySelectorAll('.hrow').length,
+      empty:!!c.querySelector('.hempty')})),
+    eng:{burn:burnRows().length,cap:decisionList('cap').length,
+      month:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length},
+    gaps:(document.querySelector('.hgaps')||{}).textContent||'',
+    noPx:(QF.all||[]).filter(r=>r.priceMissing).length,
+    hasEta:!!ETA}));
+  ok('«מרכז עבודה» מציג כרטיסים ולא את טבלת העבודה',
+    h.mode==='home'&&h.shown&&h.table==='none',`mode=${h.mode} טבלה=${h.table}`);
+  ok('והוא אומר את שמו ואת חודש הדוח',
+    /מרכז עבודה/.test(h.title||'')&&/דוח /.test(h.sub),`${h.title} · ${h.sub}`);
+  ok('ארבעה כרטיסים, כל אחד עם דלת לרשימה המלאה',
+    h.cards.length===4&&h.cards.map(c=>c.go).join(',')==='burn,line,month,cap',
+    h.cards.map(c=>c.go).join(' · '));
+  ok('מונה הכרטיס הוא אורך הרשימה שהוא מצביע אליה',
+    h.cards[0].n===h.eng.burn&&h.cards[2].n===h.eng.month&&h.cards[3].n===h.eng.cap,
+    `בוער ${h.cards[0].n}/${h.eng.burn} · ROP ${h.cards[2].n}/${h.eng.month} · הון ${h.cards[3].n}/${h.eng.cap}`);
+  ok('אף כרטיס אינו מציג יותר משבע שורות',
+    h.cards.every(c=>c.rows<=7),h.cards.map(c=>c.rows).join(' · '));
+  /* בלי דוח ETA *שום* יחידה אינה מתוארכת. רשימה כאן הייתה נקראת
+     כממצא, ולכן הכרטיס אומר מה חסר במקום להציג אותה. */
+  ok('בלי דוח ETA כרטיס האספקות אומר זאת במקום לרשום פריטים',
+    h.hasEta||(h.cards[1].empty&&h.cards[1].rows===0),
+    `ETA=${h.hasEta} · שורות=${h.cards[1].rows}`);
+  ok('ופערי הנתונים נאמרים מעל הרשימות',
+    (!h.noPx||h.gaps.includes(String(h.noPx)))&&(h.hasEta||/דוח ETA/.test(h.gaps)),
+    h.gaps.slice(0,110));
+  await p.click('.hcard .hgo[data-go="cap"]');await p.waitForTimeout(600);
+  ok('«כל הרשימה» מגיע לתחום הנכון',
+    'cap'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
+  await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
+  const pn=await p.evaluate(()=>{const b=document.querySelector('.hcard .hrow');
+    if(!b)return null;b.click();return b.dataset.pn});
+  await p.waitForTimeout(500);
+  ok('לחיצה על שורה פותחת את כרטיס הפריט שלה',
+    !pn||pn===await p.evaluate(()=>{const e=document.querySelector('#detail .opnt');
+      return e?e.textContent.trim():null}),pn);
+  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
+  await ctx.close()}
+
  console.log(out.join('\n'));
  await b.close();
  process.exit(bad?1:0)})();

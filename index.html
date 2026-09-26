@@ -1002,6 +1002,59 @@ td.miss .posq{color:var(--dim)}
 /* ============ רצועת המספרים ============
    חמישה מספרים בשורה אחת, המספר גדול והתווית קטנה מתחתיו — כך
    שהעין קוראת קודם את הכמויות ורק אחר כך את המילים. */
+.hhead{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:0 0 9px}
+.hhead h2{margin:0;font-size:17px;font-weight:800;color:var(--ink)}
+.hhead .hsub{font-size:var(--f-sm);color:var(--ink-3)}
+/* ============ מרכז העבודה ============
+   ארבעה כרטיסים על רשת של שתיים, כל אחד חמש שורות. הכרטיס אינו
+   טבלה — הוא מצביע אל אחת, ולכן שורה בו היא כפתור ולא תא. */
+#homePanel{flex:1 1 auto;min-height:0;overflow:auto;padding:2px 0 8px}
+.hgaps{display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;
+ padding:8px 11px;border-radius:var(--r-card);
+ background:var(--high-bg);border:1px solid var(--high);color:var(--ink-2);
+ font-size:var(--f-sm);line-height:1.5}
+.hgaps .hgi{color:var(--high);font-weight:800;flex:0 0 auto}
+.hgaps b{color:var(--ink);font-weight:700}
+.hgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:1100px){.hgrid{grid-template-columns:minmax(0,1fr)}}
+.hcard{background:var(--surface);border:1px solid var(--line);
+ border-radius:var(--r-card);overflow:hidden;min-width:0}
+.hcard h3{display:flex;align-items:center;gap:8px;margin:0;
+ padding:9px 12px;border-bottom:1px solid var(--line2);
+ font-size:var(--f-md);font-weight:700;color:var(--ink)}
+.hcard .hic{width:20px;height:20px;border-radius:6px;display:flex;
+ align-items:center;justify-content:center;font-size:11px;flex:0 0 auto}
+.hcard .hic.critical{background:var(--critical-bg);color:var(--critical)}
+.hcard .hic.steady{background:var(--accent-bg);color:var(--accent-ink)}
+.hcard .hic.trend{background:var(--trend-bg);color:var(--trend)}
+.hcard .hic.capital{background:var(--capital-bg);color:var(--capital)}
+.hcard .hn{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-size:var(--f-sm);font-weight:800;color:var(--ink-3)}
+.hcard .hgo{margin-inline-start:auto;border:0;background:none;cursor:pointer;
+ font-family:inherit;font-size:var(--f-sm);font-weight:700;color:var(--accent);
+ padding:2px 5px;border-radius:var(--r-ctl);white-space:nowrap}
+.hcard .hgo:hover{background:var(--accent-bg)}
+.hlist{display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:10px;width:100%;text-align:start;
+ border:0;border-bottom:1px solid var(--line2);background:none;cursor:pointer;
+ font-family:inherit;font-size:var(--f-sm);color:var(--ink-2);padding:6px 12px}
+.hrow:last-child{border-bottom:0}
+.hrow:hover{background:var(--surface-2)}
+.hrow .hpn{font-family:var(--num);font-weight:800;color:var(--ink);
+ direction:ltr;unicode-bidi:isolate;flex:0 0 auto;min-width:86px}
+.hrow .hds{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .hv{flex:0 0 auto;font-family:var(--num);font-variant-numeric:tabular-nums;
+ white-space:nowrap;color:var(--ink-2)}
+.hrow .hv b{color:var(--ink);font-weight:800}
+.hrow .hv b.crit{color:var(--critical)}
+.hrow .hv .ropfix b{color:var(--trend)}
+.hempty{padding:14px 12px;color:var(--ink-3);font-size:var(--f-sm);
+ display:flex;align-items:center;gap:8px}
+.hempty span{color:var(--capital);font-weight:800}
+/* במרכז העבודה אין טבלה, ולכן אין מה לסנן, לקבץ או לסמן קבוצתית */
+body.home-on .wfilters,body.home-on #w_queue .phd .bulkwrap,
+body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
+
 /* ‹ › ומיקום ברשימה, בשורת המק״ט */
 .onav{display:inline-flex;align-items:center;gap:2px;margin-inline-start:auto;
  font-family:var(--num);font-size:11px;color:var(--ink-3);font-weight:700}
@@ -5744,8 +5797,12 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
- if(cur==='moves'){showMovesPanel(true);renderMoves();return}
- showMovesPanel(false);
+ if(cur==='moves'){showBody('moves');renderMoves();return}
+ if(mode==='home'){showBody('home');renderHome();
+  document.getElementById('lt').textContent=screenName();
+  document.getElementById('lc').textContent='';
+  return}
+ showBody('queue');
  const rows=currentRows();
  updateQStat(rows.length);
  /* ============ שם אחד לכל מסך ============
@@ -7464,10 +7521,89 @@ function closeBrief(){briefToggle(false)}
 
 /* ============ תנועות אחרונות — מטאב-קבוע לטאב בתור העבודה ============ */
 /* הרצועה התחתונה גזלה 292px קבועים מתוך 860 — יותר מתור העבודה עצמו. */
-function showMovesPanel(on){
- const qp=document.querySelector('#w_queue .qpanel'),mp=document.getElementById('movesPanel');
- if(qp)qp.style.display=on?'none':'';
- if(mp)mp.style.display=on?'':'none'}
+function showMovesPanel(on){showBody(on?'moves':'queue')}
+/* ============ מרכז העבודה ============
+   מסך הנחיתה. הוא אינו טבלה שלישית ואינו סיווג חדש: ארבע רשימות
+   קיימות, חמש השורות הראשונות בכל אחת, וקישור לרשימה המלאה שממנה
+   הן נלקחו. כל מספר כאן הוא שדה מנוע — miss · stuck · rop/sugROP ·
+   expCap — ואף אחד מהם אינו מחושב כאן מחדש.
+   למה דווקא הארבע: שתיים הן כשל שכבר קרה או שאי אפשר לתזמן (לקוח
+   בלי רכש, רכש בלי תאריך), אחת מונעת את התור של מחר (נקודת הזמנה
+   שמפגרת), והרביעית היא הכיוון ההפוך — כסף ששוכב. */
+function homeRows(k){
+ if(!QF)return [];
+ if(k==='burn')return burnRows().slice().sort((a,b)=>(b.miss||0)*(b.price||0)-(a.miss||0)*(a.price||0));
+ /* בלי דוח ETA *שום* יחידה אינה מתוארכת, ולכן רשימה של 155 פריטים
+    כאן אינה רשימת עבודה אלא רשימת כל הרכש הפתוח. במצב הזה הכרטיס
+    אומר מה חסר במקום להציג רשימה שנראית כמו ממצא. */
+ if(k==='line')return ETA?(lineModel().stuck||[]).filter(r=>expStuck(r)>0)
+   .sort((a,b)=>expStuck(b)-expStuck(a)):[];
+ if(k==='month')return modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0))
+   .sort((a,b)=>((b.sugROP||0)-(b.rop||0))-((a.sugROP||0)-(a.rop||0)));
+ if(k==='cap')return decisionList('cap').slice().sort((a,b)=>(b.expCap||0)-(a.expCap||0));
+ return []}
+function homeVal(k,r){
+ if(k==='burn')return `<b class="crit">${(r.miss||0).toLocaleString('he-IL')}</b> יח׳ ללא כיסוי`;
+ if(k==='line')return `<b>${expStuck(r).toLocaleString('he-IL')}</b> יח׳ בלי תאריך`;
+ /* ← ולא →: בכיוון RTL הערך הימני הוא הקיים והשמאלי הוא המוצע,
+    וזו כבר המוסכמה בכותרות «הערך שהיה ← הערך היום». עם → הזוג
+    נקרא הפוך לגמרי — «121 → 22» על העלאה מ-22 ל-121. */
+ if(k==='month')return `<span class="ropfix">${(r.rop||0).toLocaleString('he-IL')} ← <b>${(r.sugROP||0).toLocaleString('he-IL')}</b></span>`;
+ return `<b>${money(r.expCap||0,r.currency)}</b>`}
+function renderHome(){
+ const h=document.getElementById('homePanel');if(!h)return;
+ const CARDS=[
+  ['burn','לקוח ממתין ללא רכש','⚠','critical','burn','אין פריט שממתין לו לקוח ואין מולו שום רכש'],
+  ['line','רכש פתוח בלי תאריך הגעה','⇄','steady','line',ETA?'לכל הרכש הפתוח יש תאריך בדוח ה-ETA':'לא נטען דוח ETA — אין תאריך לאף יחידת רכש'],
+  ['month','נקודת הזמנה נמוכה מהנדרש','◆','trend','month','אין תיקוני נקודת הזמנה'],
+  ['cap','הון כלוא — הגדולים','❤','capital','cap','אין הון כלוא מזוהה']];
+ const row=(k,r)=>`<button type="button" class="hrow" data-pn="${esc(r.pn)}">
+   <span class="hpn"><bdi>${esc(r.pn)}</bdi></span>
+   <span class="hds">${esc((r.desc||'').slice(0,34))}</span>
+   <span class="hv">${homeVal(k,r)}</span></button>`;
+ const card=([k,title,ic,tone,go,empty])=>{const list=homeRows(k);
+  return `<section class="hcard">
+   <h3><span class="hic ${tone}">${ic}</span>${esc(title)}
+    <span class="hn">${list.length.toLocaleString('he-IL')}</span>
+    <button type="button" class="hgo" data-go="${go}">כל הרשימה ←</button></h3>
+   ${list.length?`<div class="hlist">${list.slice(0,7).map(r=>row(k,r)).join('')}</div>`
+    :`<div class="hempty"><span>✓</span>${esc(empty)}</div>`}</section>`};
+ /* פערי נתונים נאמרים לפני הרשימות, לא אחריהן: הם קובעים כמה
+    מהמספרים שלמטה בכלל מכומתים. */
+ const noPx=(QF.all||[]).filter(r=>r.priceMissing).length;
+ const gaps=[];
+ if(noPx)gaps.push(`<b>${noPx.toLocaleString('he-IL')} פריטים ללא מחיר FOB</b> — השווי הכספי שלהם אינו מכומת`);
+ if(!ETA)gaps.push('<b>לא נטען דוח ETA</b> — לרכש הפתוח אין תאריך הגעה, והוא אינו נספר ככיסוי בזמן');
+ else{const st=(QF.all||[]).filter(r=>(r.stuck||0)>0).length;
+  if(st)gaps.push(`<b>${st.toLocaleString('he-IL')} פריטים עם רכש שלא שובץ לאף אספקה</b> — הכמות אינה נספרת ככיסוי בזמן`)}
+ const orph=(typeof etaOrphanTxt==='function')?etaOrphanTxt():'';
+ /* חודש העוגן של הדוח — לא מועד ההעלאה. שני נתונים שונים, והמפרט
+    מבקש במפורש להבדיל ביניהם. */
+ const base=(typeof ANCHOR!=='undefined'&&ANCHOR)
+   ?`דוח ${HEB[ANCHOR.getMonth()]} ${ANCHOR.getFullYear()}`:'';
+ h.innerHTML=`<div class="hhead"><h2>מרכז עבודה</h2>
+   <span class="hsub">מה דורש החלטה עכשיו${base?` · ${esc(base)}`:''}</span></div>
+  ${gaps.length?`<div class="hgaps"><span class="hgi">⚠</span><span>${gaps.join(' · ')}${orph?' · '+esc(orph):''}</span></div>`:''}
+  <div class="hgrid">${CARDS.map(card).join('')}</div>`;
+ h.querySelectorAll('.hgo').forEach(b=>b.onclick=e=>{e.stopPropagation();setMode(b.dataset.go)});
+ h.querySelectorAll('.hrow').forEach(b=>b.onclick=()=>{
+   const r=(ALL||[]).find(x=>x.pn===b.dataset.pn);if(r)detail(r)})}
+
+/* ============ שלושה גופים באותו מקום ============
+   תור העבודה, התנועות ומרכז העבודה חולקים את אותו אזור. מי שמחליף
+   ביניהם הוא showBody — ולא שלושה מקומות שמסתירים זה את זה. */
+function showBody(which){
+ const qp=document.querySelector('#w_queue .qpanel'),
+       mp=document.getElementById('movesPanel'),
+       hp=document.getElementById('homePanel');
+ if(qp)qp.style.display=which==='queue'?'':'none';
+ if(mp)mp.style.display=which==='moves'?'':'none';
+ if(hp)hp.style.display=which==='home'?'':'none';
+ document.body.classList.toggle('home-on',which==='home')}
+(function makeHome(){
+ const qb=document.querySelector('#w_queue .qbody');if(!qb)return;
+ const h=document.createElement('div');h.id='homePanel';h.style.display='none';
+ qb.appendChild(h)})();
 (function relocateMoves(){
  const mv=document.getElementById('w_moves'),qb=document.querySelector('#w_queue .qbody');
  if(!mv||!qb)return;
