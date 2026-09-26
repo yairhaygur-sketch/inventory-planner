@@ -2288,6 +2288,11 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
     DIAG.warn.push('עמודת "מחיר FOB" לא נמצאה — אין חישוב כספי בשום מסך. הכלי עובד במונחי FOB בלבד; מחיר ממוצע נייד אינו תחליף.');
   if(m.currency<0)DIAG.warn.push('עמודת "מטבע FOB" (BE) לא נמצאה — המטבע לא יוצג.');
   if(m.transfer<0)DIAG.warn.push('עמודת "בהעברה" (CK) לא נמצאה — מלאי בהעברה לא ייכלל בכיסוי.');
+  /* ============ «אפס» ו«לא ידוע» אינם אותו דבר ============
+     בלי העמודה blockedCust יוצא 0, cust נשאר הגולמי, והייצוא מציג
+     «הזמנות חסומות = 0» — שנקרא כאפס מאומת. זה אינו אפס: זה היעדר
+     נתון, והוא משפיע על כל פער כיסוי מול לקוח. */
+  if(m.blockedCust<0)DIAG.warn.push('עמודת הזמנות לקוח חסומות אינה בדוח — כמות חסומה אינה מנוכה משום פער כיסוי, והעמודה בייצוא מציגה «—» ולא 0. פער הלקוח המוצג הוא לכן חסם עליון.');
   const annualFound=[m.y0,m.y1,m.y2].filter(i=>i>=0).length;
   if(annualFound<3)DIAG.warn.push(`נמצאו ${annualFound}/3 עמודות צריכה שנתית — מדיניות 3 השנים מושבתת והסיווג נופל לחלון 11 חודשים.`);
   const monthsFound=m.months.filter(i=>i>=0).length;
@@ -2735,7 +2740,14 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const free=NUM(r[m.free]),stock=NUM(r[m.stock])||NUM(r[m.wh]);
     const po=NUM(r[m.po])+(m.openDel>=0?NUM(r[m.openDel]):0);
     const custRaw=m.cust>=0?NUM(r[m.cust]):0;
-    const blockedCust=m.blockedCust>=0?NUM(r[m.blockedCust]):0;
+    /* ============ חסר אינו אפס ============
+       שני השדות האלה מגיעים מ-NUM(), שמחזיר 0 לכל ערך שאינו מספר —
+       כולל עמודה שאינה קיימת בדוח. 0 שמשמעותו «אין» ו-0 שמשמעותו
+       «לא יודעים» נראים זהים, ומי שנשען עליהם מכריע על בסיס שאינו
+       קיים. הדגלים האלה מפרידים ביניהם ברמת העמודה. */
+    const custBlockedKnown=m.blockedCust>=0;
+    const warrantyKnown=m.warranty>=0;
+    const blockedCust=custBlockedKnown?NUM(r[m.blockedCust]):0;
     const cust=Math.max(0,custRaw-blockedCust);
     const ltD=(m.lt>=0?NUM(r[m.lt]):0)+(m.ltAdd>=0?NUM(r[m.ltAdd]):0),ltM=ltD/30;
     const dropIdx=new Set(A.drops.map(d=>d.i));
@@ -2790,15 +2802,29 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        המלצת רכש חדשה. */
     const stC=stCode(CLEAN(r[m.status])),stTx=CLEAN(r[m.statusTxt]);
     const noStock=stC===4||stC===14||/לא פעיל|גמר המלאי/.test(stTx);
-    const ssStat=(rate>0&&!isODStatic)?Math.ceil(z*sdLT):0;
+    /* ============ NOREC — מי אינו מקבל המלצת פרמטרים בכלל ============
+       הכוונה הייתה כאן מלכתחילה («כדי שהתיקון לא ייצור עבורם המלצת
+       רכש חדשה»), אבל רק *הרצפות* אופסו. המרכיב הסטטיסטי והביקוש
+       בזמן האספקה המשיכו להיחשב, ולכן פריט 04/14 קיבל מספרים מלאים.
+
+       נמדד על דוח סינתטי — פריט סטטוס 14, ביקוש גושי, ב-SAP ROP=0:
+         SS מוצע 66 · ROP מוצע 117 — זהים לחלוטין לפריט פעיל עם אותם
+         נתונים. כלומר ההצעה הייתה «להעלות נקודת הזמנה מ-0 ל-117» על
+         פריט שמיועד להיגמר, והמספרים יצאו גם בייצוא.
+
+       החוק: 04/14 לא מקבלים המלצת רכש, הגדלת מלאי או מעבר לפרופיל
+       מנוהל. לכן הם מטופלים כאן בדיוק כמו «לפי דרישה»: אין מספר.
+       המלאי עצמו נשאר גלוי — קטלוג, הון כלוא, וכרטיס הפריט. */
+    const noRec=isODStatic||noStock;
+    const ssStat=(rate>0&&!noRec)?Math.ceil(z*sdLT):0;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
-    const lowFloor=(isODStatic||noStock)?0:lowDemFloor(d12,price,currency);
+    const lowFloor=noRec?0:lowDemFloor(d12,price,currency);
     const lowBand=lowFloor?lowDemBand(price,currency):null;
-    const ssMinEff=(isODStatic||noStock)?0:ssMin;
-    let sugSS=isODStatic?0:Math.max(ssStat,ssMinEff,lowFloor);
-    let sugROP=isODStatic?0:Math.ceil(dLT+sugSS);
+    const ssMinEff=noRec?0:ssMin;
+    let sugSS=noRec?0:Math.max(ssStat,ssMinEff,lowFloor);
+    let sugROP=noRec?0:Math.ceil(dLT+sugSS);
     /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
-    const ssSrc=isODStatic?'od':sugSS<=0?'none'
+    const ssSrc=isODStatic?'od':noStock?'nostock':sugSS<=0?'none'
       :(ssStat>=sugSS?'stat':(ssMinEff>=sugSS?'sap':'policy'));
     /* היחס נמדד על אותו מערך clean שמייצר את הקצב — שלושת החודשים
        האחרונים מול השלושה שלפניהם — כדי שמה שמרוסן יהיה בדיוק מה
@@ -2820,6 +2846,10 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        ETA, ומשחזר מכאן כשמסירים אותו. ראה ETA_COVER. */
     const unsGross=unsQty;
     /* ROP_MIN_ACT — לא מציעים להוריד נוכחות מינימלית שהמתכנן קבע */
+    /* נשאר isODStatic ולא noRec: «לא מציעים להוריד נוכחות מינימלית
+       שהמתכנן קבע» היא מדיניות מאושרת בפני עצמה, והיא חלה גם על
+       פריט 04/14. בלעדיה פריט כזה עם ROP=1 ב-SAP היה מקבל «מוצע 0»
+       — כלומר המלצה להוריד, וזה בדיוק מה שהכלל ההוא אוסר. */
     if(!isODStatic){
       if(sugROP===0&&NUM(r[m.rop])===ROP_MIN_ACT)sugROP=ROP_MIN_ACT;
       if(sugSS===0&&NUM(r[m.ss])===ROP_MIN_ACT)sugSS=ROP_MIN_ACT}
@@ -2833,9 +2863,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        הכרטיס עצמו מציג «כלל SS≤ROP» ולכן גם סתר את עצמו. */
     if(sugSS>sugROP)sugROP=sugSS;
     const rateT=rate*trendF;
-    const sugROPT=trendF<1?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
+    const sugROPT=(trendF<1&&!noRec)?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
     /* ראה RISE_ASYM. riseF אינו נוגע ב-rate, ב-trendF ולא ב-sugROP. */
-    const riseF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio>TREND_RISE&&tPre>=TREND_BASE)
+    const riseF=(rate>0&&!noRec&&tRatio!=null&&tRatio>TREND_RISE&&tPre>=TREND_BASE)
       ?Math.min(TREND_CEIL,1+(tRatio-1)*TREND_DAMP):1;
     const rateU=rate*riseF;
     const sugROPU=riseF>1?Math.max(sugSS,Math.ceil(rateU*ltM+sugSS)):sugROP;
@@ -2856,7 +2886,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,warranty:NUM(r[m.warranty]),price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -2955,18 +2985,26 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   if(it.isOD&&it.cust<=0&&!it.isPDItem){
     it.cat='לפי דרישה';it.sev=0;it.miss=0;
     it.why=[['info',`${odSource(it)} — אינו מנוהל במלאי, ולכן אין המלצת מלאי ביטחון או נקודת הזמנה`],
-      it.d12>0?['idea',`נצרכו ${it.d12} יח׳ ב-12 החודשים — הצריכה נמדדת וממשיכה להופיע בכרטיס ובקטלוג`]:null,
+      it.d12>0?['idea',`נצרכו ${it.d12} יח׳ ב-11 החודשים — הצריכה נמדדת וממשיכה להופיע בכרטיס ובקטלוג`]:null,
       it.odMarked?['warn',`סומן ידנית${it.mark&&it.mark.ts?' ב-'+new Date(it.mark.ts).toLocaleDateString('he-IL'):''} · הסימון פג אחרי חצי שנה`]:null].filter(Boolean);
     it.act=['לא נדרשת פעולת מלאי — יוזמן כשתגיע דרישה',
       it.odMarked?'להסיר את הסימון אם הפריט חזר לניהול מלאי':'—'];
     Q.passive.push(it);continue}
   if(sc===4||/לא פעיל/.test(it.stTxt)){it.cat='רקע';it.expCap=it.price*Math.max(0,it.stock);
     it.why=[it.stock>0?['warn',`סטטוס 04 (לא פעיל) · יש מלאי ${it.stock} יח׳ · שווי ${money(it.price*it.stock,it.currency)} — מועמד לחיסול`]:['info','סטטוס 04 — פריט לא פעיל, אין מלאי'],
-      (it.stock>0&&it.entAge!=null)?['info',`כניסה אחרונה לפני ${yrs(it.entAge)} · צריכה 3 שנים ${it.cons3y} יח׳`]:null].filter(Boolean);
-    it.act=[it.stock>0?'לבדוק חיסול/העברה של המלאי':'—'];Q.passive.push(it);continue}
+      (it.stock>0&&it.entAge!=null)?['info',`כניסה אחרונה לפני ${yrs(it.entAge)} · צריכה 3 שנים ${it.cons3y} יח׳`]:null,
+      /* ההחרגה היא מרכש, לא מראייה: לקוח שממתין על פריט שיוצא מהמלאי
+         חייב להיאמר, גם אם הפריט אינו בתור העבודה. */
+      it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה על פריט לא פעיל — ${Math.max(0,it.cust-Math.max(0,it.free))} יח׳ ללא כיסוי מהמדף. הפריט אינו בתור העבודה כי סטטוס 04 מוחרג מהמלצות רכש; ההחלטה כאן היא אספקה חלופית או עדכון הסטטוס ב-SAP`]:null].filter(Boolean);
+    it.act=[it.cust>0?'לטפל בהזמנת הלקוח — אספקה חלופית או עדכון סטטוס ב-SAP':(it.stock>0?'לבדוק חיסול/העברה של המלאי':'—'),
+      (it.cust>0&&it.stock>0)?'לבדוק חיסול/העברה של יתרת המלאי':null].filter(Boolean);
+    Q.passive.push(it);continue}
   if(sc===14||/גמר המלאי/.test(it.stTxt)){it.cat='רקע';it.expCap=(it.noCons3y?it.price*Math.max(0,it.stock):0);
-    it.why=[it.stock>0?['info',`סטטוס 14 — מכירה עד גמר המלאי · מלאי ${it.stock} יח׳`]:['info','סטטוס 14 — גמר מלאי, אין מלאי']];
-    it.act=[it.stock>0?'ללא רכש נוסף · מעקב חיסול':'—'];Q.passive.push(it);continue}
+    it.why=[it.stock>0?['info',`סטטוס 14 — מכירה עד גמר המלאי · מלאי ${it.stock} יח׳`]:['info','סטטוס 14 — גמר מלאי, אין מלאי'],
+      it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה על פריט שמיועד להיגמר — ${Math.max(0,it.cust-Math.max(0,it.free))} יח׳ ללא כיסוי מהמדף. אין רכש חוזר על סטטוס 14; ההחלטה היא אספקה חלופית או עדכון הסטטוס`]:null].filter(Boolean);
+    it.act=[it.cust>0?'לטפל בהזמנת הלקוח — אספקה חלופית או עדכון סטטוס ב-SAP':(it.stock>0?'ללא רכש נוסף · מעקב חיסול':'—'),
+      (it.cust>0&&it.stock>0)?'ללא רכש נוסף · מעקב חיסול':null].filter(Boolean);
+    Q.passive.push(it);continue}
   const gap=it.cust-(Math.max(0,it.free)+Math.max(0,it.po));
   if(it.cust>0&&gap>0){it.miss=gap;it.sev=3;
     const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין – אין רכש':'פער כיסוי להזמנת לקוח';
@@ -3029,12 +3067,27 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       :['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];
     Q.follow.push(it);continue}
   if(isPD(it.mrp)){it.cat='רקע';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
-    const pdEligible=it.d12>3&&it.price<=2000&&it.warranty<=0;
+    /* ============ מה חוסם כשירות, ומה לא ============
+       נמדד: פריט PD בלי מחיר ובלי עמודת אחריות עבר שניים משלושת
+       התנאים על נתון שאינו קיים — price=0 ⇒ «זול», warranty=0 ⇒
+       «נקי». רק d12 היה אמיתי.
+
+       החוק: חסר אינו אפס, וחוסם *רק* את ההכרעה שתלויה בו. לכן מחיר
+       חסר או עמודת אחריות חסרה מונעים כשירות ונאמרים בשמם — ואינם
+       מסתירים דבר אחר על הפריט. הספים עצמם (2000, d12>3) לא נגעו:
+       הם החלטה עסקית פתוחה ולא תקלת מימוש. */
+    const pdUnknown=[it.priceMissing?'מחיר FOB':null,
+      !it.warrantyKnown?'עמודת תביעות אחריות':null].filter(Boolean);
+    const pdEligible=pdUnknown.length===0&&it.d12>3&&it.price<=2000&&it.warranty<=0;
     it.why=[['info','סוג MRP = PD — פריט לפי הזמנה בלבד, ללא ניהול מלאי אוטומטי'],
       pdEligible?['idea',`עומד בתנאי המלצה ל-ZM-C: צריכה ${it.d12} יח׳ · מחיר ${money(it.price,it.currency)} · ללא תביעות אחריות`]:
+        pdUnknown.length?['warn',`לא ניתן להכריע על מעבר ל-ZM-C — חסר ${pdUnknown.join(' ו')}. הכלי אינו קורא נתון חסר כאפס, ולכן אינו מציג את הפריט ככשיר ואינו פוסל אותו`]:
         (it.d12>0?['info',`צריכה ${it.d12} יח׳ ב-11 חודשים — נשאר PD עד שיתקיימו תנאי ההמרה`]:['info','אין צריכה']),
-      (it.ss>0&&it.d12<=Math.max(6,it.ss))?['warn',`ב-SAP יושב מלאי ביטחון ${it.ss} על פריט PD בעל צריכה נמוכה (${it.d12} יח׳/שנה) — סביר שזו שארית שגויה, שקול לאפס`]:null].filter(Boolean);
-    it.act=[it.expCap>0?`מלאי PD ללא צריכה — ${money(it.expCap,it.currency)} מוקפאים, לבחון חיסול`:(pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C':'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
+      (it.ss>0&&it.d12<=Math.max(6,it.ss))?['warn',`ב-SAP יושב מלאי ביטחון ${it.ss} על פריט PD בעל צריכה נמוכה (${it.d12} יח׳ ב-11 חודשים) — סביר שזו שארית שגויה, שקול לאפס`]:null].filter(Boolean);
+    it.act=[it.expCap>0?`מלאי PD ללא צריכה — ${money(it.expCap,it.currency)} מוקפאים, לבחון חיסול`
+        :(pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C'
+        :pdUnknown.length?`להשלים ${pdUnknown.join(' ו')} כדי שניתן יהיה להכריע על ZM-C`
+        :'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
       pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C':((it.ssMin>0||it.ss>0)?'לשקול איפוס ssMin/SS ב-SAP אם הם שארית ישנה':'—')];Q.passive.push(it);continue}
   if(it.srvMissing&&it.rate>0){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;it.serviceMissing=true;
     it.why=[['err','רמת שירות חסרה או 0 — לא ניתן לאשר המלצת SS/ROP סטטיסטית'],['info','לא נעשה שימוש בברירת מחדל שקטה']];
@@ -3110,9 +3163,19 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     /* ROP=1 אינו "סיכון להזמנה חוזרת" — ראה ROP_MIN_ACT */
     const val=it.price*it.stock, ropRisk=it.rop>ROP_MIN_ACT&&it.free<=it.rop;
     const win=it.has3y?'3 שנים':'11 חודשים';
+    /* ============ סיווג ודאי דורש את הנתונים שהוא מצטט ============
+       noCons3y נופל לחלון 11 חודשים כשעמודות הצריכה השנתית חסרות,
+       וזה נכון — אבל הסיווג המשיך להכריז «מלאי מת» והנימוק ציטט
+       «מדיניות 3 השנים» בזמן שהעמודות אינן בדוח. נמדד על קובץ בלי
+       צר.השנה/שנה-1/שנה-2: cat=מלאי מת, והנימוק «לפי מדיניות 3
+       השנים» — מסקנה החלטית לחיסול על בסיס שליש מהחלון.
+       בהיעדר המידע זה מועמד לבדיקה, לא מסקנה. */
+    const deadSure=it.has3y;
     if(ropRisk)it.paramFix=true;
-    if(it.dead3y){it.sev=1;it.cat='מלאי מת';it.expCap=val;
-      it.why=[['err',`אין צריכה ${win} · הכניסה האחרונה לפני ${yrs(it.entAge)} — מלאי מת לפי מדיניות 3 השנים`],
+    if(it.dead3y){it.sev=1;it.cat=deadSure?'מלאי מת':'מלאי מת — לבדיקה';it.expCap=val;
+      it.why=[deadSure
+        ?['err',`אין צריכה ${win} · הכניסה האחרונה לפני ${yrs(it.entAge)} — מלאי מת לפי מדיניות 3 השנים`]
+        :['warn',`אין צריכה ב-11 חודשים · הכניסה האחרונה לפני ${yrs(it.entAge)}. עמודות הצריכה השנתית אינן בדוח, ולכן מדיניות 3 השנים לא נבדקה — זה מועמד למלאי מת, לא קביעה`],
         ['warn',`הון כלוא ${money(val,it.currency)} · ${it.stock} יח׳ במחסן`],
         it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:['info','אין תאריך מכירה אחרונה בדוח'],
         ropRisk?['err',`נקודת הזמנה ${it.rop} עדיין פעילה ומלאי פנוי ${it.free} ≤ ROP — סיכון להזמנה חוזרת של מלאי מת`]:null].filter(Boolean);
@@ -3134,7 +3197,9 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       if(deadFloor)it.why.push(['warn',`התנגשות מדיניות: אין צריכה ${win}, `+
         `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${it.sugSS} יח׳. `+
         `הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד`]);
-      it.act=[`לבחון חיסול / החזרה לספק / קמפיין — ${money(val,it.currency)} מוקפאים`,
+      it.act=[deadSure
+          ?`לבחון חיסול / החזרה לספק / קמפיין — ${money(val,it.currency)} מוקפאים`
+          :`לאמת מול צריכת 3 השנים ב-SAP לפני החלטת חיסול — ${money(val,it.currency)} מוקפאים`,
         deadFloor?`להכריע: לשחרר את רצפת ה-SS (${it.sugSS}) ואז לחסל, או להשאיר אותה ולהחזיק ${it.sugSS} יח׳`
         :ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
         'לבדוק רכש פתוח לפני החלטה'];
@@ -3604,7 +3669,18 @@ function isT1(r){return (r.cust||0)>0&&shelfQty(r)<=0}
 /* unsQty מחושב ב-build ולכן אינו יודע על סימון «טופל» או על פריט לפי
    דרישה — הכלל הישן (miss>0) קיבל את זה במתנה מ-classify, שמאפס miss.
    כאן צריך לומר את זה במפורש, אחרת «טופל» מפסיק להסיר מהרשימה. */
-function inToday(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(isT1(r)||(r.unsQty||0)>0)}
+/* ============ ההחרגה חלה בכל המסלולים, לא רק ב-m1Active ============
+   סעיף 17 ב-DECISION-RULES קבע ש«פריט שנגמר בכוונה אינו אוזל», ומימש
+   זאת ב-m1Active() בלבד. inToday ו-lineDry לא בדקו noStock, ולכן אותו
+   פריט הוחרג ממסלול אחד והופיע בשניים אחרים.
+
+   נמדד על דוח סינתטי: פריט סטטוס 04 עם 12 יח׳ בהזמנת לקוח סווג «רקע»
+   עם הפעולה «לבדוק חיסול/העברה של המלאי» — *ובאותו זמן* הופיע
+   ב«לטיפול היום» וגם על הציר. שתי הוראות הפוכות על שורה אחת.
+
+   ההזמנה הפתוחה עצמה אינה נעלמת: היא נאמרת בכרטיס הפריט (ראה רונגי
+   04/14 ב-classify), כדי שההחרגה תישאר החרגה מרכש — לא הסתרה. */
+function inToday(r){return !r.mark&&!r.isOD&&!r.isPDItem&&!r.noStock&&(isT1(r)||(r.unsQty||0)>0)}
 const TGROUP=[
  ['t1','לקוח ממתין ואין מלאי','הזמנת לקוח פתוחה ואפס על המדף — כשל שירות שכבר קרה','var(--red)'],
  ['t2','חוסר צפוי — כמות ושווי FOB','הקצב החודשי גדול ממה שיהיה זמין החודש — מדף ואספקה מתוארכת. תחזית, ועדיין אין לקוח ממתין','var(--org)']];
@@ -3688,7 +3764,7 @@ function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.
 
 /* אוזל = המדף לא מחזיק חודש. הסף שהמתכנן בחר.
    סימון «טופל», פריטי OD ופריטי PD אינם על הציר — כמו בכל מסלול אחר. */
-function lineDry(r){return !r.mark&&!r.isOD&&!r.isPDItem&&(r.rate||0)>0
+function lineDry(r){return !r.mark&&!r.isOD&&!r.isPDItem&&!r.noStock&&(r.rate||0)>0
   &&Math.max(0,r.free||0)<(r.rate||0)}
 /* הכמות שחסרה כדי להחזיק את החודש — מהמדף בלבד.
    ============ LINE_GROSS ============
@@ -4883,7 +4959,7 @@ function actQty(r){const a=(r.act||[])[0]||'';
    בלתי נראה — הוא החלטה שעולה כסף, ומגיע לו להיות גלוי. */
 /* מי קבע את SS הסופי — אותו מילון משרת את הכרטיס ואת הייצוא, כדי
    ששניהם יאמרו בדיוק את אותו דבר. */
-const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',od:'לפי דרישה — ללא מלאי ביטחון',none:'—'};
+const SS_SRC={stat:'המרכיב הסטטיסטי',sap:'רצפת ssMin מ-SAP',policy:'רצפת מדיניות נוספת',od:'לפי דרישה — ללא מלאי ביטחון',nostock:'סטטוס שאינו לחידוש מלאי — ללא המלצה',none:'—'};
 /* ============ מי נכנס לדלת ============
    הדלת מנתה רק פריטים עם קצב חיובי, ולכן הראתה 409 מתוך 2,287. שתי
    השאלות אינן זהות — כשיש קצב הפער הוא שיקול דעת על מספר מחושב,
@@ -5754,7 +5830,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
     <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
     <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>הון כלוא</span></div></div>
-    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:''}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
+    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:(!r.custBlockedKnown&&r.cust>0?`<span class="ck">⚠ אין בדוח עמודת הזמנות חסומות — ${r.cust} היח׳ הן הגולמי, וייתכן שחלקן חסומות למשלוח</span>`:'')}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   </div>
   <div class="col">
    <div class="sec" data-dt="data"><h3 style="display:flex;justify-content:space-between;align-items:center">תיקון פרמטרים<button class="explain" id="explainBtn">🔍 מאחורי החישוב</button></h3><div class="fix">
@@ -5811,7 +5887,9 @@ function explain(r){const A=r.A;
     מדיניות, והתוצאה — כי SS סופי הוא max של שלושתם ולא נוסחה אחת.
     noSS היא ההחרגה העסקית היחידה שמאפסת הכול (PD / לפי דרישה); קצב
     אפס *אינו* מאפס רצפה מאושרת, ולכן הוא כבר לא מקצר כאן את הטבלה. */
- const noSS=!!r.isOD;
+ /* 04/14 מקבלים את אותו מסלול הסבר כמו «לפי דרישה»: אין מספר, ולכן
+    אין טבלת מרכיבים — יש משפט אחד שאומר למה. */
+ const noSS=!!r.isOD||!!r.noStock;
  const ssStatV=r.ssStat||0,ssMinEffV=r.ssMinEff||0,lowFloorV=r.lowFloor||0;
  const ssMax=Math.max(ssStatV,ssMinEffV,lowFloorV);
  const floorTop=Math.max(ssMinEffV,lowFloorV);
@@ -5821,20 +5899,20 @@ function explain(r){const A=r.A;
  const floorDecided=!noSS&&!rateZero&&(r.ssSrc==='sap'||r.ssSrc==='policy')&&ssMax>ssStatV;
  const floorGapShown=!noSS&&(r.ssSrc==='sap'||r.ssSrc==='policy')&&ssMax>ssStatV;
  let flags='';
- if(isPDItem)flags+=`<div class="flag info">🛈 <b>פריט PD — לפי הזמנה בלבד.</b> פריטי PD מנוהלים ידנית, ולכן <u>אין המלצת מלאי ביטחון או נקודת הזמנה</u> (מוצע 0).${(r.ssMin>0||r.ss>0)?` שים לב: ב-SAP יושבת רצפת ssMin=${r.ssMin}${r.ss>0?` / SS=${r.ss}`:''} על פריט בעל צריכה ${r.d12} יח׳/שנה — הרצפה אינה מוחלת על פריט PD בכלי — זה מידע לבחינה ב-SAP, לא המלצה.`:''}</div>`;
+ if(isPDItem)flags+=`<div class="flag info">🛈 <b>פריט PD — לפי הזמנה בלבד.</b> פריטי PD מנוהלים ידנית, ולכן <u>אין המלצת מלאי ביטחון או נקודת הזמנה</u> (מוצע 0).${(r.ssMin>0||r.ss>0)?` שים לב: ב-SAP יושבת רצפת ssMin=${r.ssMin}${r.ss>0?` / SS=${r.ss}`:''} על פריט בעל צריכה ${r.d12} יח׳ ב-11 חודשים — הרצפה אינה מוחלת על פריט PD בכלי — זה מידע לבחינה ב-SAP, לא המלצה.`:''}</div>`;
  if(!isPDItem&&!rateZero&&r.ltD<=0)flags+=`<div class="flag crit">🛑 <b>זמן אספקה = ${r.ltD} (חסר/0) — הסיבה השורשית.</b> LT=0 מאפס גם את ביקוש-בזמן-האספקה וגם את מרכיב הביטחון, ולכן <u>גם ROP וגם SS נופלים</u>. הזן זמן אספקה אמיתי ב-"אספ.מתוכנ." ויחושבו מחדש.</div>`;
  if(!isPDItem&&z===0&&!rateZero&&r.ltD>0)flags+=`<div class="flag crit">⚠️ <b>רמת השירות ${r.srv} → Z=0.</b> Z=0 מאפס את מרכיב הביטחון הסטטיסטי — נשארת רק רצפת ssMin${r.ssMin>0?` (${r.ssMin})`:' , והיא 0'}. העלה "רמת שרות" ל-90/95 וה-SS יעלה.</div>`;
  if(!zeroBuf&&A.pAct<0.5)flags+=`<div class="flag info">🛈 <b>ביקוש מקוטע — ${active} חודשים מתוך 11.</b> בזמן אספקה של ${ltM} חודשים אתה מצפה שישאלו אותך <b>${fmt1(A.pAct*Math.max(r.ltM,0))}</b> פעמים, ובכל פעם בערך ${fmt1(A.muEv)} יח׳. σ=${sd} כבר מכיל את שניהם — פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר לאותה צריכה שנתית, וזה מכוון: כשהוא נדרש, הוא נדרש בבת אחת.</div>`;
  if(!noSS&&rateZero&&floorTop>0)flags+=`<div class="flag info">🛈 <b>קצב חודשי = 0 — המרכיב הסטטיסטי מתאפס, הרצפה נשמרת.</b> אין צריכה מדודה בחלון ולכן ⌈Z×σ_LT⌉ = 0. ${r.ssSrc==='policy'?`רצפת המדיניות (${lowFloorV})`:`רצפת ssMin מ-SAP (${ssMinEffV})`} אינה תלויה בקצב — היא כרית מעבר לצריכה הצפויה בזמן האספקה, ולכן SS מוצע = ${r.sugSS}. הפער מול המרכיב הסטטיסטי (0) הוא מידע לבחינה, לא המלצה.</div>`;
  if(floorDecided)flags+=`<div class="flag info">🛈 <b>הרצפה היא שקבעה.</b> המרכיב הסטטיסטי (${ssStatV}) נמוך מ${r.ssSrc==='sap'?`רצפת ssMin מ-SAP (${ssMinEffV})`:`רצפת המדיניות (${lowFloorV})`}, ולכן SS נקבע לפי הרצפה: ${r.sugSS}. הפער — <b>${ssMax-ssStatV} יח׳</b> — מוצג כמידע לבחינה: הרצפה היא החלטת מדיניות, לא תוצאה סטטיסטית.</div>`;
  if(floorGapShown&&ssMinEffV>0&&r.d12>0&&ssMinEffV>r.d12)flags+=`<div class="flag">ℹ רצפת ssMin (${ssMinEffV}) גבוהה מהצריכה ב-11 חודשים (${r.d12} יח׳) — כרית של כ-${fmt1(ssMinEffV/(r.d12/11))} חודשי צריכה. אם זו החלטה מכוונת, זה המצב הנכון; אם זו שארית ישנה ב-SAP, זה המקום לבדוק. הכלי אינו מכריע ביניהן.</div>`;
- if(!noSS&&r.noStock&&r.ssMin>0)flags+=`<div class="flag info">🛈 <b>סטטוס שאינו מיועד לחידוש מלאי</b> (לא פעיל / גמר המלאי) — רצפת ssMin=${r.ssMin} שב-SAP אינה מוחלת כאן, כדי שהתיקון לא ייצור המלצת רכש לפריט שיוצא מהמלאי.</div>`;
+ if(r.noStock)flags+=`<div class="flag info">🛈 <b>סטטוס שאינו מיועד לחידוש מלאי</b> (לא פעיל / גמר המלאי) — הכלי אינו מציע כאן מלאי ביטחון ולא נקודת הזמנה${r.ssMin>0?`, ורצפת ssMin=${r.ssMin} שב-SAP אינה מוחלת`:''}. פריט שמיועד להיגמר אינו מקבל המלצת רכש או הגדלת מלאי. המלאי עצמו נשאר גלוי לבקרה ולבחינת חיסול.</div>`;
  /* מגמה — מוצגת בשני הכיוונים, אבל רק אחד מהם משנה מספר. */
  if(trendGap(r)>0)flags+=`<div class="flag">↘️ <b>הביקוש ירד ב-${Math.abs(trendPct(r))}% בתוך חלון הקצב</b> — ${fmt1(r.tRec)} יח׳ בשלושת החודשים האחרונים מול ${fmt1(r.tPre)} בשלושה שלפניהם. הממוצע השטוח (${fmt1(r.rate)} יח׳/חודש) יושב מעל הרמה הנוכחית; קצב מרוסן ${fmt1(r.rateT)} נותן נקודת הזמנה <b>${r.sugROPT}</b> במקום ${r.sugROP} — <u>${trendGap(r)} יח׳ פחות</u> (${money(trendGap(r)*(r.price||0),r.currency)}). ההמלצה שבטבלה לא שונתה — זו בדיקה, לא החלטה.</div>`;
  /* בסיס זעיר מייצר יחסים חסרי משמעות (1 יח׳ → 60 יח׳ = "6000%"),
     ולכן הדגל דורש בסיס אמיתי ומנוסח בכפולות כשהיחס גדול. */
  else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
- const ssRows=noSS?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'לפי דרישה — ללא מלאי ביטחון'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
+ const ssRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא מלאי ביטחון':isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'לפי דרישה — ללא מלאי ביטחון'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
   :`<tr><td>רמת שירות</td><td>${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
     <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr>
     <tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
@@ -5848,7 +5926,7 @@ function explain(r){const A=r.A;
     הסתיימה בו. שתי המדיניות שיכולות לדרוס אותו — נוכחות מינימלית
     וכלל SS ≤ ROP — מקבלות שורה משלהן במקום להיעלם בתוצאה. */
  const ropCalc=Math.ceil(r.dLT+r.sugSS);
- const ropRows=noSS?`<tr class="step"><td>${isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
+ const ropRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא נקודת הזמנה':isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
   :`<tr><td>קצב חודשי מתוקן</td><td>${r.rate.toFixed(2)}${r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:''}</td></tr>
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
     <tr class="step"><td>ביקוש צפוי בזמן האספקה = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
@@ -5962,7 +6040,7 @@ document.getElementById('resetView').onclick=()=>resetLayout();
 document.getElementById('darkToggle').onclick=()=>{DARKON=!DARKON;try{localStorage.setItem(DARK_KEY,DARKON?'1':'0')}catch(_){}applyDark(DARKON)};
 const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
  ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
- ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.blockedCust],['רכש פתוח',r=>r.po],
+ ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.custBlockedKnown?r.blockedCust:'—'],['רכש פתוח',r=>r.po],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
