@@ -5566,7 +5566,7 @@ const SCOL={
     «מכוסה» ו«ללא תאריך» מפצלים אותו; הוא עצמו אינו מחליף אותם. */
  po:{t:'רכש פתוח',val:r=>r.po||0,ttl:'סה״כ הזמנת רכש פתוחה מול הספק — לפני הפיצול לפי תאריך הגעה',
   cell:r=>`<td class="num">${(r.po||0)>0?(r.po).toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>`},
- tr:{t:'בהעברה',val:r=>r.transferKnown?(r.transfer||0):-1,ttl:'מלאי שכבר שלנו ונע בין מחסנים (עמודת CK בדוח). «לא ידוע» = אין עמודה כזו בדוח שנטען',
+ tr:{t:'בהעברה',val:r=>r.transferKnown?(r.transfer||0):-1,xval:r=>r.transferKnown?(r.transfer||0):'לא ידוע',ttl:'מלאי שכבר שלנו ונע בין מחסנים (עמודת CK בדוח). «לא ידוע» = אין עמודה כזו בדוח שנטען',
   cell:r=>`<td class="num">${!r.transferKnown
     ?'<span class="mut" title="אין עמודת «בהעברה» בדוח שנטען — זה אינו 0">לא ידוע</span>'
     :((r.transfer||0)>0?r.transfer.toLocaleString('he-IL'):'<span class="mut">—</span>')}</td>`},
@@ -5584,12 +5584,12 @@ const SCOL={
   cell:r=>`<td class="num"><span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span></td>`},
  miss:{t:'חוסר חזוי',val:r=>Math.ceil(r.unsQty||0),ttl:'תחזית: הקצב החודשי פחות המדף, פחות מה שמכוסה. אינו דרישת לקוח — זו העמודה «דרישת לקוח»',
   cell:r=>shortLeft(r)},
- buy:{t:'כמות להזמנה',val:r=>{const b=actQty(r);return b==null?-1:b},ttl:'הכמות שההמלצה נוקבת בה, כשהיא שונה מהחוסר עצמו',
+ buy:{t:'כמות להזמנה',val:r=>{const b=actQty(r);return b==null?-1:b},xval:r=>{const b=actQty(r);return b==null?'':b},ttl:'הכמות שההמלצה נוקבת בה, כשהיא שונה מהחוסר עצמו',
   cell:r=>{const b=actQty(r);
    return `<td class="num">${(b==null||b===(r.miss||0))?'<span class="mut">—</span>':b.toLocaleString('he-IL')}</td>`}},
- cova:{t:'חודשי כיסוי',val:r=>r.covA==null?-1:r.covA,ttl:'מלאי פנוי, רכש פתוח ומלאי בהעברה יחד, חלקי הקצב החודשי',
+ cova:{t:'חודשי כיסוי',val:r=>r.covA==null?-1:r.covA,xval:r=>r.covA==null?'':+r.covA.toFixed(1),ttl:'מלאי פנוי, רכש פתוח ומלאי בהעברה יחד, חלקי הקצב החודשי',
   cell:r=>`<td class="num">${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>`},
- val:{t:'שווי',val:r=>r.unsVal||0,ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
+ val:{t:'שווי',val:r=>r.unsVal||0,xval:r=>Math.round(r.unsVal||0),ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
   cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
  act:{t:'הפעולה הבאה',val:r=>String((r.act||[])[0]||''),ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
   cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>`},
@@ -5611,6 +5611,7 @@ function colViewKey(){return groupBy==='supplier'?'sup':'dec'}
    קבוצה ולא חוצה אותה — השכבות הן ההכרעה העסקית, והן נשארות.
    המצב אינו נשמר בין טעינות: זו בחירה רגעית לבדיקה, לא פריסה. */
 let WSORT={col:null,dir:'desc'};
+let LAST_VIEW=null;
 /* המיון אינו חוצה בלוק מטבע. נמדד: מיון לפי «דרישת לקוח» שזלג בין
    המטבעות פיצל את כותרות המטבע מ-8 ל-75 — כלומר הפך את «דירוג בתוך
    המטבע בלבד» לרשימה מעורבת עם כותרת חוזרת. סדר המטבעות נשאר כפי
@@ -5823,6 +5824,10 @@ function renderDecisions(rows){
  const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l).slice(0,lim)
    :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim)
    :k?capView(rows,c):rows.slice(0,lim);
+ /* הסדר שעל המסך אינו הסדר של currentRows(): הקיבוץ, המיון בתוך
+    הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
+    לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
+ LAST_VIEW=view;
  const body=[];
  let acc=0,curBlk=null,blkI=0;
  if(bySup){let idx=0;
@@ -6653,6 +6658,19 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
  ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
+/* ============ הייצוא מייצג את מה שרואים ============
+   סעיף 3 במפרט. השורות תמיד היו של התצוגה (currentRows), אבל
+   העמודות היו 51 קבועות — כלומר מי שהוריד קובץ קיבל משהו אחר ממה
+   שהיה על המסך. הגיליון הראשון הוא עכשיו בדיוק העמודות הגלויות,
+   בסדר שלהן; הגיליון המלא נשאר אחריו ולא נגרע ממנו דבר.
+   «11 חודשים» אינו יוצא — הוא גרף, ואין לו ערך יחיד. */
+function viewExportRows(){
+ if(!SHORTLIKE())return null;
+ const keys=visCols().filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&k!=='spark');
+ if(!keys.length)return null;
+ const rows=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
+ const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.val)(r)}catch(_){return ''}};
+ return {keys,aoa:[keys.map(k=>SCOL[k].t),...rows.map(r=>keys.map(k=>val(k,r)))],n:rows.length}}
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
  return [header,...body]}
@@ -6673,7 +6691,11 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  ws['!cols']=XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)}));
  const wb=XLSX.utils.book_new();
  const tabName=(DEF.find(d=>d[0]===cur)||[,'רשימה'])[1];
- XLSX.utils.book_append_sheet(wb,ws,tabName.slice(0,28));
+ const vx=viewExportRows();
+ if(vx){const vws=XLSX.utils.aoa_to_sheet(vx.aoa);
+  vws['!cols']=vx.keys.map((k,i)=>({wch:i<2?24:13}));
+  XLSX.utils.book_append_sheet(wb,vws,'התצוגה')}
+ XLSX.utils.book_append_sheet(wb,ws,(vx?'כל הנתונים · ':'')+tabName.slice(0,16));
  /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל) */
  const mAoa=movExportRows();
  if(mAoa.length>1){const mws=XLSX.utils.aoa_to_sheet(mAoa);

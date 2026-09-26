@@ -1347,6 +1347,23 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    w1.groups===w0.groups&&w2.groups===w0.groups,
    `${w0.groups} → ${w1.groups} → ${w2.groups}`);
 
+ /* ============ הייצוא מייצג את מה שרואים ============
+    השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
+    של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו
+    אחר ממה שראה. */
+ const vx=await p.evaluate(()=>{const v=viewExportRows();
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).slice(1);
+   const screen=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,5)
+     .map(tr=>tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim());
+   return {head:v.aoa[0],n:v.n,th,first:v.aoa.slice(1,6).map(r=>r[0]),screen,
+     rows:currentRows().length}});
+ ok('גיליון «התצוגה» נושא בדיוק את העמודות הגלויות',
+   vx.head.join('|')===vx.th.filter(t=>t!=='11 חודשים').join('|'),
+   `${vx.head.join(' | ')}`);
+ ok('ובסדר שבו הן מופיעות על המסך',vx.first.join(',')===vx.screen.join(','),
+   `${vx.screen.join(' · ')}  →  ${vx.first.join(' · ')}`);
+ ok('וכל השורות שבתצוגה נמצאות בו',vx.n===vx.rows,`${vx.n} / ${vx.rows}`);
+
  /* ============ מה נשמר כשחוזרים מפריט ============ */
  await p.evaluate(()=>{document.querySelector('#w_queue .rows').scrollTop=420});
  await p.waitForTimeout(250);
