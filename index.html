@@ -747,14 +747,6 @@ body.xp #tbl,body.xp .rows{cursor:default}
    1008 (גלישה 37px), וב-1180px 964 בתוך 908 (גלישה 56px). גלילה
    אופקית בטבלה היא בדיוק מה שהמפרט מבקש למנוע, ולכן המסילה מצטמצמת
    לפני הטבלה — השם נשאר, רק הריפוד והמרווחים יורדים. */
-@media(max-width:1400px){:root{--rail-w:186px}
- .rail .tab.navtab{padding:7px 10px;gap:7px}
- .railsub2{padding-inline:10px}}
-@media(max-width:1240px){:root{--rail-w:164px}
- .rail .tab.navtab{padding:6px 8px;gap:6px}
- .rail .tab.navtab .nico{width:14px;font-size:13px}
- .rail .tab.navtab .bdg{padding:0 5px;min-width:0}
- .railsub2{padding-inline:8px}}
 .rail{background:var(--shell);color:var(--shell-dim);display:flex;flex-direction:column;
  overflow:auto;padding-block-end:6px}
 .railsect{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--shell-mute);padding:13px 14px 5px}
@@ -783,7 +775,10 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .rail .tab.navtab .nico{font-size:14px;width:17px;text-align:center;opacity:.9;flex:0 0 auto}
 .rail .tab.navtab .t{flex:1;font-size:var(--f-md);font-weight:500;white-space:nowrap;
  overflow:hidden;text-overflow:ellipsis;color:inherit}
-.rail .tab.navtab.sel .t{font-weight:700}
+/* השם אינו מתעבה בבחירה: ב-1366 ההתעבות הספיקה כדי לחתוך את
+   «חוסרים ולקוחות» ברגע שנבחר — כלומר השם נחתך בדיוק כשהסתכלו
+   עליו. הבחירה מסומנת ממילא בפס הצד, ברקע ובדיו הבהיר. */
+.rail .tab.navtab .t{font-weight:600}
 .rail .tab.navtab .bdg{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-sm);
  font-weight:700;background:var(--shell-track);color:var(--shell-ink);border-radius:99px;
  padding:1px 7px;min-width:26px;text-align:center;flex:0 0 auto}
@@ -798,6 +793,19 @@ body.xp #tbl,body.xp .rows{cursor:default}
    התיאור ושורת המצב יורדים מהמסילה — ב-164px הם נחתכים ממילא —
    ועוברים ל-title, שמגיע גם לריחוף וגם לקורא מסך. */
 .rail .tab.navtab .m{display:none!important}
+/* שלבי הרוחב של המסילה יושבים *אחרי* כללי הבסיס שלה, אחרת הם
+   מפסידים לו בשוויון specificity ולא חלים כלל. */
+@media(max-width:1400px){:root{--rail-w:186px}
+ /* «חוסרים ולקוחות» דרש 92px בתוך 87 — חמישה פיקסלים. הם באים
+    מהריפוד ומהמרווח, ולא מהרחבת המסילה על חשבון הטבלה. */
+ .rail .tab.navtab{padding:7px 8px;gap:6px}
+ .railsub2{padding-inline:10px}}
+@media(max-width:1240px){:root{--rail-w:164px}
+ .rail .tab.navtab{padding:6px 8px;gap:6px}
+ .rail .tab.navtab .nico{width:14px;font-size:13px}
+ .rail .tab.navtab .bdg{padding:0 5px;min-width:0}
+ .railsub2{padding-inline:8px}}
+
 .rail .tab.navtab .nico{color:inherit}
 .rail .tab.navtab.sel{border-inline-start-color:var(--c,var(--shell-acc))}
 .rail .tab.navtab.sel .t,.rail .tab.navtab.sel .nico{color:var(--shell-ink)}
@@ -1684,6 +1692,46 @@ body.topnarrow .titleblock{display:none}
 body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:1100px){.top{height:auto;min-height:56px;flex-wrap:wrap;padding-block:6px}
  .top .fgroup.qwrap{order:3;flex:1 1 220px}}
+/* ============ מסך צר ============
+   נמדד ב-430px: המסילה תפסה 164px מתוך 430 — 38% מהמסך — עם ארבעה
+   שמות חתוכים, ולרשימה נשארו 218px שבהם נראים מק״ט ותיאור בלבד.
+   הסרגל העליון גלש ב-56px וכפתור ההעלאה דרס את כפתור ה-ETA.
+   גם ב-1024px, רוחב מחשב נייד נפוץ, ארבעה מתוך שישה שמות התחום
+   נחתכו והטבלה נאלצה לגלול.
+   מתחת ל-1100px המסילה הופכת לרצועה אופקית מעל התוכן: אותם שישה
+   תחומים, אותם מונים, אותן דלתות משנה — בשורה שנגללת במקום בעמודה
+   שגוזלת רוחב. הטבלה נשארת טבלה ונגללת אופקית עם מק״ט מוקפא; אין
+   כאן «גרסת מובייל» שמסתירה נתונים. */
+@media(max-width:1100px){
+ .shell{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ .rail{flex-direction:row;align-items:center;gap:4px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 6px;border-block-end:1px solid var(--shell-track)}
+ .rail .railsect,.rail .railsp{display:none}
+ .rail .tabs{flex-direction:row;gap:4px;flex:0 0 auto}
+ .rail .tab.navtab{width:auto;flex:0 0 auto;padding:5px 9px;gap:5px;
+  border-inline-start:0;border-block-end:3px solid transparent;border-radius:var(--r-ctl)}
+ .rail .tab.navtab.sel{border-inline-start-color:transparent;
+  border-block-end-color:var(--c,var(--shell-acc))}
+ .rail .railsub{flex-direction:row;gap:4px;flex:0 0 auto;padding:0}
+ .rail .railsub .railsect{display:none}
+ .railsub2{width:auto;flex:0 0 auto;padding:4px 8px;border-inline-start:0;
+  border-radius:var(--r-ctl)}
+ .railsub2.sel{border-inline-start-color:transparent;background:var(--shell-btn)}
+ .rail .railfoot{display:none}
+ /* הסרגל העליון: שורות במקום גלישה שקטה */
+ .top .sp{flex-wrap:wrap;gap:6px}
+ .top .lc{flex-wrap:wrap}
+ .hgrid,.ctiles{grid-template-columns:minmax(0,1fr)}
+ .wdetail{width:min(486px,92vw)}
+ /* מה שהסרגל מוותר עליו קודם, גם בלי שגלש: הכותרות והרמזים.
+    fitTop מזהה גלישה, אבל כאן הסרגל *עוטף* במקום לגלוש — ולכן
+    הוא גדל לגובה 276px מתוך 860 בלי שאף בדיקה ראתה חריגה. */
+ .brand .nm span,.titleblock,.rdwrap .tl .hint{display:none}
+ .brand{flex:0 0 auto}
+ .top{gap:6px}
+ .top .btn .lbl{display:none}
+ .top .lc .menuwrap .btn .lbl{display:inline}
+ .dstate{flex-direction:row;gap:6px;align-items:baseline}}
 /* ============ תוויות הפעולות ============
    קודם עמד כאן `@media(max-width:1400px){.lbl{display:none}}` — כלומר
    בכל מסך של 1366 כל הפעולות הפכו לסמל בלבד, בלי שם. במקום להסתיר

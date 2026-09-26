@@ -1496,6 +1496,35 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('והמיקום ברשימה מתעדכן',nav2.pos!==nav1.pos,`${nav1.pos} → ${nav2.pos}`);
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
 
+ /* ============ רוחבי מסך ============
+    המפרט מבקש 1366 · 1440 · 1920 ומסך צר. נמדד לפני התיקון ב-430px:
+    המסילה תפסה 164px מתוך 430 (38% מהמסך) עם ארבעה שמות חתוכים,
+    לרשימה נשארו 218px, והסרגל העליון גלש ב-56px — כפתור ההעלאה דרס
+    את כפתור ה-ETA. גם ב-1024 ארבעה מתוך שישה שמות נחתכו. */
+ const widths=[[1920,1080],[1440,860],[1366,768],[430,860]];
+ for(const [vw,vh] of widths){
+  await p.setViewportSize({width:vw,height:vh});await p.waitForTimeout(450);
+  const m=await p.evaluate(()=>{const d=document.documentElement;
+    const rail=document.querySelector('.rail'),top=document.querySelector('.top');
+    const tabs=[...document.querySelectorAll('.rail .tab')];
+    const r0=tabs[0].getBoundingClientRect(),r1=tabs[1].getBoundingClientRect();
+    return {pageOv:d.scrollWidth-d.clientWidth,
+      topClip:top.scrollWidth-top.clientWidth,
+      clipped:[...document.querySelectorAll('.rail .tab .t')]
+        .filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent.trim()),
+      horiz:Math.abs(r0.top-r1.top)<4,
+      rail:Math.round(rail.getBoundingClientRect().width),
+      areas:tabs.length}});
+  ok(`${vw}px · אין גלילה אופקית של הדף ואין חיתוך בסרגל העליון`,
+    m.pageOv<=0&&m.topClip<=0,`דף ${m.pageOv}px · סרגל ${m.topClip}px`);
+  ok(`${vw}px · שישה תחומים, ואף שם אינו נחתך`,
+    m.areas===6&&!m.clipped.length,m.clipped.join(' · ')||'—');
+  /* מתחת ל-1100 המסילה עוברת לרצועה אופקית: אותם תחומים, אותם
+     מונים, בשורה שנגללת במקום בעמודה שגוזלת 38% מהרוחב. */
+  ok(`${vw}px · המסילה בכיוון הנכון למסך הזה`,
+    vw<=1100?m.horiz:!m.horiz,m.horiz?'אופקית':'אנכית');}
+ await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(450);
+
  /* ============ בריאות המלאי על נתוני הדגמה מלאים ============
     ב-routes.xlsx יש שני פריטים עם הון כלוא ושניהם עודף, ולכן הכלל
     «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
