@@ -10,6 +10,11 @@ tests/ledger-eta.xlsx
 tests/routes.xlsx
 tests/routes-b.xlsx
 tests/routes-b2.xlsx
+tests/status-a.xlsx
+tests/status-b.xlsx
+tests/status-c.xlsx
+tests/status-d.xlsx
+tests/status-e.xlsx
 
 # פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
 design/*/*.html
