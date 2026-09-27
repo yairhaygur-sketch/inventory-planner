@@ -376,7 +376,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
       rows:c.querySelectorAll('.hrow').length,
       empty:!!c.querySelector('.hempty')})),
     eng:{burn:burnRows().length,cap:decisionList('cap').length,
-      month:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length},
+      month:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length,
+      stuck:(QF.all||[]).filter(r=>expStuck(r)>0).length},
     gaps:(document.querySelector('.hgaps')||{}).textContent||'',
     noPx:(QF.all||[]).filter(r=>r.priceMissing).length,
     hasEta:!!ETA}));
@@ -392,11 +393,13 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     `בוער ${h.cards[0].n}/${h.eng.burn} · ROP ${h.cards[2].n}/${h.eng.month} · הון ${h.cards[3].n}/${h.eng.cap}`);
   ok('אף כרטיס אינו מציג יותר משבע שורות',
     h.cards.every(c=>c.rows<=7),h.cards.map(c=>c.rows).join(' · '));
-  /* בלי דוח ETA *שום* יחידה אינה מתוארכת. רשימה כאן הייתה נקראת
-     כממצא, ולכן הכרטיס אומר מה חסר במקום להציג אותה. */
-  ok('בלי דוח ETA כרטיס האספקות אומר זאת במקום לרשום פריטים',
-    h.hasEta||(h.cards[1].empty&&h.cards[1].rows===0),
-    `ETA=${h.hasEta} · שורות=${h.cards[1].rows}`);
+  /* היה: בלי דוח ETA הכרטיס החזיר רשימה ריקה והציג «0» — בזמן
+     ש-840 פריטים בדוח האמיתי מחזיקים רכש פתוח ולאף אחד מהם אין
+     תאריך. אפס הוא התשובה ההפוכה מהאמת. המקור הוא expStuck:
+     יחידות שלא שובצו לאספקה כשיש דוח, וכל הרכש הפתוח כשאין. */
+  ok('מונה הרכש בלי תאריך הוא הספירה האמיתית, גם בלי דוח ETA',
+    h.cards[1].n===h.eng.stuck&&(h.eng.stuck===0||h.cards[1].rows>0),
+    `כרטיס ${h.cards[1].n} · בפועל ${h.eng.stuck} · ETA=${h.hasEta}`);
   ok('ופערי הנתונים נאמרים מעל הרשימות',
     (!h.noPx||h.gaps.includes(String(h.noPx)))&&(h.hasEta||/דוח ETA/.test(h.gaps)),
     h.gaps.slice(0,110));

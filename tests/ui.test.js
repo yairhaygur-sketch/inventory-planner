@@ -1320,6 +1320,73 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{try{localStorage.removeItem('planner_cols_v1')}catch(_){}});
  await p.click('#colspick [data-cpa="close"]');await p.waitForTimeout(250);
 
+ /* ============ שינוי רוחב עמודה — בכל טבלה ============
+    הבקשה היא «כל הטבלאות בכלי», ולכן המנגנון אינו יודע דבר על
+    העמודות: הוא עובד על ה-th לפי מיקום. הבדיקה עוברת על כל
+    המסלולים ועל טבלת התנועות, ולא רק על תור העבודה. */
+ const rzScan=()=>p.evaluate(()=>{
+   const t=document.querySelector('#movtbl')&&document.querySelector('#movtbl').offsetParent
+     ?document.getElementById('movtbl'):document.getElementById('tbl');
+   const ths=[...t.querySelectorAll('thead th')];
+   return {id:t.id,th:ths.length,rz:t.querySelectorAll('thead .colrz').length,
+     view:cwView()}});
+ const seenViews=new Set();
+ for(const m of ['today','month','floor','trend','rise','cust','applied','catalog','cap','done']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(400);
+  const r=await rzScan();
+  seenViews.add(r.view);
+  ok(`${m} · ידית שינוי רוחב בכל עמודה פרט לאחרונה`,
+    r.th>1&&r.rz===r.th-1,`${r.rz} ידיות ב-${r.th} עמודות`);}
+ /* «קטלוג פריטים» ו«בריאות המלאי» חולקים track='cap' אבל אינם אותה
+    טבלה — עשר עמודות מול שמונה. מפתח משותף היה מחיל את רוחב האחת
+    על השנייה. */
+ ok('לכל תצוגה מפתח רוחב משלה',seenViews.size===10,
+   [...seenViews].join(' · '));
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='catalog');if(a)a.click()});
+ await p.waitForTimeout(400);
+ await p.evaluate(()=>{const s2=document.querySelector('#railsub .railsub2[data-m="moves"]');
+   if(s2)s2.click()});
+ await p.waitForTimeout(700);
+ const mvz=await rzScan();
+ ok('גם טבלת התנועות',mvz.id==='movtbl'&&mvz.rz===mvz.th-1,
+   `${mvz.id} · ${mvz.rz} ידיות ב-${mvz.th} עמודות`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ /* גרירה: ב-RTL גרירה שמאלה מרחיבה. אחריה הפריסה עוברת לקבועה,
+    וכל שאר העמודות נזרעות ברוחב שהיה להן — כדי שהשינוי לא יקפיץ
+    את הטבלה כולה. */
+ const rzBefore=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ const rzHbox=await p.evaluate(()=>{const h=[...document.querySelectorAll('#tbl thead th')][2]
+   .querySelector('.colrz').getBoundingClientRect();
+   return {x:h.left+h.width/2,y:h.top+h.height/2}});
+ await p.mouse.move(rzHbox.x,rzHbox.y);await p.mouse.down();
+ await p.mouse.move(rzHbox.x-80,rzHbox.y,{steps:8});await p.mouse.up();
+ await p.waitForTimeout(400);
+ const rzAfter=await p.evaluate(()=>({w:[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>Math.round(t.getBoundingClientRect().width)),
+   layout:getComputedStyle(document.getElementById('tbl')).tableLayout}));
+ ok('גרירה מרחיבה את העמודה שנגררה',rzAfter.w[2]>rzBefore[2]+40&&rzAfter.layout==='fixed',
+   `${rzBefore[2]}px → ${rzAfter.w[2]}px · ${rzAfter.layout}`);
+ ok('ושאר העמודות אינן קופצות',
+   [0,1,3,4,5].every(i=>Math.abs(rzAfter.w[i]-rzBefore[i])<=2),
+   [0,1,3,4,5].map(i=>`${rzBefore[i]}→${rzAfter.w[i]}`).join(' · '));
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const rzKept=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ ok('הרוחב שורד רענון',Math.abs(rzKept[2]-rzAfter.w[2])<=2,`${rzAfter.w[2]} → ${rzKept[2]}`);
+ await p.evaluate(()=>{const h=[...document.querySelectorAll('#tbl thead th')][2]
+   .querySelector('.colrz');h.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))});
+ await p.waitForTimeout(400);
+ const rzRst=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ ok('לחיצה כפולה על הידית מחזירה לאוטומטי',Math.abs(rzRst[2]-rzBefore[2])<=6,
+   `${rzAfter.w[2]} → ${rzRst[2]} (מקורי ${rzBefore[2]})`);
+ await p.evaluate(()=>{try{localStorage.removeItem('planner_colw_v1')}catch(_){}});
+ await p.evaluate(()=>render());await p.waitForTimeout(400);
+
  /* ============ מיון בתוך הקיבוץ ============
     לטבלת העבודה לא היה מיון בכלל — הכותרת לא הייתה לחיצה. הכלל
     שנעול: המיון פועל *בתוך* קבוצה ובתוך בלוק מטבע, ולא חוצה אותם.
@@ -1349,6 +1416,388 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('המיון אינו חוצה בלוק מטבע — מספר הקבוצות אינו משתנה',
    w1.groups===w0.groups&&w2.groups===w0.groups,
    `${w0.groups} → ${w1.groups} → ${w2.groups}`);
+
+
+ /* ============ סינון לפי עמודה — בכל טבלת רישום ============
+    הדרישה: «לשנות את רוחב העמודות, להוסיף עמודות, ולסנן ולמיין —
+    כל הטבלאות בכלי». המיון והרוחב נבדקו למעלה; כאן הסינון.
+    מה שנעול: הכפתור ▾ פותח את אותו בורר עמודה שהקטלוג מכיר,
+    הסינון חותך *נתונים* ולא רק תצוגה, הכותרת מסומנת, שבב מופיע
+    מעל הטבלה, וניקוי מחזיר את הספירה המקורית.
+    הכפתור ממוקם absolute ולא בזרימה — נמדד כשהוא היה בזרימה:
+    הטבלה גדלה מ-1046 ל-1142 ב-1280px, ו-textContent של הכותרת
+    כלל את ה-▾ ושבר 14 בדיקות שקראו שמות עמודות. */
+ const goTrack=async t=>{await goNav(p,t);await p.waitForTimeout(400)};
+ const filtSnap=()=>p.evaluate(()=>({
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   marked:document.querySelectorAll('#tbl thead th.filt').length,
+   chips:[...document.querySelectorAll('#chipsTop .chip')].map(c=>c.textContent.trim()),
+   chipsSeen:!document.getElementById('chipsTop').hidden,
+   keys:Object.keys(colFilters)}));
+ /* פותח את העמודה «תיאור» ובוחר את הערך הראשון ברשימה. */
+ const pickFirstVal=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='תיאור');
+   if(!th)return {err:'אין כותרת תיאור'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const boxes=[...pop.querySelectorAll('.vals input')];
+   if(!boxes.length)return {err:'אין ערכים בבורר'};
+   boxes[0].checked=true;
+   const val=boxes[0].value,n=boxes.length;
+   document.getElementById('cpOk').click();
+   return {val,n}});
+ for(const [tk,nm] of [['today','מרכז עבודה'],['floor','רצפת SS'],['cust','לקוח ממתין']]){
+   await goTrack(tk);
+   const b4=await filtSnap();
+   const pk=await pickFirstVal();
+   await p.waitForTimeout(500);
+   const af=await filtSnap();
+   ok(`«${nm}» — ▾ בכותרת פותח בורר עמודה עם ערכים`,!pk.err&&pk.n>0,
+     pk.err||`${pk.n} ערכים · «${pk.val}»`);
+   ok(`«${nm}» — הסינון חותך שורות`,af.rows>0&&af.rows<b4.rows,
+     `${b4.rows} → ${af.rows}`);
+   ok(`«${nm}» — הכותרת מסומנת ושבב מופיע`,
+     af.marked===1&&af.chips.length===b4.chips.length+1&&af.chipsSeen
+     &&af.keys.includes('c:desc')&&/תיאור/.test(af.chips.join('')),
+     `כותרות ${af.marked} · שבבים ${af.chips.join(' | ')} · ${af.keys.join(',')}`);
+   /* הניקוי דרך אותו בורר שפתח — לא דרך מפתח פנימי בבדיקה. */
+   await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.filt')][0];
+     th.querySelector('.wfil').click();document.getElementById('cpClear').click()});
+   await p.waitForTimeout(500);
+   const cl=await filtSnap();
+   ok(`«${nm}» — «נקה סינון עמודה» מחזיר את הספירה`,
+     cl.rows===b4.rows&&cl.marked===0&&!cl.keys.includes('c:desc'),
+     `${af.rows} → ${cl.rows} (מקורי ${b4.rows})`);
+ }
+ /* הסינון אינו פוגע בייצוא: הגיליון מייצג את מה שנשאר על המסך. */
+ await goTrack('today');
+ await pickFirstVal();await p.waitForTimeout(500);
+ const fex=await p.evaluate(()=>({n:viewExportRows().n,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
+ ok('הייצוא מייצג את התצוגה המסוננת',fex.n===fex.rows&&fex.rows>0,
+   `${fex.n} / ${fex.rows}`);
+ await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
+ await p.waitForTimeout(500);
+
+
+ /* ============ טבלת התנועות — אותו רישום עמודות ============
+    היא נבנתה כ-HTML קשיח: כותרות במחרוזת אחת ותאים באחרת, בלי
+    מיון, בלי סינון ובלי בורר. «כל הטבלאות בכלי» כולל גם אותה,
+    ולכן היא עברה לאותו רישום — ומקבלת את שלושתם באותו מנגנון.
+    נמדד לפני התיקון: colViewKey החזיר עליה 'catalog' (מסלול
+    track='cap' חטף אותה), ולכן colReg() היה false וכל לחיצה על
+    כותרת נבלעה. */
+ const toMoves=async()=>{await goNav(p,'moves');await p.waitForTimeout(500)};
+ const movTabTo=async t=>{await p.evaluate(k=>{const e=[...document.querySelectorAll('#movtabs .tab')]
+     .find(x=>x.dataset.mt===k);if(e)e.click()},t);await p.waitForTimeout(500)};
+ const movScan=()=>p.evaluate(()=>({vk:colViewKey(),
+   th:[...document.querySelectorAll('#movtbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()),
+   nth:document.querySelectorAll('#movtbl thead th').length,
+   ntd:(document.querySelector('#movtbl tbody tr[data-mi]')||{children:[]}).children.length,
+   rows:document.querySelectorAll('#movtbl tbody tr[data-mi]').length,
+   fil:document.querySelectorAll('#movtbl thead .wfil').length,
+   srt:document.querySelectorAll('#movtbl thead th.wsrt').length}));
+ await toMoves();
+ /* ברירות המחדל הן בדיוק העמודות שהיו על המסך לפני הרישום. */
+ const MVDEF={sales:'|מק״ט|תיאור|דגם|תאריך מכירה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
+   entries:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
+   stuck:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|מכירה אחרונה|מלאי|ABC|MRP'};
+ const mvKeys=[];
+ for(const t of ['sales','entries','stuck']){
+   await movTabTo(t);
+   const m=await movScan();
+   mvKeys.push(m.vk);
+   ok(`תנועות · «${t}» — כותרת לכל תא, והעמודות לא השתנו`,
+     m.nth===m.ntd&&m.th.join('|')===MVDEF[t],`${m.nth}/${m.ntd} · ${m.th.join('|')}`);
+   ok(`תנועות · «${t}» — כל עמודה שניתן למיין לפיה נושאת גם ▾`,
+     m.srt===m.nth-1&&m.fil===m.srt,
+     `${m.srt} ממוינות · ${m.fil} מסננות · ${m.nth} עמודות`);
+ }
+ ok('ולכל טאב תנועות מפתח פריסה משלו',
+   new Set(mvKeys).size===3,mvKeys.join(' · '));
+ /* מיון: הטבלה הזאת אינה מקובצת בבלוקי מטבע, ולכן המיון גלובלי. */
+ /* הערכים *וגם* סדר המק״טים: ברירת המחדל כאן היא מהחדש לישן,
+    כלומר כבר עולה לפי «ימים מאז» — השוואת ערכים בלבד לא הייתה
+    מבחינה בין «עולה» לבין «בלי מיון». */
+ const mvAge=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#movtbl thead th')]
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='ימים מאז');
+   const tr=[...document.querySelectorAll('#movtbl tbody tr[data-mi]')].slice(0,8);
+   return {v:tr.map(t=>+(t.children[i].textContent.replace(/[^\d]/g,'')||0)),
+     pn:tr.map(t=>t.children[1].textContent.replace(/העתק/g,'').trim()).join(',')}});
+ const mvHit=()=>p.evaluate(()=>{const th=[...document.querySelectorAll('#movtbl thead th.wsrt')]
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='ימים מאז');
+   if(th)th.querySelector('.thc').click()});
+ const mvWs=()=>p.evaluate(()=>WSORT.col?WSORT.col+'/'+WSORT.dir:'—');
+ const mv0=await mvAge();
+ await mvHit();await p.waitForTimeout(450);const mv1=await mvAge(),mws1=await mvWs();
+ await mvHit();await p.waitForTimeout(450);const mv2=await mvAge(),mws2=await mvWs();
+ await mvHit();await p.waitForTimeout(450);const mv3=await mvAge(),mws3=await mvWs();
+ const dsc=a=>a.every((v,i)=>i===0||a[i-1]>=v), asc2=a=>a.every((v,i)=>i===0||a[i-1]<=v);
+ ok('תנועות · לחיצה על כותרת ממיינת יורד',
+   mws1==='mage/desc'&&dsc(mv1.v)&&mv1.v[0]>mv0.v[0],
+   `${mws1} · ${mv0.v.join(' ')}  →  ${mv1.v.join(' ')}`);
+ /* «עולה לפי ימים מאז» הוא בדיוק «מהחדש לישן», כלומר סדר ברירת
+    המחדל של הטבלה — ולכן אותן שורות. זו תוצאה נכונה ולא היעדר
+    מיון, ומה שמבדיל ביניהם הוא מצב WSORT. */
+ ok('תנועות · לחיצה שנייה הופכת לעולה',mws2==='mage/asc'&&asc2(mv2.v),
+   `${mws2} · ${mv2.v.join(' ')}`);
+ ok('תנועות · ושלישית מבטלת את המיון ומחזירה את הסדר המקורי',
+   mws3==='—'&&mv3.pn===mv0.pn&&mv1.pn!==mv0.pn,
+   `${mws3} · ${mv0.pn}\n  יורד  ${mv1.pn}\n  כבוי  ${mv3.pn}`);
+ /* סינון: אותו בורר עמודה בדיוק. */
+ const mvB4=await movScan();
+ const mvF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#movtbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='ABC');
+   if(!th)return {err:'אין כותרת ABC'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const bx=[...pop.querySelectorAll('.vals input')];
+   if(!bx.length)return {err:'אין ערכים בבורר'};
+   bx[0].checked=true;const v=bx[0].value;
+   document.getElementById('cpOk').click();return {v,n:bx.length}});
+ await p.waitForTimeout(500);
+ const mvAf=await p.evaluate(()=>({rows:document.querySelectorAll('#movtbl tbody tr[data-mi]').length,
+   marked:document.querySelectorAll('#movtbl thead th.filt').length,
+   exp:movExportRows().length-1,
+   head:movExportRows()[0].join('|'),
+   th:[...document.querySelectorAll('#movtbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
+   keys:Object.keys(colFilters)}));
+ ok('תנועות · ▾ פותח בורר עמודה עם ערכים',!mvF.err&&mvF.n>0,
+   mvF.err||`${mvF.n} ערכים · «${mvF.v}»`);
+ ok('תנועות · הסינון חותך שורות והכותרת מסומנת',
+   mvAf.rows>0&&mvAf.rows<mvB4.rows&&mvAf.marked===1&&mvAf.keys.includes('c:abc'),
+   `${mvB4.rows} → ${mvAf.rows} · כותרות ${mvAf.marked}`);
+ /* הגיליון היה רשימה קבועה של 11 עמודות בסדר אחר מהמסך. */
+ ok('תנועות · הגיליון נושא את עמודות המסך ואת שורותיו',
+   mvAf.exp===mvAf.rows&&mvAf.head===mvAf.th.replace(/^\|/,''),
+   `${mvAf.exp} שורות · ${mvAf.head}`);
+ /* בורר העמודות של התנועות — כפתור משלה, ובורר שיודע איזו טבלה
+    הוא עורך. */
+ await p.click('#colsBtnM');await p.waitForTimeout(400);
+ const mvPk=await p.evaluate(()=>({open:document.getElementById('colspick').classList.contains('open'),
+   n:document.querySelectorAll('#colspick input[data-ck]').length,
+   nm:document.querySelector('#colspick .cpn').textContent.trim()}));
+ ok('תנועות · «▦ עמודות» פותח בורר ששייך לטבלה הזאת',
+   mvPk.open&&mvPk.n>10&&/תנועות/.test(mvPk.nm),`${mvPk.n} עמודות · ${mvPk.nm}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="sup"]');if(cb)cb.click()});
+ await p.waitForTimeout(550);
+ const mvAdd=await movScan();
+ ok('תנועות · הוספת «ספק» מוסיפה כותרת ותא — והנקודה נשארת ראשונה',
+   mvAdd.nth===mvB4.nth+1&&mvAdd.ntd===mvAdd.nth&&mvAdd.th[0]===''
+   &&mvAdd.th.includes('ספק'),`${mvAdd.nth}/${mvAdd.ntd} · ${mvAdd.th.join('|')}`);
+ await p.evaluate(()=>{colsOpen(false);colReset(colViewKey());
+   Object.keys(colFilters).forEach(k=>delete colFilters[k]);
+   WSORT={col:null,dir:'desc'};chips();renderMoves()});
+ await p.waitForTimeout(500);
+ await goNav(p,'today');await p.waitForTimeout(500);
+
+
+ /* ============ הטבלה הכללית — קטלוג ודליי הסיווג ============
+    המרנדר הגנרי משרת את «קטלוג פריטים» ואת כל דליי הסיווג. היו לו
+    מיון, סינון ושינוי רוחב — אבל לא בורר עמודות, כי עשר העמודות
+    היו כתובות כמחרוזת HTML בתוך הפונקציה. עכשיו הוא צורך את אותו
+    רישום, ולכן יש לו גם בורר.
+    מה שנעול: העמודות והתאים לא השתנו, ברירת המחדל היא עדיין
+    חומרה, והמיון והסינון עובדים דרך אותו מנגנון של שאר הטבלאות. */
+ const CATDEF='מק״ט|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|הון כלוא';
+ const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
+   th:[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
+   nth:document.querySelectorAll('#tbl thead th').length,
+   ntd:(document.querySelector('#tbl tbody tr[data-i]')||{children:[]}).children.length,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   pnc:document.querySelectorAll('#tbl tbody td.pnc').length,
+   dn:document.querySelectorAll('#tbl tbody .dn[data-done]').length,
+   srt:document.querySelectorAll('#tbl thead th.wsrt').length,
+   fil:document.querySelectorAll('#tbl thead .wfil').length,
+   btn:(()=>{const b=document.getElementById('colsBtn');return !!b&&!b.hidden})()}));
+ for(const m of ['catalog','all','excess']){
+   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(600);
+   const c=await catScan();
+   ok(`«${m}» — אותן עשר עמודות, כותרת לכל תא`,
+     c.th===CATDEF&&c.nth===c.ntd&&c.nth===10,`${c.nth}/${c.ntd} · ${c.th}`);
+   ok(`«${m}» — הפס לפי חומרה וכפתור «✓ טופל» בכל שורה`,
+     c.pnc===c.rows&&c.dn===c.rows&&c.rows>0,`${c.pnc} תאי מק״ט · ${c.dn} כפתורים · ${c.rows} שורות`);
+   ok(`«${m}» — כל עמודה שניתן למיין לפיה נושאת גם ▾, ויש בורר`,
+     c.reg&&c.srt===9&&c.fil===9&&c.btn,
+     `רישום=${c.reg} · ${c.srt} ממוינות · ${c.fil} מסננות · בורר=${c.btn}`);
+ }
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(600);
+ /* ברירת המחדל היא חומרה — המיון לא החליף אותה במנגנון שני. */
+ /* דגימה לאורך הרשימה ולא רק בראשה: 12 השורות הראשונות הן כולן
+    חומרה 3 גם בלי מיון בכלל, ולכן לא היו מבחינות. */
+ const catSev=()=>p.evaluate(()=>{const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   return [0,60,140,240,340,440,tr.length-1].filter(i=>i<tr.length&&i>=0)
+     .map(i=>+(tr[i].className.match(/sev(\d)/)||[,0])[1])});
+ const cs0=await catSev();
+ ok('ברירת המחדל בטבלה הכללית היא חומרה יורדת',
+   cs0.every((v,i)=>i===0||cs0[i-1]>=v),cs0.join(' '));
+ const catRisk=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+   return [...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
+     .map(tr=>+(tr.children[i].textContent.replace(/[^\d]/g,'')||0))});
+ await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+   th.querySelector('.thc').click()});
+ await p.waitForTimeout(500);
+ const cr=await catRisk(),cws=await p.evaluate(()=>WSORT.col+'/'+WSORT.dir);
+ ok('ומיון לפי כותרת חל מעליה',
+   cws==='cRisk/desc'&&cr.every((v,i)=>i===0||cr[i-1]>=v),`${cws} · ${cr.join(' ')}`);
+ await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await p.waitForTimeout(500);
+ const catB4=await catScan();
+ const catF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='מצב');
+   if(!th)return {err:'אין כותרת מצב'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const bx=[...pop.querySelectorAll('.vals input')];
+   if(!bx.length)return {err:'אין ערכים בבורר'};
+   bx[0].checked=true;const v=bx[0].value;
+   document.getElementById('cpOk').click();return {v,n:bx.length}});
+ await p.waitForTimeout(600);
+ const catAf=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   marked:document.querySelectorAll('#tbl thead th.filt').length,
+   keys:Object.keys(colFilters),
+   chips:[...document.querySelectorAll('#chipsTop .chip')].map(c=>c.textContent.trim())}));
+ ok('טבלה כללית · ▾ פותח בורר עמודה עם ערכים',!catF.err&&catF.n>0,
+   catF.err||`${catF.n} ערכים · «${catF.v}»`);
+ ok('טבלה כללית · הסינון חותך שורות, מסמן את הכותרת ומציג שבב',
+   catAf.rows<catB4.rows&&catAf.marked===1&&catAf.keys.includes('c:cCat')
+   &&catAf.chips.some(c=>/מצב/.test(c)),
+   `${catB4.rows} → ${catAf.rows} · ${catAf.chips.join(' | ')}`);
+ await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
+ await p.waitForTimeout(500);
+ await p.click('#colsBtn');await p.waitForTimeout(400);
+ const catPk=await p.evaluate(()=>({open:document.getElementById('colspick').classList.contains('open'),
+   n:document.querySelectorAll('#colspick input[data-ck]').length,
+   nm:document.querySelector('#colspick .cpn').textContent.trim()}));
+ ok('טבלה כללית · «▦ עמודות» פותח בורר ששייך לה',
+   catPk.open&&catPk.n>10&&/קטלוג/.test(catPk.nm),`${catPk.n} עמודות · ${catPk.nm}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="sup"]');if(cb)cb.click()});
+ await p.waitForTimeout(600);
+ const catAdd=await catScan();
+ ok('טבלה כללית · הוספת «ספק» מוסיפה כותרת ותא — והמק״ט נשאר ראשון',
+   catAdd.nth===11&&catAdd.ntd===11&&catAdd.th.indexOf('מק״ט')===0
+   &&catAdd.th.includes('ספק')&&catAdd.pnc===catAdd.rows,
+   `${catAdd.nth}/${catAdd.ntd} · ${catAdd.th}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="cPn"]');if(cb)cb.click()});
+ await p.waitForTimeout(500);
+ ok('טבלה כללית · «מק״ט» אינו ניתן להסרה',
+   (await catScan()).th.indexOf('מק״ט')===0);
+ await p.evaluate(()=>{colsOpen(false);colReset('catalog');render()});
+ await p.waitForTimeout(500);
+ ok('ו«חזרה לברירת המחדל» מחזירה בדיוק את עשר העמודות',
+   (await catScan()).th===CATDEF,(await catScan()).th);
+ await goNav(p,'today');await p.waitForTimeout(500);
+
+
+ /* ============ מידע שאינו מוסתר ============
+    ארבע תקלות מאותה משפחה: הכלי מחזיק את המידע ולא מראה אותו.
+    כולן נמדדו על המסך, לא נגזרו מקריאת CSS. */
+ for(const W of [1920,1440,1366]){
+  await p.setViewportSize({width:W,height:900});
+  await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
+
+  /* 1. מגירת הסינון. .widget נושא overflow:hidden — נכון לווידג׳ט
+     שגולל בתוכו, הרסני לרצועה בת 86px שפותחת מגירה בת 110px.
+     נמדד לפני התיקון: המגירה 103→213 והרצועה נגמרת ב-142, כלומר
+     71 פיקסלים — רשימת הערכים כולה — נחתכו. */
+  const filtOpen=await p.evaluate(()=>!!document.querySelector('.ddbtn')
+    &&document.querySelector('.ddbtn').getBoundingClientRect().width>0);
+  if(!filtOpen){await p.click('#filtBtn');await p.waitForTimeout(600)}
+  const dd=await p.evaluate(()=>{
+    const bs=[...document.querySelectorAll('.ddbtn')].filter(b=>b.getBoundingClientRect().width>0);
+    const out=[];
+    for(const btn of bs){
+      document.querySelectorAll('.ddpanel').forEach(x=>x.classList.remove('open'));
+      btn.click();
+      const pan=document.querySelector('.ddpanel.open');
+      if(!pan){out.push({bad:'לא נפתח'});continue}
+      const r=pan.getBoundingClientRect();
+      let lost=0,x=pan.parentElement;
+      while(x&&x!==document.documentElement){const cs=getComputedStyle(x);
+        if(cs.overflow!=='visible'){const rr=x.getBoundingClientRect();
+          lost=Math.max(0,Math.round(r.bottom-rr.bottom))+Math.max(0,Math.round(rr.top-r.top))
+            +Math.max(0,Math.round(rr.left-r.left))+Math.max(0,Math.round(r.right-rr.right));
+          if(lost>2)break;lost=0}
+        x=x.parentElement}
+      const off=Math.max(0,Math.round(-r.left))+Math.max(0,Math.round(r.right-innerWidth))
+        +Math.max(0,Math.round(r.bottom-innerHeight));
+      const hit=document.elementFromPoint(r.left+r.width/2,r.top+Math.min(r.height-4,30));
+      const covered=!(hit&&(pan===hit||pan.contains(hit)));
+      if(lost>2||off>2||covered)out.push({lost,off,covered});
+    }
+    document.querySelectorAll('.ddpanel').forEach(x=>x.classList.remove('open'));
+    return {n:bs.length,bad:out}});
+  ok(`${W}px · כל מגירות הסינון נפתחות שלמות ונראות`,
+    dd.n>0&&dd.bad.length===0,`${dd.n} מגירות · ${JSON.stringify(dd.bad)}`);
+
+  /* 2. תפריט הסימון הקבוצתי. .phd נשא overflow:hidden — נמדד:
+     התפריט 310px בן תשעה פריטים בתוך שורה בת 37px, כלומר 309
+     מתוך 310 פיקסלים נחתכו. היה כך גם ב-main (231 מתוך 232). */
+  const bulk=await p.evaluate(()=>{
+    const cb=document.querySelector('#tbl tbody tr[data-i] input[type=checkbox]');
+    if(cb)cb.click();
+    const btn=document.querySelector('.bulkwrap button,.bulkbtn');
+    if(!btn)return {err:'אין כפתור'};
+    btn.click();
+    const m=document.querySelector('.bulkmenu.open');
+    if(!m)return {err:'לא נפתח'};
+    const r=m.getBoundingClientRect();
+    let lost=0,x=m.parentElement;
+    while(x&&x!==document.documentElement){const cs=getComputedStyle(x);
+      if(cs.overflow!=='visible'){const rr=x.getBoundingClientRect();
+        const L=Math.max(0,Math.round(r.bottom-rr.bottom));
+        if(L>2){lost=L;break}}
+      x=x.parentElement}
+    const items=m.querySelectorAll('button').length;
+    m.classList.remove('open');if(cb)cb.click();
+    return {lost,items,h:Math.round(r.height)}});
+  ok(`${W}px · תפריט הסימון הקבוצתי אינו נחתך`,
+    !bulk.err&&bulk.lost===0&&bulk.items>=8,
+    bulk.err||`${bulk.items} פריטים · ${bulk.h}px · נחתך ${bulk.lost}`);
+
+  /* 3. מתג הקיבוץ הוא פקד ואינו מתכווץ. נמדד: 143px של תוכן
+     בתוך 95px ב-1440, כלומר 48 מ-62 הפיקסלים של «לפי ספק». */
+  const gs=await p.evaluate(()=>{const g=document.getElementById('gseg');
+    if(!g||getComputedStyle(g).display==='none')return null;
+    return {lost:g.scrollWidth-g.clientWidth,w:Math.round(g.getBoundingClientRect().width)}});
+  if(gs)ok(`${W}px · מתג הקיבוץ אינו נדחס`,gs.lost===0,`רוחב ${gs.w} · נחתך ${gs.lost}`);
+
+  /* 4. המשפט שמסביר את המסלול. היה nowrap בלי title, וב-1400 ומטה
+     display:none — ב«רצפת SS» 958 מתוך 1,182 פיקסלים לא הוצגו
+     ב-1440, ומתחת ל-1400 לא הייתה שום דרך לקרוא אותו. */
+  for(const trk of ['floor','cust']){
+   await p.evaluate(k=>{try{setMode(k)}catch(_){}},trk);await p.waitForTimeout(500);
+   const sub=await p.evaluate(()=>{const e=document.getElementById('phdSub'),
+     i=document.getElementById('phdInfo');
+    const box=document.querySelector('#w_queue .rows');
+    return {ttl:(e.title||'').trim().length,txt:(e.textContent||'').trim().length,
+      info:!!i&&getComputedStyle(i).display!=='none',rowsH:box?box.clientHeight:0}});
+   ok(`${W}px · «${trk}» — ההסבר נושא title מלא ויש ⓘ`,
+     sub.ttl===sub.txt&&sub.ttl>100&&sub.info,
+     `title ${sub.ttl} תווים · טקסט ${sub.txt} · ⓘ=${sub.info}`);
+   await p.click('#phdInfo');await p.waitForTimeout(400);
+   const opened=await p.evaluate(()=>{const e=document.getElementById('phdSub');
+     const r=e.getBoundingClientRect();
+     return {shown:getComputedStyle(e).display!=='none',cut:e.scrollWidth-e.clientWidth,
+       inView:r.bottom<=innerHeight&&r.top>=0}});
+   await p.click('#phdInfo');await p.waitForTimeout(400);
+   const back=await p.evaluate(()=>{const box=document.querySelector('#w_queue .rows');
+     return {rowsH:box?box.clientHeight:0,open:document.body.classList.contains('subopen')}});
+   ok(`${W}px · «${trk}» — ⓘ פותח את המשפט במלואו, וסגירה מחזירה את הרשימה`,
+     opened.shown&&opened.cut===0&&opened.inView&&!back.open&&back.rowsH===sub.rowsH,
+     `נחתך ${opened.cut} · בתוך המסך ${opened.inView} · רשימה ${sub.rowsH}→${back.rowsH}`);
+  }
+ }
+ await p.setViewportSize({width:1600,height:900});
+ await goNav(p,'today');await p.waitForTimeout(600);
 
  /* ============ הייצוא מייצג את מה שרואים ============
     השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
@@ -1529,6 +1978,23 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ב-routes.xlsx יש שני פריטים עם הון כלוא ושניהם עודף, ולכן הכלל
     «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
     900 פריטים ורוב ההון הכלוא אינו באף אחד משלושת הדליים. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='home');if(a)a.click()});
+ await p.waitForTimeout(700);
+ /* «רכש פתוח בלי תאריך הגעה» על נתוני הדגמה מלאים: הכרטיס הציג 151
+    כשהמקור היה lineModel().stuck (דלי האוזלים שאין להם מענה), בזמן
+    ש-835 פריטים מחזיקים רכש פתוח בלי תאריך — פי 5.5. */
+ const noEta=await p.evaluate(()=>{
+   const c=[...document.querySelectorAll('.hcard')][1];
+   return {n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
+     rows:c.querySelectorAll('.hrow').length,
+     eng:(QF.all||[]).filter(r=>expStuck(r)>0).length,
+     lineStuck:lineModel().stuck.filter(r=>expStuck(r)>0).length,
+     eta:!!ETA}});
+ ok('«רכש פתוח בלי תאריך» סופר את כל הרכש שאין לו תאריך',
+   noEta.n===noEta.eng&&noEta.eng>0,
+   `כרטיס ${noEta.n} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
+ ok('וכשיש מה לספור הוא מציג שורות ולא מסך ריק',noEta.rows>0,noEta.rows+' שורות');
  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
    .find(t=>t.dataset.m==='cap');if(a)a.click()});
  await p.waitForTimeout(800);
