@@ -919,6 +919,16 @@ body.nokpi .lband,body.nokpi .kpis{display:none}
 .wipsec .marks.wipm button.clr{color:var(--ink-3)}
 .wipsec .marks.wipm button:disabled{opacity:.45;cursor:default}
 
+/* ידית שינוי הרוחב: רצועה דקה בקצה הכותרת. היא יושבת בקצה
+   ה-inline-start כי בכיוון RTL שם עובר הגבול לעמודה הבאה. */
+th{position:relative}
+.colrz{position:absolute;inset-block:0;inset-inline-start:-3px;width:7px;
+ cursor:col-resize;z-index:5;touch-action:none}
+.colrz:hover{background:var(--accent);opacity:.35}
+table.rzing{user-select:none}
+table.rzing .colrz{background:var(--accent);opacity:.5}
+#tbl td,#movtbl td{overflow:hidden;text-overflow:ellipsis}
+
 /* כותרת שניתן למיין לפיה — הסימון הוא החץ, לא צבע בלבד */
 #tbl thead th.wsrt .thc{cursor:pointer}
 #tbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
@@ -4108,6 +4118,75 @@ function prefsBoot(){
  try{if(localStorage.getItem('planner_dense')==='1')document.body.classList.add('dense')}catch(_){}
  try{if(localStorage.getItem('planner_nokpi')==='1')document.body.classList.add('nokpi')}catch(_){}
  prefsLbl()}
+/* ============ שינוי רוחב עמודה — בכל טבלה ============
+   הבקשה היא לכל הטבלאות בכלי, ולכן המנגנון כאן אינו יודע דבר על
+   העמודות עצמן: הוא עובד על ה-th לפי מיקום, ולכן חל על טבלת
+   העבודה, על הקטלוג, על כל מסלול, ועל טבלת התנועות באותה מידה.
+
+   שתי החלטות:
+   · ברירת המחדל נשארת פריסה אוטומטית. table-layout:fixed נדלק רק
+     אחרי שינוי ראשון, ואז כל העמודות נזרעות ברוחב שהיה להן באותו
+     רגע — כך שהשינוי אינו מקפיץ את כל הטבלה.
+   · הרוחב נשמר לכל תצוגה בנפרד (מסלול, ובטבלת העבודה גם הקיבוץ),
+     כי אלה טבלאות שונות עם עמודות שונות.
+   לחיצה כפולה על הידית מחזירה את העמודה לאוטומטי. */
+const CW_KEY='planner_colw_v1';
+/* המפתח חייב להבחין בין טבלאות שונות שחולקות track: «קטלוג פריטים»
+   ו«בריאות המלאי» שניהם track='cap' אבל עשר עמודות מול שמונה, והן
+   היו דורסות זו את רוחב זו. */
+function cwView(){return cur==='moves'?'moves'
+ :String(track||'x')+'|'+String(cur||'')+(SHORTLIKE()?':'+colViewKey():'')}
+function cwAll(){try{return JSON.parse(localStorage.getItem(CW_KEY)||'{}')||{}}catch(_){return {}}}
+function cwSave(o){try{localStorage.setItem(CW_KEY,JSON.stringify(o))}catch(_){}}
+function cwGet(v){const o=cwAll();return o[v||cwView()]||null}
+function cwSet(v,arr){const o=cwAll();
+ if(!arr||!arr.some(x=>x!=null))delete o[v];else o[v]=arr;cwSave(o)}
+function cwTables(){return [document.getElementById('tbl'),document.getElementById('movtbl')]
+ .filter(t=>t&&t.offsetParent!==null)}
+function applyColWidths(){
+ for(const tbl of cwTables()){
+  const ths=[...tbl.querySelectorAll('thead th')];if(!ths.length)continue;
+  const v=tbl.id==='movtbl'?'movtbl':cwView();
+  const w=cwGet(v);
+  let cg=tbl.querySelector('colgroup');
+  if(!w){if(cg)cg.remove();tbl.style.tableLayout='';continue}
+  if(!cg){cg=document.createElement('colgroup');tbl.insertBefore(cg,tbl.firstChild)}
+  cg.innerHTML=ths.map((_,i)=>`<col${w[i]?` style="width:${w[i]}px"`:''}>`).join('');
+  tbl.style.tableLayout='fixed'}}
+function wireColResize(){
+ for(const tbl of cwTables()){
+  const ths=[...tbl.querySelectorAll('thead th')];
+  const v=tbl.id==='movtbl'?'movtbl':cwView();
+  ths.forEach((th,i)=>{
+   if(i===ths.length-1)return;            /* האחרונה בולעת את השארית */
+   if(th.querySelector('.colrz'))return;
+   const h=document.createElement('span');
+   h.className='colrz';h.title='גרירה — שינוי רוחב · לחיצה כפולה — חזרה לאוטומטי';
+   h.setAttribute('aria-hidden','true');
+   th.appendChild(h);
+   h.ondblclick=e=>{e.stopPropagation();
+     const cur2=(cwGet(v)||[]).slice();cur2[i]=null;cwSet(v,cur2);applyColWidths()};
+   h.onpointerdown=e=>{
+    e.preventDefault();e.stopPropagation();
+    const all=[...tbl.querySelectorAll('thead th')];
+    /* זריעה: הרוחב שהיה לכל עמודה ברגע הזה, כדי שהמעבר לפריסה
+       קבועה לא ישנה שום עמודה אחרת. */
+    let w=cwGet(v);
+    if(!w)w=all.map(x=>Math.round(x.getBoundingClientRect().width));
+    const start=e.clientX,base=w[i]||Math.round(th.getBoundingClientRect().width);
+    /* RTL: גרירה שמאלה מגדילה את העמודה. */
+    const dir=getComputedStyle(document.documentElement).direction==='rtl'?-1:1;
+    tbl.classList.add('rzing');
+    const mv=ev=>{const px=Math.max(44,Math.round(base+(ev.clientX-start)*dir));
+      const n=w.slice();n[i]=px;cwSet(v,n);applyColWidths()};
+    const up=()=>{tbl.classList.remove('rzing');
+      window.removeEventListener('pointermove',mv);
+      window.removeEventListener('pointerup',up);
+      if(typeof freezeCols==='function')freezeCols()};
+    window.addEventListener('pointermove',mv);
+    window.addEventListener('pointerup',up)}})}}
+function colsBoot(){applyColWidths();wireColResize()}
+
 /* ============ הקפאת המק״ט והתיאור ============
    סעיף 3 במפרט. ההקפאה נדלקת רק כשיש גלילה אופקית בפועל — עמודה
    דביקה בלי גלילה היא שכבת ציור מיותרת, וגם מקור לקצוות מרצדים.
@@ -6191,7 +6270,8 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
  if(typeof syncHistChip==='function')syncHistChip();
- if(cur==='moves'){showBody('moves');renderMoves();return}
+ if(cur==='moves'){showBody('moves');renderMoves();
+  setTimeout(()=>{colsBoot()},0);return}
  if(mode==='home'){showBody('home');renderHome();
   document.getElementById('lt').textContent=screenName();
   document.getElementById('lc').textContent='';
@@ -6206,7 +6286,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
     עכשיו מאותו מקור שהמסילה מציגה. */
  document.getElementById('lt').textContent=screenName();
  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
- colsSync();renderCapTop();setTimeout(freezeCols,0);
+ colsSync();renderCapTop();setTimeout(()=>{colsBoot();freezeCols()},0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */

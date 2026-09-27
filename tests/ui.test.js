@@ -1320,6 +1320,73 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{try{localStorage.removeItem('planner_cols_v1')}catch(_){}});
  await p.click('#colspick [data-cpa="close"]');await p.waitForTimeout(250);
 
+ /* ============ שינוי רוחב עמודה — בכל טבלה ============
+    הבקשה היא «כל הטבלאות בכלי», ולכן המנגנון אינו יודע דבר על
+    העמודות: הוא עובד על ה-th לפי מיקום. הבדיקה עוברת על כל
+    המסלולים ועל טבלת התנועות, ולא רק על תור העבודה. */
+ const rzScan=()=>p.evaluate(()=>{
+   const t=document.querySelector('#movtbl')&&document.querySelector('#movtbl').offsetParent
+     ?document.getElementById('movtbl'):document.getElementById('tbl');
+   const ths=[...t.querySelectorAll('thead th')];
+   return {id:t.id,th:ths.length,rz:t.querySelectorAll('thead .colrz').length,
+     view:cwView()}});
+ const seenViews=new Set();
+ for(const m of ['today','month','floor','trend','rise','cust','applied','catalog','cap','done']){
+  await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(400);
+  const r=await rzScan();
+  seenViews.add(r.view);
+  ok(`${m} · ידית שינוי רוחב בכל עמודה פרט לאחרונה`,
+    r.th>1&&r.rz===r.th-1,`${r.rz} ידיות ב-${r.th} עמודות`);}
+ /* «קטלוג פריטים» ו«בריאות המלאי» חולקים track='cap' אבל אינם אותה
+    טבלה — עשר עמודות מול שמונה. מפתח משותף היה מחיל את רוחב האחת
+    על השנייה. */
+ ok('לכל תצוגה מפתח רוחב משלה',seenViews.size===10,
+   [...seenViews].join(' · '));
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='catalog');if(a)a.click()});
+ await p.waitForTimeout(400);
+ await p.evaluate(()=>{const s2=document.querySelector('#railsub .railsub2[data-m="moves"]');
+   if(s2)s2.click()});
+ await p.waitForTimeout(700);
+ const mvz=await rzScan();
+ ok('גם טבלת התנועות',mvz.id==='movtbl'&&mvz.rz===mvz.th-1,
+   `${mvz.id} · ${mvz.rz} ידיות ב-${mvz.th} עמודות`);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ /* גרירה: ב-RTL גרירה שמאלה מרחיבה. אחריה הפריסה עוברת לקבועה,
+    וכל שאר העמודות נזרעות ברוחב שהיה להן — כדי שהשינוי לא יקפיץ
+    את הטבלה כולה. */
+ const rzBefore=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ const rzHbox=await p.evaluate(()=>{const h=[...document.querySelectorAll('#tbl thead th')][2]
+   .querySelector('.colrz').getBoundingClientRect();
+   return {x:h.left+h.width/2,y:h.top+h.height/2}});
+ await p.mouse.move(rzHbox.x,rzHbox.y);await p.mouse.down();
+ await p.mouse.move(rzHbox.x-80,rzHbox.y,{steps:8});await p.mouse.up();
+ await p.waitForTimeout(400);
+ const rzAfter=await p.evaluate(()=>({w:[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>Math.round(t.getBoundingClientRect().width)),
+   layout:getComputedStyle(document.getElementById('tbl')).tableLayout}));
+ ok('גרירה מרחיבה את העמודה שנגררה',rzAfter.w[2]>rzBefore[2]+40&&rzAfter.layout==='fixed',
+   `${rzBefore[2]}px → ${rzAfter.w[2]}px · ${rzAfter.layout}`);
+ ok('ושאר העמודות אינן קופצות',
+   [0,1,3,4,5].every(i=>Math.abs(rzAfter.w[i]-rzBefore[i])<=2),
+   [0,1,3,4,5].map(i=>`${rzBefore[i]}→${rzAfter.w[i]}`).join(' · '));
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
+ const rzKept=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ ok('הרוחב שורד רענון',Math.abs(rzKept[2]-rzAfter.w[2])<=2,`${rzAfter.w[2]} → ${rzKept[2]}`);
+ await p.evaluate(()=>{const h=[...document.querySelectorAll('#tbl thead th')][2]
+   .querySelector('.colrz');h.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}))});
+ await p.waitForTimeout(400);
+ const rzRst=await p.evaluate(()=>[...document.querySelectorAll('#tbl thead th')]
+   .map(t=>Math.round(t.getBoundingClientRect().width)));
+ ok('לחיצה כפולה על הידית מחזירה לאוטומטי',Math.abs(rzRst[2]-rzBefore[2])<=6,
+   `${rzAfter.w[2]} → ${rzRst[2]} (מקורי ${rzBefore[2]})`);
+ await p.evaluate(()=>{try{localStorage.removeItem('planner_colw_v1')}catch(_){}});
+ await p.evaluate(()=>render());await p.waitForTimeout(400);
+
  /* ============ מיון בתוך הקיבוץ ============
     לטבלת העבודה לא היה מיון בכלל — הכותרת לא הייתה לחיצה. הכלל
     שנעול: המיון פועל *בתוך* קבוצה ובתוך בלוק מטבע, ולא חוצה אותם.
