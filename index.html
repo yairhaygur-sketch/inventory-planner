@@ -934,6 +934,18 @@ table.rzing .colrz{background:var(--accent);opacity:.5}
 #tbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
 #tbl thead th.wsrt.act .thc{color:var(--accent-ink);font-weight:800}
 #tbl thead th .warr{margin-inline-start:3px;font-size:9px}
+/* כפתור הסינון אינו גוזל רוחב: הוא ממוקם מוחלט בקצה הכותרת, והחץ
+   מצויר ב-::before כדי ש-textContent של הכותרת יישאר השם בלבד.
+   נמדד כשהוא היה בזרימה: הטבלה גדלה מ-1046 ל-1142 ב-1280px. */
+#tbl thead th .wfil{position:absolute;inset-inline-end:1px;inset-block-start:50%;
+ transform:translateY(-50%);width:15px;height:16px;padding:0;border:0;cursor:pointer;
+ background:none;color:var(--ink-3);font-size:9px;line-height:16px;border-radius:3px;
+ opacity:0;font-family:inherit}
+#tbl thead th .wfil::before{content:'▾'}
+#tbl thead th:hover .wfil,#tbl thead th.filt .wfil,#tbl thead th .wfil:focus-visible{opacity:1}
+#tbl thead th .wfil:hover{background:var(--accent-bg);color:var(--accent-ink)}
+#tbl thead th.filt .wfil{color:var(--accent);font-weight:800;opacity:1}
+#tbl thead th.filt .thc{color:var(--accent-ink)}
 
 /* עמודות מוקפאות: המק״ט (ותיאור, כשהוא שם) נשארים בעין בזמן גלילה
    אופקית. הרקע חייב להיות אטום — מתחת לתא דביק אין רקע שורה. */
@@ -4217,8 +4229,8 @@ function colsOpen(on){
  const v=colViewKey(),vis=visCols();
  const why=k=>SCOL[k].eta?'דורש דוח ETA':SCOL[k].noeta?'רק בלי דוח ETA':'';
  pk.innerHTML=`<p class="cph">עמודות הטבלה</p>
-  <p class="cpn">${v==='sup'?'התצוגה «לפי ספק»':'התצוגה «לפי החלטה»'} — הבחירה נשמרת לה בנפרד.</p>
-  <div class="cplist">${SCOL_ORDER.map(k=>{const ok=colUsable(k);
+  <p class="cpn">${esc(colViewName(v))} — הבחירה נשמרת לתצוגה הזאת בנפרד.</p>
+  <div class="cplist">${colChoices(v).map(k=>{const ok=colUsable(k);
     return `<label class="${ok?'':'off'}"><input type="checkbox" data-ck="${k}"
       ${vis.includes(k)?'checked':''} ${ok?'':'disabled'}><span>${esc(SCOL[k].t)}</span>
       ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`}).join('')}</div>
@@ -4231,10 +4243,21 @@ function colsOpen(on){
  pk.classList.add('open');b.classList.add('on');b.setAttribute('aria-expanded','true');
  pk.querySelectorAll('input[data-ck]').forEach(cb=>cb.onchange=()=>{
    const picked=[...pk.querySelectorAll('input[data-ck]:checked')].map(x=>x.dataset.ck);
-   /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. */
-   if(!picked.includes('pn')){cb.checked=true;toast('«מק״ט» נשאר תמיד');return}
-   const order=SCOL_ORDER.filter(k=>picked.includes(k)||
-     (SCOL[k]&&!colUsable(k)&&(colSaved()[colViewKey()]||SCOL_DEF[colViewKey()]).includes(k)));
+   /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. שתי הגרסאות
+      נחשבות — יש מסלולים שנושאים את המק״ט בלי כפתור «טופל». */
+   if(!picked.includes('pn')&&!picked.includes('pnPlain')){
+     cb.checked=true;toast('«מק״ט» נשאר תמיד');return}
+   /* סדר העמודות של התצוגה נשמר. בנייה מחדש מ-SCOL_ORDER הייתה
+      מסדרת את «רצפת SS» כ-ספק · הגעה · הדרישה · SS מוגדר — כלומר
+      הוספת עמודה אחת הייתה מערבבת את כל השאר. עמודה חדשה נכנסת
+      ליד שכנותיה הלוגיות, ועמודה שאינה אפשרית עכשיו (מכוסה בלי
+      דוח ETA) נשמרת במקומה. */
+   const cur3=colSaved()[colViewKey()]||SCOL_DEF[colViewKey()]||[];
+   const order=cur3.filter(k=>picked.includes(k)||!colUsable(k));
+   for(const k of picked.filter(x=>!cur3.includes(x))
+       .sort((a,b)=>SCOL_ORDER.indexOf(a)-SCOL_ORDER.indexOf(b))){
+    const at=order.findIndex(x=>SCOL_ORDER.indexOf(x)>SCOL_ORDER.indexOf(k));
+    if(at<0)order.push(k);else order.splice(at,0,k)}
    colSaveSet(colViewKey(),order);render();colsOpen(true)});
  pk.querySelectorAll('[data-cpa]').forEach(x=>x.onclick=()=>{
    if(x.dataset.cpa==='reset'){colReset(colViewKey());render();colsOpen(true)}
@@ -4252,22 +4275,35 @@ function colsWire(){
  const th0=document.querySelector('#tbl thead');
  if(th0&&!th0.__ws){th0.__ws=1;
   th0.addEventListener('click',e=>{const t=e.target.closest('th.wsrt');
-    if(!t||!SHORTLIKE())return;wsortClick(t.dataset.ck)})}
+    if(!t||!colReg())return;
+    /* ▾ פותח סינון; שאר הכותרת ממיינת. שתי פעולות, שני יעדים
+       ברורים — ולא תפריט שחוסם את המיון בלחיצה אחת. */
+    if(e.target.closest('.wfil')){e.stopPropagation();
+      openColPop(t,'c:'+t.dataset.ck);return}
+    wsortClick(t.dataset.ck)})}
  const pk0=document.getElementById('colspick');
  if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
  document.addEventListener('click',()=>colsOpen(false));
  document.addEventListener('keydown',e=>{if(e.key==='Escape')colsOpen(false)})}
+/* שם התצוגה בבורר: מה שהמעתד רואה במסילה, ולא מפתח פנימי. */
+function colViewName(v){
+ if(v==='dec')return 'התצוגה «לפי החלטה»';
+ if(v==='sup')return 'התצוגה «לפי ספק»';
+ if(v==='fix')return 'תיקוני פרמטרים';
+ const N={floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
+  applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא'};
+ return N[v]||'התצוגה הזאת'}
 function colsSync(){
  const b=document.getElementById('colsBtn');if(!b)return;
- const on=SHORTLIKE();
+ const on=colReg();
  b.hidden=!on;
  if(!on)colsOpen(false);
  else{const v=colViewKey();
   const custom=!!colSaved()[v];
   b.classList.toggle('on',custom&&!document.getElementById('colspick').classList.contains('open'));
   b.textContent=custom?`▦ עמודות · ${visCols().length}`:'▦ עמודות';
-  b.title=`אילו עמודות מוצגות ב${v==='sup'?'תצוגה «לפי ספק»':'תצוגה «לפי החלטה»'}`
-   +`. הבחירה נשמרת לה בנפרד${custom?' · פריסה מותאמת פעילה':''}`}}
+  b.title=`אילו עמודות מוצגות ב${colViewName(v)}`
+   +`. הבחירה נשמרת לתצוגה הזאת בנפרד${custom?' · פריסה מותאמת פעילה':''}`}}
 function prefsLbl(){
  const dt=document.getElementById('denTog'),kt=document.getElementById('kpiTog');
  if(dt){const on=document.body.classList.contains('dense');
@@ -4901,7 +4937,7 @@ function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDE
 document.addEventListener('click',()=>{document.querySelectorAll('.ddpanel,.menu,.bulkmenu').forEach(p=>p.classList.remove('open'));closeColPop()});
 function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
   `<div class="chip"><b>${l}:</b>${v}<span data-k="${k}" data-v="${String(v).replace(/"/g,'&quot;')}">✕</span></div>`)));
- Object.keys(colFilters).forEach(c=>{const f=colFilters[c];const lbl=COLLABEL[c]||c;
+ Object.keys(colFilters).forEach(c=>{const f=colFilters[c];const lbl=colFilterLabel(c);
    if(f.search)o.push(`<div class="chip"><b>${lbl}:</b>"${f.search}"<span data-cf="${c}">✕</span></div>`);
    if(f.values&&f.values.size)o.push(`<div class="chip"><b>${lbl}:</b>${f.values.size} ערכים<span data-cf="${c}">✕</span></div>`);
    if(f.min!=null||f.max!=null)o.push(`<div class="chip"><b>${lbl}:</b>${f.min!=null?f.min:'…'}–${f.max!=null?f.max:'…'}<span data-cf="${c}">✕</span></div>`);});
@@ -5518,9 +5554,21 @@ function setQuery(v,focus){qEl('q').value=v==null?'':v;applyQuery();
  if(focus)qEl('q').focus()}
 function clearQuery(){setQuery('');closeSug()}
 function focusQ(){const i=qEl('q');i.focus();i.select();renderSug()}
+/* ============ סינון עמודה — גם במסלולים ============
+   colFilters היה שייך לקטלוג בלבד, והנגישה שלו הייתה COLACC. עמודות
+   הרישום נשמרות באותו אובייקט עם קידומת «c:», כי יש שמות זהים עם
+   משמעות שונה — COLACC.cov הוא חודשי כיסוי, ו-SCOL.cov הוא יחידות
+   שנוחתות החודש. בלי הקידומת סינון על אחד היה מסנן את השני. */
+function colAcc(c){
+ if(c.slice(0,2)==='c:'){const d=SCOL[c.slice(2)];
+  return d&&d.val?d.val:(()=>'')}
+ return COLACC[c]||(()=>'')}
+function colFilterLabel(c){
+ if(c.slice(0,2)==='c:')return (SCOL[c.slice(2)]||{}).t||c.slice(2);
+ return COLLABEL[c]||c}
 function passColFilters(r){
  if(SQ&&!scoreRow(r,SQ))return false;
- for(const c in colFilters){const f=colFilters[c],val=COLACC[c](r);
+ for(const c in colFilters){const f=colFilters[c],val=colAcc(c)(r);
    if(f.search){if(!String(val).toLowerCase().includes(f.search.toLowerCase()))return false}
    if(f.values&&f.values.size){if(!f.values.has(String(val)))return false}
    if(f.min!=null&&(!(typeof val==='number')||val<f.min))return false;
@@ -5628,7 +5676,7 @@ function ageTag(r){
  const d=r.hDays>0?` · ${r.hDays} ימים`:'';
  return `<span class="ag${stuck?' stuck':''}" title="בתור ${r.hSeen} הרצות${d}${r.hWorse?' · החוסר גדל מההרצה הקודמת':''}">`+
    `${stuck?'⚑ ':''}${r.hSeen}×${r.hWorse?'<i>↑</i>':''}</span>`}
-function NCOL(){return SHORTLIKE()?(1+visCols().length):track==='done'?6:track==='floor'?9:track==='trend'?9:track==='rise'?9:track==='cust'?8:track==='applied'?7:8}
+function NCOL(){return colReg()?(1+visCols().length):track==='done'?6:track==='floor'?9:track==='trend'?9:track==='rise'?9:track==='cust'?8:track==='applied'?7:8}
 /* הכמות לרכישה כפי שהיא מנוסחת בהחלטה עצמה. נשלפת מהטקסט ולא מחושבת
    מחדש, כדי שהמספר בעמודה יהיה בדיוק המספר שההחלטה אומרת.
    העמודה נכתבת רק כשהכמות שונה מהחוסר — ב"לקוח ממתין" וב"אוזל החודש"
@@ -5778,6 +5826,12 @@ function custGroups(rows){
    העמודות עצמן לא השתנו: ברירת המחדל בכל תצוגה היא בדיוק מה שהיה. */
 function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
 const SCOL={
+ /* שתי גרסאות למק״ט: עם כפתור «✓ טופל» ובלעדיו. מסלולי הפרמטרים,
+    «לקוח ממתין», «מעקב יישום» ו«טופלו» לא נשאו אותו לפני המעבר
+    לרישום, והוספה שקטה שלהם היא שינוי התנהגות — לא ניקוי. */
+ pnPlain:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט',
+  xval:r=>String(r.pn||''),
+  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}</span></td>`},
  pn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מתור העבודה',
   cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`},
  desc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
@@ -5824,6 +5878,142 @@ const SCOL={
   cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>`},
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+ /* ============ משפחת הפרמטרים ============
+    ROP ו-SS קיים מול מוצע, הדרישה הסטטיסטית, זמן האספקה והפערים.
+    כל אלה היו תבניות HTML נפרדות לכל מסלול; כאן הם עמודות ככל
+    עמודה אחרת, ולכן הם ניתנים למיון, לסינון, לשינוי רוחב ולבחירה. */
+ rop:{t:'ROP',ttl:'נקודת ההזמנה ב-SAP ← המוצעת, כשהן שונות',
+  val:r=>r.rop||0,xval:r=>r.rop||0,
+  cell:r=>`<td class="num">${(r.rop||0).toLocaleString('he-IL')}`
+   +(r.rop!==r.sugROP?`<span class="sug">←${(r.sugROP||0).toLocaleString('he-IL')}</span>`:'')+'</td>'},
+ ss:{t:'SS',ttl:'מלאי הביטחון ב-SAP ← המוצע, כשהם שונים',
+  val:r=>r.ss||0,xval:r=>r.ss||0,
+  cell:r=>`<td class="num">${(r.ss||0).toLocaleString('he-IL')}`
+   +(r.ss!==r.sugSS?`<span class="sug">←${(r.sugSS||0).toLocaleString('he-IL')}</span>`:'')+'</td>'},
+ need:{t:'הדרישה',ttl:'⌈Z × σ × √LT⌉ — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר. «—» = אין קצב מדוד',
+  val:r=>ssNoRate(r)?-1:ssNeed(r),xval:r=>ssNoRate(r)?'':ssNeed(r),
+  cell:r=>`<td class="num need${ssFloorGap(r)>0?' over':''}${ssNoRate(r)?' dim':''}" title="${esc(ssFloorGap(r)>0?(ssNoRate(r)?`אין קצב מדוד, ולכן הרצפה שהגדרת (${r.ssMinEff}) היא כולה הפער`:`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`):'הדרישה הסטטיסטית')}">`
+   +((r.rate>0&&!r.isPDItem&&!ssNoRate(r))?ssNeed(r).toLocaleString('he-IL'):'—')+'</td>'},
+ ssMin:{t:'SS מוגדר',ttl:'מל.בט.מינ. — הרצפה שהוגדרה ב-SAP',
+  val:r=>r.ssMin||0,xval:r=>r.ssMin||0,
+  cell:r=>`<td class="num"><b>${(r.ssMin||0).toLocaleString('he-IL')}</b></td>`},
+ lt:{t:'זמן אספקה',ttl:'זמן האספקה התכנוני בימים. «חסר» = אין נתון בדוח',
+  val:r=>r.ltD||0,xval:r=>r.ltD||0,
+  cell:r=>`<td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>`},
+ d12:{t:'צריכה 12ח׳',ttl:'צריכה בשנים עשר החודשים האחרונים',
+  val:r=>r.d12||0,xval:r=>r.d12||0,
+  cell:r=>`<td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>`},
+ fgap:{t:'פער',ttl:'הרצפה שהגדרת פחות הדרישה הסטטיסטית',
+  val:r=>ssFloorGap(r),xval:r=>ssFloorGap(r),
+  cell:r=>`<td class="num"><span class="stake qty">${ssFloorGap(r).toLocaleString('he-IL')}</span></td>`},
+ fval:{t:'שווי הפער',ttl:'הפער כפול מחיר ה-FOB. הדירוג הוא בתוך המטבע בלבד',
+  val:r=>ssFloorGap(r)*(r.price||0),xval:r=>Math.round(ssFloorGap(r)*(r.price||0)),
+  cell:r=>`<td class="num val">${money(ssFloorGap(r)*(r.price||0),r.currency)}</td>`},
+ tpct:{t:'מגמה',ttl:'שלושת החודשים האחרונים מול השלושה שלפניהם, בתוך חלון הקצב עצמו',
+  val:r=>trendPct(r),xval:r=>trendPct(r),
+  cell:r=>`<td class="num tdn">↓${Math.abs(trendPct(r))}%</td>`},
+ trate:{t:'קצב חודשי',ttl:'ממוצע 6 חודשים ← אותו ממוצע מרוסן בחצי מהירידה שנמדדה',
+  val:r=>r.rate||0,xval:r=>+(r.rate||0).toFixed(2),
+  cell:r=>`<td class="num">${fmt1(r.rate)}<span class="sug">←${fmt1(r.rateT)}</span></td>`},
+ trop:{t:'ROP מוצע',ttl:'נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן',
+  val:r=>r.sugROP||0,xval:r=>r.sugROP||0,
+  cell:r=>`<td class="num">${(r.sugROP||0).toLocaleString('he-IL')}<span class="sug">←${(r.sugROPT||0).toLocaleString('he-IL')}</span></td>`},
+ tgap:{t:'פער',ttl:'בכמה יחידות נקודת ההזמנה גבוהה מהביקוש שנמדד',
+  val:r=>trendGap(r),xval:r=>trendGap(r),
+  cell:r=>`<td class="num"><span class="stake qty">${trendGap(r).toLocaleString('he-IL')}</span></td>`},
+ tval:{t:'שווי הפער',ttl:'הפער כפול מחיר ה-FOB',
+  val:r=>trendGap(r)*(r.price||0),xval:r=>Math.round(trendGap(r)*(r.price||0)),
+  cell:r=>`<td class="num val">${money(trendGap(r)*(r.price||0),r.currency)}</td>`},
+ upct:{t:'מגמה',ttl:'שלושת החודשים האחרונים מול השלושה שלפניהם. נמדד רק כשהרבעון הקודם נושא 3 יחידות לפחות',
+  val:r=>risePct(r),xval:r=>risePct(r),
+  cell:r=>`<td class="num tup">↑${risePct(r)}%`
+   +(r.riseF>=TREND_CEIL?`<span class="cap" title="העלייה שנמדדה גדולה מהתקרה — ההגברה נחתכה ב-1.4, בדיוק כמו שהריסון נעצר ב-0.6. עמודת הקצב מראה את מה שהוחל בפועל.">⊤</span>`:'')+'</td>'},
+ urate:{t:'קצב חודשי',ttl:'ממוצע 6 חודשים ← אותו ממוצע מוגבר בחצי מהעלייה שנמדדה, עד תקרה של 1.4',
+  val:r=>r.rate||0,xval:r=>+(r.rate||0).toFixed(2),
+  cell:r=>`<td class="num">${fmt1(r.rate)}<span class="sug">←${fmt1(r.rateU)}</span></td>`},
+ urop:{t:'ROP מוצע',ttl:'נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המוגבר. מספר מייעץ — הכלי אינו מרים את ההמלצה לבד',
+  val:r=>r.sugROP||0,xval:r=>r.sugROP||0,
+  cell:r=>`<td class="num">${(r.sugROP||0).toLocaleString('he-IL')}<span class="sug">←${(r.sugROPU||0).toLocaleString('he-IL')}</span></td>`},
+ ugap:{t:'פער',ttl:'בכמה יחידות נקודת ההזמנה מפגרת אחרי הביקוש שנמדד',
+  val:r=>riseGap(r),xval:r=>riseGap(r),
+  cell:r=>`<td class="num"><span class="stake qty">${riseGap(r).toLocaleString('he-IL')}</span>`
+   +(riseCovered(r)?`<span class="cov" title="${esc(`משלוח מתוארך של ${r.etaQty} יח׳ סוגר את הפער הזה — למחזור הזה. נקודת ההזמנה עצמה נשארת נמוכה, ולכן הפריט נשאר ברשימה.`)}">✓</span>`:'')+'</td>'},
+ freeRop:{t:'מלאי',ttl:'מלאי פנוי. אדום = כבר מתחת לנקודת ההזמנה הנוכחית',
+  val:r=>Math.max(0,r.free||0),xval:r=>Math.max(0,r.free||0),
+  cell:r=>{const low=(r.free||0)<=(r.sugROP||0);
+   return `<td class="num${low?' miss':''}">`+(low?`<span class="neg">${(r.free||0).toLocaleString('he-IL')}</span>`:(r.free||0).toLocaleString('he-IL'))+'</td>'}},
+ fix:{t:'מה לתקן',ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
+  val:r=>String((r.act||[])[0]||''),xval:r=>String((r.act||[])[0]||''),
+  cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc((r.act||[])[0]||'')}</td>`},
+ /* ============ לקוח ממתין · מעקב יישום · טופלו · אוזל החודש ============ */
+ waiting:{t:'ממתין',ttl:'כמות בהז.פ — הזמנת לקוח פתוחה, בניכוי כמות חסומה למשלוח',
+  val:r=>r.cust||0,xval:r=>r.cust||0,
+  cell:r=>`<td class="num"><span class="stake qty">${(r.cust||0).toLocaleString('he-IL')}</span></td>`},
+ stock:{t:'במלאי',ttl:'סה״כ מלאי. מלאי שמופיע כאן קיים פיזית אך אינו זמין — הקצאה, חסימה או בדיקה',
+  val:r=>Math.max(0,r.stock||0),xval:r=>Math.max(0,r.stock||0),
+  cell:r=>{const st=Math.max(0,r.stock||0);
+   return `<td class="num${st>0?' held':''}"${st>0?` title="${st} יח׳ קיימות פיזית אך המלאי הפנוי אפס — הקצאה, חסימה או בדיקה"`:''}>`
+    +(st>0?st.toLocaleString('he-IL'):'<span class="mut">—</span>')+'</td>'}},
+ custVal:{t:'שווי ההזמנה',ttl:'שווי הזמנת הלקוח שאין לה כיסוי, לפי מחיר FOB',
+  val:r=>custVal(r),xval:r=>Math.round(custVal(r)),
+  cell:r=>`<td class="num val">${money(custVal(r),r.currency)}</td>`},
+ apRop:{t:'נקודת הזמנה',ttl:'הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז',
+  val:r=>{const q=r.apPrev;return q?(r.rop||0)-(q.rop||0):0},
+  xval:r=>r.rop||0,
+  cell:r=>{const q=r.apPrev;return `<td class="num">${q?apCell(q.rop,r.rop,q.sugROP,q.rState):'<span class="mut">—</span>'}</td>`}},
+ apSs:{t:'מלאי ביטחון',ttl:'הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז',
+  val:r=>{const q=r.apPrev;return q?(r.ss||0)-(q.ss||0):0},
+  xval:r=>r.ss||0,
+  cell:r=>{const q=r.apPrev;return `<td class="num">${q?apCell(q.ss,r.ss,q.sugSS,q.sState):'<span class="mut">—</span>'}</td>`}},
+ cons11:{t:'צריכה 11ח׳',ttl:'צריכה באחד עשר החודשים שבחלון',
+  val:r=>r.d12||0,xval:r=>r.d12||0,
+  cell:r=>`<td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>`},
+ apState:{t:'מצב',ttl:'הסיווג שהפריט קיבל בדוח הנוכחי',
+  val:r=>String(r.cat||''),xval:r=>String(r.cat||''),
+  cell:r=>`<td>${esc(r.cat||'')}</td>`},
+ markLbl:{t:'הסימון',ttl:'סוג הסימון הידני וההערה שנכתבה איתו',
+  val:r=>String((r.mark&&MARK_LABEL[r.mark.t])||''),
+  xval:r=>String((r.mark&&MARK_LABEL[r.mark.t])||''),
+  cell:r=>{const mk=r.mark||{};
+   return `<td>${esc(MARK_LABEL[mk.t]||'מסומן')}${mk.note?' — '+esc(mk.note):''}</td>`}},
+ markWhen:{t:'מתי סומן',ttl:'מועד הסימון בדפדפן הזה',
+  val:r=>(r.mark&&r.mark.ts)||0,
+  xval:r=>(r.mark&&r.mark.ts)?new Date(r.mark.ts).toLocaleString('he-IL'):'',
+  cell:r=>{const mk=r.mark||{},w=mk.ts?new Date(mk.ts):null,p2=n=>String(n).padStart(2,'0');
+   return `<td class="num">${w?`${p2(w.getDate())}.${p2(w.getMonth()+1)} ${p2(w.getHours())}:${p2(w.getMinutes())}`:'—'}</td>`}},
+ undo:{t:'',ttl:'ביטול הסימון מחזיר את הפריט לתור העבודה',
+  cell:r=>`<td><button class="dn undo" data-undo="${esc(r.pn)}">↺ בטל סימון</button></td>`},
+ c3:{t:'3ח׳',ttl:'צריכה בשלושת החודשים האחרונים',
+  val:r=>r.c3||0,xval:r=>r.c3||0,
+  cell:r=>`<td class="num">${(r.c3||0).toLocaleString('he-IL')}</td>`},
+ r3:{t:'לחודש',ttl:'הקצב החודשי לפי שלושת החודשים האחרונים',
+  val:r=>r.r3||0,xval:r=>+(r.r3||0).toFixed(1),
+  cell:r=>`<td class="num">${(r.r3||0).toFixed(1)}</td>`},
+ freeDry:{t:'פנוי',ttl:'מלאי פנוי. 0 בולט — המדף ריק',
+  val:r=>Math.max(0,r.free||0),xval:r=>Math.max(0,r.free||0),
+  cell:r=>`<td class="num">${(r.free||0)<=0?'<span class="stake short">0</span>':(r.free||0).toLocaleString('he-IL')}</td>`},
+ m1gap:{t:'חסר',ttl:'הקצב החודשי פחות המלאי הפנוי',
+  val:r=>Math.ceil((r.r3||0)-(r.free||0)),xval:r=>Math.ceil((r.r3||0)-(r.free||0)),
+  cell:r=>`<td class="num miss"><b>${Math.ceil((r.r3||0)-(r.free||0))}</b></td>`},
+ poPlain:{t:'בדרך',ttl:'רכש פתוח. מוצג למידע בלבד ואינו נספר ככיסוי',
+  val:r=>r.po||0,xval:r=>r.po||0,
+  cell:r=>`<td class="num">${(r.po||0)>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td>`},
+ /* ============ הון כלוא ============
+    «% מצטבר» תלוי במיקום בתוך בלוק המטבע ולא בשורה לבדה, ולכן הוא
+    מקבל את ההקשר דרך x — אותו דפוס של «תיאור» שמקבל את הסיווג
+    הראשי של הקבוצה. */
+ capType:{t:'סוג ההחלטה',ttl:'הסיווג שהמנוע נתן לפריט',
+  val:r=>String(r.cat||''),xval:r=>String(r.cat||''),
+  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat||'')}</span></td>`},
+ capVal:{t:'הון כלוא',ttl:'השווי שיושב בפריט לפי מחיר ה-FOB. הדירוג הוא בתוך המטבע בלבד',
+  val:r=>r.expCap||0,xval:r=>Math.round(r.expCap||0),
+  cell:r=>`<td class="num val"><span class="stake cap">${money(r.expCap||0,r.currency)}</span></td>`},
+ capPct:{t:'% מצטבר',ttl:'האחוז המצטבר בתוך בלוק המטבע — לא חוצה מטבעות',
+  cell:(r,x)=>`<td class="num"><span class="cum">${x&&x.pct!=null?x.pct:0}%</span></td>`},
+ capCov:{t:'כיסוי',ttl:'חודשי כיסוי לפי מלאי, רכש ומלאי בהעברה. + = כולל רכש פתוח',
+  val:r=>r.covA==null?-1:r.covA,xval:r=>r.covA==null?'':+r.covA.toFixed(1),
+  cell:r=>`<td class="num"${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>`
+   +(r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1))+(r.po>0?'<span class="sug">+</span>':'')+'</td>'},
  /* ============ מצב טיפול — עמודה נפרדת מהחומרה ============
     החומרה היא מה שהמנוע קבע על הפריט (צבע השורה); מצב הטיפול הוא
     מה שאתה עשית. שני צירים, שתי עמודות, ואף אחד מהם אינו נגזר
@@ -5839,13 +6029,45 @@ const SCOL={
  age:{t:'ותק',val:r=>r.hSeen||0,ttl:'בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע',
   cell:r=>`<td class="age">${ageTag(r)}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['pn','desc','sup','spark','free','cust','po','tr','cov','stuck','otw','eta',
- 'missq','miss','buy','cova','val','act','cat','state','age'];
+const SCOL_ORDER=['pn','pnPlain','desc','sup','spark','free','freeRop','freeDry','cust','waiting','stock',
+ 'po','poPlain','tr','cov','stuck','otw','eta','missq','miss','m1gap','buy','cova',
+ 'rop','ss','apRop','apSs','need','ssMin','lt','d12','c3','r3','cons11',
+ 'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
+ 'capVal','capPct','capCov','val','custVal','act','fix','cat','capType','apState','state','markLbl','markWhen','undo','age'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
  dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
- sup:['pn','desc','free','otw','cust','missq','buy','cova','age','cat']};
-function colViewKey(){return groupBy==='supplier'?'sup':'dec'}
+ sup:['pn','desc','free','otw','cust','missq','buy','cova','age','cat'],
+ /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
+    המעבר לרישום — אותן עמודות, אותו סדר. */
+ fix:['pn','desc','rop','ss','need','lt','fix'],
+ floor:['pnPlain','desc','ssMin','need','fgap','fval','eta','d12'],
+ trend:['pnPlain','desc','tpct','trate','trop','tgap','tval','eta'],
+ rise:['pnPlain','desc','upct','urate','urop','ugap','eta','freeRop'],
+ cust:['pnPlain','desc','waiting','stock','eta','lt','custVal'],
+ applied:['pnPlain','desc','apRop','apSs','cons11','apState'],
+ done:['pnPlain','desc','markLbl','markWhen','undo'],
+ m1:['pnPlain','desc','c3','r3','freeDry','m1gap','poPlain'],
+ cap:['pn','desc','capType','capVal','capPct','act','capCov']};
+/* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
+function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
+/* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
+   שמשמעותן זהה בכל מסלול. עמודה ששייכת למסלול אחר (למשל «% מצטבר»
+   מחוץ להון הכלוא) אינה מוצעת — היא הייתה מציגה מקף בכל שורה. */
+const SCOL_POOL=['sup','spark','free','cust','po','tr','eta','cova','val','act',
+ 'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq'];
+function colChoices(v){const d=SCOL_DEF[v]||[];
+ return SCOL_ORDER.filter(k=>d.includes(k)||SCOL_POOL.includes(k))}
+/* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
+   המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
+function colViewKey(){
+ if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
+ if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
+ /* «קטלוג פריטים» חולק track='cap' עם «בריאות המלאי» אבל מרונדר
+    ברנדרר אחר (COLS), ולכן אין לו רישום — ואסור שיציג בורר
+    שאינו משנה דבר. */
+ if(track==='cap'&&cur!=='today')return 'catalog';
+ return String(track||'')}
 /* ============ מיון בתוך הקיבוץ ============
    לטבלת העבודה לא היה מיון בכלל: הסדר נקבע בתוך decisionList לפי
    שכבה וערך, וכותרת לא הייתה לחיצה. המיון שנוסף כאן פועל *בתוך* כל
@@ -5870,6 +6092,8 @@ function wsortApply(list,byCur){
   if(!idx.has(k)){idx.set(k,blocks.length);blocks.push([])}
   blocks[idx.get(k)].push(r)}
  return blocks.flatMap(one)}
+/* עמודה שאינה קיימת בתצוגה הנוכחית אינה יכולה להישאר מיון פעיל */
+function wsortSane(){if(WSORT.col&&!visCols().includes(WSORT.col))WSORT={col:null,dir:'desc'}}
 function wsortClick(k){
  if(!SCOL[k]||!SCOL[k].val)return;
  if(WSORT.col!==k)WSORT={col:k,dir:'desc'};
@@ -5893,14 +6117,17 @@ function visCols(){const v=colViewKey();
  const out=list.filter(colUsable);
  return out.length?out:SCOL_DEF[v].filter(colUsable)}
 function colHeadHTML(){
+ wsortSane();
  return visCols().map(k=>{const c=SCOL[k];
   const ttl=typeof c.ttl==='function'?c.ttl():c.ttl;
   const on=WSORT.col===k,srt=!!c.val;
   const arr=on?(WSORT.dir==='asc'?'▲':'▼'):'';
-  const tip=(ttl||'')+(srt?`${ttl?' · ':''}לחיצה — מיון בתוך כל קבוצה`:'');
-  return `<th data-ck="${k}" class="${srt?'wsrt':''}${on?' act':''}">`
+  const filt=!!colFilters['c:'+k];
+  const tip=(ttl||'')+(srt?`${ttl?' · ':''}לחיצה — מיון · ▾ — סינון`:'');
+  return `<th data-ck="${k}" class="${srt?'wsrt':''}${on?' act':''}${filt?' filt':''}">`
    +`<div class="thc"${tip?` title="${esc(tip)}"`:''}>${esc(c.t)}`
-   +(arr?`<span class="warr">${arr}</span>`:'')+'</div></th>'}).join('')}
+   +(arr?`<span class="warr">${arr}</span>`:'')
+   +'</div>'+(srt?`<button type="button" class="wfil" title="סינון העמודה" aria-label="סינון ${esc(c.t)}"></button>`:'')+'</th>'}).join('')}
 function colRowHTML(r,x){return visCols().map(k=>SCOL[k].cell(r,x||{})).join('')}
 
 function decisionHead(){const cols=FIXLIKE()
@@ -5939,7 +6166,7 @@ function decisionHead(){const cols=FIXLIKE()
     בטבלת העבודה הכותרות נגזרות מרישום העמודות, ולכן הן תמיד אותן
     עמודות שהשורה מציגה — ראה SCOL. */
  const rnk='<tr><th style="width:38px"><div class="thc">#</div></th>';
- if(SHORTLIKE())return rnk+colHeadHTML()+'</tr>';
+ if(colReg())return rnk+colHeadHTML()+'</tr>';
  return rnk+cols.map(h=>`<th><div class="thc">${h}</div></th>`).join('')+'</tr>'}
 
 /* ============ הגרף המצרפי — הוסר ============
@@ -5950,15 +6177,8 @@ function decisionHead(){const cols=FIXLIKE()
    הסדרה החודשית לא נגע. niceTop/niceTicks ירדו איתו — הם שימשו
    אותו בלבד. */
 function custRow(r,i){
- const stock=Math.max(0,r.stock||0);
- return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-  <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-  <td>${hlMark(r.desc.slice(0,36),SQ)}</td>
-  <td class="num"><span class="stake qty">${r.cust.toLocaleString('he-IL')}</span></td>
-  <td class="num${stock>0?' held':''}"${stock>0?` title="${stock} יח׳ קיימות פיזית אך המלאי הפנוי אפס — הקצאה, חסימה או בדיקה"`:''}>${stock>0?stock.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>
-  ${doorEtaCell(r)}
-  <td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
-  <td class="num">${money(custVal(r),r.currency)}</td></tr>`}
+ return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+  +colRowHTML(r,{dlen:36})+'</tr>'}
 function renderCust(rows){
  const G=custGroups(rows),body=[];let idx=0;
  const head=(key,color,name,n,sub,units,list)=>{const coll=GCOLL.has(key);
@@ -6023,14 +6243,9 @@ function renderApplied(rows){
    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
    <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`);
   if(coll||!list.length)continue;
-  for(const r of list){const i=idx++,p=r.apPrev;
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-    <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
-    <td class="num">${apCell(p.rop,r.rop,p.sugROP,p.rState)}</td>
-    <td class="num">${apCell(p.ss,r.ss,p.sugSS,p.sState)}</td>
-    <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>
-    <td>${esc(r.cat)}</td></tr>`)}}
+  for(const r of list){const i=idx++;
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:34})+'</tr>')}}
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
   `<tr><td colspan="${NCOL()}" class="empty">אין עם מה להשוות — צריך שתי העלאות של שני דוחות שונים.</td></tr>`;
  const A=APPLIED;
@@ -6064,7 +6279,8 @@ function renderDecisions(rows){
  const GB=GB0?Object.fromEntries(Object.keys(GB0).map(k=>[k,wsortApply(GB0[k],true)])):null;
  const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l).slice(0,lim)
    :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim)
-   :k?capView(rows,c):rows.slice(0,lim);
+   /* מסלול עם רישום אינו מקובץ, ולכן המיון חל על הרשימה כולה. */
+   :k?capView(rows,c):(colReg()?wsortApply(rows):rows).slice(0,lim);
  /* הסדר שעל המסך אינו הסדר של currentRows(): הקיבוץ, המיון בתוך
     הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
     לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
@@ -6110,67 +6326,14 @@ function renderDecisions(rows){
  }
  else view.forEach((r,i)=>{
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
-  if(track==='m1'){const gap=Math.ceil(r.r3-r.free),dry=r.free<=0;
-   body.push(`<tr data-i="${i}" class="sev${dry?3:2}"><td class="rnk"><span class="rank${dry?' hi':''}">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td>
-    <td>${hlMark(r.desc.slice(0,22),SQ)}</td>
-    <td class="num">${r.c3}</td><td class="num">${r.r3.toFixed(1)}</td>
-    <td class="num">${dry?'<span class="stake short">0</span>':r.free}</td>
-    <td class="num miss"><b>${gap}</b></td>
-    <td class="num">${r.po>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td></tr>`);
-   return}
-  if(track==='done'){const mk=r.mark||{};
-   const when=mk.ts?new Date(mk.ts):null;
-   const p2=n=>String(n).padStart(2,'0');
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-    <td>${hlMark(r.desc.slice(0,44),SQ)}</td>
-    <td>${esc(MARK_LABEL[mk.t]||'מסומן')}${mk.note?' — '+esc(mk.note):''}</td>
-    <td class="num">${when?`${p2(when.getDate())}.${p2(when.getMonth()+1)} ${p2(when.getHours())}:${p2(when.getMinutes())}`:'—'}</td>
-    <td><button class="dn undo" data-undo="${esc(r.pn)}">↺ בטל סימון</button></td></tr>`);
-   return}
-  if(track==='floor'){const gap=ssFloorGap(r),need=ssNeed(r);
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-    <td>${hlMark(r.desc.slice(0,34),SQ)}</td>
-    <td class="num"><b>${r.ssMin.toLocaleString('he-IL')}</b></td>
-    <td class="num${ssNoRate(r)?' dim':''}" title="${ssNoRate(r)?'אין קצב מדוד — המרכיב הסטטיסטי לא חושב, ולכן הרצפה כולה היא הפער':'⌈Z × σ × √LT⌉'}">${ssNoRate(r)?'—':need.toLocaleString('he-IL')}</td>
-    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
-    <td class="num">${money(gap*(r.price||0),r.currency)}</td>
-    ${doorEtaCell(r)}
-    <td class="num">${(r.d12||0).toLocaleString('he-IL')}</td></tr>`);
-   return}
-  if(track==='rise'){const gap=riseGap(r),pc=risePct(r);
-   const low=r.free<=r.sugROP;
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-    <td>${hlMark(r.desc.slice(0,32),SQ)}</td>
-    <td class="num tup">↑${pc}%${r.riseF>=TREND_CEIL?`<span class="cap" title="העלייה שנמדדה גדולה מהתקרה — ההגברה נחתכה ב-1.4, בדיוק כמו שהריסון נעצר ב-0.6. עמודת הקצב מראה את מה שהוחל בפועל.">⊤</span>`:''}</td>
-    <td class="num">${fmt1(r.rate)}<span class="sug">→${fmt1(r.rateU)}</span></td>
-    <td class="num">${r.sugROP.toLocaleString('he-IL')}<span class="sug">→${r.sugROPU.toLocaleString('he-IL')}</span></td>
-    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span>${riseCovered(r)?`<span class="cov" title="${esc(`משלוח מתוארך של ${r.etaQty} יח׳ סוגר את הפער הזה — למחזור הזה. נקודת ההזמנה עצמה נשארת נמוכה, ולכן הפריט נשאר ברשימה.`)}">✓</span>`:''}</td>
-    ${doorEtaCell(r)}
-    <td class="num${low?' miss':''}">${low?`<span class="neg">${r.free.toLocaleString('he-IL')}</span>`:r.free.toLocaleString('he-IL')}</td></tr>`);
-   return}
-  if(track==='trend'){const gap=trendGap(r),pc=trendPct(r);
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}</td>
-    <td>${hlMark(r.desc.slice(0,32),SQ)}</td>
-    <td class="num tdn">↓${Math.abs(pc)}%</td>
-    <td class="num">${fmt1(r.rate)}<span class="sug">→${fmt1(r.rateT)}</span></td>
-    <td class="num">${r.sugROP.toLocaleString('he-IL')}<span class="sug">→${r.sugROPT.toLocaleString('he-IL')}</span></td>
-    <td class="num"><span class="stake qty">${gap.toLocaleString('he-IL')}</span></td>
-    <td class="num">${money(gap*(r.price||0),r.currency)}</td>
-    ${doorEtaCell(r)}</tr>`);
-   return}
-  if(FIXLIKE()){
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>
-    <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
-    <td>${r.rop}${r.rop!==r.sugROP?`<span class="sug">→${r.sugROP}</span>`:''}</td>
-    <td>${r.ss}${r.ss!==r.sugSS?`<span class="sug">→${r.sugSS}</span>`:''}</td>
-    <td class="num need${ssFloorGap(r)>0?' over':''}" title="${ssFloorGap(r)>0?(ssNoRate(r)?`אין קצב מדוד, ולכן הרצפה שהגדרת (${r.ssMinEff}) היא כולה הפער`:`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`):'הדרישה הסטטיסטית'}">${(r.rate>0&&!r.isPDItem)?ssNeed(r).toLocaleString('he-IL'):'—'}</td>
-    <td>${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>
-    <td class="act1">${esc((r.act||[])[0]||'')}</td></tr>`);
+  /* תצוגה שיש לה רישום עמודות מרונדרת ממנו, ולכן הכותרת והתאים
+     נגזרים מאותו מקור — ועמודה שנוספה בבורר מופיעה בשניהם.
+     «הון כלוא» אינו נכנס כאן: יש לו מבנה נוסף — כותרת לכל בלוק
+     מטבע וקו ה-80% — שיושב אחרי הענף הזה. הוא מרונדר מהרישום
+     בהמשך, באותה colRowHTML. */
+  if(colReg()&&!k){
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:34})+'</tr>');
    return}
   /* האחוז המצטבר וקו ה-80% נמדדים בתוך המטבע של השורה בלבד. הרשימה
      מסודרת בבלוקים לפי מטבע, ולכן המונה מתאפס במעבר בין בלוק לבלוק. */
@@ -6185,16 +6348,8 @@ function renderDecisions(rows){
    acc+=r[k]||0;blkI++}
   const cb=k&&c.byCur?c.byCur[curKey(r)]:null;
   const pct=(cb&&cb.total)?Math.round(acc/cb.total*100):0,above=cb?blkI<=cb.n:false;
-  const c4=k?`<span class="stake ${track}">${money(r[k],r.currency)}</span>`
-            :`<span class="stake qty">${(r.miss||0).toLocaleString('he-IL')}</span>`;
-  const c5=k?`<span class="cum">${pct}%</span>`
-            :`<span class="badge" style="${sCatStyle(r)}">${SEVLBL[r.sev]||'—'}</span>`;
-  body.push(`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>
-   <td><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td><td>${hlMark(r.desc.slice(0,30),SQ)}</td>
-   <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
-   <td>${c4}</td><td>${c5}</td>
-   <td class="act1">${esc((r.act||[])[0]||'')}</td>
-   <td${(r.po>0||r.transfer>0)?` title="כולל ${r.po} יח׳ ברכש${r.transfer>0?` ו-${r.transfer} בהעברה`:''}"`:''}>${r.covA==null?'—':r.covA.toFixed(1)}${r.po>0?'<span class="sug">+</span>':''}</td></tr>`);
+  body.push(`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>`
+   +colRowHTML(r,{dlen:30,pct})+'</tr>');
   if(cb&&above&&blkI===cb.n){const ck=curKey(r);
    body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
@@ -6388,17 +6543,24 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  wireCopy(document.getElementById('movtbl'))}
 function closeColPop(){document.getElementById('colpop').classList.remove('open')}
 function openColPop(th,col){const pop=document.getElementById('colpop');
- const type=(COLS.find(c=>c[0]===col)||[])[2]||'t';
+ /* עמודת רישום מגיעה כ-«c:key». הסוג נגזר מהערך עצמו ולא מטבלת
+    הגדרות שנייה שתצטרך להישאר מסונכרנת. */
+ const reg=col.slice(0,2)==='c:',rk=reg?col.slice(2):null;
+ const acc=colAcc(col);
+ const sample=(QF&&QF.all&&QF.all.length)?QF.all[0]:null;
+ const type=reg?((sample&&typeof acc(sample)==='number')?'n':'t')
+   :((COLS.find(c=>c[0]===col)||[])[2]||'t');
  const f=colFilters[col]||{search:'',values:null,min:null,max:null};
  let valsHtml='';
- if(type==='t'){const base=(cur==='all'?QF.all:QF[cur]);
-   const c={};base.forEach(r=>{const v=String(COLACC[col](r));c[v]=(c[v]||0)+1});
+ if(type==='t'){const base=reg?(currentRows()||[]):(cur==='all'?QF.all:QF[cur]);
+   const c={};base.forEach(r=>{const v=String(acc(r));c[v]=(c[v]||0)+1});
    const opts=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,60);
    valsHtml=`<div class="vals">`+opts.map(([v,n])=>`<label><input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${f.values&&f.values.has(v)?'checked':''}><span>${v}</span><span class="c">${n}</span></label>`).join('')+`</div>`;}
  const rngHtml=type==='n'?`<div class="rng"><input id="cpMin" type="number" placeholder="מ-" value="${f.min!=null?f.min:''}"><input id="cpMax" type="number" placeholder="עד" value="${f.max!=null?f.max:''}"></div>`:'';
+ const sOn=d=>reg?(WSORT.col===rk&&WSORT.dir===d):(sortCol===col&&sortDir===d);
  pop.innerHTML=`<div class="srtrow">
-   <button id="cpAsc" class="${sortCol===col&&sortDir==='asc'?'on':''}">▲ עולה</button>
-   <button id="cpDesc" class="${sortCol===col&&sortDir==='desc'?'on':''}">▼ יורד</button></div>
+   <button id="cpAsc" class="${sOn('asc')?'on':''}">▲ עולה</button>
+   <button id="cpDesc" class="${sOn('desc')?'on':''}">▼ יורד</button></div>
   <input class="cs" id="cpSearch" placeholder="חיפוש בעמודה…" value="${(f.search||'').replace(/"/g,'&quot;')}">
   ${rngHtml}${valsHtml}
   <div class="act"><button id="cpClear">נקה סינון עמודה</button><button class="ok" id="cpOk">החל</button></div>`;
@@ -6407,8 +6569,10 @@ function openColPop(th,col){const pop=document.getElementById('colpop');
  let left=rect.right-240;if(left<8)left=8;pop.style.left=left+'px';
  pop.classList.add('open');
  pop.onclick=e=>e.stopPropagation();
- document.getElementById('cpAsc').onclick=()=>{sortCol=col;sortDir='asc';closeColPop();render()};
- document.getElementById('cpDesc').onclick=()=>{sortCol=col;sortDir='desc';closeColPop();render()};
+ const setSort=d=>{if(reg){WSORT={col:rk,dir:d}}else{sortCol=col;sortDir=d}
+   closeColPop();render()};
+ document.getElementById('cpAsc').onclick=()=>setSort('asc');
+ document.getElementById('cpDesc').onclick=()=>setSort('desc');
  document.getElementById('cpClear').onclick=()=>{delete colFilters[col];closeColPop();chips();render()};
  document.getElementById('cpOk').onclick=()=>{
    const nf={search:'',values:null,min:null,max:null};

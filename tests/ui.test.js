@@ -1417,6 +1417,70 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    w1.groups===w0.groups&&w2.groups===w0.groups,
    `${w0.groups} → ${w1.groups} → ${w2.groups}`);
 
+
+ /* ============ סינון לפי עמודה — בכל טבלת רישום ============
+    הדרישה: «לשנות את רוחב העמודות, להוסיף עמודות, ולסנן ולמיין —
+    כל הטבלאות בכלי». המיון והרוחב נבדקו למעלה; כאן הסינון.
+    מה שנעול: הכפתור ▾ פותח את אותו בורר עמודה שהקטלוג מכיר,
+    הסינון חותך *נתונים* ולא רק תצוגה, הכותרת מסומנת, שבב מופיע
+    מעל הטבלה, וניקוי מחזיר את הספירה המקורית.
+    הכפתור ממוקם absolute ולא בזרימה — נמדד כשהוא היה בזרימה:
+    הטבלה גדלה מ-1046 ל-1142 ב-1280px, ו-textContent של הכותרת
+    כלל את ה-▾ ושבר 14 בדיקות שקראו שמות עמודות. */
+ const goTrack=async t=>{await goNav(p,t);await p.waitForTimeout(400)};
+ const filtSnap=()=>p.evaluate(()=>({
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   marked:document.querySelectorAll('#tbl thead th.filt').length,
+   chips:[...document.querySelectorAll('#chipsTop .chip')].map(c=>c.textContent.trim()),
+   chipsSeen:!document.getElementById('chipsTop').hidden,
+   keys:Object.keys(colFilters)}));
+ /* פותח את העמודה «תיאור» ובוחר את הערך הראשון ברשימה. */
+ const pickFirstVal=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='תיאור');
+   if(!th)return {err:'אין כותרת תיאור'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const boxes=[...pop.querySelectorAll('.vals input')];
+   if(!boxes.length)return {err:'אין ערכים בבורר'};
+   boxes[0].checked=true;
+   const val=boxes[0].value,n=boxes.length;
+   document.getElementById('cpOk').click();
+   return {val,n}});
+ for(const [tk,nm] of [['today','מרכז עבודה'],['floor','רצפת SS'],['cust','לקוח ממתין']]){
+   await goTrack(tk);
+   const b4=await filtSnap();
+   const pk=await pickFirstVal();
+   await p.waitForTimeout(500);
+   const af=await filtSnap();
+   ok(`«${nm}» — ▾ בכותרת פותח בורר עמודה עם ערכים`,!pk.err&&pk.n>0,
+     pk.err||`${pk.n} ערכים · «${pk.val}»`);
+   ok(`«${nm}» — הסינון חותך שורות`,af.rows>0&&af.rows<b4.rows,
+     `${b4.rows} → ${af.rows}`);
+   ok(`«${nm}» — הכותרת מסומנת ושבב מופיע`,
+     af.marked===1&&af.chips.length===b4.chips.length+1&&af.chipsSeen
+     &&af.keys.includes('c:desc')&&/תיאור/.test(af.chips.join('')),
+     `כותרות ${af.marked} · שבבים ${af.chips.join(' | ')} · ${af.keys.join(',')}`);
+   /* הניקוי דרך אותו בורר שפתח — לא דרך מפתח פנימי בבדיקה. */
+   await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.filt')][0];
+     th.querySelector('.wfil').click();document.getElementById('cpClear').click()});
+   await p.waitForTimeout(500);
+   const cl=await filtSnap();
+   ok(`«${nm}» — «נקה סינון עמודה» מחזיר את הספירה`,
+     cl.rows===b4.rows&&cl.marked===0&&!cl.keys.includes('c:desc'),
+     `${af.rows} → ${cl.rows} (מקורי ${b4.rows})`);
+ }
+ /* הסינון אינו פוגע בייצוא: הגיליון מייצג את מה שנשאר על המסך. */
+ await goTrack('today');
+ await pickFirstVal();await p.waitForTimeout(500);
+ const fex=await p.evaluate(()=>({n:viewExportRows().n,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
+ ok('הייצוא מייצג את התצוגה המסוננת',fex.n===fex.rows&&fex.rows>0,
+   `${fex.n} / ${fex.rows}`);
+ await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
+ await p.waitForTimeout(500);
+
  /* ============ הייצוא מייצג את מה שרואים ============
     השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
     של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו
