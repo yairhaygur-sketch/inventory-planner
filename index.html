@@ -1470,6 +1470,9 @@ td.pnc{padding:5px 14px;font-size:13px}
 
 /* חלקים מתקפלים — צלילה לפי דרישה במקום גלילה תמידית */
 .dsec{border:1px solid var(--line2);border-radius:7px;background:var(--panel2)}
+/* גרף הצריכה יושב ישירות ב-.opad ולא בתוך עמודה, כדי שיהיה ראשון
+   בסדר הקריאה. ברוחב מלא הוא חוצה את שתי העמודות. */
+.opad>.dsec.wide{grid-column:1/-1}
 .dsec>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:10.5px;font-weight:700;
  color:var(--dim);display:flex;align-items:center;gap:6px;user-select:none}
 .dsec>summary::-webkit-details-marker{display:none}
@@ -7030,6 +7033,17 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
   <button class="dt" data-dt="hist" data-xp="dt-hist">היסטוריה</button>
  </div>
  <div class="opad">
+  <!-- ============ הגרף בתצוגת ברירת המחדל ============
+       המפרט קובע את סדר הכרטיס: בעיה+פעולה ← הנתונים שהובילו
+       אליה ← צריכה+גרף ← רכש ואספקה ← פרמטרים ← מידע חסר.
+       בפועל הגרף ישב בלשונית «נתונים», בעמודה השנייה, *אחרי*
+       תיקון פרמטרים — כלומר שלוש אינטראקציות מפתיחת הפריט:
+       החלפת לשונית וגלילה מעבר לכ-20 שדות. נמדד מהקלטת מסך.
+       עכשיו הוא ראשון ב-.opad, ברוחב מלא, ומוצג בשתי הלשוניות
+       («החלטה» ו«נתונים») — מי שבודק פרמטרים רואה את הצריכה
+       שהם נגזרים ממנה, בלי לעבור לשונית. -->
+  <details class="dsec wide" data-dt="why data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
+   <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
   <div class="col">
    <!-- ============ סדר הקריאה בכרטיס ============
         משפט פעולה אחד בראש, מתחתיו מה שמצדיק אותו, ורק אחר כך
@@ -7064,8 +7078,6 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
     <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
-   <details class="dsec" data-dt="data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
-    <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
     <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח${ETA?', כולל הכמות שכבר שובצה לאספקה':', משום שלא נטען דוח ETA'}. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
@@ -7075,18 +7087,22 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     הסלקטורים לא זזו — רק התווסף data-dt לכל מקטע, וזה מה שמסתתר. */
  const dtSel=k=>{
   document.querySelectorAll('#dtabs .dt').forEach(b=>b.classList.toggle('on',b.dataset.dt===k));
+  /* מקטע יכול להשתייך ליותר מלשונית אחת — «data-dt="why data"».
+     קודם ההשוואה הייתה מחרוזת מול מחרוזת, ולכן כל מקטע היה של
+     לשונית אחת בדיוק. */
   document.querySelectorAll('#detail [data-dt]').forEach(e=>{
    if(e.classList.contains('dt'))return;
-   e.hidden=e.dataset.dt!==k});
-  /* הקנבס מצויר רק כשיש לו רוחב — מרעננים אחרי שהטאב נפתח */
-  if(k==='data')document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
-    if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
+   e.hidden=!String(e.dataset.dt||'').split(' ').includes(k)});
+  /* הקנבס מצויר רק כשיש לו רוחב — מרעננים אחרי שהלשונית נפתחת.
+     בכל לשונית, לא רק ב«נתונים»: הגרף מוצג גם ב«החלטה». */
+  document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
+    if(!d.open||d.hidden)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
     (d.dataset.chart==='c1'?barChart:projChart)(cv,r)})};
  document.querySelectorAll('#dtabs .dt').forEach(b=>b.onclick=()=>dtSel(b.dataset.dt));
  dtSel('why');
  /* קנבס בתוך details סגור הוא ברוחב 0 — מציירים רק כשנפתח */
  document.querySelectorAll('#detail details.dsec[data-chart]').forEach(d=>{
-  const draw=()=>{if(!d.open)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
+  const draw=()=>{if(!d.open||d.hidden)return;const cv=document.getElementById(d.dataset.chart);if(!cv)return;
     (d.dataset.chart==='c1'?barChart:projChart)(cv,r)};
   d.addEventListener('toggle',draw);draw()});
  /* אותה פונקציה שהמקלדת מפעילה — לא מסלול ניווט שני */

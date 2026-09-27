@@ -116,16 +116,45 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  // 5. גרפים מתקפלים
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
  const d0=await p.evaluate(()=>{const o=document.querySelector('#detail .opad');return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflow}});
- /* הגרף יושב בטאב «נתונים» של תיק הפריט. קנבס בטאב מוסתר הוא ברוחב 0
-    ואסור לצייר לתוכו — לכן קודם עוברים לטאב, ורק אז פותחים את המקטע. */
- await p.evaluate(()=>{
-   const t=[...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='data');
-   if(t)t.click();
-   document.querySelector('#detail details[data-chart="c1"]').open=true});
- await p.waitForTimeout(600);
- const drawn=await p.evaluate(()=>{const c=document.getElementById('c1');return c&&c.width>0&&
-   c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(v=>v!==0)});
- ok('גרף הצריכה מצויר בפתיחת המקטע',drawn);
+ /* ============ הגרף בפתיחת הפריט ============
+    היה: «הגרף יושב בטאב נתונים» — והבדיקה הזאת עברה לטאב לפני
+    שבדקה. זו הייתה בדיקה נכונה למצב שגוי: המפרט קובע את סדר
+    הכרטיס כבעיה+פעולה ← הנתונים שהובילו אליה ← צריכה+גרף ←
+    רכש ← פרמטרים, והגרף ישב בלשונית השנייה, בעמודה השנייה,
+    *אחרי* תיקון פרמטרים. נמדד מהקלטת מסך של המתכנן: שלוש
+    אינטראקציות (פתיחה, החלפת לשונית, גלילה מעבר לכ-20 שדות).
+    מה שנעול עכשיו: אינטראקציה אחת. */
+ const chartNow=await p.evaluate(()=>{
+   const c=document.getElementById('c1'),det=c&&c.closest('details');
+   const pad=document.querySelector('#detail .opad');
+   if(!c||!det||!pad)return {err:'אין גרף'};
+   const cr=c.getBoundingClientRect(),pr=pad.getBoundingClientRect();
+   return {tab:(document.querySelector('#dtabs .dt.on')||{}).dataset.dt,
+     hidden:det.hidden,open:det.open,
+     first:[...pad.children].findIndex(x=>x.contains(c))===0,
+     needScroll:cr.bottom>pr.bottom||cr.top<pr.top,
+     scrolled:pad.scrollTop,
+     drawn:c.width>0&&c.getContext('2d').getImageData(0,0,c.width,c.height).data.some(v=>v!==0)}});
+ ok('גרף הצריכה מצויר בלשונית ברירת המחדל — בלי החלפת לשונית ובלי גלילה',
+   !chartNow.err&&chartNow.tab==='why'&&!chartNow.hidden&&chartNow.open
+   &&chartNow.drawn&&!chartNow.needScroll&&chartNow.scrolled===0,
+   chartNow.err||`לשונית=${chartNow.tab} · מוסתר=${chartNow.hidden} · מצויר=${chartNow.drawn} · נדרשת גלילה=${chartNow.needScroll}`);
+ ok('והוא הראשון בסדר הקריאה שאחרי בלוק ההחלטה',chartNow.first,
+   `ילד ראשון ב-.opad = ${chartNow.first}`);
+ /* ומי שבודק פרמטרים רואה את הצריכה שהם נגזרים ממנה — אותו מקטע
+    משתייך לשתי הלשוניות, ולא הועתק פעמיים. */
+ const chartData=await p.evaluate(()=>{
+   [...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='data').click();
+   const n=document.querySelectorAll('#detail canvas#c1').length;
+   const det=document.querySelector('#detail details[data-chart="c1"]');
+   return {n,hidden:det.hidden,w:Math.round(det.getBoundingClientRect().width)}});
+ await p.waitForTimeout(400);
+ ok('הגרף מוצג גם בלשונית «נתונים», ובעותק אחד',
+   chartData.n===1&&!chartData.hidden&&chartData.w>200,
+   `${chartData.n} קנבסים · מוסתר=${chartData.hidden} · רוחב ${chartData.w}`);
+ await p.evaluate(()=>{[...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='why').click()});
+ await p.waitForTimeout(300);
+ const drawn=chartNow.drawn;
  ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto',d0.ovf);
  ok('כרטיס הפריט: פחות גלילה מהבסיס',d0.sh<950,'תוכן '+d0.sh+'px בחלון '+d0.h+'px (בסיס: 1066/328)');
 
