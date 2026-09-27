@@ -1530,6 +1530,23 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
     900 פריטים ורוב ההון הכלוא אינו באף אחד משלושת הדליים. */
  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='home');if(a)a.click()});
+ await p.waitForTimeout(700);
+ /* «רכש פתוח בלי תאריך הגעה» על נתוני הדגמה מלאים: הכרטיס הציג 151
+    כשהמקור היה lineModel().stuck (דלי האוזלים שאין להם מענה), בזמן
+    ש-835 פריטים מחזיקים רכש פתוח בלי תאריך — פי 5.5. */
+ const noEta=await p.evaluate(()=>{
+   const c=[...document.querySelectorAll('.hcard')][1];
+   return {n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
+     rows:c.querySelectorAll('.hrow').length,
+     eng:(QF.all||[]).filter(r=>expStuck(r)>0).length,
+     lineStuck:lineModel().stuck.filter(r=>expStuck(r)>0).length,
+     eta:!!ETA}});
+ ok('«רכש פתוח בלי תאריך» סופר את כל הרכש שאין לו תאריך',
+   noEta.n===noEta.eng&&noEta.eng>0,
+   `כרטיס ${noEta.n} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
+ ok('וכשיש מה לספור הוא מציג שורות ולא מסך ריק',noEta.rows>0,noEta.rows+' שורות');
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
    .find(t=>t.dataset.m==='cap');if(a)a.click()});
  await p.waitForTimeout(800);
  const capS=await p.evaluate(()=>{const {list,B}=capBuckets();

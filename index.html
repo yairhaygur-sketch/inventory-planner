@@ -8056,11 +8056,19 @@ function renderCapTop(){
 function homeRows(k){
  if(!QF)return [];
  if(k==='burn')return burnRows().slice().sort((a,b)=>(b.miss||0)*(b.price||0)-(a.miss||0)*(a.price||0));
- /* בלי דוח ETA *שום* יחידה אינה מתוארכת, ולכן רשימה של 155 פריטים
-    כאן אינה רשימת עבודה אלא רשימת כל הרכש הפתוח. במצב הזה הכרטיס
-    אומר מה חסר במקום להציג רשימה שנראית כמו ממצא. */
- if(k==='line')return ETA?(lineModel().stuck||[]).filter(r=>expStuck(r)>0)
-   .sort((a,b)=>expStuck(b)-expStuck(a)):[];
+ /* ============ «רכש פתוח בלי תאריך הגעה» — שתי תקלות ============
+    1. המקור היה lineModel().stuck — הפריטים שאף תחנת אספקה אינה
+       מכסה עד המשלוח האחרון. זה דלי אחר לגמרי: הוא מסונן קודם כל
+       ל*אוזלים* (lineDry). נמדד על הדוח: 151 שורות בכרטיס מול 835
+       פריטים שבפועל יש להם רכש פתוח בלי תאריך — פי 5.5.
+    2. בלי דוח ETA הכרטיס החזיר רשימה ריקה והציג «0», בזמן ש-840
+       פריטים מחזיקים רכש פתוח ולאף אחד מהם אין תאריך. אפס הוא
+       התשובה ההפוכה מהאמת.
+    המקור הנכון הוא expStuck: r.stuck כשיש דוח ETA (יחידות רכש
+    שלא שובצו לשום אספקה), וכל הרכש הפתוח כשאין — כי אז באמת אין
+    תאריך לאף יחידה. רצועת הפערים ממשיכה לומר שהדוח לא נטען. */
+ if(k==='line')return (QF.all||[]).filter(r=>expStuck(r)>0)
+   .sort((a,b)=>expStuck(b)-expStuck(a));
  if(k==='month')return modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0))
    .sort((a,b)=>((b.sugROP||0)-(b.rop||0))-((a.sugROP||0)-(a.rop||0)));
  if(k==='cap')return decisionList('cap').slice().sort((a,b)=>(b.expCap||0)-(a.expCap||0));
@@ -8077,7 +8085,7 @@ function renderHome(){
  const h=document.getElementById('homePanel');if(!h)return;
  const CARDS=[
   ['burn','לקוח ממתין ללא רכש','⚠','critical','burn','אין פריט שממתין לו לקוח ואין מולו שום רכש'],
-  ['line','רכש פתוח בלי תאריך הגעה','⇄','steady','line',ETA?'לכל הרכש הפתוח יש תאריך בדוח ה-ETA':'לא נטען דוח ETA — אין תאריך לאף יחידת רכש'],
+  ['line','רכש פתוח בלי תאריך הגעה','⇄','steady','line','אין רכש פתוח שאין לו תאריך הגעה'],
   ['month','נקודת הזמנה נמוכה מהנדרש','◆','trend','month','אין תיקוני נקודת הזמנה'],
   ['cap','הון כלוא — הגדולים','❤','capital','cap','אין הון כלוא מזוהה']];
  const row=(k,r)=>`<button type="button" class="hrow" data-pn="${esc(r.pn)}">
