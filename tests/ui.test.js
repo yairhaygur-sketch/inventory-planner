@@ -1596,6 +1596,106 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.waitForTimeout(500);
  await goNav(p,'today');await p.waitForTimeout(500);
 
+
+ /* ============ הטבלה הכללית — קטלוג ודליי הסיווג ============
+    המרנדר הגנרי משרת את «קטלוג פריטים» ואת כל דליי הסיווג. היו לו
+    מיון, סינון ושינוי רוחב — אבל לא בורר עמודות, כי עשר העמודות
+    היו כתובות כמחרוזת HTML בתוך הפונקציה. עכשיו הוא צורך את אותו
+    רישום, ולכן יש לו גם בורר.
+    מה שנעול: העמודות והתאים לא השתנו, ברירת המחדל היא עדיין
+    חומרה, והמיון והסינון עובדים דרך אותו מנגנון של שאר הטבלאות. */
+ const CATDEF='מק״ט|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|הון כלוא';
+ const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
+   th:[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
+   nth:document.querySelectorAll('#tbl thead th').length,
+   ntd:(document.querySelector('#tbl tbody tr[data-i]')||{children:[]}).children.length,
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   pnc:document.querySelectorAll('#tbl tbody td.pnc').length,
+   dn:document.querySelectorAll('#tbl tbody .dn[data-done]').length,
+   srt:document.querySelectorAll('#tbl thead th.wsrt').length,
+   fil:document.querySelectorAll('#tbl thead .wfil').length,
+   btn:(()=>{const b=document.getElementById('colsBtn');return !!b&&!b.hidden})()}));
+ for(const m of ['catalog','all','excess']){
+   await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(600);
+   const c=await catScan();
+   ok(`«${m}» — אותן עשר עמודות, כותרת לכל תא`,
+     c.th===CATDEF&&c.nth===c.ntd&&c.nth===10,`${c.nth}/${c.ntd} · ${c.th}`);
+   ok(`«${m}» — הפס לפי חומרה וכפתור «✓ טופל» בכל שורה`,
+     c.pnc===c.rows&&c.dn===c.rows&&c.rows>0,`${c.pnc} תאי מק״ט · ${c.dn} כפתורים · ${c.rows} שורות`);
+   ok(`«${m}» — כל עמודה שניתן למיין לפיה נושאת גם ▾, ויש בורר`,
+     c.reg&&c.srt===9&&c.fil===9&&c.btn,
+     `רישום=${c.reg} · ${c.srt} ממוינות · ${c.fil} מסננות · בורר=${c.btn}`);
+ }
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(600);
+ /* ברירת המחדל היא חומרה — המיון לא החליף אותה במנגנון שני. */
+ /* דגימה לאורך הרשימה ולא רק בראשה: 12 השורות הראשונות הן כולן
+    חומרה 3 גם בלי מיון בכלל, ולכן לא היו מבחינות. */
+ const catSev=()=>p.evaluate(()=>{const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   return [0,60,140,240,340,440,tr.length-1].filter(i=>i<tr.length&&i>=0)
+     .map(i=>+(tr[i].className.match(/sev(\d)/)||[,0])[1])});
+ const cs0=await catSev();
+ ok('ברירת המחדל בטבלה הכללית היא חומרה יורדת',
+   cs0.every((v,i)=>i===0||cs0[i-1]>=v),cs0.join(' '));
+ const catRisk=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+   return [...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
+     .map(tr=>+(tr.children[i].textContent.replace(/[^\d]/g,'')||0))});
+ await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+   th.querySelector('.thc').click()});
+ await p.waitForTimeout(500);
+ const cr=await catRisk(),cws=await p.evaluate(()=>WSORT.col+'/'+WSORT.dir);
+ ok('ומיון לפי כותרת חל מעליה',
+   cws==='cRisk/desc'&&cr.every((v,i)=>i===0||cr[i-1]>=v),`${cws} · ${cr.join(' ')}`);
+ await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await p.waitForTimeout(500);
+ const catB4=await catScan();
+ const catF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='מצב');
+   if(!th)return {err:'אין כותרת מצב'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const bx=[...pop.querySelectorAll('.vals input')];
+   if(!bx.length)return {err:'אין ערכים בבורר'};
+   bx[0].checked=true;const v=bx[0].value;
+   document.getElementById('cpOk').click();return {v,n:bx.length}});
+ await p.waitForTimeout(600);
+ const catAf=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   marked:document.querySelectorAll('#tbl thead th.filt').length,
+   keys:Object.keys(colFilters),
+   chips:[...document.querySelectorAll('#chipsTop .chip')].map(c=>c.textContent.trim())}));
+ ok('טבלה כללית · ▾ פותח בורר עמודה עם ערכים',!catF.err&&catF.n>0,
+   catF.err||`${catF.n} ערכים · «${catF.v}»`);
+ ok('טבלה כללית · הסינון חותך שורות, מסמן את הכותרת ומציג שבב',
+   catAf.rows<catB4.rows&&catAf.marked===1&&catAf.keys.includes('c:cCat')
+   &&catAf.chips.some(c=>/מצב/.test(c)),
+   `${catB4.rows} → ${catAf.rows} · ${catAf.chips.join(' | ')}`);
+ await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
+ await p.waitForTimeout(500);
+ await p.click('#colsBtn');await p.waitForTimeout(400);
+ const catPk=await p.evaluate(()=>({open:document.getElementById('colspick').classList.contains('open'),
+   n:document.querySelectorAll('#colspick input[data-ck]').length,
+   nm:document.querySelector('#colspick .cpn').textContent.trim()}));
+ ok('טבלה כללית · «▦ עמודות» פותח בורר ששייך לה',
+   catPk.open&&catPk.n>10&&/קטלוג/.test(catPk.nm),`${catPk.n} עמודות · ${catPk.nm}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="sup"]');if(cb)cb.click()});
+ await p.waitForTimeout(600);
+ const catAdd=await catScan();
+ ok('טבלה כללית · הוספת «ספק» מוסיפה כותרת ותא — והמק״ט נשאר ראשון',
+   catAdd.nth===11&&catAdd.ntd===11&&catAdd.th.indexOf('מק״ט')===0
+   &&catAdd.th.includes('ספק')&&catAdd.pnc===catAdd.rows,
+   `${catAdd.nth}/${catAdd.ntd} · ${catAdd.th}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="cPn"]');if(cb)cb.click()});
+ await p.waitForTimeout(500);
+ ok('טבלה כללית · «מק״ט» אינו ניתן להסרה',
+   (await catScan()).th.indexOf('מק״ט')===0);
+ await p.evaluate(()=>{colsOpen(false);colReset('catalog');render()});
+ await p.waitForTimeout(500);
+ ok('ו«חזרה לברירת המחדל» מחזירה בדיוק את עשר העמודות',
+   (await catScan()).th===CATDEF,(await catScan()).th);
+ await goNav(p,'today');await p.waitForTimeout(500);
+
  /* ============ הייצוא מייצג את מה שרואים ============
     השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
     של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו

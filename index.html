@@ -588,7 +588,7 @@ thead th{background:var(--panel0)}
 th .thc{padding:10px}
 td{padding:12px 10px;border-bottom:1px solid var(--line2)}
 /* עמודת המק״ט בקטלוג רחבה יותר בכוונה; הכותרת שלה מקבלת את אותו ריווח
-   כדי שהטקסט יתחיל באותו קו (ראה #tbl thead th[data-col="pn"]) */
+   כדי שהטקסט יתחיל באותו קו (ראה #tbl thead th[data-ck="cPn"]) */
 td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-family:var(--num);font-weight:700;font-size:15px;
  font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:right}
 /* ==================== פס החומרה ====================
@@ -2250,7 +2250,7 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl td.age{text-align:start}
 /* 14 ולא 18: התא הוא direction:ltr עם unicode-bidi:isolate, ולכן קופסת
    הטקסט בפועל מתחילה 14px מהקצה ולא 18 */
-#tbl thead th[data-col="pn"] .thc{padding-inline-start:14px}
+#tbl thead th[data-ck="cPn"] .thc{padding-inline-start:14px}
 .ag{font-family:var(--num);font-size:var(--f-xs);font-weight:700;color:var(--dimmer);white-space:nowrap}
 .ag.new{color:var(--grn)}
 .ag.stuck{color:var(--org)}
@@ -4254,7 +4254,7 @@ function colsOpen(on){
    const picked=[...pk.querySelectorAll('input[data-ck]:checked')].map(x=>x.dataset.ck);
    /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. שתי הגרסאות
       נחשבות — יש מסלולים שנושאים את המק״ט בלי כפתור «טופל». */
-   if(!picked.includes('pn')&&!picked.includes('pnPlain')){
+   if(!picked.includes('pn')&&!picked.includes('pnPlain')&&!picked.includes('cPn')){
      cb.checked=true;toast('«מק״ט» נשאר תמיד');return}
    /* סדר העמודות של התצוגה נשמר. בנייה מחדש מ-SCOL_ORDER הייתה
       מסדרת את «רצפת SS» כ-ספק · הגעה · הדרישה · SS מוגדר — כלומר
@@ -4303,7 +4303,8 @@ function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
  if(v==='sup')return 'התצוגה «לפי ספק»';
  if(v==='fix')return 'תיקוני פרמטרים';
- const N={floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
+ const N={catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
+  floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
   applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא',
   mv_sales:'תנועות · מכירות אחרונות',mv_entries:'תנועות · כניסות אחרונות',
   mv_stuck:'תנועות · כניסות ללא מכירה'};
@@ -5619,7 +5620,10 @@ function currentRows(){if(cur==='today')return decisionList(track);
  if(onlyTasks&&cur==='all'){const TASK=new Set(['waiting','immediate','follow','prevent','excess','quality']);
    base=base.filter(r=>{for(const k of TASK)if(QF[k].includes(r))return true;return false})}
  base=base.filter(passColFilters);
- return sortRowsBy(base)}
+ /* ברירת המחדל כאן היא חומרה (sortCol='sev'), והיא נשארת. מיון
+    שהמשתמש בחר בכותרת חל מעליה — לא במקום מנגנון שני. */
+ const byDef=sortRowsBy(base);
+ return (colReg()&&WSORT.col)?wsortApply(byDef,false):byDef}
 function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?'var(--red)':r.sev===2?'var(--acc)':r.sev===1?'#9aa1b1':'#c5cad6'}
 /* שלושת הראשונים אינם מוציאים מהתור — ראה WIPMARK. הכיתוב בתפריט
    אומר את ההבדל, כי «סמן 140 פריטים» שמעלים אותם הוא פעולה אחרת
@@ -6090,13 +6094,45 @@ const SCOL={
  abc:{t:'ABC',val:r=>String(r.abc||''),ttl:'סיווג ABC מה-SAP',
   cell:r=>`<td>${esc(r.abc||'—')}</td>`},
  mrp:{t:'MRP',val:r=>String(r.mrp||''),ttl:'סוג ה-MRP מה-SAP',
-  cell:r=>`<td>${esc(r.mrp||'—')}</td>`}};
+  cell:r=>`<td>${esc(r.mrp||'—')}</td>`},
+ /* ============ עמודות הקטלוג ============
+    עשר עמודות שהיו כתובות ישירות בתוך המרנדר הגנרי — המסך שמשרת
+    את «קטלוג פריטים» ואת כל דליי הסיווג. הן מקבלות מפתחות משלהן
+    ולא משתמשות ב-free/cust/po הכלליות, כי התאים שונים: כאן
+    «מלאי» הוא המספר הגולמי בלי רצפת אפס ובלי סימון אפס, ו«חסר»
+    הוא תא תלת-מצבי (חוסר · להזמין · עודף) ולא מספר. שכתוב שלהן
+    לגרסאות הכלליות היה משנה את מה שהמסך מציג. */
+ cPn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מהרשימה',
+  cell:r=>`<td class="pnc"><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtnHTML(r)}</td>`},
+ cDesc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
+  cell:r=>`<td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}</td>`},
+ cCat:{t:'מצב',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
+  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+ cSpark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש',
+  cell:r=>`<td>${sparkline(r)}</td>`},
+ cMiss:{t:'חסר',val:r=>r.miss||r.orderQty||0,
+  ttl:'חוסר חזוי · אחרת הכמות להזמנה · אחרת העודף. שלושה מצבים בתא אחד',
+  xval:r=>r.miss>0?-r.miss:(r.orderQty>0?r.orderQty:(r.excessQty>0?r.excessQty:0)),
+  cell:r=>`<td class="num miss">${missCell(r)}</td>`},
+ cFree:{t:'מלאי',val:r=>r.free||0,ttl:'מלאי פנוי על המדף עכשיו — עובדה',
+  cell:r=>`<td class="num">${r.free}</td>`},
+ cCust:{t:'לקוח',val:r=>r.cust||0,ttl:'הזמנת לקוח פתוחה — עובדה מה-SAP',
+  cell:r=>`<td class="num">${r.cust}</td>`},
+ cPo:{t:'רכש',val:r=>r.po||0,ttl:'סה״כ הזמנת רכש פתוחה מול הספק',
+  cell:r=>`<td class="num">${r.po}</td>`},
+ cCov:{t:'כיסוי',val:r=>r.covA==null?Infinity:r.covA,
+  fval:r=>r.covA==null?'—':r.covA.toFixed(1)+' ח׳',
+  ttl:'בכמה חודשי צריכה המלאי הפנוי מספיק. «—» = אין קצב מדוד',
+  cell:r=>`<td class="num dim">${r.covA==null?'—':r.covA.toFixed(1)+' ח׳'}</td>`},
+ cRisk:{t:'הון כלוא',val:r=>r.risk||0,ttl:'שווי המלאי שאינו נע. לא מסוכם בין מטבעות',
+  xval:r=>r.risk||0,
+  cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['mdot','pn','pnPlain','desc','sup','spark','free','freeRop','freeDry','cust','waiting','stock',
- 'po','poPlain','tr','cov','stuck','otw','eta','missq','miss','m1gap','buy','cova',
+const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
+ 'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
- 'capVal','capPct','capCov','val','custVal','act','fix','cat','capType','apState','state','markLbl','markWhen','undo','age',
+ 'cRisk','capVal','capPct','capCov','val','custVal','act','fix','cCat','cat','capType','apState','state','markLbl','markWhen','undo','age',
  'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
@@ -6117,7 +6153,10 @@ const SCOL_DEF={
     ובאותו סדר. לכל טאב פריסה משלו, כי הוא עוסק בתאריך אחר. */
  mv_sales:['mdot','pnPlain','desc','model','sdate','mage','mdelta','free','abc','mrp'],
  mv_entries:['mdot','pnPlain','desc','model','edate','mage','mdelta','free','abc','mrp'],
- mv_stuck:['mdot','pnPlain','desc','model','edate','mage','mlast','free','abc','mrp']};
+ mv_stuck:['mdot','pnPlain','desc','model','edate','mage','mlast','free','abc','mrp'],
+ /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג. אותן עשר
+    עמודות שהיו כתובות בתוכו. */
+ catalog:['cPn','cDesc','cCat','cSpark','cMiss','cFree','cCust','cPo','cCov','cRisk']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -6134,6 +6173,8 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
  return SCOL_ORDER.filter(k=>d.includes(k)||pool.includes(k))}
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
+/* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
+const REGTRACK=new Set(['floor','trend','rise','cust','applied','done']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
@@ -6141,10 +6182,12 @@ function colViewKey(){
  if(cur==='moves')return 'mv_'+movTab;
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
- /* «קטלוג פריטים» חולק track='cap' עם «בריאות המלאי» אבל מרונדר
-    ברנדרר אחר (COLS), ולכן אין לו רישום — ואסור שיציג בורר
-    שאינו משנה דבר. */
- if(track==='cap'&&cur!=='today')return 'catalog';
+ /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג — מציג תמיד את
+    אותן עשר עמודות, ולכן הוא תצוגה אחת. «בריאות המלאי» חולק איתו
+    track='cap' אבל רץ במרנדר ההחלטות; מה שמבדיל הוא cur.
+    REGTRACK הם המסלולים ש-render() מפנה למרנדר ההחלטות לפני
+    שהוא בודק את cur בכלל. */
+ if(cur!=='today'&&!REGTRACK.has(String(track||'')))return 'catalog';
  return String(track||'')}
 /* ============ מיון בתוך הקיבוץ ============
    לטבלת העבודה לא היה מיון בכלל: הסדר נקבע בתוך decisionList לפי
@@ -6546,24 +6589,14 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  if(cur==='today'){renderTrack();renderDecisions(rows);return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
  document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
- const arrow=col=>sortCol===col?(sortDir==='asc'?'▲':'▼'):'';
- const th=(col,label)=>{const active=sortCol===col;const filt=!!colFilters[col];
-   return `<th class="srt${active?' act':''}${filt?' filt':''}" data-col="${col}"><div class="thc">${label}<span>${arrow(col)}</span><span class="fdot"></span></div></th>`};
- document.querySelector('#tbl thead').innerHTML=`<tr>${COLS.map(c=>th(c[0],c[1])).join('')}</tr>`;
+ /* הכותרות והתאים עברו לרישום: עד כאן הן היו שתי מחרוזות HTML
+    נפרדות באותה פונקציה, ולכן לא היה בורר עמודות — «כל הטבלאות
+    בכלי» כולל גם את זאת. העמודות והתאים זהים לתו. */
+ document.querySelector('#tbl thead').innerHTML='<tr>'+colHeadHTML()+'</tr>';
  const view=rows.slice(0,500);
- document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>{
-  const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
-  return `<tr data-i="${i}" class="sev${r.sev}">
-  <td class="pnc"><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtn}</td>
-  <td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}</td>
-  <td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>
-  <td>${sparkline(r)}</td>
-  <td class="num miss">${missCell(r)}</td>
-  <td class="num">${r.free}</td><td class="num">${r.cust}</td><td class="num">${r.po}</td>
-  <td class="num dim">${r.covA==null?'—':r.covA.toFixed(1)+' ח׳'}</td>
-  <td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td></tr>`}).join('')
-  ||`<tr><td colspan="10" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
- document.querySelectorAll('#tbl thead th.srt').forEach(h=>h.onclick=e=>{e.stopPropagation();openColPop(h,h.dataset.col)});
+ document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>
+  `<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>').join('')
+  ||`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
  document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
  document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
