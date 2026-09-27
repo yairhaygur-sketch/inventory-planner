@@ -1218,6 +1218,237 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  await p.screenshot({path:SD+'/04-after.png'});
 
+ /* ============ עמודות הטבלה ============
+    התקלה שהולידה את הרישום, נמדדה על main: בקיבוץ «לפי ספק» הטבלה
+    הציגה 12 כותרות מול 11 תאים, וכל עמודה אחרי «תיאור» נשאה כותרת
+    של עמודה אחרת — «מלאי 39» היה בפועל דרישת הלקוח. מי שקרא את
+    הטבלה קרא מספרים נכונים תחת שמות שגויים.
+    הכלל שנעול כאן: בכל תצוגה, ובכל מצב של בורר העמודות, מספר
+    הכותרות שווה למספר התאים. */
+ const cols=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+   const tr=document.querySelector('#tbl tbody tr[data-i]');
+   return {th,nTh:th.length,nTd:tr?tr.children.length:0,
+     keys:(typeof visCols==='function')?visCols():null,
+     view:(typeof colViewKey==='function')?colViewKey():null}});
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const cDec=await cols();
+ await p.evaluate(()=>{const b=document.querySelector('#gseg button[data-gb="supplier"]');if(b)b.click()});
+ await p.waitForTimeout(600);
+ const cSup=await cols();
+ await p.evaluate(()=>{const b=document.querySelector('#gseg button[data-gb="decision"]');if(b)b.click()});
+ await p.waitForTimeout(600);
+ ok('«לפי החלטה» — כותרת לכל תא',cDec.nTh===cDec.nTd&&cDec.nTh>0,
+   `${cDec.nTh} כותרות · ${cDec.nTd} תאים`);
+ ok('«לפי ספק» — כותרת לכל תא',cSup.nTh===cSup.nTd&&cSup.nTh>0,
+   `${cSup.nTh} כותרות · ${cSup.nTd} תאים · ${cSup.th.join(' | ')}`);
+ ok('ולכל תצוגה פריסת עמודות משלה',cDec.view==='dec'&&cSup.view==='sup'
+   &&cDec.keys.join(',')!==cSup.keys.join(','),
+   `${cDec.keys.join(',')}  /  ${cSup.keys.join(',')}`);
+ /* ברירת המחדל היא בדיוק מה שהמסך הציג לפני הבורר — הרישום לא
+    שינה עמודות, רק את מקור האמת שלהן. */
+ /* «מצב טיפול» נוספה לברירת המחדל אחרי שהמתכנן הכריע שסימון מסוג
+    «בבדיקה / ממתין לספק / הוזמן» משאיר את הפריט בתור. לפני ההכרעה
+    העמודה הייתה מציגה «חדש» בכל שורה תמיד.
+    עמודת הרכש תלויה בנתונים ולא בהעדפה: עם דוח ETA היא מתפצלת
+    ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך ⌛» אחת. */
+ const hasEta=await p.evaluate(()=>!!ETA);
+ ok('ברירת המחדל של «לפי החלטה» לא השתנתה',
+   cDec.th.join('|')===(hasEta
+     ?'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
+     :'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
+   `ETA=${hasEta} · ${cDec.th.join('|')}`);
+
+ await p.click('#colsBtn');await p.waitForTimeout(350);
+ ok('בורר העמודות נפתח',
+   await p.evaluate(()=>document.getElementById('colspick').classList.contains('open')));
+ ok('ועמודה שאינה אפשרית במצב הנתונים מוצגת כבויה עם הסיבה',
+   await p.evaluate(k=>{const cb=document.querySelector(`#colspick input[data-ck="${k}"]`);
+     const lb=cb&&cb.closest('label');
+     return !!cb&&cb.disabled&&!!lb&&/דוח ETA/.test(lb.textContent)},hasEta?'otw':'cov'),
+   hasEta?'«בדרך ⌛» כבויה כשיש דוח':'«מכוסה» כבויה כשאין דוח');
+ await p.click('#colspick input[data-ck="po"]');await p.waitForTimeout(450);
+ await p.click('#colspick input[data-ck="tr"]');await p.waitForTimeout(450);
+ const cAdd=await cols();
+ ok('הוספת «רכש פתוח» ו«בהעברה» מוסיפה כותרת ותא לכל אחת',
+   cAdd.nTh===cDec.nTh+2&&cAdd.nTd===cAdd.nTh
+   &&cAdd.th.includes('רכש פתוח')&&cAdd.th.includes('בהעברה'),
+   `${cAdd.nTh} כותרות · ${cAdd.nTd} תאים`);
+ /* «בהעברה» הוא עמודת CK. בדוח שאין בה את העמודה הזאת התא אומר
+    «לא ידוע» ולא 0 — אותו כלל של רצועת המספרים בכרטיס. */
+ ok('ותא «בהעברה» נשען על השדה ולא על 0',
+   await p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
+       .findIndex(t=>t.textContent.trim()==='בהעברה');
+     if(i<0)return false;
+     const tr=document.querySelector('#tbl tbody tr[data-i]');
+     const cell=(tr.children[i].textContent||'').trim();
+     const r=ALL.find(x=>x.pn===tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim());
+     if(!r)return false;
+     return r.transferKnown?cell===String(r.transfer||0)||cell==='—':/לא ידוע/.test(cell)}));
+ await p.click('#colspick input[data-ck="pn"]');await p.waitForTimeout(400);
+ ok('«מק״ט» אינו ניתן להסרה — בלעדיו השורה אינה מזוהה',
+   await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>t.textContent.trim());return th.includes('מק״ט')}));
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const cKeep=await cols();
+ ok('הפריסה שורדת רענון',cKeep.th.includes('רכש פתוח')&&cKeep.nTh===cKeep.nTd,
+   `${cKeep.nTh} כותרות · ${cKeep.nTd} תאים`);
+ /* עמודות מוקפאות נדלקות רק כשיש גלילה אופקית בפועל */
+ const fz=await p.evaluate(()=>{const box=document.querySelector('#w_queue .rows');
+   const before=box.scrollWidth>box.clientWidth+1;
+   const td=document.querySelector('#tbl tbody tr[data-i] td:nth-child(2)');
+   const x0=td.getBoundingClientRect().left;
+   box.scrollLeft=-250;
+   return new Promise(res=>setTimeout(()=>res({ovf:before,
+     freeze:document.body.classList.contains('freeze'),
+     pos:getComputedStyle(td).position,
+     moved:Math.abs(td.getBoundingClientRect().left-x0)}),250))});
+ ok('בגלילה אופקית המק״ט נשאר במקומו',
+   !fz.ovf||(fz.freeze&&fz.pos==='sticky'&&fz.moved<6),
+   `גלישה=${fz.ovf} · הקפאה=${fz.freeze} · זז ${Math.round(fz.moved)}px`);
+ await p.click('#colsBtn');await p.waitForTimeout(300);
+ await p.click('#colspick [data-cpa="reset"]');await p.waitForTimeout(500);
+ const cRst=await cols();
+ ok('«חזרה לברירת המחדל» מחזירה בדיוק את העמודות שהיו',
+   cRst.th.join('|')===cDec.th.join('|'),cRst.th.join('|'));
+ await p.evaluate(()=>{try{localStorage.removeItem('planner_cols_v1')}catch(_){}});
+ await p.click('#colspick [data-cpa="close"]');await p.waitForTimeout(250);
+
+ /* ============ מיון בתוך הקיבוץ ============
+    לטבלת העבודה לא היה מיון בכלל — הכותרת לא הייתה לחיצה. הכלל
+    שנעול: המיון פועל *בתוך* קבוצה ובתוך בלוק מטבע, ולא חוצה אותם.
+    נמדד לפני התיקון: מיון לפי «דרישת לקוח» פיצל את כותרות המטבע
+    מ-8 ל-75, כלומר הפך «דירוג בתוך המטבע בלבד» לרשימה מעורבת. */
+ const wsnap=()=>p.evaluate(()=>{
+   const ci=[...document.querySelectorAll('#tbl thead th')]
+     .findIndex(t=>/דרישת לקוח/.test(t.textContent));
+   return {ws:(typeof WSORT!=='undefined')?{...WSORT}:null,
+     groups:[...document.querySelectorAll('#tbl tbody tr.grp')].length,
+     vals:[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,8)
+       .map(tr=>+(tr.children[ci].textContent.replace(/[^\d]/g,'')||0)),
+     order:[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
+       .map(tr=>tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()).join(',')}});
+ const hitSort=()=>p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
+   .find(t=>/דרישת לקוח/.test(t.textContent));if(th)th.querySelector('.thc').click()});
+ const w0=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w1=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w2=await wsnap();
+ await hitSort();await p.waitForTimeout(500);const w3=await wsnap();
+ const desc=a=>a.every((v,i)=>i===0||a[i-1]>=v), asc=a=>a.every((v,i)=>i===0||a[i-1]<=v);
+ ok('לחיצה על כותרת ממיינת יורד',w1.ws.col==='cust'&&w1.ws.dir==='desc'&&desc(w1.vals),
+   w1.vals.join(' · '));
+ ok('לחיצה שנייה הופכת לעולה',w2.ws.dir==='asc'&&asc(w2.vals),w2.vals.join(' · '));
+ ok('ושלישית מחזירה לסדר המקורי',w3.ws.col===null&&w3.order===w0.order,
+   `${w0.order}  →  ${w3.order}`);
+ ok('המיון אינו חוצה בלוק מטבע — מספר הקבוצות אינו משתנה',
+   w1.groups===w0.groups&&w2.groups===w0.groups,
+   `${w0.groups} → ${w1.groups} → ${w2.groups}`);
+
+ /* ============ הייצוא מייצג את מה שרואים ============
+    השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
+    של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו
+    אחר ממה שראה. */
+ const vx=await p.evaluate(()=>{const v=viewExportRows();
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).slice(1);
+   const screen=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,5)
+     .map(tr=>tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim());
+   return {head:v.aoa[0],n:v.n,th,first:v.aoa.slice(1,6).map(r=>r[0]),screen,
+     rows:currentRows().length}});
+ ok('גיליון «התצוגה» נושא בדיוק את העמודות הגלויות',
+   vx.head.join('|')===vx.th.filter(t=>t!=='11 חודשים').join('|'),
+   `${vx.head.join(' | ')}`);
+ ok('ובסדר שבו הן מופיעות על המסך',vx.first.join(',')===vx.screen.join(','),
+   `${vx.screen.join(' · ')}  →  ${vx.first.join(' · ')}`);
+ ok('וכל השורות שבתצוגה נמצאות בו',vx.n===vx.rows,`${vx.n} / ${vx.rows}`);
+
+ /* ============ מה נשמר כשחוזרים מפריט ============ */
+ await p.evaluate(()=>{document.querySelector('#w_queue .rows').scrollTop=420});
+ await p.waitForTimeout(250);
+ await hitSort();await p.waitForTimeout(500);
+ const st0=await p.evaluate(()=>({top:Math.round(document.querySelector('#w_queue .rows').scrollTop),
+   col:WSORT.col,dir:WSORT.dir,
+   first:(document.querySelector('#tbl tbody tr[data-i]')||{}).children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()}));
+ await p.evaluate(()=>{const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   rows[Math.min(6,rows.length-1)].click()});
+ await p.waitForTimeout(500);
+ await p.evaluate(()=>closeDetail());await p.waitForTimeout(400);
+ const st1=await p.evaluate(()=>({top:Math.round(document.querySelector('#w_queue .rows').scrollTop),
+   col:WSORT.col,dir:WSORT.dir,
+   first:(document.querySelector('#tbl tbody tr[data-i]')||{}).children[1].textContent.replace(/העתק|✓ טופל/g,'').trim()}));
+ ok('פתיחת פריט וסגירתו משאירות את הגלילה, המיון והשורה הראשונה',
+   st1.top===st0.top&&st1.col===st0.col&&st1.dir===st0.dir&&st1.first===st0.first,
+   `גלילה ${st0.top}→${st1.top} · מיון ${st0.col}/${st0.dir}→${st1.col}/${st1.dir}`);
+ await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(300);
+ await p.evaluate(()=>{if(WSORT.col)wsortClick(WSORT.col)});await p.waitForTimeout(400);
+
+ /* ============ מצב טיפול — סימון שאינו מסתיר ============
+    סעיף 6 במפרט: להפריד את מצב הטיפול מחומרת הבעיה. עד ההכרעה
+    הזאת כל סימון הוציא את הפריט מתור העבודה, ולכן עמודת «מצב
+    טיפול» הייתה מציגה «חדש» בכל שורה תמיד.
+    מה שנעול כאן: «ממתין לספק» אינו פתרון לחוסר ואינו מסתיר אותו,
+    ואינו נוגע בסיווג, בחומרה, בחוסר או בהון הכלוא. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const wcell=()=>p.evaluate(()=>{
+   const th=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+   const i=th.findIndex(t=>/מצב טיפול/.test(t));
+   const tr=document.querySelector('#tbl tbody tr[data-i]');
+   const pn=tr?tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim():null;
+   const r=ALL.find(x=>x.pn===pn);
+   return {i,pn,txt:i>=0&&tr?tr.children[i].textContent.trim():null,
+     cls:i>=0&&tr?(tr.children[i].querySelector('.wchip')||{className:''}).className:'',
+     sevCls:tr?tr.className:'',
+     wip:r&&r.wip?r.wip.t:null,cat:r?r.cat:null,sev:r?r.sev:null,
+     miss:r?r.miss:null,expCap:r?Math.round(r.expCap||0):null,
+     n:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+ const ws0=await wcell();
+ ok('«מצב טיפול» היא עמודה, ובלי סימון היא אומרת «חדש»',
+   ws0.i>0&&ws0.txt==='חדש',`עמודה ${ws0.i} · "${ws0.txt}"`);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ ok('ובכרטיס יש מקטע נפרד למצב הטיפול',
+   await p.evaluate(()=>{const sec=document.querySelector('#detail .wipsec');
+     return !!sec&&/אינו מוציא את הפריט מתור העבודה/.test(sec.textContent)
+       &&sec.querySelectorAll('.wipm button[data-w]').length===4}));
+ await p.click('#detail .wipm button[data-w="supplier"]');await p.waitForTimeout(700);
+ const ws1=await wcell();
+ ok('«ממתין לספק» אינו מסתיר את הפריט — הוא נשאר ברשימה ובמקומו',
+   ws1.n===ws0.n&&ws1.pn===ws0.pn,`${ws0.n} → ${ws1.n} שורות · ${ws0.pn} → ${ws1.pn}`);
+ ok('והסיווג, החומרה, החוסר וההון הכלוא לא זזו',
+   ws1.cat===ws0.cat&&ws1.sev===ws0.sev&&ws1.miss===ws0.miss&&ws1.expCap===ws0.expCap
+   &&ws1.sevCls===ws0.sevCls,
+   `${ws0.cat}/${ws0.sev}/${ws0.miss} → ${ws1.cat}/${ws1.sev}/${ws1.miss}`);
+ ok('והעמודה מציגה את המצב, עם טקסט ולא בצבע בלבד',
+   ws1.wip==='supplier'&&/לספק/.test(ws1.txt)&&/supplier/.test(ws1.cls),
+   `"${ws1.txt}" · ${ws1.cls}`);
+ await p.reload();await p.waitForTimeout(1600);
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
+ const ws2=await wcell();
+ ok('המצב שורד רענון',ws2.wip==='supplier'&&ws2.pn===ws0.pn,`${ws2.pn} · ${ws2.wip}`);
+ /* «טופל» לא השתנה: הוא עדיין מוציא מהתור. זה ההבדל בין שני
+    הסוגים, והוא נבדק כאן ולא מונח. */
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ await p.click('#detail .wipm button[data-w=""]');await p.waitForTimeout(600);
+ const ws3=await wcell();
+ ok('«נקה» מחזיר ל«חדש»',ws3.wip===null&&ws3.txt==='חדש'&&ws3.n===ws0.n,
+   `"${ws3.txt}" · ${ws3.n} שורות`);
+ await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
+ await p.click('#detail [data-dmark="handled"]');await p.waitForTimeout(700);
+ const ws4=await wcell();
+ ok('ו«טופל» ממשיך להוציא מהתור — שני סוגי סימון, שתי התנהגויות',
+   ws4.n===ws0.n-1,`${ws0.n} → ${ws4.n} שורות`);
+ await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
+ await p.waitForTimeout(600);
+
  /* ============ הכרטיס: המספרים ראשונים, והמעבר בלי לסגור ============
     סעיף 4 במפרט. שני כללים נעולים כאן:
     · רצועת המספרים מציגה את שדות המנוע כפי שהם — לא חישוב מחדש
@@ -1264,6 +1495,64 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    `שורה ${nav2.selPn} · כרטיס ${nav2.pn}`);
  ok('והמיקום ברשימה מתעדכן',nav2.pos!==nav1.pos,`${nav1.pos} → ${nav2.pos}`);
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(200);
+
+ /* ============ רוחבי מסך ============
+    המפרט מבקש 1366 · 1440 · 1920 ומסך צר. נמדד לפני התיקון ב-430px:
+    המסילה תפסה 164px מתוך 430 (38% מהמסך) עם ארבעה שמות חתוכים,
+    לרשימה נשארו 218px, והסרגל העליון גלש ב-56px — כפתור ההעלאה דרס
+    את כפתור ה-ETA. גם ב-1024 ארבעה מתוך שישה שמות נחתכו. */
+ const widths=[[1920,1080],[1440,860],[1366,768],[430,860]];
+ for(const [vw,vh] of widths){
+  await p.setViewportSize({width:vw,height:vh});await p.waitForTimeout(450);
+  const m=await p.evaluate(()=>{const d=document.documentElement;
+    const rail=document.querySelector('.rail'),top=document.querySelector('.top');
+    const tabs=[...document.querySelectorAll('.rail .tab')];
+    const r0=tabs[0].getBoundingClientRect(),r1=tabs[1].getBoundingClientRect();
+    return {pageOv:d.scrollWidth-d.clientWidth,
+      topClip:top.scrollWidth-top.clientWidth,
+      clipped:[...document.querySelectorAll('.rail .tab .t')]
+        .filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>e.textContent.trim()),
+      horiz:Math.abs(r0.top-r1.top)<4,
+      rail:Math.round(rail.getBoundingClientRect().width),
+      areas:tabs.length}});
+  ok(`${vw}px · אין גלילה אופקית של הדף ואין חיתוך בסרגל העליון`,
+    m.pageOv<=0&&m.topClip<=0,`דף ${m.pageOv}px · סרגל ${m.topClip}px`);
+  ok(`${vw}px · שישה תחומים, ואף שם אינו נחתך`,
+    m.areas===6&&!m.clipped.length,m.clipped.join(' · ')||'—');
+  /* מתחת ל-1100 המסילה עוברת לרצועה אופקית: אותם תחומים, אותם
+     מונים, בשורה שנגללת במקום בעמודה שגוזלת 38% מהרוחב. */
+  ok(`${vw}px · המסילה בכיוון הנכון למסך הזה`,
+    vw<=1100?m.horiz:!m.horiz,m.horiz?'אופקית':'אנכית');}
+ await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(450);
+
+ /* ============ בריאות המלאי על נתוני הדגמה מלאים ============
+    ב-routes.xlsx יש שני פריטים עם הון כלוא ושניהם עודף, ולכן הכלל
+    «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
+    900 פריטים ורוב ההון הכלוא אינו באף אחד משלושת הדליים. */
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='cap');if(a)a.click()});
+ await p.waitForTimeout(800);
+ const capS=await p.evaluate(()=>{const {list,B}=capBuckets();
+   const el=document.getElementById('capTop');
+   return {other:B.other.length,n:list.length,
+     note:(el.querySelector('.cnote')||{}).textContent||'',
+     rows:currentRows().length,
+     tiles:[...el.querySelectorAll('.ctile .cn')].map(x=>+x.textContent.replace(/[^\d]/g,'')),
+     bars:el.querySelectorAll('.cbar').length,
+     panels:el.querySelectorAll('.cpanel').length,
+     curs:[...new Set(list.map(r=>r.currency||'—'))].length}});
+ ok('מה שאינו עודף, איטי או מת נאמר במפורש ולא נבלע',
+   capS.other>0&&capS.note.includes(capS.other.toLocaleString('he-IL'))
+   &&capS.note.includes(capS.n.toLocaleString('he-IL')),
+   `${capS.other} מתוך ${capS.n} · "${capS.note.slice(0,70)}"`);
+ ok('והטבלה מציגה בדיוק את רשימת ההון הכלוא',capS.rows===capS.n&&capS.tiles[0]===capS.n,
+   `${capS.rows} שורות · ${capS.n} ברשימה`);
+ ok('לוח לכל מטבע, ועמודות לספקים בתוכו',
+   capS.panels===capS.curs&&capS.bars>=capS.curs,
+   `${capS.panels} לוחות · ${capS.curs} מטבעות · ${capS.bars} עמודות`);
+ await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
+   .find(t=>t.dataset.m==='today');if(a)a.click()});
+ await p.waitForTimeout(600);
 
  /* ============ שתי בקרות הגובה: מדדים וצפיפות ============
     סעיף 3ג במפרט: «צפיפות רגילה וצפופה», ויעד של 18-24 שורות קריאות,

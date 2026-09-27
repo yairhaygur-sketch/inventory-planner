@@ -513,7 +513,28 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    has:!!document.getElementById('stBtn'),
    upload:[...document.querySelectorAll('label[for="f"]')].some(e=>e.offsetParent!==null),
    search:document.getElementById('qbox').offsetParent!==null}});
- ok('הסרגל העליון אינו נחתך באף רוחב',!lcfit.topClipped);
+ /* נמדד אחרי שהדוח נטען, ולא רק בעלייה: השבבים שמופיעים עם
+    הנתונים (תאריך הדוח, דוח ה-ETA, שבב האבחון) הם 300px+ שהסרגל
+    לא הכיר בזמן שהוא נמדד. על main זה הוסתר בטעות — שלושה כפתורים
+    מתים בצד השני גרמו לגלישה כבר בעלייה. */
+ ok('הסרגל העליון אינו נחתך באף רוחב',!lcfit.topClipped,
+   lcfit.topClipped?'נחתך':'0px');
+ /* שלושת התאריכים הם שלושה דברים שונים, וכל אחד אומר מה הוא */
+ const dst=await p.evaluate(()=>({
+   z:(document.getElementById('zchip')||{}).textContent||'',
+   zh:(document.getElementById('zchip')||{}).hidden,
+   zt:(document.getElementById('zchip')||{}).title||'',
+   u:(document.getElementById('updated')||{}).textContent||'',
+   ut:(document.getElementById('updated')||{}).title||'',
+   eta:(document.getElementById('etachip')||{}).textContent||'',
+   etaOn:!(document.getElementById('etachip')||{}).hidden}));
+ ok('תאריך הדוח מוצג בנפרד ובשמו',!dst.zh&&/^ZMRP · /.test(dst.z),dst.z);
+ ok('ומה שאין בקובץ אינו מומצא',
+   /\d/.test(dst.z)||/ללא תאריך בדוח/.test(dst.z),dst.z);
+ ok('מועד ההעלאה נאמר כמועד העלאה ולא כתאריך דוח',
+   /^נטען /.test(dst.u)&&/לא תאריך הדוח/.test(dst.ut),`"${dst.u}" · "${dst.ut}"`);
+ ok('ודוח ה-ETA אומר «נטען» ולא מתחזה לתאריך דוח',
+   !dst.etaOn||/נטען/.test(dst.eta),dst.eta);
  ok('לכל פעולה יש שם — בשורה או בתפריט «עוד»',
    lcfit.has&&lcfit.reachable,lcfit.st.map(x=>`${x.id}:${x.why}`).join(' · '));
  ok('העלאת הדוח והחיפוש נשארים גלויים',lcfit.upload&&lcfit.search,
