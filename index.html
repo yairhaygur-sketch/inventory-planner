@@ -839,7 +839,15 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .dash .phd .doors .btn.on:not([hidden]){display:inline-flex}
 /* הכותרת «סינון ומיקוד» יושבת בתחילת הרצועה ולא בשורה משלה: שורה
    שלמה (26px) לשתי מילים ו-✕ היא גובה שנלקח מהרשימה. */
-.dash .wfilters{display:flex;flex-direction:row;align-items:flex-start;gap:10px}
+/* ============ המגירה חייבת לצאת מהרצועה ============
+   .widget נושא overflow:hidden — נכון לווידג׳ט שגולל בתוכו, הרסני
+   לרצועה שגובהה 86px ושצריכה לפתוח מגירה בת 110px. נמדד: המגירה
+   נפרסה 103→213px והרצועה נגמרת ב-142, כלומר 71 פיקסלים —
+   רשימת הערכים כולה — נחתכו, ונשאר רק שדה החיפוש.
+   z-index כדי שהמגירה תצויר מעל תור העבודה: שניהם .widget עם
+   position:relative, וה-DOM מציב את הרצועה ראשונה. */
+.dash .wfilters{display:flex;flex-direction:row;align-items:flex-start;gap:10px;
+  overflow:visible;z-index:40}
 .dash .wfilters>.whead{flex:0 0 auto;padding:7px 0 0;gap:6px;min-height:0;
   border:0;background:transparent}
 .dash .wfilters .wbody{overflow:visible;flex:1 1 auto;min-width:0}
@@ -1478,7 +1486,14 @@ td.pnc{padding:5px 14px;font-size:13px}
 
 /* שורת הכותרת — חמישה רכיבים בשורה אחת. בלי הכללים האלה המשפט המסביר
    נדחס לעמודה של מילה בשורה, והשורה מתנפחת מ-37px ל-139px. */
-.phd{flex-wrap:nowrap;overflow:hidden;min-height:0}
+/* אין כאן overflow:hidden. הוא היה, וגזר את תפריט הסימון
+   הקבוצתי: התפריט 310px בן תשעה פריטים, ושורת הכותרת 37px —
+   כלומר 309 מתוך 310 פיקסלים נחתכו, והמשתמש ראה פיקסל אחד.
+   נמדד גם על main (6 פריטים, 231 מתוך 232 נחתכו), כלומר תקלה
+   ותיקה ולא רגרסיה.
+   מה שהוא בא למנוע — שורה שמתנפחת מ-37px ל-139px — נמנע כבר
+   ע״י min-width:0 ו-nowrap על הילדים, כפי שנמדד למטה. */
+.phd{flex-wrap:nowrap;min-height:0}
 .phd>span:first-child,.phd .seg{flex:0 0 auto;white-space:nowrap}
 .phd .title,.phd .sub#lc{white-space:nowrap}
 /* תת-הכותרת היא הרכיב הגמיש היחיד בשורה. בלי min-width:0 היא נשברת
@@ -1493,7 +1508,12 @@ td.pnc{padding:5px 14px;font-size:13px}
 #w_queue .phd > *{white-space:nowrap}
 #w_queue .phd .bulkmenu,#w_queue .phd .bulkmenu *{white-space:normal}
 .phd #phdSub{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.phd .kbd,.phd .bulkwrap{flex:0 0 auto}
+/* מתג הקיבוץ הוא פקד, לא טקסט — הוא לא מתכווץ. בלי flex:0 0 auto
+   הוא נדחס בשורה הצרה: נמדד 143px של תוכן בתוך 95px ב-1440
+   (ו-120 ב-1600), כלומר 48 מתוך 62 הפיקסלים של «לפי ספק» נחתכו
+   והכפתור היה סרט דק שאי אפשר לקרוא ובקושי ללחוץ.
+   מי שסופג את הצמצום הוא המשפט המסביר — וזה נכון, כי יש לו ⓘ. */
+.phd .kbd,.phd .bulkwrap,.phd #gseg{flex:0 0 auto}
 
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
@@ -1548,6 +1568,19 @@ td.pnc{padding:5px 14px;font-size:13px}
  .tab{min-width:84px;padding:5px 7px 6px}
  .phd #phdSub{display:none}
 }
+/* ============ ⓘ — ההסבר שאפשר לפתוח ============
+   כפתור זעיר שמופיע רק כשהמשפט באמת נחתך (נמדד אחרי הפריסה,
+   לא נגזר מרוחב המסך), ופותח אותו לשורה עוטפת. סגור — השורה
+   בגובהה הרגיל; פתוח — המשתמש ביקש את המקום. */
+.phd .subinfo{display:none;flex:0 0 auto;border:0;background:none;cursor:pointer;
+ font-family:inherit;font-size:12px;line-height:1;padding:2px 4px;border-radius:var(--r-ctl);
+ color:var(--ink-3)}
+.phd.subcut .subinfo{display:inline-flex}
+.phd .subinfo:hover{background:var(--accent-bg);color:var(--accent-ink)}
+.phd .subinfo[aria-expanded="true"]{background:var(--accent-bg);color:var(--accent-ink)}
+body.subopen .phd{flex-wrap:wrap}
+body.subopen .phd #phdSub{display:block;flex:1 1 100%;white-space:normal;overflow:visible;
+ text-overflow:clip;margin-block-start:4px;line-height:1.5}
 @media(max-width:1180px){
  .dash{grid-template-columns:184px minmax(0,1fr)}
  .kpis{grid-template-columns:1.7fr 1fr 1fr}
@@ -2366,7 +2399,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="seg" id="track"></span>
           <span class="chips inline" id="chipsTop"></span>
-          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
+          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
@@ -3984,6 +4017,27 @@ function wireDrag(){
   });
   document.querySelectorAll('.wx').forEach(x=>x.onclick=e=>{e.stopPropagation();hideWidget(x.dataset.hide)});
 }
+/* ============ ההסבר של המסלול אינו נעלם ============
+   המשפט שמסביר *למה* המסלול מציג את מה שהוא מציג היה nowrap עם
+   ellipsis ובלי title, וב-max-width:1400 הוא היה display:none.
+   נמדד: ב«רצפת SS» הוא 1,182px — ב-1920 נחתכו 706 (60%),
+   ב-1440 נחתכו 958 (המשתמש ראה 19% מהמשפט), וב-1366 ו-1180 הוא
+   לא הוצג כלל ולא הייתה שום דרך אחרת לקרוא אותו.
+   הפתרון אינו טולטיפ בלבד — title אינו נגיש במגע. ⓘ פותח את
+   המשפט לשורה עוטפת, והשורה חוזרת לגובהה כשסוגרים. */
+function setPhdSub(t){const e=document.getElementById('phdSub');if(!e)return;
+ e.textContent=t;e.title=t;
+ const b=document.getElementById('phdInfo');
+ if(b){b.title=t;b.setAttribute('aria-label','ההסבר המלא: '+t)}
+ phdSubOpen(false);
+ /* האם הוא נחתך בפועל — נמדד אחרי הפריסה, לא נגזר מרוחב המסך */
+ requestAnimationFrame(()=>{const phd=e.closest('.phd');if(!phd)return;
+   const cut=e.scrollWidth-e.clientWidth>1||getComputedStyle(e).display==='none';
+   phd.classList.toggle('subcut',cut&&!!t)})}
+function phdSubOpen(on){
+ document.body.classList.toggle('subopen',!!on);
+ const b=document.getElementById('phdInfo');
+ if(b)b.setAttribute('aria-expanded',on?'true':'false')}
 function toast(msg,act){const t=document.getElementById('toast');
  t.innerHTML=esc(msg)+(act?` <button class="tundo">${esc(act.label)}</button>`:'');
  if(act){const b=t.querySelector('.tundo');b.onclick=()=>{t.classList.remove('show');act.run()}}
@@ -4271,6 +4325,13 @@ function colsOpen(on){
  pk.querySelectorAll('[data-cpa]').forEach(x=>x.onclick=()=>{
    if(x.dataset.cpa==='reset'){colReset(colViewKey());render();colsOpen(true)}
    else colsOpen(false)})}
+/* לחיצה על ⓘ או על המשפט עצמו פותחת וסוגרת. שני היעדים, כי
+   המשפט החתוך הוא הרמז הראשון שיש עוד. */
+function phdSubWire(){
+ const b=document.getElementById('phdInfo'),e=document.getElementById('phdSub');
+ const tog=ev=>{ev.stopPropagation();phdSubOpen(!document.body.classList.contains('subopen'))};
+ if(b&&!b.__w){b.__w=1;b.onclick=tog}
+ if(e&&!e.__w){e.__w=1;e.style.cursor='pointer';e.onclick=tog}}
 function colsWire(){
  ['colsBtn','colsBtnM'].forEach(id=>{const b=document.getElementById(id);
   if(!b||b.__w)return;b.__w=1;
@@ -4938,6 +4999,19 @@ const DEF=[['today','החלטות היום','מדורג בכסף','var(--red)'],
  ['moves','תנועות','CF · CG · נכנס ולא נמכר','var(--blue)']];
 function optionsFor(key){const b=ALL.filter(it=>FDEF.every(([k])=>k===key||!SEL[k].size||SEL[k].has(it[k])));
   const c={};b.forEach(it=>c[it[key]]=(c[it[key]]||0)+1);return Object.entries(c).sort((a,b)=>b[1]-a[1])}
+/* ============ המגירה נשארת על המסך ============
+   המגירה נעגנת ל-.fgroup וגדלה לכיוון הקצה. ברצועה האופקית
+   הקבוצה האחרונה יושבת בקצה השמאלי, ו-240px של מגירה יצאו
+   מהמסך. נמדד: left=-130 בארבעה רוחבי מסך — רשימת הערכים כולה
+   מחוץ לחלון, בלי גלילה שתחזיר אותה.
+   ההזזה נעשית ב-transform ולא בשינוי מודל המיקום, כדי שהמקרה
+   התקין יישאר בדיוק כפי שהיה. */
+function ddClamp(p){
+ p.style.transform='';
+ const r=p.getBoundingClientRect();let dx=0;
+ if(r.left<8)dx=8-r.left;
+ else if(r.right>innerWidth-8)dx=(innerWidth-8)-r.right;
+ if(dx)p.style.transform=`translateX(${Math.round(dx)}px)`}
 function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDEF.map(([k,l])=>
   `<div class="fgroup"><label class="tl">${l}</label><div class="dd"><button class="ddbtn ${SEL[k].size?'on':''}" data-k="${k}"><span>${SEL[k].size?SEL[k].size+' נבחרו':'הכל'}</span>${SEL[k].size?`<span class="cnt">${SEL[k].size}</span>`:'<span class="car">▼</span>'}</button><div class="ddpanel" id="dp_${k}"></div></div></div>`).join('');
  document.querySelectorAll('.ddbtn').forEach(b=>b.onclick=e=>{e.stopPropagation();
@@ -4947,6 +5021,7 @@ function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDE
   p.innerHTML=`<input class="s" placeholder="חיפוש בין ${o.length} ערכים">`+o.map(([v,c])=>
     `<label><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}" ${SEL[k].has(v)?'checked':''}><span>${v}</span><span class="c">${c}</span></label>`).join('');
   p.classList.add('open');
+  ddClamp(p);
   p.querySelector('.s').oninput=ev=>{const q=ev.target.value;p.querySelectorAll('label').forEach(l=>l.style.display=l.textContent.includes(q)?'':'none')};
   p.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{cb.checked?SEL[k].add(cb.value):SEL[k].delete(cb.value);apply()});
   p.onclick=ev=>ev.stopPropagation()});}
@@ -5337,7 +5412,7 @@ function tiles(){
    kt.onclick=()=>{const off=document.body.classList.toggle('nokpi');
     try{localStorage.setItem('planner_nokpi',off?'1':'0')}catch(_){}
     prefsLbl()}}}
- prefsLbl();colsWire();
+ prefsLbl();colsWire();phdSubWire();
  const wireNav=e=>e.onclick=()=>{
    if(e.dataset.m==='moves'){cur='moves';closeDetail();render();return}
    /* «חוסרים לטיפול» נפתח דרך shortOpen כדי שקבוצה שקופלה בעבר לא
@@ -6339,8 +6414,8 @@ function renderCust(rows){
      +` · ${G.none.length} ללא רכש (${moneyMix(G.none,custVal)})`
      +(ETA?` · ${dated} עם תאריך · ${(supN-dated).toLocaleString('he-IL')} ברכש בלי תאריך`
           :` · ${supN} ברכש — לא נטען דוח ETA`)})();
- document.getElementById('phdSub').textContent=
-  'הזמנת לקוח פתוחה מול מלאי פנוי אפס · הקטע האדום הוא היחיד שדורש הזמנת רכש · השאר מקובצים לפי ספק כי הפעולה היא דרישת ETA';
+ setPhdSub(
+  'הזמנת לקוח פתוחה מול מלאי פנוי אפס · הקטע האדום הוא היחיד שדורש הזמנת רכש · השאר מקובצים לפי ספק כי הפעולה היא דרישת ETA');
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];{const G2=custGroups(rows);
   if(!GCOLL.has('cst:none'))view.push(...G2.none);
@@ -6376,9 +6451,9 @@ function renderApplied(rows){
  document.getElementById('pgR').textContent=A
   ?`${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו${A.gone?` · ${A.gone} כבר לא בדוח`:''}`
   :'';
- document.getElementById('phdSub').textContent=A
+ setPhdSub(A
   ?`מתוך ${A.total} ההמלצות שהיו בהעלאה הקודמת${A.days?` לפני ${A.days} ימים`:''} — מה שונה בפועל ב-SAP`
-  :'השוואה בין שתי העלאות';
+  :'השוואה בין שתי העלאות');
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
@@ -6519,7 +6594,7 @@ function renderDecisions(rows){
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
- document.getElementById('phdSub').textContent=track==='floor'
+ setPhdSub(track==='floor'
   ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · «הדרישה» = — פירושה שאין קצב מדוד, ולכן הרצפה כולה היא הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
   :track==='trend'
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
@@ -6531,7 +6606,7 @@ function renderDecisions(rows){
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
-    :'כסף שיושב במחסן ולא זז — ממוין לפי ₪');
+    :'כסף שיושב במחסן ולא זז — ממוין לפי ₪'));
  wireCopy()}
 function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
@@ -6588,7 +6663,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
    renderDecisions(rows);return}
  if(cur==='today'){renderTrack();renderDecisions(rows);return}
  const tk=document.getElementById('track');if(tk){tk.innerHTML='';tk.style.display='none'}
- document.getElementById('phdSub').textContent='לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה';
+ setPhdSub('לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה');
  /* הכותרות והתאים עברו לרישום: עד כאן הן היו שתי מחרוזות HTML
     נפרדות באותה פונקציה, ולכן לא היה בורר עמודות — «כל הטבלאות
     בכלי» כולל גם את זאת. העמודות והתאים זהים לתו. */

@@ -1696,6 +1696,109 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    (await catScan()).th===CATDEF,(await catScan()).th);
  await goNav(p,'today');await p.waitForTimeout(500);
 
+
+ /* ============ מידע שאינו מוסתר ============
+    ארבע תקלות מאותה משפחה: הכלי מחזיק את המידע ולא מראה אותו.
+    כולן נמדדו על המסך, לא נגזרו מקריאת CSS. */
+ for(const W of [1920,1440,1366]){
+  await p.setViewportSize({width:W,height:900});
+  await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
+
+  /* 1. מגירת הסינון. .widget נושא overflow:hidden — נכון לווידג׳ט
+     שגולל בתוכו, הרסני לרצועה בת 86px שפותחת מגירה בת 110px.
+     נמדד לפני התיקון: המגירה 103→213 והרצועה נגמרת ב-142, כלומר
+     71 פיקסלים — רשימת הערכים כולה — נחתכו. */
+  const filtOpen=await p.evaluate(()=>!!document.querySelector('.ddbtn')
+    &&document.querySelector('.ddbtn').getBoundingClientRect().width>0);
+  if(!filtOpen){await p.click('#filtBtn');await p.waitForTimeout(600)}
+  const dd=await p.evaluate(()=>{
+    const bs=[...document.querySelectorAll('.ddbtn')].filter(b=>b.getBoundingClientRect().width>0);
+    const out=[];
+    for(const btn of bs){
+      document.querySelectorAll('.ddpanel').forEach(x=>x.classList.remove('open'));
+      btn.click();
+      const pan=document.querySelector('.ddpanel.open');
+      if(!pan){out.push({bad:'לא נפתח'});continue}
+      const r=pan.getBoundingClientRect();
+      let lost=0,x=pan.parentElement;
+      while(x&&x!==document.documentElement){const cs=getComputedStyle(x);
+        if(cs.overflow!=='visible'){const rr=x.getBoundingClientRect();
+          lost=Math.max(0,Math.round(r.bottom-rr.bottom))+Math.max(0,Math.round(rr.top-r.top))
+            +Math.max(0,Math.round(rr.left-r.left))+Math.max(0,Math.round(r.right-rr.right));
+          if(lost>2)break;lost=0}
+        x=x.parentElement}
+      const off=Math.max(0,Math.round(-r.left))+Math.max(0,Math.round(r.right-innerWidth))
+        +Math.max(0,Math.round(r.bottom-innerHeight));
+      const hit=document.elementFromPoint(r.left+r.width/2,r.top+Math.min(r.height-4,30));
+      const covered=!(hit&&(pan===hit||pan.contains(hit)));
+      if(lost>2||off>2||covered)out.push({lost,off,covered});
+    }
+    document.querySelectorAll('.ddpanel').forEach(x=>x.classList.remove('open'));
+    return {n:bs.length,bad:out}});
+  ok(`${W}px · כל מגירות הסינון נפתחות שלמות ונראות`,
+    dd.n>0&&dd.bad.length===0,`${dd.n} מגירות · ${JSON.stringify(dd.bad)}`);
+
+  /* 2. תפריט הסימון הקבוצתי. .phd נשא overflow:hidden — נמדד:
+     התפריט 310px בן תשעה פריטים בתוך שורה בת 37px, כלומר 309
+     מתוך 310 פיקסלים נחתכו. היה כך גם ב-main (231 מתוך 232). */
+  const bulk=await p.evaluate(()=>{
+    const cb=document.querySelector('#tbl tbody tr[data-i] input[type=checkbox]');
+    if(cb)cb.click();
+    const btn=document.querySelector('.bulkwrap button,.bulkbtn');
+    if(!btn)return {err:'אין כפתור'};
+    btn.click();
+    const m=document.querySelector('.bulkmenu.open');
+    if(!m)return {err:'לא נפתח'};
+    const r=m.getBoundingClientRect();
+    let lost=0,x=m.parentElement;
+    while(x&&x!==document.documentElement){const cs=getComputedStyle(x);
+      if(cs.overflow!=='visible'){const rr=x.getBoundingClientRect();
+        const L=Math.max(0,Math.round(r.bottom-rr.bottom));
+        if(L>2){lost=L;break}}
+      x=x.parentElement}
+    const items=m.querySelectorAll('button').length;
+    m.classList.remove('open');if(cb)cb.click();
+    return {lost,items,h:Math.round(r.height)}});
+  ok(`${W}px · תפריט הסימון הקבוצתי אינו נחתך`,
+    !bulk.err&&bulk.lost===0&&bulk.items>=8,
+    bulk.err||`${bulk.items} פריטים · ${bulk.h}px · נחתך ${bulk.lost}`);
+
+  /* 3. מתג הקיבוץ הוא פקד ואינו מתכווץ. נמדד: 143px של תוכן
+     בתוך 95px ב-1440, כלומר 48 מ-62 הפיקסלים של «לפי ספק». */
+  const gs=await p.evaluate(()=>{const g=document.getElementById('gseg');
+    if(!g||getComputedStyle(g).display==='none')return null;
+    return {lost:g.scrollWidth-g.clientWidth,w:Math.round(g.getBoundingClientRect().width)}});
+  if(gs)ok(`${W}px · מתג הקיבוץ אינו נדחס`,gs.lost===0,`רוחב ${gs.w} · נחתך ${gs.lost}`);
+
+  /* 4. המשפט שמסביר את המסלול. היה nowrap בלי title, וב-1400 ומטה
+     display:none — ב«רצפת SS» 958 מתוך 1,182 פיקסלים לא הוצגו
+     ב-1440, ומתחת ל-1400 לא הייתה שום דרך לקרוא אותו. */
+  for(const trk of ['floor','cust']){
+   await p.evaluate(k=>{try{setMode(k)}catch(_){}},trk);await p.waitForTimeout(500);
+   const sub=await p.evaluate(()=>{const e=document.getElementById('phdSub'),
+     i=document.getElementById('phdInfo');
+    const box=document.querySelector('#w_queue .rows');
+    return {ttl:(e.title||'').trim().length,txt:(e.textContent||'').trim().length,
+      info:!!i&&getComputedStyle(i).display!=='none',rowsH:box?box.clientHeight:0}});
+   ok(`${W}px · «${trk}» — ההסבר נושא title מלא ויש ⓘ`,
+     sub.ttl===sub.txt&&sub.ttl>100&&sub.info,
+     `title ${sub.ttl} תווים · טקסט ${sub.txt} · ⓘ=${sub.info}`);
+   await p.click('#phdInfo');await p.waitForTimeout(400);
+   const opened=await p.evaluate(()=>{const e=document.getElementById('phdSub');
+     const r=e.getBoundingClientRect();
+     return {shown:getComputedStyle(e).display!=='none',cut:e.scrollWidth-e.clientWidth,
+       inView:r.bottom<=innerHeight&&r.top>=0}});
+   await p.click('#phdInfo');await p.waitForTimeout(400);
+   const back=await p.evaluate(()=>{const box=document.querySelector('#w_queue .rows');
+     return {rowsH:box?box.clientHeight:0,open:document.body.classList.contains('subopen')}});
+   ok(`${W}px · «${trk}» — ⓘ פותח את המשפט במלואו, וסגירה מחזירה את הרשימה`,
+     opened.shown&&opened.cut===0&&opened.inView&&!back.open&&back.rowsH===sub.rowsH,
+     `נחתך ${opened.cut} · בתוך המסך ${opened.inView} · רשימה ${sub.rowsH}→${back.rowsH}`);
+  }
+ }
+ await p.setViewportSize({width:1600,height:900});
+ await goNav(p,'today');await p.waitForTimeout(600);
+
  /* ============ הייצוא מייצג את מה שרואים ============
     השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
     של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו
