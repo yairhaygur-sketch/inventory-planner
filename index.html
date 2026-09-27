@@ -840,22 +840,26 @@ body.xp #tbl,body.xp .rows{cursor:default}
 /* הכותרת «סינון ומיקוד» יושבת בתחילת הרצועה ולא בשורה משלה: שורה
    שלמה (26px) לשתי מילים ו-✕ היא גובה שנלקח מהרשימה. */
 .dash .wfilters{display:flex;flex-direction:row;align-items:flex-start;gap:10px}
-.dash .wfilters>.whead{flex:0 0 auto;padding:11px 0 0;gap:6px;min-height:0;
+.dash .wfilters>.whead{flex:0 0 auto;padding:7px 0 0;gap:6px;min-height:0;
   border:0;background:transparent}
 .dash .wfilters .wbody{overflow:visible;flex:1 1 auto;min-width:0}
 /* שאלת השפה החופשית: התווית לצד השדה, לא מעליו */
 .dash .wfilters .nlq{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .dash .wfilters .nlq .tl{margin:0;white-space:nowrap;font-size:var(--f-xs)}
-.dash .wfilters .nlq input{flex:1 1 auto;min-width:0;width:auto;padding:5px 9px}
+.dash .wfilters .nlq input{flex:1 1 auto;min-width:0;width:auto;padding:3px 9px}
 .dash .wfilters .nlq .nlqout{flex:1 1 100%;margin-top:4px}
-.dash .wfilters .fbody{display:flex;flex-wrap:wrap;align-items:center;gap:7px 9px;
-  padding:7px 0 8px;overflow:visible;flex:0 0 auto;
+/* ============ גובה הרצועה נמדד על הראנר, לא כאן ============
+   ב-CI הרצועה יצאה 85px במקום 81 — מטריקות גופן שונות מסדרות את
+   השבבים אחרת — והרשימה ירדה ל-64% מול סף של 65%. ההפרש אינו
+   טעות בבדיקה אלא מרווח שלא היה: הריפוד כאן מצומצם כדי שיהיה. */
+.dash .wfilters .fbody{display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;
+  padding:4px 0 5px;overflow:visible;flex:0 0 auto;
   border-block-end:1px solid var(--line2)}
 .dash .wfilters .nlq{margin:0;flex:1 1 240px;min-width:200px}
 .dash .wfilters #sidefilters{display:contents}
 .dash .wfilters .fgroup{margin:0;display:flex;align-items:center;gap:6px;flex:0 0 auto}
 .dash .wfilters .fgroup label.tl{display:inline;margin:0;white-space:nowrap;font-size:var(--f-xs)}
-.dash .wfilters .ddbtn{width:auto;min-width:96px;gap:8px;padding:5px 9px}
+.dash .wfilters .ddbtn{width:auto;min-width:96px;gap:8px;padding:3px 9px}
 .dash .wfilters .ddpanel{inset-inline-end:auto;min-width:240px;top:34px}
 .dash .wfilters .toggle,.dash .wfilters .fclear{width:auto;flex:0 0 auto;margin:0}
 .dash .wfilters .chips{flex:1 1 100%;margin:0}
