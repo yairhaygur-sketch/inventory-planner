@@ -1481,6 +1481,121 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
  await p.waitForTimeout(500);
 
+
+ /* ============ טבלת התנועות — אותו רישום עמודות ============
+    היא נבנתה כ-HTML קשיח: כותרות במחרוזת אחת ותאים באחרת, בלי
+    מיון, בלי סינון ובלי בורר. «כל הטבלאות בכלי» כולל גם אותה,
+    ולכן היא עברה לאותו רישום — ומקבלת את שלושתם באותו מנגנון.
+    נמדד לפני התיקון: colViewKey החזיר עליה 'catalog' (מסלול
+    track='cap' חטף אותה), ולכן colReg() היה false וכל לחיצה על
+    כותרת נבלעה. */
+ const toMoves=async()=>{await goNav(p,'moves');await p.waitForTimeout(500)};
+ const movTabTo=async t=>{await p.evaluate(k=>{const e=[...document.querySelectorAll('#movtabs .tab')]
+     .find(x=>x.dataset.mt===k);if(e)e.click()},t);await p.waitForTimeout(500)};
+ const movScan=()=>p.evaluate(()=>({vk:colViewKey(),
+   th:[...document.querySelectorAll('#movtbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()),
+   nth:document.querySelectorAll('#movtbl thead th').length,
+   ntd:(document.querySelector('#movtbl tbody tr[data-mi]')||{children:[]}).children.length,
+   rows:document.querySelectorAll('#movtbl tbody tr[data-mi]').length,
+   fil:document.querySelectorAll('#movtbl thead .wfil').length,
+   srt:document.querySelectorAll('#movtbl thead th.wsrt').length}));
+ await toMoves();
+ /* ברירות המחדל הן בדיוק העמודות שהיו על המסך לפני הרישום. */
+ const MVDEF={sales:'|מק״ט|תיאור|דגם|תאריך מכירה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
+   entries:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
+   stuck:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|מכירה אחרונה|מלאי|ABC|MRP'};
+ const mvKeys=[];
+ for(const t of ['sales','entries','stuck']){
+   await movTabTo(t);
+   const m=await movScan();
+   mvKeys.push(m.vk);
+   ok(`תנועות · «${t}» — כותרת לכל תא, והעמודות לא השתנו`,
+     m.nth===m.ntd&&m.th.join('|')===MVDEF[t],`${m.nth}/${m.ntd} · ${m.th.join('|')}`);
+   ok(`תנועות · «${t}» — כל עמודה שניתן למיין לפיה נושאת גם ▾`,
+     m.srt===m.nth-1&&m.fil===m.srt,
+     `${m.srt} ממוינות · ${m.fil} מסננות · ${m.nth} עמודות`);
+ }
+ ok('ולכל טאב תנועות מפתח פריסה משלו',
+   new Set(mvKeys).size===3,mvKeys.join(' · '));
+ /* מיון: הטבלה הזאת אינה מקובצת בבלוקי מטבע, ולכן המיון גלובלי. */
+ /* הערכים *וגם* סדר המק״טים: ברירת המחדל כאן היא מהחדש לישן,
+    כלומר כבר עולה לפי «ימים מאז» — השוואת ערכים בלבד לא הייתה
+    מבחינה בין «עולה» לבין «בלי מיון». */
+ const mvAge=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#movtbl thead th')]
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='ימים מאז');
+   const tr=[...document.querySelectorAll('#movtbl tbody tr[data-mi]')].slice(0,8);
+   return {v:tr.map(t=>+(t.children[i].textContent.replace(/[^\d]/g,'')||0)),
+     pn:tr.map(t=>t.children[1].textContent.replace(/העתק/g,'').trim()).join(',')}});
+ const mvHit=()=>p.evaluate(()=>{const th=[...document.querySelectorAll('#movtbl thead th.wsrt')]
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='ימים מאז');
+   if(th)th.querySelector('.thc').click()});
+ const mvWs=()=>p.evaluate(()=>WSORT.col?WSORT.col+'/'+WSORT.dir:'—');
+ const mv0=await mvAge();
+ await mvHit();await p.waitForTimeout(450);const mv1=await mvAge(),mws1=await mvWs();
+ await mvHit();await p.waitForTimeout(450);const mv2=await mvAge(),mws2=await mvWs();
+ await mvHit();await p.waitForTimeout(450);const mv3=await mvAge(),mws3=await mvWs();
+ const dsc=a=>a.every((v,i)=>i===0||a[i-1]>=v), asc2=a=>a.every((v,i)=>i===0||a[i-1]<=v);
+ ok('תנועות · לחיצה על כותרת ממיינת יורד',
+   mws1==='mage/desc'&&dsc(mv1.v)&&mv1.v[0]>mv0.v[0],
+   `${mws1} · ${mv0.v.join(' ')}  →  ${mv1.v.join(' ')}`);
+ /* «עולה לפי ימים מאז» הוא בדיוק «מהחדש לישן», כלומר סדר ברירת
+    המחדל של הטבלה — ולכן אותן שורות. זו תוצאה נכונה ולא היעדר
+    מיון, ומה שמבדיל ביניהם הוא מצב WSORT. */
+ ok('תנועות · לחיצה שנייה הופכת לעולה',mws2==='mage/asc'&&asc2(mv2.v),
+   `${mws2} · ${mv2.v.join(' ')}`);
+ ok('תנועות · ושלישית מבטלת את המיון ומחזירה את הסדר המקורי',
+   mws3==='—'&&mv3.pn===mv0.pn&&mv1.pn!==mv0.pn,
+   `${mws3} · ${mv0.pn}\n  יורד  ${mv1.pn}\n  כבוי  ${mv3.pn}`);
+ /* סינון: אותו בורר עמודה בדיוק. */
+ const mvB4=await movScan();
+ const mvF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#movtbl thead th.wsrt')]
+     .find(t=>t.querySelector('.thc').textContent.trim()==='ABC');
+   if(!th)return {err:'אין כותרת ABC'};
+   th.querySelector('.wfil').click();
+   const pop=document.getElementById('colpop');
+   if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
+   const bx=[...pop.querySelectorAll('.vals input')];
+   if(!bx.length)return {err:'אין ערכים בבורר'};
+   bx[0].checked=true;const v=bx[0].value;
+   document.getElementById('cpOk').click();return {v,n:bx.length}});
+ await p.waitForTimeout(500);
+ const mvAf=await p.evaluate(()=>({rows:document.querySelectorAll('#movtbl tbody tr[data-mi]').length,
+   marked:document.querySelectorAll('#movtbl thead th.filt').length,
+   exp:movExportRows().length-1,
+   head:movExportRows()[0].join('|'),
+   th:[...document.querySelectorAll('#movtbl thead th')]
+     .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
+   keys:Object.keys(colFilters)}));
+ ok('תנועות · ▾ פותח בורר עמודה עם ערכים',!mvF.err&&mvF.n>0,
+   mvF.err||`${mvF.n} ערכים · «${mvF.v}»`);
+ ok('תנועות · הסינון חותך שורות והכותרת מסומנת',
+   mvAf.rows>0&&mvAf.rows<mvB4.rows&&mvAf.marked===1&&mvAf.keys.includes('c:abc'),
+   `${mvB4.rows} → ${mvAf.rows} · כותרות ${mvAf.marked}`);
+ /* הגיליון היה רשימה קבועה של 11 עמודות בסדר אחר מהמסך. */
+ ok('תנועות · הגיליון נושא את עמודות המסך ואת שורותיו',
+   mvAf.exp===mvAf.rows&&mvAf.head===mvAf.th.replace(/^\|/,''),
+   `${mvAf.exp} שורות · ${mvAf.head}`);
+ /* בורר העמודות של התנועות — כפתור משלה, ובורר שיודע איזו טבלה
+    הוא עורך. */
+ await p.click('#colsBtnM');await p.waitForTimeout(400);
+ const mvPk=await p.evaluate(()=>({open:document.getElementById('colspick').classList.contains('open'),
+   n:document.querySelectorAll('#colspick input[data-ck]').length,
+   nm:document.querySelector('#colspick .cpn').textContent.trim()}));
+ ok('תנועות · «▦ עמודות» פותח בורר ששייך לטבלה הזאת',
+   mvPk.open&&mvPk.n>10&&/תנועות/.test(mvPk.nm),`${mvPk.n} עמודות · ${mvPk.nm}`);
+ await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="sup"]');if(cb)cb.click()});
+ await p.waitForTimeout(550);
+ const mvAdd=await movScan();
+ ok('תנועות · הוספת «ספק» מוסיפה כותרת ותא — והנקודה נשארת ראשונה',
+   mvAdd.nth===mvB4.nth+1&&mvAdd.ntd===mvAdd.nth&&mvAdd.th[0]===''
+   &&mvAdd.th.includes('ספק'),`${mvAdd.nth}/${mvAdd.ntd} · ${mvAdd.th.join('|')}`);
+ await p.evaluate(()=>{colsOpen(false);colReset(colViewKey());
+   Object.keys(colFilters).forEach(k=>delete colFilters[k]);
+   WSORT={col:null,dir:'desc'};chips();renderMoves()});
+ await p.waitForTimeout(500);
+ await goNav(p,'today');await p.waitForTimeout(500);
+
  /* ============ הייצוא מייצג את מה שרואים ============
     השורות תמיד היו של התצוגה, אבל העמודות היו 51 קבועות והסדר היה
     של currentRows() ולא של המסך — כלומר מי שהוריד קובץ קיבל משהו

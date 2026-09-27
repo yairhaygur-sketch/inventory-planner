@@ -929,23 +929,26 @@ table.rzing{user-select:none}
 table.rzing .colrz{background:var(--accent);opacity:.5}
 #tbl td,#movtbl td{overflow:hidden;text-overflow:ellipsis}
 
-/* כותרת שניתן למיין לפיה — הסימון הוא החץ, לא צבע בלבד */
-#tbl thead th.wsrt .thc{cursor:pointer}
-#tbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
-#tbl thead th.wsrt.act .thc{color:var(--accent-ink);font-weight:800}
-#tbl thead th .warr{margin-inline-start:3px;font-size:9px}
+/* כותרת שניתן למיין לפיה — הסימון הוא החץ, לא צבע בלבד.
+   אותם כללים לשתי הטבלאות: טבלת התנועות עברה לאותו רישום עמודות
+   ולכן היא נושאת את אותן כותרות בדיוק. */
+#tbl thead th.wsrt .thc,#movtbl thead th.wsrt .thc{cursor:pointer}
+#tbl thead th.wsrt:hover .thc,#movtbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
+#tbl thead th.wsrt.act .thc,#movtbl thead th.wsrt.act .thc{color:var(--accent-ink);font-weight:800}
+#tbl thead th .warr,#movtbl thead th .warr{margin-inline-start:3px;font-size:9px}
 /* כפתור הסינון אינו גוזל רוחב: הוא ממוקם מוחלט בקצה הכותרת, והחץ
    מצויר ב-::before כדי ש-textContent של הכותרת יישאר השם בלבד.
    נמדד כשהוא היה בזרימה: הטבלה גדלה מ-1046 ל-1142 ב-1280px. */
-#tbl thead th .wfil{position:absolute;inset-inline-end:1px;inset-block-start:50%;
+#tbl thead th .wfil,#movtbl thead th .wfil{position:absolute;inset-inline-end:1px;inset-block-start:50%;
  transform:translateY(-50%);width:15px;height:16px;padding:0;border:0;cursor:pointer;
  background:none;color:var(--ink-3);font-size:9px;line-height:16px;border-radius:3px;
  opacity:0;font-family:inherit}
-#tbl thead th .wfil::before{content:'▾'}
-#tbl thead th:hover .wfil,#tbl thead th.filt .wfil,#tbl thead th .wfil:focus-visible{opacity:1}
-#tbl thead th .wfil:hover{background:var(--accent-bg);color:var(--accent-ink)}
-#tbl thead th.filt .wfil{color:var(--accent);font-weight:800;opacity:1}
-#tbl thead th.filt .thc{color:var(--accent-ink)}
+#tbl thead th .wfil::before,#movtbl thead th .wfil::before{content:'▾'}
+#tbl thead th:hover .wfil,#tbl thead th.filt .wfil,#tbl thead th .wfil:focus-visible,
+#movtbl thead th:hover .wfil,#movtbl thead th.filt .wfil,#movtbl thead th .wfil:focus-visible{opacity:1}
+#tbl thead th .wfil:hover,#movtbl thead th .wfil:hover{background:var(--accent-bg);color:var(--accent-ink)}
+#tbl thead th.filt .wfil,#movtbl thead th.filt .wfil{color:var(--accent);font-weight:800;opacity:1}
+#tbl thead th.filt .thc,#movtbl thead th.filt .thc{color:var(--accent-ink)}
 
 /* עמודות מוקפאות: המק״ט (ותיאור, כשהוא שם) נשארים בעין בזמן גלילה
    אופקית. הרקע חייב להיות אטום — מתחת לתא דביק אין רקע שורה. */
@@ -990,10 +993,10 @@ body.freeze:not(.freeze3) #tbl thead th:nth-child(2){
  color:var(--ink-2);border-radius:var(--r-ctl);padding:5px 11px;cursor:pointer;
  font-family:inherit;font-size:var(--f-sm);font-weight:700}
 .colspick .cpa button.ok{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
-#kpiTog,#denTog,#colsBtn{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
+#kpiTog,#denTog,#colsBtn,#colsBtnM{border:0;background:none;color:var(--dim);font-size:var(--f-sm);font-weight:700;
  padding:2px 7px;border-radius:var(--r-ctl);cursor:pointer;white-space:nowrap}
-#kpiTog:hover,#denTog:hover,#colsBtn:hover{background:var(--surface-2);color:var(--ink)}
-#denTog.on,#colsBtn.on{color:var(--accent-ink);background:var(--accent-bg)}
+#kpiTog:hover,#denTog:hover,#colsBtn:hover,#colsBtnM:hover{background:var(--surface-2);color:var(--ink)}
+#denTog.on,#colsBtn.on,#colsBtnM.on{color:var(--accent-ink);background:var(--accent-bg)}
 /* ============ שתי צפיפויות, בלי להקטין טקסט ============
    המפרט מבקש 18-24 שורות קריאות, ואוסר במפורש להגיע לשם בהקטנת
    גופן. הצפופה מורידה ריפוד בלבד: הגופן נשאר 12.5px, השורה יורדת
@@ -2432,7 +2435,7 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="wbody"><div class="qbody">
       <div class="tabs" id="movtabs"></div>
       <div class="qpanel">
-        <div class="phd"><span class="title" id="movlt">—</span><span class="sub">🟢 0–30 · 🟡 31–90 · 🔴 90+ ימים · מיון: מהחדש לישן</span></div>
+        <div class="phd"><span class="title" id="movlt">—</span><button type="button" id="colsBtnM" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל טאב תנועות בנפרד">▦ עמודות</button><span class="sub">🟢 0–30 · 🟡 31–90 · 🔴 90+ ימים · לחיצה על כותרת — מיון וסינון</span></div>
         <div class="rows"><table id="movtbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="movpg"></span><span id="movpgR">CF=מכירה אחרונה · CG=כניסה אחרונה</span></div>
       </div>
@@ -4146,7 +4149,10 @@ const CW_KEY='planner_colw_v1';
 /* המפתח חייב להבחין בין טבלאות שונות שחולקות track: «קטלוג פריטים»
    ו«בריאות המלאי» שניהם track='cap' אבל עשר עמודות מול שמונה, והן
    היו דורסות זו את רוחב זו. */
-function cwView(){return cur==='moves'?'moves'
+/* רוחב העמודה נשמר לפי מיקום, ולכן המפתח חייב להתאים לפריסה.
+   לשלושת טאבי התנועות פריסות שונות, ומפתח אחד היה מחיל את רוחב
+   «Δ כניסה→מכירה» על «מכירה אחרונה». */
+function cwView(){return cur==='moves'?'moves|'+movTab
  :String(track||'x')+'|'+String(cur||'')+(SHORTLIKE()?':'+colViewKey():'')}
 function cwAll(){try{return JSON.parse(localStorage.getItem(CW_KEY)||'{}')||{}}catch(_){return {}}}
 function cwSave(o){try{localStorage.setItem(CW_KEY,JSON.stringify(o))}catch(_){}}
@@ -4158,7 +4164,7 @@ function cwTables(){return [document.getElementById('tbl'),document.getElementBy
 function applyColWidths(){
  for(const tbl of cwTables()){
   const ths=[...tbl.querySelectorAll('thead th')];if(!ths.length)continue;
-  const v=tbl.id==='movtbl'?'movtbl':cwView();
+  const v=tbl.id==='movtbl'?'moves|'+movTab:cwView();
   const w=cwGet(v);
   let cg=tbl.querySelector('colgroup');
   if(!w){if(cg)cg.remove();tbl.style.tableLayout='';continue}
@@ -4168,7 +4174,7 @@ function applyColWidths(){
 function wireColResize(){
  for(const tbl of cwTables()){
   const ths=[...tbl.querySelectorAll('thead th')];
-  const v=tbl.id==='movtbl'?'movtbl':cwView();
+  const v=tbl.id==='movtbl'?'moves|'+movTab:cwView();
   ths.forEach((th,i)=>{
    if(i===ths.length-1)return;            /* האחרונה בולעת את השארית */
    if(th.querySelector('.colrz'))return;
@@ -4221,8 +4227,11 @@ function freezeCols(){
    סעיף 3 במפרט. הבחירה נשמרת לכל תצוגה בנפרד («לפי החלטה» ו«לפי
    ספק» הן שתי פריסות), ועמודה שאינה אפשרית במצב הנתונים הנוכחי
    מוצגת כבויה עם הסיבה — לא נעלמת בשקט. */
+/* שני כפתורי «עמודות»: אחד בתור העבודה ואחד בטבלת התנועות. רק
+   אחד מהם גלוי בכל רגע, והבורר נפתח מתחת לזה שנלחץ. */
+function colsBtnEl(){return document.getElementById(cur==='moves'?'colsBtnM':'colsBtn')}
 function colsOpen(on){
- const b=document.getElementById('colsBtn'),pk=document.getElementById('colspick');
+ const b=colsBtnEl(),pk=document.getElementById('colspick');
  if(!b||!pk)return;
  if(!on){pk.classList.remove('open');b.classList.remove('on');
   b.setAttribute('aria-expanded','false');return}
@@ -4263,24 +4272,28 @@ function colsOpen(on){
    if(x.dataset.cpa==='reset'){colReset(colViewKey());render();colsOpen(true)}
    else colsOpen(false)})}
 function colsWire(){
- const b=document.getElementById('colsBtn');if(!b||b.__w)return;b.__w=1;
- b.onclick=e=>{e.stopPropagation();
-   colsOpen(!document.getElementById('colspick').classList.contains('open'))};
+ ['colsBtn','colsBtnM'].forEach(id=>{const b=document.getElementById(id);
+  if(!b||b.__w)return;b.__w=1;
+  b.onclick=e=>{e.stopPropagation();
+    colsOpen(!document.getElementById('colspick').classList.contains('open'))}});
  /* הסינון «נלחץ בחוץ» נעשה על המכולה עצמה ולא בהשוואה ל-e.target:
     לחיצה בתוך הבורר מרנדרת אותו מחדש, ועד שהאירוע מגיע ל-document
     היעד המקורי כבר מנותק מה-DOM — contains() מחזיר false, והבורר
     נסגר בדיוק כשהמשתמש עבד בתוכו. */
  /* המיון נלחץ על הכותרת עצמה. האצלה אחת על ה-thead — הכותרות
     נבנות מחדש בכל ציור, ומאזין לכל תא היה נעלם איתן. */
- const th0=document.querySelector('#tbl thead');
- if(th0&&!th0.__ws){th0.__ws=1;
+ /* שתי הטבלאות, אותה האצלה: טבלת העבודה וטבלת התנועות חולקות
+    את אותו רישום עמודות, ולכן גם את אותו מיון ואותו סינון. */
+ ['#tbl thead','#movtbl thead'].forEach(sel=>{
+  const th0=document.querySelector(sel);
+  if(!th0||th0.__ws)return;th0.__ws=1;
   th0.addEventListener('click',e=>{const t=e.target.closest('th.wsrt');
     if(!t||!colReg())return;
     /* ▾ פותח סינון; שאר הכותרת ממיינת. שתי פעולות, שני יעדים
        ברורים — ולא תפריט שחוסם את המיון בלחיצה אחת. */
     if(e.target.closest('.wfil')){e.stopPropagation();
       openColPop(t,'c:'+t.dataset.ck);return}
-    wsortClick(t.dataset.ck)})}
+    wsortClick(t.dataset.ck)})});
  const pk0=document.getElementById('colspick');
  if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
  document.addEventListener('click',()=>colsOpen(false));
@@ -4291,7 +4304,9 @@ function colViewName(v){
  if(v==='sup')return 'התצוגה «לפי ספק»';
  if(v==='fix')return 'תיקוני פרמטרים';
  const N={floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
-  applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא'};
+  applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא',
+  mv_sales:'תנועות · מכירות אחרונות',mv_entries:'תנועות · כניסות אחרונות',
+  mv_stuck:'תנועות · כניסות ללא מכירה'};
  return N[v]||'התצוגה הזאת'}
 function colsSync(){
  const b=document.getElementById('colsBtn');if(!b)return;
@@ -5559,12 +5574,15 @@ function focusQ(){const i=qEl('q');i.focus();i.select();renderSug()}
    הרישום נשמרות באותו אובייקט עם קידומת «c:», כי יש שמות זהים עם
    משמעות שונה — COLACC.cov הוא חודשי כיסוי, ו-SCOL.cov הוא יחידות
    שנוחתות החודש. בלי הקידומת סינון על אחד היה מסנן את השני. */
+/* הערך שהסינון עובד עליו. fval קיים כשהערך שממיינים לפיו אינו
+   הערך ששואלים עליו — תאריך ממוין כחותמת זמן ומסונן כתאריך כתוב. */
 function colAcc(c){
  if(c.slice(0,2)==='c:'){const d=SCOL[c.slice(2)];
-  return d&&d.val?d.val:(()=>'')}
+  return d?(d.fval||d.val||(()=>'')):(()=>'')}
  return COLACC[c]||(()=>'')}
 function colFilterLabel(c){
- if(c.slice(0,2)==='c:')return (SCOL[c.slice(2)]||{}).t||c.slice(2);
+ if(c.slice(0,2)==='c:'){const t=(SCOL[c.slice(2)]||{}).t;
+  return (typeof t==='function'?t():t)||c.slice(2)}
  return COLLABEL[c]||c}
 function passColFilters(r){
  if(SQ&&!scoreRow(r,SQ))return false;
@@ -6027,13 +6045,59 @@ const SCOL={
    const when=t&&r.wip.ts?` · ${new Date(r.wip.ts).toLocaleDateString('he-IL')}`:'';
    return `<td class="wst"><span class="wchip ${t||'new'}" title="${esc(full+when)}">${esc(short)}</span></td>`}},
  age:{t:'ותק',val:r=>r.hSeen||0,ttl:'בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע',
-  cell:r=>`<td class="age">${ageTag(r)}</td>`}};
+  cell:r=>`<td class="age">${ageTag(r)}</td>`},
+ /* ============ עמודות טבלת התנועות ============
+    הטבלה הזאת נבנתה כ-HTML קשיח ולכן לא היה לה מיון, סינון ולא
+    בורר עמודות — בניגוד לדרישה «כל הטבלאות בכלי». המעבר לרישום
+    נותן לה את שלושתם באותו מנגנון, בלי מנגנון שני שיצטרך
+    להישאר מסונכרן.
+    התאריך ממוין לפי חותמת זמן (val) ומסונן לפי התאריך הכתוב
+    (fval) — מיון לפי מחרוזת תאריך עברית אינו מיון כרונולוגי,
+    וסינון טווח על מילישניות אינו שאלה שמישהו שואל. */
+ mdot:{t:'',ttl:'🟢 עד 30 יום · 🟡 31–90 · 🔴 מעל 90 — מאז התאריך שהטאב עוסק בו',
+  cell:r=>{const d=movDaysSince(r);
+   const c=d==null?'var(--dim)':d<=30?'var(--grn)':d<=90?'#d97706':'var(--red)';
+   return `<td><span class="dot" style="background:${c}"></span></td>`}},
+ model:{t:'דגם',val:r=>String(r.model||''),ttl:'הדגם כפי שהוא בדוח',
+  cell:r=>`<td>${esc((r.model||'').slice(0,16))}</td>`},
+ sdate:{t:'תאריך מכירה',val:r=>(r.sales&&r.sales.date)?+r.sales.date:0,
+  fval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'—',
+  xval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'',
+  ttl:'המכירה האחרונה — עמודה CF בדוח',
+  cell:r=>`<td>${(r.sales&&r.sales.date)?fmtDate(r.sales.date):'<span class="mut">—</span>'}</td>`},
+ edate:{t:'תאריך כניסה',val:r=>(r.entries&&r.entries.date)?+r.entries.date:0,
+  fval:r=>(r.entries&&r.entries.date)?fmtDate(r.entries.date):'—',
+  xval:r=>(r.entries&&r.entries.date)?fmtDate(r.entries.date):'',
+  ttl:'הכניסה האחרונה למלאי — עמודה CG בדוח',
+  cell:r=>`<td>${(r.entries&&r.entries.date)?fmtDate(r.entries.date):'<span class="mut">—</span>'}</td>`},
+ mage:{t:'ימים מאז',val:r=>{const d=movDaysSince(r);return d==null?-1:d},
+  ttl:'כמה ימים עברו מהתאריך שהטאב עוסק בו',
+  cell:r=>`<td>${ageBadge(movDaysSince(r))}</td>`},
+ /* Δ שלילי = נמכר לפני הכניסה האחרונה, כלומר המלאי שנכנס עדיין
+    על המדף. זו עובדה על שני התאריכים ולא חישוב של המנוע. */
+ mdelta:{t:'Δ כניסה→מכירה',val:r=>movDelta(r)==null?-99999:movDelta(r),
+  fval:r=>{const d=movDelta(r);return d==null?'—':(d>=0?'+'+d:String(d))+' ימ׳'},
+  xval:r=>{const d=movDelta(r);return d==null?'':d},
+  ttl:'ההפרש בימים בין הכניסה האחרונה למכירה האחרונה',
+  cell:r=>{const d=movDelta(r);
+   return `<td>${d==null?'<span class="mut">—</span>':(d>=0?'+'+d:d)+' ימ׳'}</td>`}},
+ mlast:{t:'מכירה אחרונה',val:r=>(r.sales&&r.sales.date)?+r.sales.date:0,
+  fval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'— לא נמכר',
+  xval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'לא נמכר',
+  ttl:'מתי נמכר לאחרונה. «— לא נמכר» = אין תאריך מכירה בדוח כלל',
+  cell:r=>(r.sales&&r.sales.date)?`<td>${fmtDate(r.sales.date)}</td>`
+   :'<td><span style="color:var(--red);font-weight:700">— לא נמכר</span></td>'},
+ abc:{t:'ABC',val:r=>String(r.abc||''),ttl:'סיווג ABC מה-SAP',
+  cell:r=>`<td>${esc(r.abc||'—')}</td>`},
+ mrp:{t:'MRP',val:r=>String(r.mrp||''),ttl:'סוג ה-MRP מה-SAP',
+  cell:r=>`<td>${esc(r.mrp||'—')}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['pn','pnPlain','desc','sup','spark','free','freeRop','freeDry','cust','waiting','stock',
+const SCOL_ORDER=['mdot','pn','pnPlain','desc','sup','spark','free','freeRop','freeDry','cust','waiting','stock',
  'po','poPlain','tr','cov','stuck','otw','eta','missq','miss','m1gap','buy','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
- 'capVal','capPct','capCov','val','custVal','act','fix','cat','capType','apState','state','markLbl','markWhen','undo','age'];
+ 'capVal','capPct','capCov','val','custVal','act','fix','cat','capType','apState','state','markLbl','markWhen','undo','age',
+ 'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
  dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
@@ -6048,7 +6112,12 @@ const SCOL_DEF={
  applied:['pnPlain','desc','apRop','apSs','cons11','apState'],
  done:['pnPlain','desc','markLbl','markWhen','undo'],
  m1:['pnPlain','desc','c3','r3','freeDry','m1gap','poPlain'],
- cap:['pn','desc','capType','capVal','capPct','act','capCov']};
+ cap:['pn','desc','capType','capVal','capPct','act','capCov'],
+ /* שלושת טאבי התנועות — בדיוק העמודות שהיו על המסך לפני הרישום,
+    ובאותו סדר. לכל טאב פריסה משלו, כי הוא עוסק בתאריך אחר. */
+ mv_sales:['mdot','pnPlain','desc','model','sdate','mage','mdelta','free','abc','mrp'],
+ mv_entries:['mdot','pnPlain','desc','model','edate','mage','mdelta','free','abc','mrp'],
+ mv_stuck:['mdot','pnPlain','desc','model','edate','mage','mlast','free','abc','mrp']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -6056,11 +6125,20 @@ function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
    מחוץ להון הכלוא) אינה מוצעת — היא הייתה מציגה מקף בכל שורה. */
 const SCOL_POOL=['sup','spark','free','cust','po','tr','eta','cova','val','act',
  'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq'];
+/* עמודות התנועות מוצעות רק בטבלת התנועות: מחוץ לה «Δ כניסה→מכירה»
+   הוא עמודה שרירותית, ובתוכה שלושת הטאבים חולקים את כולן — טאב
+   המכירות יכול להוסיף את תאריך הכניסה ולהפך. */
+const MCOL_POOL=['model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 function colChoices(v){const d=SCOL_DEF[v]||[];
- return SCOL_ORDER.filter(k=>d.includes(k)||SCOL_POOL.includes(k))}
+ const pool=String(v).slice(0,3)==='mv_'?MCOL_POOL.concat(SCOL_POOL):SCOL_POOL;
+ return SCOL_ORDER.filter(k=>d.includes(k)||pool.includes(k))}
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 function colViewKey(){
+ /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
+    «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
+    ולכן בלי מיון, בלי סינון ובלי בורר. נמדד. */
+ if(cur==='moves')return 'mv_'+movTab;
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «קטלוג פריטים» חולק track='cap' עם «בריאות המלאי» אבל מרונדר
@@ -6111,14 +6189,16 @@ function colReset(v){const o=colSaved();delete o[v];
    המשתמש אלא עובדה על הנתונים. */
 function colUsable(k){const c=SCOL[k];if(!c)return false;
  if(c.eta&&!ETA)return false;if(c.noeta&&ETA)return false;return true}
-function visCols(){const v=colViewKey();
+/* מפתח התצוגה מפורש כשהקורא אינו על המסך שלה — הייצוא של התנועות
+   רץ גם כשהמסך הפעיל הוא תור העבודה. */
+function visCols(vk){const v=vk||colViewKey();
  const saved=colSaved()[v];
  const list=Array.isArray(saved)&&saved.length?saved:SCOL_DEF[v];
  const out=list.filter(colUsable);
  return out.length?out:SCOL_DEF[v].filter(colUsable)}
-function colHeadHTML(){
+function colHeadHTML(vk){
  wsortSane();
- return visCols().map(k=>{const c=SCOL[k];
+ return visCols(vk).map(k=>{const c=SCOL[k];
   const ttl=typeof c.ttl==='function'?c.ttl():c.ttl;
   const on=WSORT.col===k,srt=!!c.val;
   const arr=on?(WSORT.dir==='asc'?'▲':'▼'):'';
@@ -6128,7 +6208,7 @@ function colHeadHTML(){
    +`<div class="thc"${tip?` title="${esc(tip)}"`:''}>${esc(c.t)}`
    +(arr?`<span class="warr">${arr}</span>`:'')
    +'</div>'+(srt?`<button type="button" class="wfil" title="סינון העמודה" aria-label="סינון ${esc(c.t)}"></button>`:'')+'</th>'}).join('')}
-function colRowHTML(r,x){return visCols().map(k=>SCOL[k].cell(r,x||{})).join('')}
+function colRowHTML(r,x,vk){return visCols(vk).map(k=>SCOL[k].cell(r,x||{})).join('')}
 
 function decisionHead(){const cols=FIXLIKE()
   ?['מק״ט','תיאור','ROP','SS',
@@ -6503,6 +6583,24 @@ function movList(tab,base){
  if(tab==='sales')return base.filter(r=>r.sales&&r.sales.date).sort((a,b)=>b.sales.date-a.sales.date);
  if(tab==='entries')return base.filter(r=>r.entries&&r.entries.date).sort((a,b)=>b.entries.date-a.entries.date);
  return base.filter(isStuckRow).sort((a,b)=>b.entries.date-a.entries.date);}
+/* התאריך שהטאב עוסק בו: מכירה בטאב המכירות, כניסה בשניים האחרים.
+   שתי הפונקציות האלה משרתות גם את התאים, גם את המיון וגם את
+   הייצוא — כדי שלא יתפצלו. */
+function movPrimDate(r){return movTab==='sales'
+ ? ((r.sales&&r.sales.date)||null) : ((r.entries&&r.entries.date)||null)}
+function movDaysSince(r){const d=movPrimDate(r);if(!d)return null;
+ const t=new Date();t.setHours(0,0,0,0);return daysBetween(t,d)}
+function movDelta(r){return (r.sales&&r.sales.date&&r.entries&&r.entries.date)
+ ? daysBetween(r.sales.date,r.entries.date) : null}
+/* הרשימה שעל המסך — מסוננת, ואז ממוינת לפי העמודה שנלחצה אם
+   נלחצה. בלי מיון, הסדר הוא מהחדש לישן כפי שהיה. אין כאן בלוקי
+   מטבע, ולכן המיון אינו מקובץ. */
+function movRows(){const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
+ const list=movList(movTab,base);
+ /* WSORT משותף לשתי הטבלאות. מיון שנבחר בתור העבודה על עמודה
+    שאינה בטבלת התנועות אינו חל כאן — הייצוא רץ גם ממסך אחר. */
+ return (WSORT.col&&visCols('mv_'+movTab).includes(WSORT.col))
+  ? wsortApply(list,false) : list}
 function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return;
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  const cS=base.filter(r=>r.sales&&r.sales.date).length;
@@ -6510,37 +6608,28 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  const cK=base.filter(isStuckRow).length;
  const counts={sales:cS,entries:cE,stuck:cK};
  mt.innerHTML=MOVDEF.map(([k,l,c])=>`<div class="tab ${k===movTab?'sel':''}" style="--c:${c}" data-mt="${k}"><div class="t">${l}</div><div class="n">${counts[k].toLocaleString('he-IL')}</div><div class="m">${k==='stuck'?'נכנס ולא נמכר':'מהחדש לישן'}</div></div>`).join('');
- mt.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{movTab=e.dataset.mt;renderMoves()});
- const today=new Date();today.setHours(0,0,0,0);
- const rows=movList(movTab,base),view=rows.slice(0,500),isStuck=movTab==='stuck';
+ mt.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{movTab=e.dataset.mt;renderMoves();
+   if(document.getElementById('colspick').classList.contains('open'))colsOpen(true)});
+ const rows=movRows(),view=rows.slice(0,500);
  document.getElementById('movlt').textContent=MOVDEF.find(d=>d[0]===movTab)[1]+' ('+rows.length.toLocaleString('he-IL')+')';
  const msub=document.getElementById('movsub');
  if(msub)msub.textContent=`${cS.toLocaleString('he-IL')} מכירות · ${cE.toLocaleString('he-IL')} כניסות · ${cK.toLocaleString('he-IL')} תקוע`;
- const dateHdr=(movTab==='sales')?'תאריך מכירה':'תאריך כניסה';
- const midHdr=isStuck?'מכירה אחרונה':'Δ כניסה→מכירה';
- document.querySelector('#movtbl thead').innerHTML=`<tr><th style="width:16px"></th>
-   <th><div class="thc">מק״ט</div></th><th><div class="thc">תיאור</div></th><th><div class="thc">דגם</div></th>
-   <th><div class="thc">${dateHdr}</div></th><th><div class="thc">ימים מאז</div></th>
-   <th><div class="thc">${midHdr}</div></th><th><div class="thc">מלאי</div></th>
-   <th><div class="thc">ABC</div></th><th><div class="thc">MRP</div></th></tr>`;
- document.querySelector('#movtbl tbody').innerHTML=view.map((r,i)=>{
-   const primDate=(movTab==='sales')?r.sales.date:r.entries.date;
-   const dsince=daysBetween(today,primDate);
-   const col=dsince<=30?'var(--grn)':dsince<=90?'#d97706':'var(--red)';
-   let mid;
-   if(isStuck){mid=r.sales&&r.sales.date?`<td>${fmtDate(r.sales.date)}</td>`:`<td><span style="color:var(--red);font-weight:700">— לא נמכר</span></td>`}
-   else{const delta=(r.sales&&r.sales.date&&r.entries&&r.entries.date)?daysBetween(r.sales.date,r.entries.date):null;
-     mid=`<td>${delta==null?'—':(delta>=0?'+'+delta:delta)+' ימ׳'}</td>`}
-   return `<tr data-mi="${i}"><td><span class="dot" style="background:${col}"></span></td>
-    <td><span class="obj">${r.pn}</span>${copyBtn(r.pn)}</td><td>${r.desc.slice(0,26)}</td><td>${r.model.slice(0,16)}</td>
-    <td>${fmtDate(primDate)}</td><td>${ageBadge(dsince)}</td>${mid}
-    <td>${r.free}</td><td>${r.abc||'—'}</td><td>${r.mrp}</td></tr>`}).join('')
-  ||`<tr><td colspan="10" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`;
+ /* הכותרות והתאים מאותו רישום — לפני זה הן היו שתי מחרוזות HTML
+    נפרדות, וכל עמודה שנוספה לאחת ולא לשנייה הזיזה את כל השאר. */
+ const mv='mv_'+movTab;
+ document.querySelector('#movtbl thead').innerHTML='<tr>'+colHeadHTML(mv)+'</tr>';
+ const ncol=visCols(mv).length;
+ document.querySelector('#movtbl tbody').innerHTML=view.map((r,i)=>
+   `<tr data-mi="${i}">`+colRowHTML(r,{dlen:26},mv)+'</tr>').join('')
+  ||`<tr><td colspan="${ncol}" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`;
  document.querySelectorAll('#movtbl tbody tr').forEach(tr=>{const idx=+tr.dataset.mi;if(isNaN(idx))return;
    tr.onclick=()=>{document.querySelectorAll('#movtbl tbody tr').forEach(x=>x.classList.remove('sel'));
      tr.classList.add('sel');const r=view[idx];if(r)detail(r)}});
  document.getElementById('movpg').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length.toLocaleString('he-IL')}`;
- wireCopy(document.getElementById('movtbl'))}
+ wireCopy(document.getElementById('movtbl'));
+ /* מעבר בין טאבים מחליף עמודות, ולכן גם את רוחביהן ואת ידיות
+    הגרירה — הן חייבות להיבנות מחדש ולא רק בציור של render(). */
+ setTimeout(()=>{colsBoot()},0)}
 function closeColPop(){document.getElementById('colpop').classList.remove('open')}
 function openColPop(th,col){const pop=document.getElementById('colpop');
  /* עמודת רישום מגיעה כ-«c:key». הסוג נגזר מהערך עצמו ולא מטבלת
@@ -6552,7 +6641,10 @@ function openColPop(th,col){const pop=document.getElementById('colpop');
    :((COLS.find(c=>c[0]===col)||[])[2]||'t');
  const f=colFilters[col]||{search:'',values:null,min:null,max:null};
  let valsHtml='';
- if(type==='t'){const base=reg?(currentRows()||[]):(cur==='all'?QF.all:QF[cur]);
+ /* הערכים שבבורר הם של הטבלה שמסננים — currentRows() נופלת
+    ל-QF['moves'] שאינו קיים, וזרקה שגיאה בטבלת התנועות. נמדד. */
+ if(type==='t'){const base=reg?(cur==='moves'?movRows():(currentRows()||[]))
+   :(cur==='all'?QF.all:QF[cur]);
    const c={};base.forEach(r=>{const v=String(acc(r));c[v]=(c[v]||0)+1});
    const opts=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,60);
    valsHtml=`<div class="vals">`+opts.map(([v,n])=>`<label><input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${f.values&&f.values.has(v)?'checked':''}><span>${v}</span><span class="c">${n}</span></label>`).join('')+`</div>`;}
@@ -7099,16 +7191,13 @@ function viewExportRows(){
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
  return [header,...body]}
-function movExportRows(){const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
- const list=movList(movTab,base);const today=new Date();today.setHours(0,0,0,0);
- const isStuck=movTab==='stuck';
- const header=['מק״ט','תיאור','דגם',(movTab==='sales'?'תאריך מכירה':'תאריך כניסה'),'ימים מאז',(isStuck?'מכירה אחרונה':'Δ ימים כניסה→מכירה'),'מלאי פנוי','ABC','MRP','מכירה אחרונה','כניסה אחרונה'];
- const body=list.map(r=>{const primDate=(movTab==='sales')?r.sales.date:r.entries.date;
-   const dsince=daysBetween(today,primDate);
-   const mid=isStuck?(r.sales&&r.sales.date?fmtDate(r.sales.date):'לא נמכר'):((r.sales&&r.sales.date&&r.entries&&r.entries.date)?daysBetween(r.sales.date,r.entries.date):'');
-   return [r.pn,r.desc,r.model,fmtDate(primDate),dsince,mid,r.free,r.abc||'',r.mrp,
-     r.sales&&r.sales.date?fmtDate(r.sales.date):'',r.entries&&r.entries.date?fmtDate(r.entries.date):'']});
- return [header,...body]}
+/* הגיליון מייצג את מה שרואים: אותן עמודות, אותו סדר, אותו מיון
+   ואותו סינון. קודם הוא היה רשימה קבועה של 11 עמודות בסדר אחר. */
+function movExportRows(){const list=movRows();
+ const keys=visCols('mv_'+movTab).filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val));
+ if(!keys.length)return [];
+ const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.fval||c.val)(r)}catch(_){return ''}};
+ return [keys.map(k=>SCOL[k].t),...list.map(r=>keys.map(k=>val(k,r)))]}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  const aoa=exportRows(currentRows());
@@ -7124,7 +7213,7 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל) */
  const mAoa=movExportRows();
  if(mAoa.length>1){const mws=XLSX.utils.aoa_to_sheet(mAoa);
-   mws['!cols']=[{wch:16},{wch:26},{wch:16},{wch:13},{wch:10},{wch:16},{wch:10},{wch:8},{wch:10},{wch:13},{wch:13}];
+   mws['!cols']=mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)}));
    const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
    XLSX.utils.book_append_sheet(wb,mws,mName.slice(0,28))}
  const dstr=new Date().toISOString().slice(0,10);
