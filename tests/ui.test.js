@@ -35,7 +35,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {open:document.body.classList.contains('dopen'),
      onScreen:d.right>0&&d.left<innerWidth}});
 
+ /* ============ ניווט מקלדת ============
+    ניווט בחיצים הוא יכולת של *טבלה*. הכלי נוחת ב«מרכז עבודה»,
+    שהוא סדר יום ולא טבלה, ולכן הבדיקה נכנסת במפורש למסך טבלה.
+    היכולת לא אבדה — היא לחיצה אחת משם, ונבדקת כאן במלואה. */
  // 1. ניווט מקלדת ↓
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
  let pn1=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ למטה בוחר פריט ומעדכן את הכרטיס',!!pn1,pn1);
@@ -235,6 +240,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('הפתיחה שורדת רענון',await railVis());
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4000);
  ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
+ /* הכלי נוחת ב«מרכז עבודה», שהוא מסך נחיתה ולא טבלה. הבדיקה הזאת
+    עוסקת במגירת הפריט ולכן היא צריכה מסך עם טבלה, ואומרת זאת
+    במפורש במקום להישען על ברירת המחדל. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(700);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
  const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
    return {open:document.body.classList.contains('dopen'),onScreen:d.right>0&&d.left<innerWidth,
@@ -2084,11 +2093,20 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.waitForTimeout(250);
  ok('ומתג המדדים מקפל את הרצועה ומחזיר גובה לרשימה',await (async()=>{
    await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+   /* רצועת המדדים והרשימה קיימות במסך טבלה, לא במסך הנחיתה */
+   await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
+   /* מצב פתיחה מפורש. רצועת המדדים מוסתרת כברירת מחדל
+      (`DEFAULT_LAYOUT.hidden` כולל 'kpis'), ולכן הלחיצה הראשונה
+      *פותחת* אותה. הבדיקה בודקת את מה שהיא אומרת — שהקיפול מחזיר
+      גובה לרשימה — ולכן היא פותחת קודם ומודדת אחר כך. */
+   await p.evaluate(()=>{if(LAYOUT.hidden.includes('kpis'))toggleWidget('kpis')});
+   await p.waitForTimeout(350);
+   const shown=await p.evaluate(()=>Math.round(document.getElementById('kpis').getBoundingClientRect().height));
    const a=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(300);
+   await p.click('#kpiTog');await p.waitForTimeout(350);
    const b2=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(200);
-   return b2>a})());
+   await p.click('#kpiTog');await p.waitForTimeout(250);
+   return shown>0&&b2>a})());
 
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

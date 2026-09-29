@@ -62,7 +62,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  const mkctx=async()=>{const ctx=await b.newContext({viewport:{width:1512,height:900}});
   await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
   return ctx};
+ /* הכלי נוחת ב«מרכז עבודה», שהוא סדר יום ולא טבלה. העוזר הזה
+    משרת בדיקות טבלה, ולכן הוא נכנס למסך טבלה במפורש. */
  const load=async(p,file)=>{await p.setInputFiles('#f',file);
+  await p.evaluate(()=>{try{setMode('today')}catch(_){}});
   await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});await p.waitForTimeout(700)};
 
  /* ================= 1 · המונה, הניסוח והרשימה ================= */

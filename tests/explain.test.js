@@ -15,6 +15,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');
+ /* הכלי נוחת ב«מרכז עבודה» — מסך סדר יום ולא טבלה. הבדיקה הזאת
+    עוסקת בטבלה, ולכן נכנסת אליה במפורש במקום להמתין לסלקטור
+    שלא יופיע לעולם במסך הנחיתה. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});
  await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});
  await p.waitForTimeout(700);
 

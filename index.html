@@ -86,6 +86,11 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .wbody{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;padding:8px}
 .kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;flex-direction:row-reverse;justify-content:flex-end;background:#fff}
+/* המדד הוא כפתור: לחיצה פותחת את הרשימה שהוא סופר. הוא נבנה כ-button
+   ולכן צריך לאפס את ברירות המחדל של הדפדפן ולשמור יישור RTL. */
+button.kpi{font-family:inherit;text-align:start;cursor:pointer;width:100%}
+button.kpi:hover{border-color:var(--accent);box-shadow:var(--shadowH)}
+button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .kpi.urgent{border-color:#f6cccc;background:linear-gradient(180deg,#fffafa,#fff)}
 .kpi .txt{flex:1;min-width:0}
 .kpi .l{font-size:12px;color:var(--dim);font-weight:600}
@@ -4389,7 +4394,8 @@ function prefsLbl(){
  if(dt){const on=document.body.classList.contains('dense');
   dt.classList.toggle('on',on);dt.textContent=on?'≡ צפופה':'≡ רגילה';
   dt.setAttribute('aria-pressed',on?'true':'false')}
- if(kt){const off=document.body.classList.contains('nokpi');
+ if(kt){const off=(typeof LAYOUT!=='undefined'&&LAYOUT.hidden)
+   ?LAYOUT.hidden.includes('kpis'):document.body.classList.contains('nokpi');
   kt.textContent=off?'▾ מדדים':'▴ מדדים';
   kt.setAttribute('aria-pressed',off?'false':'true')}}
 /* שם המסך = התחום, ובתוכו שם דלת המשנה כשעומדים באחת. */
@@ -4415,6 +4421,10 @@ function navCount(k){
  if(k==='done'){const n=(QF.marked||[]).filter(x=>x.mark&&x.mark.t==='handled').length;
   return {n,hot:0}}
  if(k==='rise'){const r=riseRows();return {n:r.length,hot:hot(r)}}
+ /* «תנועות» מציגה את הטאב הפעיל בלבד (מכירות / כניסות / תקוע), ולכן
+    המונה סופר אותו ולא את הקטלוג כולו. MODESET לבדו היה נותן 7,548. */
+ if(k==='moves'){const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
+  return {n:movList(movTab,base).length,hot:0}}
  /* הציר סופר את מי שאין לו שום מענה — לא את כל האוזלים. זה המספר
     שדורש ממך פעולה היום; השאר כבר בדרך. */
  if(k==='line'){const m=lineModel();return {n:m.stuck.length,hot:m.stuck.filter(r=>(r.cust||0)>0).length}}
@@ -4444,8 +4454,16 @@ const MODESET={
  burn:{cur:'all',track:'burn'},
  rise:{cur:'all',track:'rise'},
  /* מה יושם מאז ההעלאה הקודמת */
- applied:{cur:'all',track:'applied'}};
-let mode='line';
+ applied:{cur:'all',track:'applied'},
+ /* היו חסרים. navCount נופל ל-modeRows, ושם MODESET[m] היה undefined
+    ולכן הוחזר []. נמדד על הדוח האמיתי: «תנועות» הציגה 0 בזמן
+    ש-2,832 פריטים נושאים תאריך מכירה ו-6,154 תאריך כניסה. דלת
+    שנראית ריקה אינה נפתחת. */
+ moves:{cur:'moves',track:'cap'}};
+/* הכלי נוחת במרכז העבודה. היה 'line' — כלומר «רכש ואספקות»,
+   בזמן שכותרת המסך אמרה «מה דורש טיפול היום». שני שמות שונים
+   לאותו רגע פתיחה. */
+let mode='home';
 /* ============ קבוצות בתוך "היום" ============
    48 פריטים בשלוש קבוצות, כדי שאפשר יהיה לעבוד על סוג אחד ברצף.
    הקבוצות מתקפלות, והמצב נשמר בין הרצות. */
@@ -4519,7 +4537,15 @@ function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
  return by}
 function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
  return c.cur==='today'?decisionList(c.track):(QF.all||[]).filter(passColFilters)}
+/* ============ המסך האחרון שורד רענון ============
+   הכלי נוחת ב«מרכז עבודה» בפתיחה ראשונה — זה נכון, זה סדר היום.
+   אבל מעתד שרענן באמצע עבודה על «רכש ואספקות» ציפה לחזור לשם ולא
+   להיזרק למסך הנחיתה; המסננים, רוחב העמודות והצפיפות כבר שורדים
+   רענון, והמסך עצמו לא. */
+const MODE_KEY='planner_mode_v1';
+function modeSaved(){try{const m=localStorage.getItem(MODE_KEY);return MODESET[m]?m:null}catch(_){return null}}
 function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
+ try{localStorage.setItem(MODE_KEY,m)}catch(_){}
  cur=c.cur;track=c.track;trackPicked=true;closeDetail();
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
  document.body.classList.toggle('mode-done',m==='done');
@@ -5348,22 +5374,39 @@ function appliedRows(){return (QF&&QF.all?QF.all:[]).filter(r=>r.apStatus&&passC
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
  QF=classify(fl);QF.all=fl;SIDXV++;
  buildSideFilters();chips();render()}
-function kpis(){const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess,capList=decisionList('cap');
- const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+QF[k].length,0);
+function kpis(){
+ /* בלי נתונים אין מדדים — ולא קריסה. כל render לפני שהקובץ נטען
+    (או אחרי קובץ שנדחה) הגיע לכאן ונפל על QF שהוא null. */
+ if(!QF){const el=document.getElementById('kpis');if(el)el.innerHTML='';
+  const qs=document.getElementById('qsub');if(qs)qs.textContent='';return}
+ const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess,capList=decisionList('cap');
+ /* אותה הגדרה בדיוק כמו בכותרת העליונה — excess נספר בנפרד */
+ const tasks=['waiting','immediate','follow','prevent','quality'].reduce((s,k)=>s+QF[k].length,0);
  const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;
  const fixList=decisionList('fix');
  const units=a=>a.reduce((t,r)=>t+(r.miss||0),0);
  const uTxt=a=>`${units(a).toLocaleString('he-IL')} יח׳ חסרות`;
+ /* ============ מדד שאפשר ללחוץ עליו, ושסופר את מה שייפתח ============
+     היה: «מניעת חוסר 47» — אבל 47 הוא תור ה-prevent, שבתוכו רק 14
+     פריטים נושאים את הסיווג «מניעת חוסר» (השאר: אוזל החודש 27,
+     חשד אזילה 6). ו«עדכון פרמטרים 727» לא הוביל לשום מסך שמציג 727.
+     כלומר הכותרת, המספר והאוכלוסייה היו שלושה דברים שונים.
+     עכשיו כל מדד נושא יעד, והמספר שלו הוא בדיוק מה שהיעד מציג —
+     נעול בבדיקה. */
  const K=[
-  {l:'בוער עכשיו · לקוח ממתין ללא רכש',n:waiting.length,m:uTxt(waiting),
+  {k:'burn',l:'בוער עכשיו · לקוח ממתין ללא רכש',n:navCount('burn').n,m:uTxt(waiting),
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
-  {l:'מניעת חוסר',n:pr.length,m:uTxt(pr),cls:'warn'},
-  {l:'הון לשחרור',n:capList.length,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
-  {l:'עדכון פרמטרים',n:fixList.length,m:'איכות נתונים',cls:''}];
- document.getElementById('kpis').innerHTML=K.map(k=>k.cls==='burn'
-  ?`<div class="kpi burn"><div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div></div>`
-  :`<div class="kpi"><div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div></div>`).join('');
- document.getElementById('qsub').textContent=`${tasks} משימות · ${QF.passive.length} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
+  {k:'today',l:'חוסרים ולקוחות',n:navCount('today').n,m:uTxt(modeRows('today')),cls:'warn'},
+  {k:'cap',l:'הון לשחרור',n:navCount('cap').n,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
+  {k:'month',l:'תכנון ו-MRP',n:navCount('month').n,m:`${fixList.length.toLocaleString('he-IL')} לעדכון ב-SAP`,cls:''}];
+ document.getElementById('kpis').innerHTML=K.map(k=>{
+  const inner=k.cls==='burn'
+   ?`<div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div>`
+   :`<div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div>`;
+  return `<button type="button" class="kpi${k.cls==='burn'?' burn':''}" data-kpi="${k.k}" title="פתח את ${esc(k.l)}">${inner}</button>`}).join('');
+ document.querySelectorAll('#kpis [data-kpi]').forEach(e=>e.onclick=()=>setMode(e.dataset.kpi));
+ document.getElementById('qsub').textContent=
+   `${tasks.toLocaleString('he-IL')} דורשים החלטה · ${QF.excess.length.toLocaleString('he-IL')} הון כלוא · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
 function tiles(){
  const t=document.getElementById('tabs');
  const sub=k=>{
@@ -5412,7 +5455,16 @@ function tiles(){
    }}
  {const kt=document.getElementById('kpiTog');
   if(kt&&!kt.__w){kt.__w=1;
-   kt.onclick=()=>{const off=document.body.classList.toggle('nokpi');
+   /* ============ «▴ מדדים» שולט במנגנון שבאמת מסתיר ============
+      נמדד: לווידג׳ט המדדים שני מנגנוני הסתרה בלתי תלויים —
+      `body.nokpi` (מה שהכפתור הזה החליף) ו-`LAYOUT.hidden`
+      (`DEFAULT_LAYOUT.hidden=['kpis','filters']`). השני הוא שפעל,
+      ולכן ארבעת המדדים חושבו בכל render ולא הוצגו לאיש בשום מסך —
+      `#w_kpis` היה `display:none` בכל ששת המסכים — והכפתור בסרגל
+      לא יכול היה לשנות דבר. כפתור שלא עושה כלום. */
+   kt.onclick=()=>{toggleWidget('kpis');
+    const off=LAYOUT.hidden.includes('kpis');
+    document.body.classList.toggle('nokpi',off);
     try{localStorage.setItem('planner_nokpi',off?'1':'0')}catch(_){}
     prefsLbl()}}}
  prefsLbl();colsWire();phdSubWire();
@@ -6629,6 +6681,8 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  if(cur==='moves'){showBody('moves');renderMoves();
   setTimeout(()=>{colsBoot()},0);return}
  if(mode==='home'){showBody('home');renderHome();
+  {const tkH=document.getElementById('track');
+   if(tkH){tkH.innerHTML='';tkH.style.display='none'}}
   document.getElementById('lt').textContent=screenName();
   document.getElementById('lc').textContent='';
   return}
@@ -7798,12 +7852,26 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   Q=classify(ALL);
   etaOrphanSync();
   HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL);
-  const tasks=['waiting','immediate','follow','prevent','excess','quality'].reduce((s,k)=>s+Q[k].length,0);
+  /* ============ הכותרת אומרת את מה שהיא סופרת ============
+     היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
+     6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
+     לשחרור». מלאי עודף הוא משימה אמיתית אבל הוא לא נגמר מחר ולא
+     עוצר רכב, והמסילה עצמה יודעת זאת: «מרכז עבודה 53».
+     מעתד שפתח את הכלי קרא «3,246 פריטים דורשים טיפול» והסיק
+     שהוא בפיגור של חודשים. שני מספרים, שתי משמעויות. */
+  const tasks=['waiting','immediate','follow','prevent','quality'].reduce((s,k)=>s+Q[k].length,0);
+  const capN=Q.excess.length;
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('plannerGreeting').textContent=planner?`${planner[0]} · ${tasks} פריטים דורשים טיפול`:`${tasks} פריטים דורשים טיפול`;
+  document.getElementById('plannerGreeting').textContent=
+    (planner?planner[0]+' · ':'')
+    +`${tasks.toLocaleString('he-IL')} דורשים החלטה`
+    +(capN?` · ${capN.toLocaleString('he-IL')} הון כלוא לבדיקה`:'');
   ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
+  /* חזרה למסך שבו עבדת. בפתיחה ראשונה אין מה לשחזר, ואז נשארים
+     במרכז העבודה — ברירת המחדל שנקבעה ב-`let mode`. */
+  {const sm=modeSaved();if(sm&&sm!==mode)setMode(sm);}
   colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
