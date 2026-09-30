@@ -62,7 +62,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  const mkctx=async()=>{const ctx=await b.newContext({viewport:{width:1512,height:900}});
   await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
   return ctx};
+ /* הכלי נוחת ב«מרכז עבודה», שהוא סדר יום ולא טבלה. העוזר הזה
+    משרת בדיקות טבלה, ולכן הוא נכנס למסך טבלה במפורש. */
  const load=async(p,file)=>{await p.setInputFiles('#f',file);
+  await p.evaluate(()=>{try{setMode('today')}catch(_){}});
   await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});await p.waitForTimeout(700)};
 
  /* ================= 1 · המונה, הניסוח והרשימה ================= */
@@ -278,8 +281,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
          return s&&s.offsetParent!==null&&s.textContent.trim().length>2}).length,
        cols:new Set(tabs.map(e=>Math.round(e.getBoundingClientRect().left))).size,
        ov:rail.scrollWidth-rail.clientWidth}});
-    ok(`${W} · ${m} · שישה תחומים בעמודה אחת, כולם נושאים שם`,
-      r.n===6&&r.named===6&&r.cols===1&&r.ov<=1,
+    ok(`${W} · ${m} · שבעה תחומים בעמודה אחת, כולם נושאים שם`,
+      r.n===7&&r.named===7&&r.cols===1&&r.ov<=1,
       `תחומים=${r.n} · עם שם=${r.named} · עמודות=${r.cols} · גלישה=${r.ov}`);}
    await p2.close();}
   await ctx.close()}
@@ -364,51 +367,67 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
   await load(p,SD+'/routes.xlsx');
   await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
-  const h=await p.evaluate(()=>({mode,
-    shown:!!document.querySelector('#homePanel .hgrid'),
-    table:getComputedStyle(document.querySelector('#w_queue .qpanel')).display,
-    title:(document.querySelector('#homePanel .hhead h2')||{}).textContent,
-    sub:(document.querySelector('#homePanel .hhead .hsub')||{}).textContent||'',
-    cards:[...document.querySelectorAll('.hcard')].map(c=>({
-      t:(c.querySelector('h3').childNodes[1]||{}).textContent||'',
-      n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
-      go:(c.querySelector('.hgo')||{}).dataset.go,
-      rows:c.querySelectorAll('.hrow').length,
-      empty:!!c.querySelector('.hempty')})),
+  /* ============ מרכז העבודה הוא רשימה מדורגת, לא ארבעה כרטיסים ============
+     היה: ארבעה כרטיסים, כל אחד עם שבע שורות ראשונות מרשימה בת
+     817 / 301 / 2,572. פרוסות דקות שלא הסתכמו למונה שבמסילה,
+     שניצלו 57% מגובה החלון, ושענו «מה» ולא «באיזה סדר».
+     הטענות נשמרו — כל אחת מהן — ונבדקות על המבנה החדש. */
+  const h=await p.evaluate(()=>({mode,track,
+    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+    agenda:agendaRows().length,
+    badge:navCount('home').n,
+    title:(document.getElementById('lt')||{}).textContent||'',
+    month:(document.getElementById('rd')||{}).value||'',
+    band:!!document.querySelector('.aband'),
+    chips:[...document.querySelectorAll('.abchip')].map(c=>({
+      go:c.dataset.go,
+      n:+(c.querySelector('b').textContent.replace(/[^\d]/g,'')),
+      t:c.textContent})),
     eng:{burn:burnRows().length,cap:decisionList('cap').length,
+      line:navCount('line').n,qual:navCount('qual').n,
       month:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length,
       stuck:(QF.all||[]).filter(r=>expStuck(r)>0).length},
-    gaps:(document.querySelector('.hgaps')||{}).textContent||'',
+    /* הבוערים חייבים לפתוח את הרשימה — ההבטחה ללקוח כבר ניתנה */
+    firstAreBurn:(()=>{const b=new Set(burnRows());
+      return agendaRows().slice(0,burnRows().length).every(r=>b.has(r))})(),
+    gaps:(document.querySelector('.abgap')||{}).textContent||'',
     noPx:(QF.all||[]).filter(r=>r.priceMissing).length,
     hasEta:!!ETA}));
-  ok('«מרכז עבודה» מציג כרטיסים ולא את טבלת העבודה',
-    h.mode==='home'&&h.shown&&h.table==='none',`mode=${h.mode} טבלה=${h.table}`);
+  ok('«מרכז עבודה» הוא רשימת סדר היום, לא תור העבודה הכללי',
+    h.mode==='home'&&h.track==='agenda'&&h.rows===h.agenda,
+    `mode=${h.mode} track=${h.track} · ${h.rows} שורות מתוך ${h.agenda}`);
+  ok('המונה במסילה הוא אורך הרשימה עצמה',
+    h.badge===h.agenda,`תג ${h.badge} · רשימה ${h.agenda}`);
   ok('והוא אומר את שמו ואת חודש הדוח',
-    /מרכז עבודה/.test(h.title||'')&&/דוח /.test(h.sub),`${h.title} · ${h.sub}`);
-  ok('ארבעה כרטיסים, כל אחד עם דלת לרשימה המלאה',
-    h.cards.length===4&&h.cards.map(c=>c.go).join(',')==='burn,line,month,cap',
-    h.cards.map(c=>c.go).join(' · '));
-  ok('מונה הכרטיס הוא אורך הרשימה שהוא מצביע אליה',
-    h.cards[0].n===h.eng.burn&&h.cards[2].n===h.eng.month&&h.cards[3].n===h.eng.cap,
-    `בוער ${h.cards[0].n}/${h.eng.burn} · ROP ${h.cards[2].n}/${h.eng.month} · הון ${h.cards[3].n}/${h.eng.cap}`);
-  ok('אף כרטיס אינו מציג יותר משבע שורות',
-    h.cards.every(c=>c.rows<=7),h.cards.map(c=>c.rows).join(' · '));
-  /* היה: בלי דוח ETA הכרטיס החזיר רשימה ריקה והציג «0» — בזמן
-     ש-840 פריטים בדוח האמיתי מחזיקים רכש פתוח ולאף אחד מהם אין
-     תאריך. אפס הוא התשובה ההפוכה מהאמת. המקור הוא expStuck:
-     יחידות שלא שובצו לאספקה כשיש דוח, וכל הרכש הפתוח כשאין. */
+    /מרכז עבודה/.test(h.title)&&/^\d{4}-\d{2}$/.test(h.month),
+    `${h.title} · ${h.month}`);
+  /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא
+     היחיד שבו ההבטחה כבר ניתנה ואין מולה כלום. */
+  ok('הבוערים פותחים את הרשימה',h.firstAreBurn,
+    `${h.eng.burn} בוערים בראש ${h.agenda}`);
+  ok('רצועה עם ארבעה שבבים, כל אחד דלת לתחום',
+    h.band&&h.chips.length===4&&h.chips.map(c=>c.go).join(',')==='line,month,qual,cap',
+    h.chips.map(c=>c.go).join(' · '));
+  /* הטענה המרכזית שנשמרה מהמבנה הישן: כל מספר הוא אורך הרשימה
+     שהוא מצביע אליה, ולא ספירה משלו. */
+  ok('כל שבב הוא אורך הרשימה שהוא מצביע אליה',
+    h.chips[0].n===h.eng.line&&h.chips[1].n===h.eng.month
+    &&h.chips[2].n===h.eng.qual&&h.chips[3].n===h.eng.cap,
+    h.chips.map(c=>`${c.go} ${c.n}`).join(' · '));
   ok('מונה הרכש בלי תאריך הוא הספירה האמיתית, גם בלי דוח ETA',
-    h.cards[1].n===h.eng.stuck&&(h.eng.stuck===0||h.cards[1].rows>0),
-    `כרטיס ${h.cards[1].n} · בפועל ${h.eng.stuck} · ETA=${h.hasEta}`);
-  ok('ופערי הנתונים נאמרים מעל הרשימות',
+    h.eng.stuck===0||h.gaps.includes(h.eng.stuck.toLocaleString('he-IL'))
+      ||h.gaps.includes(String(h.eng.stuck)),
+    `ברצועה "${h.gaps.slice(0,80)}" · בפועל ${h.eng.stuck} · ETA=${h.hasEta}`);
+  ok('ופערי הנתונים נאמרים מעל הרשימה',
     (!h.noPx||h.gaps.includes(String(h.noPx)))&&(h.hasEta||/דוח ETA/.test(h.gaps)),
     h.gaps.slice(0,110));
-  await p.click('.hcard .hgo[data-go="cap"]');await p.waitForTimeout(600);
-  ok('«כל הרשימה» מגיע לתחום הנכון',
+  await p.click('.abchip[data-go="cap"]');await p.waitForTimeout(600);
+  ok('שבב מגיע לתחום הנכון',
     'cap'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
   await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
-  const pn=await p.evaluate(()=>{const b=document.querySelector('.hcard .hrow');
-    if(!b)return null;b.click();return b.dataset.pn});
+  const pn=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
+    if(!tr)return null;const t=tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim();
+    tr.click();return t});
   await p.waitForTimeout(500);
   ok('לחיצה על שורה פותחת את כרטיס הפריט שלה',
     !pn||pn===await p.evaluate(()=>{const e=document.querySelector('#detail .opnt');

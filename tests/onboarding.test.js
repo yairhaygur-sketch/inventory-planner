@@ -7,6 +7,10 @@ const SD=__dirname;
 const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ /* הכלי נוחת ב«מרכז עבודה» — מסך סדר יום, לא טבלה. הבדיקה הזאת
+    עוסקת בטבלה ולכן היא נכנסת אליה במפורש, במקום להישען על
+    ברירת המחדל כפי שעשתה קודם. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
  /* קודם היה כאן ביטול של התדריך המודאלי (`#briefGo`). התדריך אינו
     חוסם יותר — הוא רצועת סיכום מקופלת — ולכן אין מה לבטל. */};
 
@@ -97,7 +101,7 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
      לתקן שמות שנקראו כחלון זמן — «לטיפול היום» ו«החודש». השמות
      החדשים אינם נקראים כך, ולכן מה שנבדק הוא המקור ולא התיקון. */
   ok(`${W} · אין שם תחום שנקרא כחלון זמן`,
-    nav.areaNames.length===6&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
+    nav.areaNames.length===7&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
     nav.areaNames.join(' · '));
   ok(`${W} · ופרמטרים, אספקות, טופלו ותנועות יושבים במסילה בשמם`,
     ['תיקוני פרמטרים','ציר האספקות','טופלו','תנועות אחרונות']

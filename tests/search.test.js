@@ -8,6 +8,10 @@ const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''))
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+ /* הכלי נוחת ב«מרכז עבודה» — מסך סדר יום, לא טבלה. הבדיקה הזאת
+    עוסקת בטבלה ולכן היא נכנסת אליה במפורש, במקום להישען על
+    ברירת המחדל כפי שעשתה קודם. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
 
  // נורמליזציה
  const nz=await p.evaluate(()=>({

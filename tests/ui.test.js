@@ -35,7 +35,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {open:document.body.classList.contains('dopen'),
      onScreen:d.right>0&&d.left<innerWidth}});
 
+ /* ============ ניווט מקלדת ============
+    ניווט בחיצים הוא יכולת של *טבלה*. הכלי נוחת ב«מרכז עבודה»,
+    שהוא סדר יום ולא טבלה, ולכן הבדיקה נכנסת במפורש למסך טבלה.
+    היכולת לא אבדה — היא לחיצה אחת משם, ונבדקת כאן במלואה. */
  // 1. ניווט מקלדת ↓
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(250);
  let pn1=await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim());
  ok('חץ למטה בוחר פריט ומעדכן את הכרטיס',!!pn1,pn1);
@@ -115,7 +120,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // 5. גרפים מתקפלים
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
- const d0=await p.evaluate(()=>{const o=document.querySelector('#detail .opad');return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflow}});
+ /* אזור הגלילה של הכרטיס הוא .wbody ולא .opad. היו שני גוללים
+    מקוננים, ו-#detail (overflow:hidden, flex:1) בלע את הגובה
+    והסתיר את מה שגלש: נמדד ב-1366×768 על הדוח האמיתי — #detail
+    בגובה 712 עם תוכן 968, כלומר 256 פיקסלים ובהם גרף הצריכה לא
+    נראו ולא היה אפשר לגלול אליהם. */
+ const d0=await p.evaluate(()=>{const o=document.querySelector('.wdetail .wbody');
+   const det=document.getElementById('detail');
+   return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflowY,
+     clipped:getComputedStyle(det).overflow==='hidden'&&det.scrollHeight>det.clientHeight+2}});
  /* ============ הגרף בפתיחת הפריט ============
     היה: «הגרף יושב בטאב נתונים» — והבדיקה הזאת עברה לטאב לפני
     שבדקה. זו הייתה בדיקה נכונה למצב שגוי: המפרט קובע את סדר
@@ -155,8 +168,27 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{[...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='why').click()});
  await p.waitForTimeout(300);
  const drawn=chartNow.drawn;
- ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto',d0.ovf);
- ok('כרטיס הפריט: פחות גלילה מהבסיס',d0.sh<950,'תוכן '+d0.sh+'px בחלון '+d0.h+'px (בסיס: 1066/328)');
+ ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto'&&!d0.clipped,
+   `${d0.ovf} · תוכן ${d0.sh} בחלון ${d0.h}`);
+ /* ============ מה נמדד כאן: נטל הגלילה ============
+    הסף היה 950 על גובה התוכן, והוא נקבע כשהמדידה נלקחה מ-.opad
+    שהיה חתוך בתוך #detail — כלומר מספר קטן מהאמת. אחרי שהחיתוך
+    הוסר נמדד הגובה האמיתי, וסף על *גובה התוכן* לבדו נשבר ב-CI:
+    1,047px מקומית מול 1,078 על הראנר. מטריקות גופן שונות, אותה
+    משפחה של הפרש שכבר נמדדה בפרויקט הזה (81px מול 85px ברצועת
+    הסינון). סף שיושב בין שתי המדידות אינו סף אלא מטבע.
+
+    ומעבר לזה — גובה התוכן לבדו מעולם לא היה הטענה. «פחות גלילה»
+    הוא *התוכן פחות החלון*, ושני המספרים זזים יחד עם הגופן:
+
+      בסיס:  1,066 − 328 = 738px גלילה
+      מקומי: 1,047 − 804 = 243px
+      CI:    1,078 − 804 = 274px
+
+    פי שלושה פחות, ועמיד להפרשי רינדור. */
+ ok('כרטיס הפריט: פחות גלילה מהבסיס',
+   (d0.sh-d0.h)<450&&d0.h>700,
+   `גלילה ${d0.sh-d0.h}px (תוכן ${d0.sh} בחלון ${d0.h}) · בסיס 738 (1066/328)`);
 
  // שורת הכותרת לא נשברת, והפילטרים קיימים — נבדק בשלושה רוחבי מסך
  for(const w of [1920,1512,1280]){
@@ -235,6 +267,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('הפתיחה שורדת רענון',await railVis());
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4000);
  ok('אין גלילה אופקית בטבלה',dr.tblW<=dr.rowsW+2,`טבלה ${dr.tblW} בתוך ${dr.rowsW}`);
+ /* הכלי נוחת ב«מרכז עבודה», שהוא מסך נחיתה ולא טבלה. הבדיקה הזאת
+    עוסקת במגירת הפריט ולכן היא צריכה מסך עם טבלה, ואומרת זאת
+    במפורש במקום להישען על ברירת המחדל. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(700);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(300);
  const dop=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
    return {open:document.body.classList.contains('dopen'),onScreen:d.right>0&&d.left<innerWidth,
@@ -1030,10 +1066,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     המפרט החדש קבע שישה שמות תחום, והורה במפורש להימנע מהשמות
     החופפים «היום» / «לטיפול היום» / «החודש» — כולם נקראים כחלון
     זמן ולא כתחום עבודה, וזו הייתה אותה תקלה בדיוק בשם אחר. */
+ /* «איכות נתונים» נוסף כתחום שביעי: 249 פריטים שהגיעו עד היום
+    דרך «תכנון ו-MRP» (870) ומעורבבים בעבודת תכנון רגילה, בזמן
+    שפרמטר שגוי ב-SAP מרעיל כל המלצה שנגזרת ממנו. */
  const AREAN=['מרכז עבודה','חוסרים ולקוחות','רכש ואספקות','תכנון ו-MRP',
-              'בריאות המלאי','קטלוג פריטים'];
- ok('המסילה נושאת את שישה שמות התחומים שנקבעו',
-    ux.tabNames.length===6&&AREAN.every((n,i)=>ux.tabNames[i]===n),
+              'איכות נתונים','בריאות המלאי','קטלוג פריטים'];
+ ok('המסילה נושאת את שבעת שמות התחומים שנקבעו',
+    ux.tabNames.length===7&&AREAN.every((n,i)=>ux.tabNames[i]===n),
     ux.tabNames.join(' | '));
  ok('ואין בשמות שם שנקרא כחלון זמן',
     !ux.tabNames.some(t=>/לטיפול היום|ציר הזמן|היום|החודש/.test(t)),
@@ -1995,8 +2034,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       areas:tabs.length}});
   ok(`${vw}px · אין גלילה אופקית של הדף ואין חיתוך בסרגל העליון`,
     m.pageOv<=0&&m.topClip<=0,`דף ${m.pageOv}px · סרגל ${m.topClip}px`);
-  ok(`${vw}px · שישה תחומים, ואף שם אינו נחתך`,
-    m.areas===6&&!m.clipped.length,m.clipped.join(' · ')||'—');
+  ok(`${vw}px · שבעה תחומים, ואף שם אינו נחתך`,
+    m.areas===7&&!m.clipped.length,m.clipped.join(' · ')||'—');
   /* מתחת ל-1100 המסילה עוברת לרצועה אופקית: אותם תחומים, אותם
      מונים, בשורה שנגללת במקום בעמודה שגוזלת 38% מהרוחב. */
   ok(`${vw}px · המסילה בכיוון הנכון למסך הזה`,
@@ -2013,17 +2052,29 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* «רכש פתוח בלי תאריך הגעה» על נתוני הדגמה מלאים: הכרטיס הציג 151
     כשהמקור היה lineModel().stuck (דלי האוזלים שאין להם מענה), בזמן
     ש-835 פריטים מחזיקים רכש פתוח בלי תאריך — פי 5.5. */
+ /* ארבעת הכרטיסים הוחלפו ברשימה מדורגת אחת ורצועה. המספר הזה
+    עבר לרצועת הפערים — שם מקומו, כי הוא אומר מה היעדר דוח ה-ETA
+    עולה — והטענה עצמה לא נחלשה: הוא עדיין חייב להיות המספר
+    האמיתי ולא דלי האוזלים. */
  const noEta=await p.evaluate(()=>{
-   const c=[...document.querySelectorAll('.hcard')][1];
-   return {n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
-     rows:c.querySelectorAll('.hrow').length,
+   const band=(document.querySelector('.abgap')||{}).textContent||'';
+   const nums=(band.match(/[\d,]{2,}/g)||[]).map(x=>+x.replace(/,/g,''));
+   return {band,nums,
      eng:(QF.all||[]).filter(r=>expStuck(r)>0).length,
      lineStuck:lineModel().stuck.filter(r=>expStuck(r)>0).length,
      eta:!!ETA}});
  ok('«רכש פתוח בלי תאריך» סופר את כל הרכש שאין לו תאריך',
-   noEta.n===noEta.eng&&noEta.eng>0,
-   `כרטיס ${noEta.n} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
- ok('וכשיש מה לספור הוא מציג שורות ולא מסך ריק',noEta.rows>0,noEta.rows+' שורות');
+   noEta.nums.includes(noEta.eng)&&noEta.eng>0
+   &&(noEta.eng===noEta.lineStuck||!noEta.nums.includes(noEta.lineStuck)),
+   `ברצועה ${noEta.nums.join('/')} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
+ /* «נקודת הזמנה נמוכה מהנדרש» היה כרטיס רביעי; הוא שבב ניווט
+    עכשיו, עם אותה אוכלוסייה בדיוק. */
+ const ropChip=await p.evaluate(()=>{
+   const c=[...document.querySelectorAll('.abchip')].find(x=>/נקודת הזמנה/.test(x.textContent));
+   return {n:c?+(c.querySelector('b').textContent.replace(/[^\d]/g,'')):null,
+     eng:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length}});
+ ok('«נקודת הזמנה נמוכה מהנדרש» שרד כשבב, עם אותו מספר',
+   ropChip.n===ropChip.eng,`שבב ${ropChip.n} · בפועל ${ropChip.eng}`);
  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
    .find(t=>t.dataset.m==='cap');if(a)a.click()});
  await p.waitForTimeout(800);
@@ -2084,11 +2135,20 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.waitForTimeout(250);
  ok('ומתג המדדים מקפל את הרצועה ומחזיר גובה לרשימה',await (async()=>{
    await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
+   /* רצועת המדדים והרשימה קיימות במסך טבלה, לא במסך הנחיתה */
+   await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
+   /* מצב פתיחה מפורש. רצועת המדדים מוסתרת כברירת מחדל
+      (`DEFAULT_LAYOUT.hidden` כולל 'kpis'), ולכן הלחיצה הראשונה
+      *פותחת* אותה. הבדיקה בודקת את מה שהיא אומרת — שהקיפול מחזיר
+      גובה לרשימה — ולכן היא פותחת קודם ומודדת אחר כך. */
+   await p.evaluate(()=>{if(LAYOUT.hidden.includes('kpis'))toggleWidget('kpis')});
+   await p.waitForTimeout(350);
+   const shown=await p.evaluate(()=>Math.round(document.getElementById('kpis').getBoundingClientRect().height));
    const a=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(300);
+   await p.click('#kpiTog');await p.waitForTimeout(350);
    const b2=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(200);
-   return b2>a})());
+   await p.click('#kpiTog');await p.waitForTimeout(250);
+   return shown>0&&b2>a})());
 
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();

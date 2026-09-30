@@ -138,6 +138,9 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
 
  // ── שלב 1: ZMRP בלבד. המסך חייב להיראות בדיוק כמו לפני השינוי ──
  await p.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p.waitForTimeout(1800);
+ /* רצועת ה-ETA ועמודות «בדרך» חיות במסך «רכש ואספקות» (line).
+     הכלי נוחת ב«מרכז עבודה», ולכן הבדיקה נכנסת ל-line במפורש. */
+ await p.evaluate(()=>{try{setMode('line')}catch(_){}});await p.waitForTimeout(600);
  const before=await p.evaluate(snap);
 
  /* ── SHELL_BAND ──
@@ -163,6 +166,9 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
 
  // ── שלב 3: ZMRP נטען מחדש. הדוח חייב לשרוד — זו כל הסיבה שהוא נשמר ──
  await p.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p.waitForTimeout(1800);
+ /* רצועת ה-ETA ועמודות «בדרך» חיות במסך «רכש ואספקות» (line).
+     הכלי נוחת ב«מרכז עבודה», ולכן הבדיקה נכנסת ל-line במפורש. */
+ await p.evaluate(()=>{try{setMode('line')}catch(_){}});await p.waitForTimeout(600);
  const reload=await p.evaluate(snap);
 
  // ── שלב 4: ההפך — דפדפן נקי, ETA לפני ZMRP ──
@@ -172,6 +178,7 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p2.reload();await p2.waitForTimeout(300);
  await p2.setInputFiles('#fe',SD+'/eta-report.xlsx');await p2.waitForTimeout(700);
  await p2.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p2.waitForTimeout(1800);
+ await p2.evaluate(()=>{try{setMode('line')}catch(_){}});await p2.waitForTimeout(600);
  const reverse=await p2.evaluate(snap);
 
  // ── שלב 5: קובץ שאינו דוח ETA נדחה בלי לשבור כלום ──
@@ -189,6 +196,7 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    localStorage.removeItem('planner_ledger_v1')});
  await p3.reload();await p3.waitForTimeout(300);
  await p3.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p3.waitForTimeout(1800);
+ await p3.evaluate(()=>{try{setMode('line')}catch(_){}});await p3.waitForTimeout(600);
  const seedBefore=await p3.evaluate(()=>({sd:ledgerSeed(ALL),line:lineLedgerLine()}));
  await p3.setInputFiles('#fe',SD+'/eta-hist.xlsx');await p3.waitForTimeout(1500);
  const seed=await p3.evaluate(()=>{const sd=ledgerSeed(ALL);
@@ -225,6 +233,7 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
  await p4.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p4.evaluate(()=>localStorage.clear());await p4.reload();await p4.waitForTimeout(400);
  await p4.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p4.waitForTimeout(1800);
+ await p4.evaluate(()=>{try{setMode('line')}catch(_){}});await p4.waitForTimeout(600);
  await p4.setInputFiles('#fe',SD+'/eta-orphan.xlsx');await p4.waitForTimeout(1200);
  const orph=await p4.evaluate(()=>{const o=ETA_ORPH;
    return {o:o&&{rows:o.rows,pns:o.pns,units:o.units,risky:o.risky.map(x=>x.pn)},

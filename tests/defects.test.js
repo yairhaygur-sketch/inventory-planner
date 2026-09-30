@@ -137,6 +137,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/defects.xlsx');await p.waitForTimeout(2200);
+ /* הכלי נוחת ב«מרכז עבודה» — מסך סדר יום, לא טבלה. הבדיקה הזאת
+    עוסקת בטבלה ולכן היא נכנסת אליה במפורש, במקום להישען על
+    ברירת המחדל כפי שעשתה קודם. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,

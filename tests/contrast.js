@@ -13,6 +13,10 @@ let total=0;
  const p=await ctx.newPage();
  await p.goto('file://'+path.join(__dirname,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',path.join(__dirname,'zmrp-demo.xlsx'));
+ /* הכלי נוחת ב«מרכז עבודה» ולא בטבלה. הבדיקה סורקת גם מסכי טבלה
+    וגם את מסך הנחיתה (ראה הלולאה למטה), ולכן היא נכנסת לטבלה
+    במפורש כדי להמתין לשורות. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});
  await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});
  /* גם דוח ה-ETA — אחרת הצ׳יפ בכותרת ועמודות «משובץ»/«תקוע» אינם
     מרונדרים כלל, וצבע שלא מרונדר אינו נמדד. */

@@ -9,8 +9,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  p.on('dialog',d=>d.accept());
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
- // עוברים לטאב "הון לשחרור" ומסננים
- await p.evaluate(()=>{cur='excess';render()});await p.waitForTimeout(400);
+ /* עוברים ל"הון לשחרור" ומסננים.
+    היה כאן `cur='excess'` בלבד, והבדיקה נשענה על כך ש-mode ברירת
+    המחדל הוא מסך טבלה. מאז שהכלי נוחת ב«מרכז עבודה» — שהוא מסך
+    נחיתה ולא טבלה — render() חוזר לפני שהוא בונה את סרגל הפעולות,
+    ו-#bulkBtn לא היה נוצר כלל. הבדיקה אומרת עכשיו במפורש לאיזה
+    מסך היא נכנסת. */
+ await p.evaluate(()=>{mode='catalog';cur='excess';render()});await p.waitForTimeout(400);
  const before=await p.evaluate(()=>({n:currentRows().length,marked:Object.keys(MARKS).length}));
  ok('כפתור הסימון הקבוצתי מופיע עם מספר',
     /סמן [\d,]+ פריטים/.test(await p.locator('#bulkBtn').innerText()),

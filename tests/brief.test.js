@@ -11,6 +11,10 @@ const open=async(ctx,q)=>{
  const p=await ctx.newPage();
  await p.goto('file://'+path.join(SD,'..','index.html')+q);
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');
+ /* הכלי נוחת ב«מרכז עבודה» — מסך סדר יום ולא טבלה. הבדיקה הזאת
+    עוסקת בטבלה, ולכן נכנסת אליה במפורש במקום להמתין לסלקטור
+    שלא יופיע לעולם במסך הנחיתה. */
+ await p.evaluate(()=>{try{setMode('today')}catch(_){}});
  await p.waitForSelector('#tbl tbody tr[data-i]',{timeout:120000});
  await p.waitForTimeout(600);
  return p};
