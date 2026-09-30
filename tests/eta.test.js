@@ -123,11 +123,37 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
       .filter(r=>txt(r).some(t=>BAD.some(re=>re.test(t))))
       .map(r=>r.pn+': '+txt(r).filter(t=>BAD.some(re=>re.test(t))).join(' | '))})(),
   scheduled:ALL.filter(r=>(r.etaQty||0)>0).length,
+  /* ============ ETA_SPLIT_DATE ============
+     הבאג שהמעתד תפס: המסך חיבר את *סכום* העתיד לתאריך ה*מוקדם*
+     ביותר. «560 יח׳ משובצות ל-10.10» כשהדוח אומר 60 ב-10.10 ו-500
+     ב-6.11. האינווריאנטה כאן כללית ואינה תלויה בפריט אחד: על פריט
+     שאספקתו מפוצלת בין תאריכים, אסור לשום משפט לצמוד את הכמות
+     הכוללת לתאריך הראשון. */
+  splitLiars:(()=>{const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
+    return ALL.filter(r=>(r.etaQty||0)>0&&(r.etaFirstQty||0)<r.etaQty)
+      .filter(r=>{const d=etaShort(r.etaFirst);
+        const re=new RegExp('(^|[^\\d])'+r.etaQty+' יח[\u05f3\'] *(משובצות|שובצו|מגיעות|כבר משובצות)? *[לב]-'+d.replace('.','\\.'));
+        return txt(r).some(t=>re.test(t))})
+      .map(r=>r.pn+': '+txt(r).join(' | '))})(),
+  splitItems:ALL.filter(r=>(r.etaQty||0)>0&&(r.etaFirstQty||0)<r.etaQty).length,
+  /* והמשפט על פריט מפוצל חייב לשאת את שני המספרים ואת שני התאריכים */
+  splitTxt:(()=>{const r=ALL.find(x=>x.pn==='ETA-PARTIAL');
+    return r?{q:r.etaQty,fq:r.etaFirstQty,first:r.etaFirst,last:r.etaLast,
+      sched:typeof etaSchedTxt==='function'?etaSchedTxt(r):'',why:otwWhy(r)}:null})(),
+  /* ============ ETA_PAST_IS_NOT_COVER ============
+     תחנה בציר «סגרה» פריט על סמך הבטחה שתאריכה כבר עבר. פריט בלי
+     אף יחידה עתידית אינו יכול להיסגר על ידי שום תחנה — זה הכלל
+     שכתוב בקובץ בשני מקומות, וכאן הוא נבדק. */
+  pastFixed:(typeof lineModel==='function'?lineModel().stations
+      .reduce((a,s)=>a.concat(s.fixed),[]).filter(r=>!(r.etaQty>0)).map(r=>r.pn):[]),
+  /* ה-ETA חייב להיות בגיליון הייצוא המלא, לא רק על המסך */
+  xHdr:(typeof XCOLS!=='undefined'?XCOLS.map(c=>c[0]):[]),
   /* והכיוון ההפוך: בלי דוח, אסור שמשהו יטען שיש תאריך. */
   ghosts:(()=>{const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
     return ETA?[]:ALL.filter(r=>txt(r).some(t=>/שובצו לאספקה|משובצות ל-|מגיעות ב-/.test(t)))
       .map(r=>r.pn)})()}};
 
+const etaShortJS=d=>{if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)};
 (async()=>{
  const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
  const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -459,6 +485,32 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     !ans.t1Chain&&ans.W.left===ans.W.gross,
     `חסר ${ans.W.gross} · נשאר ${ans.W.left} · מכוסה ${ans.W.month}`);
  ok('מסלול החוסרים אינו גולש אופקית',ans.ovf<=20,ans.ovf+'px');
+
+ /* ── ETA_SPLIT_DATE — הבאג שהמעתד תפס בדוח האמיתי ── */
+ ok('יש בכלל פריט שאספקתו מפוצלת בין תאריכים',
+    after.splitItems>0,`${after.splitItems} פריטים`);
+ ok('כמות כוללת אינה נצמדת לתאריך המוקדם',
+    after.splitLiars.length===0,after.splitLiars.join(' || '));
+ ok('המשפט נושא את שני המספרים ואת שני התאריכים',
+    !!after.splitTxt&&after.splitTxt.sched.includes(String(after.splitTxt.fq))
+      &&after.splitTxt.sched.includes(String(after.splitTxt.q-after.splitTxt.fq))
+      &&after.splitTxt.sched.includes(etaShortJS(after.splitTxt.first))
+      &&after.splitTxt.sched.includes(etaShortJS(after.splitTxt.last)),
+    (after.splitTxt||{}).sched||'—');
+ ok('וגם ההסבר בכרטיס נושא את הפיצול',
+    !!after.splitTxt&&after.splitTxt.why.includes(etaShortJS(after.splitTxt.last)),
+    (after.splitTxt||{}).why||'—');
+
+ /* ── ETA_PAST_IS_NOT_COVER ── */
+ ok('תחנה בציר אינה סוגרת פריט על סמך תאריך שעבר',
+    after.pastFixed.length===0,after.pastFixed.join(', '));
+ ok('וגם אחרי טעינה מחדש של ZMRP',
+    reload.pastFixed.length===0,reload.pastFixed.join(', '));
+
+ /* ── ETA_IN_EXPORT ── */
+ for(const c of ['יח׳ משובצות לאספקה','יח׳ באספקה הקרובה','תאריך האספקה הקרוב',
+                 'תאריך האספקה האחרון','יח׳ ברכש בלי תאריך','יח׳ שתאריכן כבר עבר'])
+  ok('גיליון הייצוא המלא נושא את העמודה «'+c+'»',after.xHdr.includes(c));
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
