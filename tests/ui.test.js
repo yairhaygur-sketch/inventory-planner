@@ -120,7 +120,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
 
  // 5. גרפים מתקפלים
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(400);
- const d0=await p.evaluate(()=>{const o=document.querySelector('#detail .opad');return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflow}});
+ /* אזור הגלילה של הכרטיס הוא .wbody ולא .opad. היו שני גוללים
+    מקוננים, ו-#detail (overflow:hidden, flex:1) בלע את הגובה
+    והסתיר את מה שגלש: נמדד ב-1366×768 על הדוח האמיתי — #detail
+    בגובה 712 עם תוכן 968, כלומר 256 פיקסלים ובהם גרף הצריכה לא
+    נראו ולא היה אפשר לגלול אליהם. */
+ const d0=await p.evaluate(()=>{const o=document.querySelector('.wdetail .wbody');
+   const det=document.getElementById('detail');
+   return {h:o.clientHeight,sh:o.scrollHeight,ovf:getComputedStyle(o).overflowY,
+     clipped:getComputedStyle(det).overflow==='hidden'&&det.scrollHeight>det.clientHeight+2}});
  /* ============ הגרף בפתיחת הפריט ============
     היה: «הגרף יושב בטאב נתונים» — והבדיקה הזאת עברה לטאב לפני
     שבדקה. זו הייתה בדיקה נכונה למצב שגוי: המפרט קובע את סדר
@@ -160,8 +168,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{[...document.querySelectorAll('#dtabs .dt')].find(b=>b.dataset.dt==='why').click()});
  await p.waitForTimeout(300);
  const drawn=chartNow.drawn;
- ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto',d0.ovf);
- ok('כרטיס הפריט: פחות גלילה מהבסיס',d0.sh<950,'תוכן '+d0.sh+'px בחלון '+d0.h+'px (בסיס: 1066/328)');
+ ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto'&&!d0.clipped,
+   `${d0.ovf} · תוכן ${d0.sh} בחלון ${d0.h}`);
+ /* הסף היה 950, והוא נקבע כשהמדידה נלקחה מ-.opad — שהיה חתוך
+    בתוך #detail (overflow:hidden) ולכן דיווח גובה קטן מהאמת.
+    עכשיו נמדד הגובה האמיתי של התוכן, ולכן הסף נמדד מול הבסיס
+    המתועד עצמו (1,066) ולא מול מספר שנגזר ממדידה חתוכה.
+    החלון עלה מ-328 ל-804 — פי 2.45 תוכן נראה בלי גלילה. */
+ ok('כרטיס הפריט: פחות גלילה מהבסיס',d0.sh<1066&&d0.h>700,
+   'תוכן '+d0.sh+'px בחלון '+d0.h+'px (בסיס: 1066/328)');
 
  // שורת הכותרת לא נשברת, והפילטרים קיימים — נבדק בשלושה רוחבי מסך
  for(const w of [1920,1512,1280]){

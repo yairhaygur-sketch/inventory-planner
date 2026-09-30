@@ -246,7 +246,15 @@ tbody tr.sel{background:var(--accL)}
 .colpop .act{display:flex;justify-content:space-between;margin-top:8px}
 .colpop .act button{border:none;background:none;color:var(--acc);font-size:12px;cursor:pointer;font-family:inherit;padding:4px}
 .colpop .act button.ok{background:var(--acc);color:var(--on-fill);border-radius:8px;padding:5px 12px;font-weight:700}
-.detail{flex:1;overflow:hidden;display:flex;flex-direction:column}
+/* ============ הכרטיס אינו חותך ============
+   היה overflow:hidden עם flex:1 — כלומר #detail בלע את כל הגובה
+   של .wbody והסתיר את מה שגלש, בזמן ש-.wbody עצמו (overflow:auto)
+   ראה scrollHeight ששווה ל-clientHeight ולכן לא גלל.
+   נמדד על הדוח האמיתי ב-1366×768: #detail בגובה 712 עם תוכן
+   968 — 256 פיקסלים של הכרטיס, ובהם גרף הצריכה, לא נראו ולא
+   היה אפשר לגלול אליהם. קיים כך גם ב-origin/main.
+   flex:0 0 auto + overflow:visible משאירים את הגלילה ל-.wbody. */
+.detail{flex:0 0 auto;overflow:visible;display:flex;flex-direction:column}
 .ohead{padding:11px 15px;border-bottom:1px solid var(--line2);flex:0 0 auto}
 .ohead h2{font-size:15px;margin:0 0 2px;font-weight:700}
 .opn{font-family:"Courier New",monospace;font-size:13px;color:var(--acc);font-weight:700}
@@ -256,7 +264,17 @@ tbody tr.sel{background:var(--accL)}
 .tag.d{background:var(--redL);border-color:#fecaca;color:var(--red);font-weight:700}
 .tag.w{background:var(--orgL);border-color:#fed7aa;color:#c2740c;font-weight:700}
 .tag.p{background:var(--neutralL);border-color:var(--line);color:var(--gray);font-weight:700}
-.opad{flex:1 1 auto;min-height:0;overflow:auto;padding:10px 15px;display:grid;grid-template-columns:1.02fr 1fr;gap:7px 16px;align-content:start;grid-auto-rows:min-content}
+/* ============ אזור גלילה אחד בכרטיס ============
+   היו שניים מקוננים: .wbody גלל, ובתוכו .opad גלל שוב. התוצאה —
+   בלוק ההחלטה (שגובהו משתנה עם מספר שורות ההצדקה) חנק את מה
+   שמתחתיו. נמדד על הדוח האמיתי ב-1366×768: המגירה 712px, בלוק
+   ההחלטה 322 מהם, ואזור התוכן ירד ל-266px — ובפריטים ארוכים
+   יותר ל-61px. חלון של 61 פיקסלים בתוך מגירה של 712 אינו מגירה.
+   עכשיו .wbody הוא הגולל היחיד: בלוק החלטה ארוך דוחף את התוכן
+   למטה והמעתד גולל, במקום להיתקל בחלון זעיר. הלשוניות נדבקות
+   למעלה כדי שלא ייעלמו בגלילה. */
+.opad{flex:0 0 auto;min-height:0;overflow:visible;padding:10px 15px;display:grid;grid-template-columns:1.02fr 1fr;gap:7px 16px;align-content:start;grid-auto-rows:min-content}
+.dtabs{position:sticky;top:0;z-index:4}
 .col{min-height:0;display:flex;flex-direction:column;gap:8px}
 .sec{margin:0}
 .sec h3{font-size:11px;margin:0 0 5px;font-weight:700;padding-bottom:4px;border-bottom:1px solid var(--line2);color:var(--dim)}
@@ -1500,7 +1518,7 @@ td.pnc{padding:5px 14px;font-size:13px}
 .dsec{border:1px solid var(--line2);border-radius:7px;background:var(--panel2)}
 /* גרף הצריכה יושב ישירות ב-.opad ולא בתוך עמודה, כדי שיהיה ראשון
    בסדר הקריאה. ברוחב מלא הוא חוצה את שתי העמודות. */
-.opad>.dsec.wide{grid-column:1/-1}
+.opad>.dsec.wide,.opad>.sec.wide{grid-column:1/-1}
 .dsec>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:10.5px;font-weight:700;
  color:var(--dim);display:flex;align-items:center;gap:6px;user-select:none}
 .dsec>summary::-webkit-details-marker{display:none}
@@ -7211,8 +7229,32 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
        עכשיו הוא ראשון ב-.opad, ברוחב מלא, ומוצג בשתי הלשוניות
        («החלטה» ו«נתונים») — מי שבודק פרמטרים רואה את הצריכה
        שהם נגזרים ממנה, בלי לעבור לשונית. -->
+  <!-- ============ סדר הקריאה בכרטיס ============
+       המפרט מונה «הנתונים שהובילו אליה» לפני «צריכה+גרף», ואת
+       התפקיד הזה ממלא בלוק ההחלטה שמעל הלשוניות: הפעולה, חמשת
+       המספרים ושורות ההצדקה. «נתוני מקור» הוא הדחיפה המלאה —
+       חומר עזר, לא הראיה שהובילה.
+       נמדד למה הסדר הזה: על הדוח האמיתי אזור הגלילה של המגירה
+       הוא 325px ב-1920 (מול 530 בדמו), כי בלוק ההחלטה ארוך יותר
+       בפריטים אמיתיים. «נתוני מקור» (216px) מעליו הוריד את הגרף
+       אל מתחת לקיפול בכל ארבעת הרוחבים שנמדדו — בדיוק התקלה
+       שהמתכנן צילם. הגרף ראשון; חומר העזר מתחתיו, באותה לשונית
+       ובלי החלפה. -->
   <details class="dsec wide" data-dt="why data" data-chart="c1" open><summary>צריכה חודשית — 11 חודשים</summary><canvas id="c1"></canvas>
    <div class="legend"><span style="color:var(--high)">●</span> פיק · <span style="color:var(--trend)">●</span> חשד אזילה · <span style="color:var(--accent)">▬</span> חציון${r.curMonth!=null?` · <span style="color:#94a3b8">▢</span> ${curMonthLabel().short}׳ (חלקי — מוחרג)`:''} · מגמה ${A.trend.pct>=900?'(אין בסיס)':A.trend.pct+'%'} · דפוס <b>${A.pattern}</b> — ${PATDESC[A.pattern]}</div></details>
+  <div class="sec wide" data-dt="why data"><h3>נתוני מקור — מה שהוביל להחלטה</h3><div class="kv">
+    <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
+    <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
+    <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
+    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
+    <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
+    <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
+    <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
+    <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
+    <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
+    <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
+    <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>הון כלוא</span></div></div>
+    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:(!r.custBlockedKnown&&r.cust>0?`<span class="ck">⚠ אין בדוח עמודת הזמנות חסומות — ${r.cust} היח׳ הן הגולמי, וייתכן שחלקן חסומות למשלוח</span>`:'')}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   <div class="col">
    <!-- ============ סדר הקריאה בכרטיס ============
         משפט פעולה אחד בראש, מתחתיו מה שמצדיק אותו, ורק אחר כך
@@ -7226,19 +7268,6 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
     <span class="tag p">${A.pattern}</span><span class="tag">${esc(r.model.slice(0,18))}</span>
     ${r.isAcc?'<span class="tag">אביזר</span>':''}${r.currency?`<span class="tag">מטבע ${esc(r.currency)}</span>`:''}${r.matType&&r.matType!=='ללא'?`<span class="tag">${esc(r.matType)}</span>`:''}</div></div>
-   <div class="sec" data-dt="data"><h3>נתוני מקור</h3><div class="kv">
-    <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
-    <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
-    <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
-    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
-    <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
-    <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
-    <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
-    <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
-    <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
-    <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
-    <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>הון כלוא</span></div></div>
-    <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:(!r.custBlockedKnown&&r.cust>0?`<span class="ck">⚠ אין בדוח עמודת הזמנות חסומות — ${r.cust} היח׳ הן הגולמי, וייתכן שחלקן חסומות למשלוח</span>`:'')}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   </div>
   <div class="col">
    <div class="sec" data-dt="data"><h3 style="display:flex;justify-content:space-between;align-items:center">תיקון פרמטרים<button class="explain" id="explainBtn">🔍 מאחורי החישוב</button></h3><div class="fix">
@@ -7475,7 +7504,12 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
    בסדר שלהן; הגיליון המלא נשאר אחריו ולא נגרע ממנו דבר.
    «11 חודשים» אינו יוצא — הוא גרף, ואין לו ערך יחיד. */
 function viewExportRows(){
- if(!SHORTLIKE())return null;
+ /* היה `if(!SHORTLIKE())return null` — כלומר גיליון «התצוגה» נבנה
+    רק במסלול החוסרים. כל תצוגת רישום אחרת (סדר היום, איכות
+    נתונים, רצפת SS, לקוח ממתין…) ייצאה בלי הגיליון הזה, ולכן
+    הייצוא לא ייצג את מה שעל המסך. התנאי הוא עכשיו «יש רישום
+    עמודות», וזה בדיוק מה שהגיליון צריך. */
+ if(!colReg())return null;
  const keys=visCols().filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&k!=='spark');
  if(!keys.length)return null;
  const rows=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
