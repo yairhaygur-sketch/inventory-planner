@@ -2974,6 +2974,27 @@ function etaParse(wb){
    אינו כיסוי, והוא בדיוק מה שצריך לבלוט. */
 /* שתי התאים של מסך הבוקר. בלי דוח ETA — תא אחד, זהה לקודם. */
 function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)}
+/* ============ ETA_SPLIT_DATE — כמות אחת אינה תאריך אחד ============
+   כל משפט על האספקה חיבר את *סכום* העתיד לתאריך ה*מוקדם* ביותר,
+   ואמר בכך דבר שאף שורה בדוח אינה תומכת בו. הדוגמה שהמעתד תפס,
+   מק״ט 5511801478: הדוח אומר 60 יח׳ ב-10.10 ו-500 ב-6.11 — הפרש
+   של 27 יום — והמסך אמר «560 יח׳ משובצות ל-10.10 — לצמצם את
+   ההשלמה בהתאם». מתכנן שקורא את זה מבטל הזמנה שהוא חייב לפתוח.
+   נמדד על הדוח האמיתי: 38 מתוך 214 הפריטים עם אספקה עתידית
+   מפוצלים ליותר מתאריך אחד, וכולם קיבלו את המשפט הזה.
+   המשפט הנכון נושא את שני המספרים: כמה נוחתות בתאריך הקרוב,
+   וכמה נשאר ועד מתי. */
+function etaSchedTxt(r,verb,prep){
+ const q=(r&&r.etaQty)||0;if(q<=0)return '';
+ const fq=(r&&r.etaFirstQty>0)?r.etaFirstQty:q;
+ const v=verb==null?'משובצות':verb,pp=prep||'ל-';
+ const head=`${Math.min(fq,q).toLocaleString('he-IL')} יח׳${v?' '+v:''} ${pp}${etaShort(r.etaFirst)}`;
+ return fq>=q?head
+  :`${head}, ועוד ${(q-fq).toLocaleString('he-IL')} יח׳ עד ${etaShort(r.etaLast)}`}
+/* התא צר מכדי לשאת את שני המספרים. הוא נושא את הקרוב — זה שעליו
+   מחליטים — ו-«+» שאומר שיש עוד אחריו. הפירוט המלא ב-title. */
+function etaCellQty(r){const q=r.etaQty||0,fq=(r.etaFirstQty>0?r.etaFirstQty:q);
+ return `${Math.min(fq,q).toLocaleString('he-IL')}<i>·${etaShort(r.etaFirst)}${fq<q?'+':''}</i>`}
 /* ============ SHORT_ANSWER — ארבע תשובות בכל שורת חוסר ============
    «מה חסר עכשיו, מה מכוסה באספקה מתוארכת, מה נשאר, ומה הפעולה הבאה.»
    שלוש מהארבע היו חסרות או מטעות, ונמדד בדיוק איך:
@@ -2997,13 +3018,18 @@ function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'
 function shortCovered(r){
  const m=r.etaMonth||0,fut=r.etaQty||0,t1=isT1(r);
  if(!ETA)return `<td class="num otw" title="${esc('לא נטען דוח ETA — אין תאריך הגעה לאף יחידה')}"><span class="mut">—</span></td>`;
- if(m<=0)return `<td class="num" title="${esc(fut>0
-   ?`${fut} יח׳ משובצות לאספקה, אבל כולן אחרי סוף החודש — אינן מכסות את החוסר הזה`
-   :'אין אספקה מתוארכת שנוחתת עד סוף החודש')}"><span class="mut">—</span></td>`;
+ /* היה כאן «—» חשוף: 560 יח׳ עם תאריך בדוח, והשורה בטבלה שתקה
+    עליהן לגמרי (עמודת «ללא תאריך» מראה רק את התקוע). המספר נשאר 0
+    — הן באמת אינן מכסות את החודש — אבל התאריך הקרוב נאמר על המסך
+    ולא רק ב-tooltip. */
+ if(m<=0)return `<td class="num sched" title="${esc(fut>0
+   ?`${etaSchedTxt(r,'משובצות')} — כולן אחרי סוף החודש, ואינן מכסות את החוסר הזה`
+   :'אין אספקה מתוארכת שנוחתת עד סוף החודש')}"><span class="mut">—</span>`
+   +(fut>0?`<i>→${etaShort(r.etaFirst)}</i>`:'')+`</td>`;
  /* ⊘ אינו קישוט: הוא ההבדל בין «מכוסה» ל«מנוכה». */
  return `<td class="num sched" title="${esc(`${m} יח׳ נוחתות עד סוף החודש`
    +(fut>m?` · מתוך ${fut} משובצות בסך הכל, היתר אחרי סוף החודש`:'')
-   +(r.etaFirst?` · המוקדמת ${etaShort(r.etaFirst)}`:'')
+   +(r.etaFirst?` · ${etaSchedTxt(r,'משובצות')}`:'')
    +(t1?' · אינן מנוכות: לקוח כבר ממתין מול מדף ריק, וכשל שירות שקרה אינו מתבטל בתאריך עתידי':''))}">`
    +`${m.toLocaleString('he-IL')}${t1?'<span class="nodeduct">⊘</span>':''}</td>`}
 /* «נשאר» נושא את החשבון עצמו כשהוא אינו טריוויאלי. */
@@ -3036,7 +3062,7 @@ function etaCells(r){
  if(!ETA)return `<td class="num otw">${po>0?`<span title="${r.po} יח׳ ברכש פתוח${r.transfer>0?` · ${r.transfer} בהעברה`:''} — לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי">${po.toLocaleString('he-IL')}<i>⌛</i></span>`:'<span class="mut">—</span>'}</td>`;
  const q=r.etaQty||0,st=r.stuck||0,past=r.etaPast||0;
  const tSched=q>0
-  ?`${q.toLocaleString('he-IL')} יח׳ שובצו לאספקה · המוקדמת ${etaShort(r.etaFirst)}`+(past>0?` · ${past} יח׳ היו אמורות להגיע ועברו`:'')
+  ?`${etaSchedTxt(r,'שובצו')}`+(past>0?` · ${past} יח׳ היו אמורות להגיע ועברו — לבדוק אם כבר נכנסו למלאי`:'')
   :(r.etaHas?`הפריט מופיע בדוח ה-ETA${past>0?`, אבל כל ${past} היחידות בו כבר עברו את תאריך ההגעה`:', בלי אספקה עתידית'}`
            :'הפריט אינו מופיע בדוח ה-ETA');
  /* «בהעברה» הוא מלאי שכבר שלנו ונע בין מחסנים — לא הזמנה מול ספק,
@@ -3045,23 +3071,27 @@ function etaCells(r){
  const tStuck=(st>0
   ?`${st.toLocaleString('he-IL')} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
   :(r.po>0?'כל הרכש הפתוח משובץ לאספקה':'אין רכש פתוח'))+tr;
- return `<td class="num sched" title="${tSched}">${q>0?`${q.toLocaleString('he-IL')}<i>·${etaShort(r.etaFirst)}</i>`:'<span class="mut">—</span>'}</td>`
+ return `<td class="num sched" title="${tSched}">${q>0?etaCellQty(r):'<span class="mut">—</span>'}</td>`
   +`<td class="num stk" title="${tStuck}">${st>0?st.toLocaleString('he-IL'):'<span class="mut">—</span>'}</td>`}
 /* משפט אחד שחייב להישאר נכון בשני המצבים. לפני הפיצול כל המסכים אמרו
    "אין ETA בדוח" — אמירה שהפכה לשקר ברגע שנטען דוח. */
 function otwWhy(r){
  if(!ETA)return 'לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי';
- const q=(r&&r.etaQty)||0,st=(r&&r.stuck)||0;
- return q>0&&st>0?`${q} יח׳ שובצו לאספקה (המוקדמת ${etaShort(r.etaFirst)}) ו-${st} יח׳ בלי שום תאריך`
-  :q>0?`כל הכמות שובצה לאספקה — המוקדמת ${etaShort(r.etaFirst)}`
-  :'אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה';}
+ const q=(r&&r.etaQty)||0,st=(r&&r.stuck)||0,past=(r&&r.etaPast)||0;
+ /* תאריך שעבר אינו כיסוי, אבל הוא גם אינו כלום: ברוב המקרים
+    המשלוח כבר נכנס למלאי והשורה בדוח פשוט לא נוקתה. זה נאמר
+    במפורש, כי זו בדיקה שהמעתד צריך לעשות מול SAP. */
+ const tail=past>0?` · ${past.toLocaleString('he-IL')} יח׳ הובטחו לתאריך שכבר עבר — לבדוק אם כבר נכנסו למלאי`:'';
+ return (q>0&&st>0?`${etaSchedTxt(r,'שובצו')} · ${st} יח׳ בלי שום תאריך`
+  :q>0?`כל הכמות שובצה לאספקה — ${etaSchedTxt(r,'')}`
+  :'אין אספקה משובצת בדוח ה-ETA — הכמות בלי תאריך הגעה')+tail;}
 /* גם הפעולה המומלצת משתנה עם המידע. «לבקש ETA» על פריט שכבר יש לו
    תאריך בדוח היא הוראה לעשות עבודה מיותרת. */
 function etaAct(r){
  if(!ETA)return 'לבקש ETA';
  const q=(r&&r.etaQty)||0,st=(r&&r.stuck)||0;
- return q>0&&st>0?`לזרז את ${st} היחידות שלא שובצו לאספקה — ${q} כבר משובצות ל-${etaShort(r.etaFirst)}`
-  :q>0?`למסור ללקוח תאריך — ${q} יח׳ מגיעות ב-${etaShort(r.etaFirst)}`
+ return q>0&&st>0?`לזרז את ${st} היחידות שלא שובצו לאספקה — ${etaSchedTxt(r,'כבר משובצות')}`
+  :q>0?`למסור ללקוח תאריך — ${etaSchedTxt(r,'מגיעות','ב-')}`
   :'לדרוש ETA — הפריט אינו מופיע בדוח האספקות';}
 /* ============ DOOR_ETA — תא אחד לכל ארבע הדלתות ============
    ארבעה תאים שונים הם ארבע אמיתות שיסתעפו. זה אחד, והוא עונה על
@@ -3087,13 +3117,13 @@ function doorEtaCell(r){
  if(!ETA)return `<td class="num otw" title="${esc(po>0?po+' יח׳ ברכש פתוח — לא נטען דוח ETA, ואין תאריך הגעה':'אין רכש פתוח')}">`
   +(po>0?`${po.toLocaleString('he-IL')}<i>⌛</i>`:'<span class="mut">—</span>')+'</td>';
  const q=r.etaQty||0,st=r.stuck||0,past=r.etaPast||0;
- if(q>0)return `<td class="num sched" title="${esc(`${q} יח׳ משובצות לאספקה · המוקדמת ${etaShort(r.etaFirst)}`
+ if(q>0)return `<td class="num sched" title="${esc(etaSchedTxt(r,'משובצות')
    +(st>0?` · ועוד ${st} יח׳ ברכש בלי שום תאריך`:'')
-   +(past>0?` · ${past} יח׳ היו אמורות להגיע והתאריך עבר`:''))}">`
-   +`${q.toLocaleString('he-IL')}<i>·${etaShort(r.etaFirst)}</i>`
+   +(past>0?` · ${past} יח׳ היו אמורות להגיע והתאריך עבר — לבדוק אם כבר נכנסו למלאי`:''))}">`
+   +etaCellQty(r)
    +(st>0?`<i class="stk">+${st}⌛</i>`:'')+'</td>';
  if(st>0)return `<td class="num otw" title="${esc(`${st} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
-   +(past>0?` · ${past} יח׳ הובטחו לתאריך שכבר עבר`:''))}">`
+   +(past>0?` · ${past} יח׳ הובטחו לתאריך שכבר עבר — לבדוק אם כבר נכנסו למלאי`:''))}">`
    +`${st.toLocaleString('he-IL')}<i>⌛</i></td>`;
  return `<td class="num" title="${esc(po>0?'כל הרכש הפתוח משובץ ואין יחידות עתידיות':'אין רכש פתוח')}"><span class="mut">—</span></td>`}
 function otwHead(){return ETA
@@ -3120,7 +3150,7 @@ function etaCoveredRows(){if(!ETA||!ALL)return [];
  return ALL.filter(r=>!r.mark&&!r.isOD&&!r.isPDItem&&!isT1(r)
    &&(r.unsGross||0)>0&&(r.unsQty||0)===0&&(r.etaMonth||0)>0)}
 function etaCovered(){const l=etaCoveredRows();if(!l.length)return '';
- const names=l.slice(0,10).map(r=>`${r.pn} (${r.etaMonth} יח׳ עד ${etaShort(r.etaFirst)})`).join('\n');
+ const names=l.slice(0,10).map(r=>`${r.pn} (${r.etaMonth} יח׳ עד סוף החודש)`).join('\n');
  const t=`${l.length} פריטים היו ברשימה לפי המלאי במדף, וירדו ממנה כי יש להם אספקה עם תאריך עד סוף החודש:\n\n`
   +names+(l.length>10?`\n… ועוד ${l.length-10}`:'');
  return `<span class="gcov" title="${esc(t)}">↓ ${l.length.toLocaleString('he-IL')} כוסו באספקה מתוארכת</span>`}
@@ -3131,11 +3161,13 @@ function etaApply(list){
  for(const r of list){
   const ls=by?by[etaKey(r.pn)]:null;
   let month=0;
-  if(!ls){r.etaQty=0;r.etaPast=0;r.etaFirst=null;r.etaHas=false;
+  if(!ls){r.etaQty=0;r.etaPast=0;r.etaFirst=null;r.etaFirstQty=0;r.etaLast=null;r.etaHas=false;
    r.stuck=by?Math.max(0,r.po||0):0}
-  else{let fut=0,past=0,first=null;
-   for(const [q,d] of ls){if(d<t){past+=q}else{fut+=q;if(!first)first=d;if(d<=eom)month+=q}}
+  else{let fut=0,past=0,first=null,firstQ=0,last=null;
+   for(const [q,d] of ls){if(d<t){past+=q}
+    else{fut+=q;if(!first)first=d;if(d===first)firstQ+=q;last=d;if(d<=eom)month+=q}}
    r.etaHas=true;r.etaQty=fut;r.etaPast=past;r.etaFirst=first;
+   r.etaFirstQty=firstQ;r.etaLast=last;
    r.stuck=Math.max(0,(r.po||0)-fut)}
   r.etaMonth=month;
   const gross=r.unsGross!=null?r.unsGross:(r.unsQty||0);
@@ -3612,7 +3644,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     ].filter(Boolean);
     it.act=[`להשלים ${gap} יח׳ כדי לכסות את החודש הקרוב`,
       it.po>0?(ETA&&it.etaQty>0
-          ?`${it.etaQty} יח׳ משובצות ל-${etaShort(it.etaFirst)} — לצמצם את ההשלמה בהתאם`
+          ?`${etaSchedTxt(it)} — לצמצם את ההשלמה בהתאם`
           :`לדרוש ETA ל-${it.po} היחידות הפתוחות — אם התאריך קרוב, לצמצם את ההשלמה`)
         :'לפתוח הזמנת רכש',
       paramGap?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`
@@ -4681,8 +4713,20 @@ function lineModel(){
  const dry=base.filter(lineDry).sort(lineCmp);
  const dates=lineStations();
  const byPn=(ETA&&ETA.byPn)||{};
+ /* ============ ETA_PAST_IS_NOT_COVER ============
+    הכלל כתוב בשני מקומות אחרים בקובץ — «תאריך שכבר עבר אינו נספר
+    כמשובץ; משלוח שהיה אמור להגיע ולא הגיע אינו כיסוי» — ו-etaApply
+    מקיים אותו. כאן הוא הופר: `dd<=d` סכם *כל* שורה עד התחנה,
+    כולל הבטחות שתאריכן חלף. התוצאה הייתה שהציר «סגר» פריט על סמך
+    משלוח שלא הגיע.
+    נמדד על הדוח המלא: 33,931 יח׳ בתאריכים שעברו, 1,527 מק״טים.
+    הציר הציג 14 פריטים בלי שום מענה במקום 31 — 17 חוסרים אמיתיים
+    נבלעו. על הדוח המזוקק (30 יח׳ שעברו בלבד) הפער נעלם מעצמו,
+    ולכן שני הדוחות נותנים עכשיו את אותה תשובה: 31.
+    כיוון הטעות הוא הגרוע — הכלי המעיט בחוסר. */
+ const tNow=etaToday();
  const upto=(r,d)=>{const ls=byPn[etaKey(r.pn)];if(!ls)return 0;
-   let n=0;for(const [q,dd] of ls)if(dd<=d)n+=q;return n};
+   let n=0;for(const [q,dd] of ls)if(dd>=tNow&&dd<=d)n+=q;return n};
  const open=new Set(dry);
  const stations=dates.map(d=>{
   const fixed=[];
@@ -7488,6 +7532,18 @@ document.getElementById('darkToggle').onclick=()=>{DARKON=!DARKON;try{localStora
 const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
  ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
  ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.custBlockedKnown?r.blockedCust:'—'],['רכש פתוח',r=>r.po],
+ /* ============ ETA_IN_EXPORT ============
+    גיליון «הכל» נשא 51 עמודות ואף אחת מהן לא הגיעה מדוח ה-ETA.
+    כלומר מי שהוריד את הקובץ כדי לעבוד בו — קיבל את הרכש הפתוח
+    כגוש אחד בלי תאריך, בדיוק המצב שהדוח בא לפתור. ריק ולא אפס
+    כשאין דוח: «0 יח׳ משובצות» הוא טענה, «—» הוא היעדר מידע. */
+ ['יח׳ משובצות לאספקה',r=>ETA?(r.etaQty||0):''],
+ ['יח׳ באספקה הקרובה',r=>ETA&&r.etaFirst?(r.etaFirstQty||0):''],
+ ['תאריך האספקה הקרוב',r=>ETA&&r.etaFirst?r.etaFirst:''],
+ ['תאריך האספקה האחרון',r=>ETA&&r.etaLast?r.etaLast:''],
+ ['יח׳ נוחתות עד סוף החודש',r=>ETA?(r.etaMonth||0):''],
+ ['יח׳ ברכש בלי תאריך',r=>ETA?(r.stuck||0):''],
+ ['יח׳ שתאריכן כבר עבר',r=>ETA?(r.etaPast||0):''],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
