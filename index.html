@@ -3225,6 +3225,26 @@ function etaOrphanSync(){
  if(t)DIAG.warn.push(t);
  if(typeof showDiag==='function')showDiag();
  etaChip()}
+/* ============ STALE_ETA — הבטחה שתאריכה חלף ============
+   החלטה 3, שהמעתד הכריע: זהו ממצא *איכות נתונים*, לא פיגור אספקה.
+   הכלי אינו יודע אם המשלוח הגיע — רק SAP יודע. לכן הוא אומר
+   «יש כאן שורה שתאריכה עבר, לך תבדוק», ואינו מניח דבר: לא מנכה,
+   לא סופר ככיסוי, ולא מכריז «באיחור». זה בדיוק ההבדל בין מדידה
+   להמצאה.
+   נמדד על הדוח המזוקק: 5 מק״טים · 28 יח׳. על הדוח המלא: 1,527
+   מק״טים · 33,931 יח׳ — כלומר הרשימה הזאת היא גם המדד לכמה הדוח
+   עצמו נקי. */
+function etaPastLines(r){if(!ETA||!ETA.byPn||!r)return [];
+ const ls=ETA.byPn[etaKey(r.pn)];if(!ls)return [];
+ const t=etaToday();return ls.filter(l=>l[1]<t)}
+function stalePastFirst(r){const l=etaPastLines(r);return l.length?l[0][1]:''}
+function staleDays(r){const d=stalePastFirst(r);if(!d)return 0;
+ return Math.max(0,Math.round((new Date(etaToday()+'T00:00:00')-new Date(d+'T00:00:00'))/864e5))}
+function staleDocs(r){const seen=[];for(const l of etaPastLines(r)){
+  const k=l[3]||l[2]||'';if(k&&seen.indexOf(k)<0)seen.push(k)}return seen}
+function staleRows(){if(!QF||!QF.all)return [];
+ return QF.all.filter(r=>(r.etaPast||0)>0&&passColFilters(r))
+  .sort((a,b)=>staleDays(b)-staleDays(a)||(b.etaPast||0)-(a.etaPast||0))}
 function etaAgeDays(){if(!ETA||!ETA.ts)return null;
  return Math.floor((Date.now()-ETA.ts)/864e5)}
 /* ============ STORE_LOUD — אחסון שנגמר חייב להישמע ============
@@ -4238,12 +4258,12 @@ const NAV=[
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
- qual:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
+ qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
  month:[['month','תיקוני פרמטרים'],['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
- qual:[['qual','פרמטרים לתיקון']],
+ qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
  cap:[['cap','הון כלוא']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
 /* ============ מה כל מסלול הוא ============
@@ -4266,7 +4286,8 @@ const NAV_WHAT={
  rise:'הביקוש עלה ונקודת ההזמנה מפגרת',
  applied:'מה מההמלצות הקודמות יושם ב-SAP',
  done:'פריטים שסימנת כטופלו',
- moves:'מכירה וכניסה אחרונות לכל פריט'};
+ moves:'מכירה וכניסה אחרונות לכל פריט',
+ stale:'שורות בדוח ה-ETA שתאריך ההגעה שלהן חלף — לבדוק מול SAP אם הסחורה נכנסה'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 /* ============ העדפות התצוגה נקראות בעלייה ============
@@ -4499,6 +4520,7 @@ function navCount(k){
  if(k==='cap'){const r=decisionList('cap');return {n:r.length,hot:0}}
  if(k==='burn'){const r=burnRows();return {n:r.length,hot:r.length}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
+ if(k==='stale'){const r=staleRows();return {n:r.length,hot:0}}
  if(k==='applied'){return {n:APPLIED?APPLIED.total:0,hot:0}}
  /* done ו-rise נשענים על cur='marked'/'all' ולא על decisionList, ולכן
     modeRows מחזיר להם את *כל* הפריטים. נמדד: שתי הדלתות הציגו 900
@@ -4548,7 +4570,9 @@ const MODESET={
     ש-2,832 פריטים נושאים תאריך מכירה ו-6,154 תאריך כניסה. דלת
     שנראית ריקה אינה נפתחת. */
  moves:{cur:'moves',track:'cap'},
- qual:{cur:'today',track:'qual'}};
+ qual:{cur:'today',track:'qual'},
+ /* ממצא איכות נתונים, ולכן כל הפריטים ולא תור עבודה */
+ stale:{cur:'all',track:'stale'}};
 /* הכלי נוחת במרכז העבודה. היה 'line' — כלומר «רכש ואספקות»,
    בזמן שכותרת המסך אמרה «מה דורש טיפול היום». שני שמות שונים
    לאותו רגע פתיחה. */
@@ -5002,6 +5026,12 @@ function renderHeroDry(m){
    נמדד מה זה קונה: 3 שורות. זה לא הרבה, וזו בדיוק הסיבה שהיא
    מתקפלת ולא נמחקת — ובצירוף הצפיפות (11 שורות) זה 14. */
 const BAND_KEY='planner_band_v1';
+/* נבחנה פתיחה כברירת מחדל, ונדחתה על סמך מדידה. ההנחה הייתה
+   שהקיפול מסתיר את ששת התחנות המתוארכות; הוא אינו מסתיר אותן —
+   המקטעים עם ה-tooltip לכל תחנה מרונדרים גם מקופל (נמדד על הדוח
+   האמיתי ב-1512: אותן שש תחנות בשני המצבים). מה שהפתיחה מוסיפה הוא
+   תוויות המטבע, הסכומים וכפתורי הייצוא — ומחירה 59px→92px, כלומר
+   הרשימה יורדת מ-75% ל-71% מהמסך. תקציב השורות גובר. */
 let BAND_OPEN=false;
 try{BAND_OPEN=localStorage.getItem(BAND_KEY)==='1'}catch(_){}
 function bandToggle(){
@@ -5848,6 +5878,8 @@ function currentRows(){if(cur==='today')return decisionList(track);
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='cust'){const by=custRows().sort((a,b)=>custVal(b)-custVal(a));
    return sortCol==='sev'?by:sortRowsBy(by)}
+ if(track==='stale'){const by=staleRows();
+   return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='applied'){const R={done:0,other:1,none:2};
    const by=appliedRows().sort((a,b)=>R[a.apStatus]-R[b.apStatus]||a.pn.localeCompare(b.pn));
    return sortCol==='sev'?by:sortRowsBy(by)}
@@ -6317,6 +6349,21 @@ const SCOL={
  m1gap:{t:'חסר',ttl:'הקצב החודשי פחות המלאי הפנוי',
   val:r=>Math.ceil((r.r3||0)-(r.free||0)),xval:r=>Math.ceil((r.r3||0)-(r.free||0)),
   cell:r=>`<td class="num miss"><b>${Math.ceil((r.r3||0)-(r.free||0))}</b></td>`},
+ /* ארבע עמודות STALE_ETA. כולן עובדות מהדוח — אין כאן שום חישוב
+    ושום הנחה על מה שקרה למשלוח. */
+ stQty:{t:'יח׳ שתאריכן עבר',ttl:'הכמות בשורות שתאריך ההגעה שלהן חלף. אינה נספרת ככיסוי בשום מקום',
+  val:r=>r.etaPast||0,xval:r=>r.etaPast||0,
+  cell:r=>`<td class="num stk">${(r.etaPast||0).toLocaleString('he-IL')}</td>`},
+ stDate:{t:'התאריך שעבר',ttl:'התאריך המוקדם מבין אלה שחלפו — ההבטחה הוותיקה ביותר שלא נסגרה',
+  val:r=>stalePastFirst(r),fval:r=>etaShort(stalePastFirst(r)),xval:r=>stalePastFirst(r),
+  cell:r=>`<td class="num">${etaShort(stalePastFirst(r))||'<span class="mut">—</span>'}</td>`},
+ stAge:{t:'ימים מאז',ttl:'כמה ימים חלפו מאותו תאריך. מספר, לא שיפוט — ייתכן שהסחורה נכנסה למלאי ורק השורה בדוח לא נוקתה',
+  val:r=>staleDays(r),xval:r=>staleDays(r),
+  cell:r=>`<td class="num">${staleDays(r).toLocaleString('he-IL')}</td>`},
+ stDoc:{t:'מסמך רכש / אספקה',ttl:'המסמכים שבשורות שתאריכן עבר — לפי זה בודקים ב-SAP אם הסחורה נכנסה',
+  val:r=>staleDocs(r).join(' '),xval:r=>staleDocs(r).join(' '),
+  cell:r=>{const d=staleDocs(r);
+   return `<td class="sup" title="${esc(d.join(' · '))}"><bdi>${esc(d.slice(0,2).join(' · ')||'—')}${d.length>2?` +${d.length-2}`:''}</bdi></td>`}},
  poPlain:{t:'בדרך',ttl:'רכש פתוח. מוצג למידע בלבד ואינו נספר ככיסוי',
   val:r=>r.po||0,xval:r=>r.po||0,
   cell:r=>`<td class="num">${(r.po||0)>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td>`},
@@ -6462,7 +6509,9 @@ const SCOL_DEF={
     הנתונים המרכזיים · הצעד הבא. בדיוק בסדר הזה, משמאל לימין. */
  agenda:['pn','desc','cat','sup','free','cust','poPlain','miss','val','act','age'],
  /* מה שבור בנתון, ומה מציעים במקומו */
- qual:['pnPlain','desc','cat','rop','ss','need','lt','fix']};
+ qual:['pnPlain','desc','cat','rop','ss','need','lt','fix'],
+ /* מה צריך כדי לבדוק מול SAP: מי, כמה, ממתי, ולפי איזה מסמך */
+ stale:['pnPlain','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -6480,7 +6529,7 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
-const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual']);
+const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
@@ -6488,6 +6537,7 @@ function colViewKey(){
  if(cur==='moves')return 'mv_'+movTab;
  if(track==='agenda')return 'agenda';
  if(track==='qual')return 'qual';
+ if(track==='stale')return 'stale';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג — מציג תמיד את
@@ -6791,6 +6841,7 @@ function renderDecisions(rows){
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
+     :track==='stale'?(ETA?'אף שורה בדוח ה-ETA אינה נושאת תאריך שכבר עבר — הדוח נקי.':'לא נטען דוח ETA, ולכן אין תאריכי הגעה לבדוק.')
      :track==='cap'?'אין הון כלוא במסלול הזה.'
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
@@ -6821,6 +6872,10 @@ function renderDecisions(rows){
    ?(()=>{const inc=trendIncoming(rows);
       return `${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
        +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
+   :track==='stale'
+   ?(()=>{const u=rows.reduce((a,r)=>a+(r.etaPast||0),0);
+      return u?`${u.toLocaleString('he-IL')} יח׳ בשורות שתאריכן חלף · אינן נספרות ככיסוי בשום מקום`
+       :'אין שורה בדוח שתאריכה חלף'})()
    :track==='done'
    ?'ביטול סימון מחזיר את הפריט לתור העבודה'
    :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
@@ -6833,6 +6888,8 @@ function renderDecisions(rows){
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'
   ?'הביקוש עלה בתוך חלון הקצב ונקודת ההזמנה מפגרת אחריו · מספר מייעץ, ההמלצה לא שונתה · ✓ = משלוח בדרך סוגר את הפער למחזור הזה, והפריט נשאר ברשימה'
+  :track==='stale'
+  ?'הדוח מבטיח תאריך שכבר עבר · הכלי אינו יודע אם הסחורה נכנסה למלאי — זו בדיקה מול SAP לפי מסמך הרכש · בינתיים הכמות אינה נספרת ככיסוי בשום מקום'
   :track==='done'
   ?'פריטים שסימנת כטופל — מוחרגים מתורי העבודה עד שתבטל את הסימון'
   :FIXLIKE()
@@ -6885,6 +6942,9 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
    renderDecisions(rows);return}
  if(track==='rise'){const tkR=document.getElementById('track');
    if(tkR){tkR.innerHTML='';tkR.style.display='none'}
+   renderDecisions(rows);return}
+ if(track==='stale'){const tkS=document.getElementById('track');
+   if(tkS){tkS.innerHTML='';tkS.style.display='none'}
    renderDecisions(rows);return}
  if(track==='cust'){const tk3=document.getElementById('track');
    if(tk3){tk3.innerHTML='';tk3.style.display='none'}
