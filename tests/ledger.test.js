@@ -62,6 +62,9 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
 
  // ── יום 2: KEPT נחת ──
  await p.setInputFiles('#f',SD+'/ledger-d2.xlsx');await p.waitForTimeout(1800);
+ /* פנקס האמינות יושב ברצועת «רכש ואספקות» (.lband). הכלי נוחת
+    ב«מרכז עבודה», ולכן הבדיקה נכנסת למסך שהיא בודקת. */
+ await p.evaluate(()=>{try{setMode('line')}catch(_){}});await p.waitForTimeout(700);
  const d2=await p.evaluate(()=>{
   const obs=ledgerPromises();
   const g=ledgerBySupplier(ALL);

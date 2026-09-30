@@ -1039,10 +1039,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     המפרט החדש קבע שישה שמות תחום, והורה במפורש להימנע מהשמות
     החופפים «היום» / «לטיפול היום» / «החודש» — כולם נקראים כחלון
     זמן ולא כתחום עבודה, וזו הייתה אותה תקלה בדיוק בשם אחר. */
+ /* «איכות נתונים» נוסף כתחום שביעי: 249 פריטים שהגיעו עד היום
+    דרך «תכנון ו-MRP» (870) ומעורבבים בעבודת תכנון רגילה, בזמן
+    שפרמטר שגוי ב-SAP מרעיל כל המלצה שנגזרת ממנו. */
  const AREAN=['מרכז עבודה','חוסרים ולקוחות','רכש ואספקות','תכנון ו-MRP',
-              'בריאות המלאי','קטלוג פריטים'];
- ok('המסילה נושאת את שישה שמות התחומים שנקבעו',
-    ux.tabNames.length===6&&AREAN.every((n,i)=>ux.tabNames[i]===n),
+              'איכות נתונים','בריאות המלאי','קטלוג פריטים'];
+ ok('המסילה נושאת את שבעת שמות התחומים שנקבעו',
+    ux.tabNames.length===7&&AREAN.every((n,i)=>ux.tabNames[i]===n),
     ux.tabNames.join(' | '));
  ok('ואין בשמות שם שנקרא כחלון זמן',
     !ux.tabNames.some(t=>/לטיפול היום|ציר הזמן|היום|החודש/.test(t)),
@@ -2004,8 +2007,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       areas:tabs.length}});
   ok(`${vw}px · אין גלילה אופקית של הדף ואין חיתוך בסרגל העליון`,
     m.pageOv<=0&&m.topClip<=0,`דף ${m.pageOv}px · סרגל ${m.topClip}px`);
-  ok(`${vw}px · שישה תחומים, ואף שם אינו נחתך`,
-    m.areas===6&&!m.clipped.length,m.clipped.join(' · ')||'—');
+  ok(`${vw}px · שבעה תחומים, ואף שם אינו נחתך`,
+    m.areas===7&&!m.clipped.length,m.clipped.join(' · ')||'—');
   /* מתחת ל-1100 המסילה עוברת לרצועה אופקית: אותם תחומים, אותם
      מונים, בשורה שנגללת במקום בעמודה שגוזלת 38% מהרוחב. */
   ok(`${vw}px · המסילה בכיוון הנכון למסך הזה`,
@@ -2022,17 +2025,29 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* «רכש פתוח בלי תאריך הגעה» על נתוני הדגמה מלאים: הכרטיס הציג 151
     כשהמקור היה lineModel().stuck (דלי האוזלים שאין להם מענה), בזמן
     ש-835 פריטים מחזיקים רכש פתוח בלי תאריך — פי 5.5. */
+ /* ארבעת הכרטיסים הוחלפו ברשימה מדורגת אחת ורצועה. המספר הזה
+    עבר לרצועת הפערים — שם מקומו, כי הוא אומר מה היעדר דוח ה-ETA
+    עולה — והטענה עצמה לא נחלשה: הוא עדיין חייב להיות המספר
+    האמיתי ולא דלי האוזלים. */
  const noEta=await p.evaluate(()=>{
-   const c=[...document.querySelectorAll('.hcard')][1];
-   return {n:+((c.querySelector('.hn')||{}).textContent||'0').replace(/[^\d]/g,''),
-     rows:c.querySelectorAll('.hrow').length,
+   const band=(document.querySelector('.abgap')||{}).textContent||'';
+   const nums=(band.match(/[\d,]{2,}/g)||[]).map(x=>+x.replace(/,/g,''));
+   return {band,nums,
      eng:(QF.all||[]).filter(r=>expStuck(r)>0).length,
      lineStuck:lineModel().stuck.filter(r=>expStuck(r)>0).length,
      eta:!!ETA}});
  ok('«רכש פתוח בלי תאריך» סופר את כל הרכש שאין לו תאריך',
-   noEta.n===noEta.eng&&noEta.eng>0,
-   `כרטיס ${noEta.n} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
- ok('וכשיש מה לספור הוא מציג שורות ולא מסך ריק',noEta.rows>0,noEta.rows+' שורות');
+   noEta.nums.includes(noEta.eng)&&noEta.eng>0
+   &&(noEta.eng===noEta.lineStuck||!noEta.nums.includes(noEta.lineStuck)),
+   `ברצועה ${noEta.nums.join('/')} · בפועל ${noEta.eng} · דלי האוזלים ${noEta.lineStuck} · ETA=${noEta.eta}`);
+ /* «נקודת הזמנה נמוכה מהנדרש» היה כרטיס רביעי; הוא שבב ניווט
+    עכשיו, עם אותה אוכלוסייה בדיוק. */
+ const ropChip=await p.evaluate(()=>{
+   const c=[...document.querySelectorAll('.abchip')].find(x=>/נקודת הזמנה/.test(x.textContent));
+   return {n:c?+(c.querySelector('b').textContent.replace(/[^\d]/g,'')):null,
+     eng:modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0)).length}});
+ ok('«נקודת הזמנה נמוכה מהנדרש» שרד כשבב, עם אותו מספר',
+   ropChip.n===ropChip.eng,`שבב ${ropChip.n} · בפועל ${ropChip.eng}`);
  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
    .find(t=>t.dataset.m==='cap');if(a)a.click()});
  await p.waitForTimeout(800);

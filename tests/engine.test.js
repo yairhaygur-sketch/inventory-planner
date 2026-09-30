@@ -40,6 +40,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
                   .filter(k=>[...document.querySelectorAll('#tabs .tab')]
                     .some(t=>t.dataset.m===k)).length,
    trackStrip:  getComputedStyle(document.getElementById('track')).display,
+   trackSwitch: document.querySelectorAll('#track [data-tr]').length,
    trackDefault:track,
    diag:        DIAG.warn.join(' | '),
    kpiLabels:   [...document.querySelectorAll('#kpis .kpi .l')].map(e=>e.textContent),
@@ -84,7 +85,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     · כל מסלול ותיק (burn, cust, done, rise, floor, trend, applied,
       moves) נגיש — כתחום או כדלת משנה בתוך תחום. אין יכולת שאבדה.
     · אין יותר כניסות .mini — הן הפכו לדלתות משנה ב-#railsub. */
- const NAVEXP=['home','today','line','month','cap','catalog'];
+ /* ============ שבעה תחומים ============
+    «איכות נתונים» עלה לתחום משלו. 249 פריטים בתור `quality` הגיעו
+    עד היום דרך «תכנון ו-MRP» (870), מעורבבים בעבודת תכנון רגילה —
+    ופרמטר שגוי ב-SAP מרעיל כל המלצה שנגזרת ממנו, כלומר זו עבודה
+    אחרת בסדר גודל אחר של דחיפות. הסיווג והחישוב היו קיימים; חסר
+    להם בית. */
+ const NAVEXP=['home','today','line','month','qual','cap','catalog'];
  const nav=await p.evaluate(exp=>{
   const ids=()=>[...document.querySelectorAll('#tabs .tab')].map(e=>e.dataset.m);
   const areas=ids(),subs={},cnt={};
@@ -109,7 +116,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    mini:document.querySelectorAll('#tabs .tab.mini').length,
    inRail:!!document.querySelector('#rail #tabs'),
    noArea:legacy.filter(k=>!AREA_OF[k])}},NAVEXP);
- ok('שישה תחומי עבודה במסילה, בסדר שנקבע',nav.areas.join(',')===NAVEXP.join(','),
+ ok('שבעה תחומי עבודה במסילה, בסדר שנקבע',nav.areas.join(',')===NAVEXP.join(','),
     nav.areas.join(' · '));
  ok('המסילה אנכית — #tabs יושב בתוך #rail',nav.inRail);
  ok('תחום עם מונה אפס נשאר על המסילה, עם תג כבוי שמראה 0',
@@ -123,7 +130,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     (nav.subs.today||[])[0]==='burn',(nav.subs.today||[]).join(' · ')||'—');
  ok('אין יותר כניסות משניות מוקטנות בסרגל',nav.mini===0,nav.mini+' .mini');
  ok('שני היעדים תמיד בסרגל — ציר וקטלוג',st.tabsCore===2,st.tabsCore+' מתוך 2');
- ok('רצועת המסלולים ירדה',st.trackStrip==='none',st.trackStrip);
+ /* ============ #track אינו עוד רצועת מסלולים ============
+    הכלל «הרצועה ירדה» נולד כשהיה שם מתג מסלולים מיותר. אותו
+    אלמנט נושא עכשיו את רצועת סדר היום — פערי הנתונים ומה שממתין
+    מחוץ לרשימה של היום — והוא ריק, ולכן `display:none`, בכל מסך
+    שאינו «מרכז עבודה». מה שנעול: אין מתג מסלולים, ובמרכז העבודה
+    יש רצועה עם תוכן. */
+ ok('אין מתג מסלולים — #track נושא רק את רצועת סדר היום',
+    st.trackSwitch===0,st.trackSwitch+' כפתורי [data-tr]');
  ok('לכל מצב יש תוכן',/catalog=[1-9]/.test(st.modeCounts),st.modeCounts);
  ok('אין אריח "מכירות אבודות"',!st.kpiLabels.some(l=>l.includes('מכירות אבודות')),st.kpiLabels.length+' אריחים');
  ok('אזהרת DIAG על FOB בלבד',!/מחיר מכירה/.test(st.diag),st.diag.slice(0,90)||'(אין אזהרות)');

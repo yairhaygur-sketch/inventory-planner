@@ -101,7 +101,7 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
      לתקן שמות שנקראו כחלון זמן — «לטיפול היום» ו«החודש». השמות
      החדשים אינם נקראים כך, ולכן מה שנבדק הוא המקור ולא התיקון. */
   ok(`${W} · אין שם תחום שנקרא כחלון זמן`,
-    nav.areaNames.length===6&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
+    nav.areaNames.length===7&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
     nav.areaNames.join(' · '));
   ok(`${W} · ופרמטרים, אספקות, טופלו ותנועות יושבים במסילה בשמם`,
     ['תיקוני פרמטרים','ציר האספקות','טופלו','תנועות אחרונות']

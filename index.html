@@ -85,6 +85,29 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .whead .wx:hover{background:var(--redL);color:var(--red)}
 .wbody{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
 .kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;padding:8px}
+/* ============ רצועת סדר היום ============
+   שורה דקה מעל הטבלה: פערי נתונים משמאל, ומה שממתין מחוץ לרשימה
+   של היום כשבבים לחיצים. היא מחליפה ארבעה כרטיסים שניצלו 43%
+   מגובה החלון ולא ענו «באיזה סדר». */
+#track:empty{display:none}
+.aband{display:flex;flex-direction:column;gap:6px;padding:7px 14px 8px;
+ border-block-end:1px solid var(--line2)}
+.abgap{display:flex;gap:7px;align-items:flex-start;font-size:var(--f-xs);
+ /* --high-bg ולא צבע קשיח: לטוקן הזה יש ערך גם בנושא הכהה
+    (‎#3A2C15‎). נמדד עם רקע קשיח בהיר — 1.11 ניגודיות בכהה. */
+ color:var(--ink-2);background:var(--high-bg);border:1px solid var(--line2);
+ border-radius:var(--r-ctl);padding:5px 9px}
+.abgap .abi{color:var(--high);flex:0 0 auto}
+.abgap b{color:var(--ink);font-weight:700}
+.abnext{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.abnext .abl{font-size:var(--f-xs);color:var(--dimmer);font-weight:700;
+ letter-spacing:.04em;white-space:nowrap}
+.abchip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;
+ font-size:var(--f-xs);border:1px solid var(--line);background:var(--panel);
+ color:var(--ink-2);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.abchip b{font-family:var(--num);font-weight:800;color:var(--ink)}
+.abchip:hover{border-color:var(--accent);color:var(--accent-ink)}
+.abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;flex-direction:row-reverse;justify-content:flex-end;background:#fff}
 /* המדד הוא כפתור: לחיצה פותחת את הרשימה שהוא סופר. הוא נבנה כ-button
    ולכן צריך לאפס את ברירות המחדל של הדפדפן ולשמור יישור RTL. */
@@ -2405,7 +2428,6 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="wbody"><div class="qbody">
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
-          <span class="seg" id="track"></span>
           <span class="chips inline" id="chipsTop"></span>
           <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
@@ -2459,6 +2481,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         <!-- במקום רצועת החוסרים המלאה: שורה אחת שמובילה אליה -->
         <p class="shortlink" id="shortlink" hidden><span id="shortlinkTx"></span>
           <button type="button" id="shortlinkGo">לרשימת החוסרים</button></p>
+        <div class="seg" id="track"></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
@@ -4148,21 +4171,29 @@ const MODES=[
    ואף מסלול ותיק לא אבד — הוא הפך לדלת *בתוך* התחום שלו (ראה SUBNAV).
    המזהים burn/line/today/month/catalog נשארו כפי שהם, כדי ש-MODESET,
    currentRows והבדיקות לא ישתנו. */
+/* ============ «איכות נתונים» כתחום משלו ============
+   249 פריטים בתור `quality` הגיעו עד היום דרך «תכנון ו-MRP» (870) —
+   מעורבבים בעבודת תכנון רגילה. פרמטר שגוי ב-SAP מרעיל כל המלצה
+   שנגזרת ממנו, ולכן זו עבודה אחרת בסדר גודל אחר של דחיפות.
+   הפרומפט מונה אותו כתחום עבודה נפרד. הסיווג והחישוב היו קיימים —
+   חסר להם בית. */
 const NAV=[
  ['home',   'מרכז עבודה',      '◱','var(--acc)'],
  ['today',  'חוסרים ולקוחות',  '⚠','var(--critical)'],
  ['line',   'רכש ואספקות',     '⇄','var(--steady)'],
  ['month',  'תכנון ו-MRP',     '◆','var(--trend)'],
+ ['qual',   'איכות נתונים',    '⚒','var(--high)'],
  ['cap',    'בריאות המלאי',    '❤','var(--capital)'],
  ['catalog','קטלוג פריטים',    '☰','var(--calm)']];
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
- cap:'cap',catalog:'catalog',moves:'catalog'};
+ qual:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
  month:[['month','תיקוני פרמטרים'],['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
+ qual:[['qual','פרמטרים לתיקון']],
  cap:[['cap','הון כלוא']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
 /* ============ מה כל מסלול הוא ============
@@ -4175,6 +4206,7 @@ const NAV_WHAT={
  today:'הזמנות לקוח שאינן מכוסות, וחוסר צפוי החודש',
  line:'רכש פתוח, תאריכי הגעה וזירוז',
  month:'ROP ו-SS — קיים מול מוצע, רצפות ומגמות',
+ qual:'פרמטרים שבורים ב-SAP — כל המלצה שנגזרת מהם חשודה',
  cap:'עודף, מלאי איטי, מלאי מת והון כלוא',
  catalog:'חיפוש ובדיקה של כל הפריטים',
  burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
@@ -4372,7 +4404,8 @@ function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
  if(v==='sup')return 'התצוגה «לפי ספק»';
  if(v==='fix')return 'תיקוני פרמטרים';
- const N={catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
+ const N={agenda:'סדר היום',qual:'איכות נתונים',
+  catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
   floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
   applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא',
   mv_sales:'תנועות · מכירות אחרונות',mv_entries:'תנועות · כניסות אחרונות',
@@ -4410,7 +4443,9 @@ function navCount(k){
  const hot=rows=>rows.filter(r=>r.sev===3).length;
  if(k==='floor'){const r=floorRows();return {n:r.length,hot:hot(r)}}
  if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
- if(k==='home'){const r=burnRows();return {n:r.length+QF.prevent.length,hot:r.length}}
+ /* המונה הוא אורך הרשימה עצמה. קודם הוא היה סכום של שני מקורות
+    בלי ניכוי חפיפה, והמסך הציג משהו אחר לגמרי. */
+ if(k==='home'){const r=agendaRows();return {n:r.length,hot:r.filter(x=>x.sev===3).length}}
  if(k==='cap'){const r=decisionList('cap');return {n:r.length,hot:0}}
  if(k==='burn'){const r=burnRows();return {n:r.length,hot:r.length}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
@@ -4432,7 +4467,10 @@ function navCount(k){
 const MODESET={
  /* מרכז העבודה — מסך נחיתה. הוא אינו טבלה, ולכן track הוא 'short'
     רק כדי שכל מה שנשען על track ימשיך לעבוד; הגוף עצמו מוחלף. */
- home:{cur:'today',track:'short'},
+ /* מרכז העבודה הוא מסך טבלה ככל השאר — ולכן הוא יורש מיון, סינון,
+    בורר עמודות, שינוי רוחב, ייצוא, ניווט מקלדת ומגירת הפריט.
+    כמסך נחיתה ייעודי לא הייתה לו אף אחת מהיכולות האלה. */
+ home:{cur:'today',track:'agenda'},
  /* ============ בריאות המלאי ============
     היה cur:'all' — כלומר בדיוק הקטלוג, 900 פריטים, ועמודת «הון
     כלוא» ריקה ברוב השורות הגלויות. עם cur:'today' הטבלה היא
@@ -4459,7 +4497,8 @@ const MODESET={
     ולכן הוחזר []. נמדד על הדוח האמיתי: «תנועות» הציגה 0 בזמן
     ש-2,832 פריטים נושאים תאריך מכירה ו-6,154 תאריך כניסה. דלת
     שנראית ריקה אינה נפתחת. */
- moves:{cur:'moves',track:'cap'}};
+ moves:{cur:'moves',track:'cap'},
+ qual:{cur:'today',track:'qual'}};
 /* הכלי נוחת במרכז העבודה. היה 'line' — כלומר «רכש ואספקות»,
    בזמן שכותרת המסך אמרה «מה דורש טיפול היום». שני שמות שונים
    לאותו רגע פתיחה. */
@@ -4986,6 +5025,10 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  /* "החודש" = תיקוני פרמטרים + מעקב אספקה — עבודת התכנון החודשית מול SAP */
  const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&QF.follow.includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
+  :tr==='agenda'?agendaRows()
+  /* תור `quality` כפי שהמנוע כבר בנה אותו — לא סף חדש ולא סיווג חדש */
+  :tr==='qual'?(QF.quality||[]).filter(passColFilters)
+     .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='line'?lineRows()
   /* «לקוח ממתין ללא רכש» לפני «אין מלאי»: isT1 דורש מדף אפס *בדיוק*,
@@ -5786,6 +5829,40 @@ function renderBulk(rows){
   toast(`${done.toLocaleString('he-IL')} פריטים · ${lbl}`,{label:'בטל',run:undoBulk})});}
 /* רצועת המסלולים ירדה: המצב בוחר את המסלול. הפונקציה נשארת כדי
    שהרצועה לא תופיע כשחוזרים ממסך התנועות. */
+/* ============ הרצועה שמעל סדר היום ============
+   שני דברים שהכרטיסים הישנים נשאו ושאסור לאבד: פערי הנתונים
+   (הם קובעים כמה מהמספרים בכלל מכומתים) ומה שממתין מחוץ לרשימה
+   של היום. הם רצועה אחת דקה במקום ארבעה כרטיסים. */
+function renderAgendaBand(){
+ const t=document.getElementById('track');if(!t)return;
+ if(!QF){t.innerHTML='';t.style.display='none';return}
+ const noPx=(QF.all||[]).filter(r=>r.priceMissing).length;
+ const gaps=[];
+ if(noPx)gaps.push(`<b>${noPx.toLocaleString('he-IL')} ללא מחיר FOB</b> — השווי אינו מכומת`);
+ /* המספר הזה היה כרטיס משלו במסך הישן, והוא חייב לשרוד: הוא אומר
+    כמה יחידות רכש אינן נספרות ככיסוי, וזה בדיוק מה שהיעדר דוח
+    ETA עולה. `homeRows('line')` הוא המקור — expStuck, לא
+    lineModel().stuck שהציג 151 במקום 835. */
+ const noDate=homeRows('line').length;
+ if(!ETA)gaps.push(`<b>אין דוח ETA</b> — ל-${noDate.toLocaleString('he-IL')} פריטים עם רכש פתוח אין תאריך הגעה, והוא אינו נספר ככיסוי בזמן`);
+ else if(noDate)gaps.push(`<b>${noDate.toLocaleString('he-IL')} עם רכש שלא שובץ לאספקה</b> — אינו נספר ככיסוי בזמן`);
+ /* «נקודת הזמנה נמוכה מהנדרש» — גם הוא היה כרטיס. הוא עבודה,
+    לא פער נתונים, ולכן הוא שבב ניווט עם המספר האמיתי שלו. */
+ const ropLow=homeRows('month').length;
+ const orph=(typeof etaOrphanTxt==='function')?etaOrphanTxt():'';
+ /* «מה עוד ממתין» — אותם מונים בדיוק של המסילה, כדי ששני המקומות
+    לא יוכלו להיפרד. */
+ const NEXT=[['line','רכש ואספקות',null],
+   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow],
+   ['qual','איכות נתונים',null],['cap','הון כלוא',null]];
+ const chips=NEXT.map(([k,l,fixed])=>{let n=fixed;
+   if(n==null){try{n=navCount(k).n}catch(_){n=0}}
+   return `<button type="button" class="abchip" data-go="${k}">${esc(l)}<b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
+ t.style.display='';
+ t.innerHTML=`<div class="aband">`
+  +(gaps.length?`<div class="abgap"><span class="abi">⚠</span><span>${gaps.join(' · ')}${orph?' · '+esc(orph):''}</span></div>`:'')
+  +`<div class="abnext"><span class="abl">מה עוד ממתין</span>${chips}</div></div>`;
+ t.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>setMode(b.dataset.go))}
 function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML='';t.style.display='none';if(1)return;
  t.style.display='';
@@ -5937,6 +6014,37 @@ function trendTotals(rows){const cur={};let units=0;
 
    burnRows() הוא בדיוק Q.waiting. שום סיווג לא השתנה. */
 function burnRows(){return (QF&&QF.waiting?QF.waiting:[]).filter(passColFilters)}
+/* ============ סדר היום ============
+   «מרכז עבודה» היה ארבעה כרטיסים, כל אחד עם שבע שורות ראשונות
+   מרשימה בת 817 / 301 / 2,572 — פרוסות דקות ושרירותיות שאינן
+   מסתכמות למונח שבמסילה (53), ושניצלו 57% מגובה החלון ב-1920.
+   ובעיקר: הם ענו «מה», ולא «באיזה סדר» — וזו בדיוק השאלה שמסך
+   פתיחה אמור לענות עליה.
+
+   כאן זו רשימה אחת מדורגת, מאותם שני מקורות שהמונה כבר סופר:
+   `burnRows()` ‎+‎ `QF.prevent` — כלומר המספר על המסילה הוא אורך
+   הרשימה, לא קירוב שלה.
+
+   הדירוג משתמש בשדות שהמנוע כבר חישב ואינו ממציא חדשים:
+   חומרה (sev) ← לקוח שכבר ממתין ← יחידות חסרות. יחידות ולא כסף,
+   כדי שלא לדרג בין מטבעות — מדיניות BZ אוסרת לחבר אותם, והשוואה
+   בין $1,000 ל-₪1,000 היא אותה שגיאה בלבוש אחר. */
+function agendaRows(){
+ if(!QF)return [];
+ const seen=new Set(),out=[];
+ for(const r of burnRows().concat((QF.prevent||[]).filter(passColFilters)))
+  if(!seen.has(r)){seen.add(r);out.push(r)}
+ /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא היחיד
+    שבו ההבטחה ללקוח כבר ניתנה ואין מולה כלום. זה העיקרון שהכלי
+    הצהיר עליו (ראה `burnRows` והכרטיס הראשון במסך הישן), והדירוג
+    כאן מקיים אותו. סידור לפי חומרה בלבד היה מוריד לקוח שממתין
+    לשורה 9, מתחת לפריטים עם חוסר גדול יותר שאיש לא מחכה להם. */
+ const burn=new Set(burnRows());
+ return out.sort((a,b)=>
+   ((burn.has(b)?1:0)-(burn.has(a)?1:0))
+   ||(b.sev-a.sev)
+   ||(((b.cust||0)>0?1:0)-((a.cust||0)>0?1:0))
+   ||((b.miss||0)-(a.miss||0)))}
 function burnVal(r){return (r.miss||0)*(r.price||0)}
 function burnTotals(rows){const cur={};let units=0;
  for(const r of rows){units+=(r.miss||0);const c=r.currency||'';cur[c]=(cur[c]||0)+burnVal(r)}
@@ -6286,7 +6394,13 @@ const SCOL_DEF={
  mv_stuck:['mdot','pnPlain','desc','model','edate','mage','mlast','free','abc','mrp'],
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג. אותן עשר
     עמודות שהיו כתובות בתוכו. */
- catalog:['cPn','cDesc','cCat','cSpark','cMiss','cFree','cCust','cPo','cCov','cRisk']};
+ catalog:['cPn','cDesc','cCat','cSpark','cMiss','cFree','cCust','cPo','cCov','cRisk'],
+ /* ============ סדר היום ============
+    לפי המפרט, כל שורה עונה על ארבע: מה הבעיה · מה הדחיפות ·
+    הנתונים המרכזיים · הצעד הבא. בדיוק בסדר הזה, משמאל לימין. */
+ agenda:['pn','desc','cat','sup','free','cust','poPlain','miss','val','act','age'],
+ /* מה שבור בנתון, ומה מציעים במקומו */
+ qual:['pnPlain','desc','cat','rop','ss','need','lt','fix']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -6304,12 +6418,14 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
-const REGTRACK=new Set(['floor','trend','rise','cust','applied','done']);
+const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
     ולכן בלי מיון, בלי סינון ובלי בורר. נמדד. */
  if(cur==='moves')return 'mv_'+movTab;
+ if(track==='agenda')return 'agenda';
+ if(track==='qual')return 'qual';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג — מציג תמיד את
@@ -6680,12 +6796,7 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  if(typeof syncHistChip==='function')syncHistChip();
  if(cur==='moves'){showBody('moves');renderMoves();
   setTimeout(()=>{colsBoot()},0);return}
- if(mode==='home'){showBody('home');renderHome();
-  {const tkH=document.getElementById('track');
-   if(tkH){tkH.innerHTML='';tkH.style.display='none'}}
-  document.getElementById('lt').textContent=screenName();
-  document.getElementById('lc').textContent='';
-  return}
+
  showBody('queue');
  const rows=currentRows();
  updateQStat(rows.length);
@@ -6700,6 +6811,10 @@ function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis(
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
     ומקבל את עמודות "כל הפריטים" במקום את העמודות שלו. */
+ if(track==='agenda'){renderAgendaBand();renderDecisions(rows);return}
+ if(track==='qual'){const tkQ=document.getElementById('track');
+   if(tkQ){tkQ.innerHTML='';tkQ.style.display='none'}
+   renderDecisions(rows);return}
  if(track==='floor'){const tk1=document.getElementById('track');
    if(tk1){tk1.innerHTML='';tk1.style.display='none'}
    renderDecisions(rows);return}
@@ -7869,9 +7984,11 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
     +(capN?` · ${capN.toLocaleString('he-IL')} הון כלוא לבדיקה`:'');
   ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
-  /* חזרה למסך שבו עבדת. בפתיחה ראשונה אין מה לשחזר, ואז נשארים
-     במרכז העבודה — ברירת המחדל שנקבעה ב-`let mode`. */
-  {const sm=modeSaved();if(sm&&sm!==mode)setMode(sm);}
+  /* חזרה למסך שבו עבדת; בפתיחה ראשונה — מרכז העבודה.
+     setMode נקרא תמיד ולא רק כשיש מה לשחזר: `let mode` קובע את
+     שם המסך אבל לא את ה-track שלו, ובלי הקריאה הזאת המסילה סימנה
+     «מרכז עבודה» בזמן שהטבלה הציגה את «רכש ואספקות». */
+  setMode(modeSaved()||mode);
   colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן.'}};
  rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
  rd.readAsArrayBuffer(file)};
@@ -8140,6 +8257,9 @@ const XP={
  'nav-home':{t:'מרכז עבודה',
   see:'מסך הנחיתה. המונה סופר את מה שאין לו מענה — הזמנות לקוח שאין מולן שום רכש, ועוד הפריטים שהמלאי הפנוי שלהם לא יחזיק את החודש. אלה שתי הקבוצות שאי אפשר לדחות.',
   chk:'אם המונה אפס, אין היום החלטה דחופה — וזה מידע בפני עצמו. התחום נשאר על המסילה גם אז, כדי שתדע שבדקת ולא שכחת.'},
+ 'nav-qual':{t:'איכות נתונים',
+  see:'פריטים שהפרמטרים שלהם ב-SAP אינם עומדים במבחן: נקודת הזמנה או מלאי ביטחון שאינם מתיישבים עם הצריכה המדודה, זמן אספקה חסר, או קצב שאין לו על מה להישען. לכל שורה מוצג מה קיים היום, מה הדרישה, ומה מוצע במקומו.',
+  chk:'זה התחום שקודם לכל השאר. פרמטר שבור ב-SAP מרעיל כל המלצה שנגזרת ממנו — נקודת הזמנה שגויה תייצר חוסר או עודף בכל חודש מחדש, ותחזור לתור העבודה שוב ושוב. עד היום הפריטים האלה היו מעורבבים בתוך «תכנון ו-MRP», וזו עבודה אחרת בסדר גודל אחר של דחיפות.'},
  'nav-cap':{t:'בריאות המלאי',
   see:'הצד השני של המאזן: עודף, מלאי איטי, מלאי מת וההון הכלוא בהם. המספרים כספיים ומופרדים לפי מטבע — דולר, אירו ושקל אינם מתחברים.',
   chk:'זה לא תור עבודה יומי. זו התמונה שמסבירה למה תקציב הרכש נגמר, ומאיפה משחררים כסף בלי לפגוע בזמינות.'},
