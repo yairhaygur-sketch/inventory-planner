@@ -69,6 +69,38 @@ const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+'
  ok('כל הודעת שגיאה נושאת את מזהה הבנייה',
     [kinds.file.txt,kinds.app.txt,kinds.lib.txt].every(t=>t.includes(kinds.build)),kinds.build);
 
+ /* ============ RENDER_NEEDS_DATA ============
+    המעתד פתח את הכלי במסך שבו עבד אתמול והעלה דוח — והכלי קרס.
+    ה-stack ששלח: decisionList -> currentRows -> render -> setMode
+    -> rd.onload, עם «Cannot read properties of null (reading
+    'quality')». סדר הטעינה קורא ל-setMode לפני apply, ו-QF נבנה רק
+    בתוך apply; ה-render הראשון של כל העלאה רץ על null.
+    נמדד על הבנייה שהייתה בייצור: 4 מתוך 17 המסכים השמורים — qual,
+    catalog, burn, done — הפילו את הטעינה על כל קובץ.
+    כאן נבדק *כל* מסך כמצב שמור, בהקשר דפדפן נקי, בדיוק כמו מעתד
+    שפותח בבוקר. אם אחד מהם ייפול שוב, זה ייתפס כאן ולא אצלו. */
+ const MODES=['home','today','line','month','qual','stale','cap','catalog',
+   'moves','burn','cust','done','floor','trend','rise','applied'];
+ const bad=[];
+ for(const m of MODES){
+  const c2=await b.newContext({viewport:{width:1512,height:860}});
+  await c2.route('**/*',r=>{const u=r.request().url();
+    return (u.startsWith('file://')||u.startsWith('data:')||u.startsWith('blob:'))?r.continue():r.abort()});
+  const q=await c2.newPage();const e2=[];
+  q.on('pageerror',e=>e2.push(e.message.split('\n')[0].slice(0,100)));
+  await q.goto(HTML);await q.waitForTimeout(800);
+  await q.evaluate(mm=>{try{localStorage.setItem('planner_mode_v1',mm)}catch(_){}} ,m);
+  await q.reload();await q.waitForTimeout(1200);
+  await q.setInputFiles('#f',FIX);await q.waitForTimeout(3500);
+  const r2=await q.evaluate(()=>({n:(typeof ALL!=='undefined'&&ALL)?ALL.length:0,
+    upd:(document.getElementById('updated')||{}).textContent||''}));
+  if(!(r2.n>0)||/תקלה|שגיאה/.test(r2.upd)||e2.length)
+   bad.push(`${m}: ${r2.n} שורות · «${r2.upd}»${e2.length?' · '+e2[0]:''}`);
+  await c2.close();
+ }
+ ok('כל מסך שמור נפתח ומעלה דוח בלי לקרוס',bad.length===0,
+    bad.join(' || ')||`${MODES.length} מסכים`);
+
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
  const f=out.filter(x=>x.startsWith('FAIL')).length;

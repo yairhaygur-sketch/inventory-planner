@@ -5152,11 +5152,14 @@ function m1Rows(base){return base.filter(isM1)
 function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
  /* "החודש" = תיקוני פרמטרים + מעקב אספקה — עבודת התכנון החודשית מול SAP */
- const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&QF.follow.includes(r)))
+ /* שני המקומות שהפילו את הטעינה ניגשו ל-QF בלי הגנה, בעוד `base`
+    שתי שורות מעליהם כבר נזהר. הגישה עוברת דרך קורא אחד. */
+ const qf=k=>(QF&&QF[k])||[];
+ const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&qf('follow').includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='agenda'?agendaRows()
   /* תור `quality` כפי שהמנוע כבר בנה אותו — לא סף חדש ולא סיווג חדש */
-  :tr==='qual'?(QF.quality||[]).filter(passColFilters)
+  :tr==='qual'?qf('quality').filter(passColFilters)
      .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='line'?lineRows()
@@ -6935,7 +6938,24 @@ function renderDecisions(rows){
   :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
     :'כסף שיושב במחסן ולא זז — ממוין לפי ₪'));
  wireCopy()}
-function render(){DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
+/* ============ RENDER_NEEDS_DATA ============
+   התקלה שהמעתד דיווח עליה ב-4.10, מתוך ה-stack שהוא שלח:
+     TypeError: Cannot read properties of null (reading 'quality')
+       at decisionList -> currentRows -> render -> setMode -> rd.onload
+   סדר הטעינה הוא `setMode(modeSaved()||mode)` ואחריו `apply()`, ו-QF
+   נבנה רק בתוך apply. כלומר ה-render הראשון של כל העלאה רץ כש-QF
+   עדיין null. רוב המסלולים שורדים את זה כי הם מגינים על עצמם
+   (`QF&&QF.all`), אבל `qual` ניגש ל-QF.quality ישירות ו-`month`
+   ל-QF.follow — ולכן מעתד שהמסך האחרון שלו היה «איכות נתונים»
+   או «תכנון ו-MRP» קיבל קריסה בכל העלאה, על כל קובץ.
+   נמדד: 2 מתוך 17 המסכים השמורים הפילו את הטעינה.
+
+   התיקון הוא בשורש ולא באתר הנפילה: אין מה לצייר בלי נתונים.
+   apply() קורא ל-render מיד אחרי שהוא בונה את QF, ולכן אין פה
+   ציור שנדחה — יש ציור אחד במקום שניים, שהראשון בהם היה שגוי
+   ממילא. מסך הפתיחה (בלי שום קובץ) מצויר על ידי welToggle. */
+function render(){if(!QF)return;
+ DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
  if(typeof syncTrendBtn==='function')syncTrendBtn();
