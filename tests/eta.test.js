@@ -123,11 +123,44 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
       .filter(r=>txt(r).some(t=>BAD.some(re=>re.test(t))))
       .map(r=>r.pn+': '+txt(r).filter(t=>BAD.some(re=>re.test(t))).join(' | '))})(),
   scheduled:ALL.filter(r=>(r.etaQty||0)>0).length,
+  /* ============ ETA_SPLIT_DATE ============
+     הבאג שהמעתד תפס: המסך חיבר את *סכום* העתיד לתאריך ה*מוקדם*
+     ביותר. «560 יח׳ משובצות ל-10.10» כשהדוח אומר 60 ב-10.10 ו-500
+     ב-6.11. האינווריאנטה כאן כללית ואינה תלויה בפריט אחד: על פריט
+     שאספקתו מפוצלת בין תאריכים, אסור לשום משפט לצמוד את הכמות
+     הכוללת לתאריך הראשון. */
+  splitLiars:(()=>{const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
+    return ALL.filter(r=>(r.etaQty||0)>0&&(r.etaFirstQty||0)<r.etaQty)
+      .filter(r=>{const d=etaShort(r.etaFirst);
+        const re=new RegExp('(^|[^\\d])'+r.etaQty+' יח[\u05f3\'] *(משובצות|שובצו|מגיעות|כבר משובצות)? *[לב]-'+d.replace('.','\\.'));
+        return txt(r).some(t=>re.test(t))})
+      .map(r=>r.pn+': '+txt(r).join(' | '))})(),
+  splitItems:ALL.filter(r=>(r.etaQty||0)>0&&(r.etaFirstQty||0)<r.etaQty).length,
+  /* והמשפט על פריט מפוצל חייב לשאת את שני המספרים ואת שני התאריכים */
+  splitTxt:(()=>{const r=ALL.find(x=>x.pn==='ETA-PARTIAL');
+    return r?{q:r.etaQty,fq:r.etaFirstQty,first:r.etaFirst,last:r.etaLast,
+      sched:typeof etaSchedTxt==='function'?etaSchedTxt(r):'',why:otwWhy(r)}:null})(),
+  /* ============ ETA_PAST_IS_NOT_COVER ============
+     תחנה בציר «סגרה» פריט על סמך הבטחה שתאריכה כבר עבר. פריט בלי
+     אף יחידה עתידית אינו יכול להיסגר על ידי שום תחנה — זה הכלל
+     שכתוב בקובץ בשני מקומות, וכאן הוא נבדק. */
+  pastFixed:(typeof lineModel==='function'?lineModel().stations
+      .reduce((a,s)=>a.concat(s.fixed),[]).filter(r=>!(r.etaQty>0)).map(r=>r.pn):[]),
+  /* ה-ETA חייב להיות בגיליון הייצוא המלא, לא רק על המסך */
+  xHdr:(typeof XCOLS!=='undefined'?XCOLS.map(c=>c[0]):[]),
+  /* ============ STALE_ETA ============
+     הרשימה חייבת להכיל בדיוק את מי שיש לו יחידות בתאריך שחלף —
+     לא יותר (המצאה) ולא פחות (העלמה). */
+  staleN:(typeof staleRows==='function'?staleRows().length:-1),
+  stalePns:(typeof staleRows==='function'?staleRows().map(r=>r.pn):[]),
+  pastPns:ALL.filter(r=>(r.etaPast||0)>0).map(r=>r.pn),
+  navStale:(typeof navCount==='function'?navCount('stale').n:-1),
   /* והכיוון ההפוך: בלי דוח, אסור שמשהו יטען שיש תאריך. */
   ghosts:(()=>{const txt=r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])];
     return ETA?[]:ALL.filter(r=>txt(r).some(t=>/שובצו לאספקה|משובצות ל-|מגיעות ב-/.test(t)))
       .map(r=>r.pn)})()}};
 
+const etaShortJS=d=>{if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)};
 (async()=>{
  const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
  const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -154,14 +187,29 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    hero:Math.max(0,...[...document.querySelectorAll('.lband .hn')]
      .map(e=>parseFloat(getComputedStyle(e).fontSize)||0)),
    heroTxt:(document.querySelector('.lband .hn')||{}).textContent||'',
-   segs:document.querySelectorAll('.lband .bseg').length});
- const bDry=await p.evaluate(bandOf);
+   segs:document.querySelectorAll('.lband .bseg').length,
+   ledg:document.querySelectorAll('.lband .bledg,.lband .bkey').length,
+   mini:!!document.querySelector('.lband.mini'),
+   aria:(document.getElementById('bandx')||{}).getAttribute
+     ?document.getElementById('bandx').getAttribute('aria-expanded'):''});
+ /* הרצועה נפתחת עכשיו כברירת מחדל (ראה BAND_OPEN ב-index.html), ולכן
+    «קומפקטית» נמדדת בשני המצבים במפורש ולא בזה שבמקרה פעיל. */
+ const bandStates=async pg=>{await pg.evaluate(()=>bandSet(false));await pg.waitForTimeout(400);
+   const mini=await pg.evaluate(bandOf);
+   await pg.evaluate(()=>bandSet(true));await pg.waitForTimeout(400);
+   const full=await pg.evaluate(bandOf);
+   /* מחזיר את המצב לברירת המחדל — הבדיקה מודדת את הקיפול, לא משנה אותו */
+   await pg.evaluate(()=>bandSet(false));await pg.waitForTimeout(400);
+   return Object.assign({},full,{mini:mini.band,miniSegs:mini.segs,miniLedg:mini.ledg,
+     foldWorks:mini.mini===true&&full.mini===false,
+     aria:[mini.aria,full.aria].join('/')})};
+ const bDry=await bandStates(p);
  const gapDry=await p.evaluate(()=>!!document.querySelector('.lband .hgap'));
 
  // ── שלב 2: דוח ה-ETA נטען בנפרד, אחרי ZMRP ──
  await p.setInputFiles('#fe',SD+'/eta-report.xlsx');await p.waitForTimeout(1200);
  const after=await p.evaluate(snap);
- const bEta=await p.evaluate(bandOf);
+ const bEta=await bandStates(p);
  const gapEta=await p.evaluate(()=>!!document.querySelector('.lband .hgap'));
 
  // ── שלב 3: ZMRP נטען מחדש. הדוח חייב לשרוד — זו כל הסיבה שהוא נשמר ──
@@ -268,16 +316,22 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     מה שנשמר הוא מה שהכלל הזה באמת הגן עליו: יש רצועה, יש בה מספר
     גדול מהטקסט סביבו, ושני המצבים — עם דוח ETA ובלי — באותו סדר
     גודל. מה שנוסף: הרצועה עצמה חייבת להישאר קומפקטית. */
- ok('בלי דוח ETA יש רצועה קומפקטית עם מספר בולט',
-   bDry.band>0&&bDry.band<=72&&bDry.hero>=24,
-   `רצועה ${bDry.band}px · גיבור ${bDry.hero}px «${bDry.heroTxt}»`);
+ ok('בלי דוח ETA יש רצועה קומפקטית עם מספר בולט — מקופלת ופתוחה כאחת',
+   bDry.mini>0&&bDry.mini<=72&&bDry.band>0&&bDry.band<=140&&bDry.hero>=24,
+   `מקופלת ${bDry.mini}px · פתוחה ${bDry.band}px · גיבור ${bDry.hero}px «${bDry.heroTxt}»`);
  ok('ובלי ETA הפס מפצל בין «הוזמן» ל«לא הוזמן»',bDry.segs>0,bDry.segs+' מקטעים');
  ok('והמסך אומר במפורש שאין דוח ETA',gapDry);
  ok('עם דוח ETA הרצועה נשארת והמספר הבולט נשאר',
-   bEta.band>0&&bEta.band<=72&&bEta.hero>=24,
-   `רצועה ${bEta.band}px · גיבור ${bEta.hero}px «${bEta.heroTxt}»`);
+   bEta.mini>0&&bEta.mini<=72&&bEta.band>0&&bEta.band<=140&&bEta.hero>=24,
+   `מקופלת ${bEta.mini}px · פתוחה ${bEta.band}px · גיבור ${bEta.hero}px «${bEta.heroTxt}»`);
  ok('שתי הרצועות באותו סדר גודל — אף מצב אינו «המצב העני»',
    Math.abs(bEta.band-bDry.band)<=40,`${bDry.band}px בלי ETA · ${bEta.band}px עם`);
+ /* הרצועה נפתחת עכשיו כברירת מחדל. מה שנבדק כאן הוא שהקיפול עצמו
+    עובד ומדווח נכון — כמה מידע נוסף בפתיחה תלוי בכמות הנתונים,
+    ועל דוח ההדגמה אין מספיק תחנות כדי למדוד את זה. */
+ ok('הקיפול עובד ומדווח את מצבו',
+   bEta.foldWorks&&bEta.aria==='false/true'&&bEta.band>=bEta.mini,
+   `${bEta.mini}px מקופלת · ${bEta.band}px פתוחה · aria ${bEta.aria}`);
  ok('ושורת «אין דוח ETA» נעלמת כשיש דוח',!gapEta);
 
  /* ── LEDGER_SEED ──
@@ -459,6 +513,54 @@ const snap=()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
     !ans.t1Chain&&ans.W.left===ans.W.gross,
     `חסר ${ans.W.gross} · נשאר ${ans.W.left} · מכוסה ${ans.W.month}`);
  ok('מסלול החוסרים אינו גולש אופקית',ans.ovf<=20,ans.ovf+'px');
+
+ await p.evaluate(()=>setMode('stale'));await p.waitForTimeout(700);
+ const stale=await p.evaluate(()=>({
+   head:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' | '),
+   nRows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   empty:!!document.querySelector('#tbl tbody .empty')}));
+
+ /* ── ETA_SPLIT_DATE — הבאג שהמעתד תפס בדוח האמיתי ── */
+ ok('יש בכלל פריט שאספקתו מפוצלת בין תאריכים',
+    after.splitItems>0,`${after.splitItems} פריטים`);
+ ok('כמות כוללת אינה נצמדת לתאריך המוקדם',
+    after.splitLiars.length===0,after.splitLiars.join(' || '));
+ ok('המשפט נושא את שני המספרים ואת שני התאריכים',
+    !!after.splitTxt&&after.splitTxt.sched.includes(String(after.splitTxt.fq))
+      &&after.splitTxt.sched.includes(String(after.splitTxt.q-after.splitTxt.fq))
+      &&after.splitTxt.sched.includes(etaShortJS(after.splitTxt.first))
+      &&after.splitTxt.sched.includes(etaShortJS(after.splitTxt.last)),
+    (after.splitTxt||{}).sched||'—');
+ ok('וגם ההסבר בכרטיס נושא את הפיצול',
+    !!after.splitTxt&&after.splitTxt.why.includes(etaShortJS(after.splitTxt.last)),
+    (after.splitTxt||{}).why||'—');
+
+ /* ── ETA_PAST_IS_NOT_COVER ── */
+ ok('תחנה בציר אינה סוגרת פריט על סמך תאריך שעבר',
+    after.pastFixed.length===0,after.pastFixed.join(', '));
+ ok('וגם אחרי טעינה מחדש של ZMRP',
+    reload.pastFixed.length===0,reload.pastFixed.join(', '));
+
+ /* ── ETA_IN_EXPORT ── */
+ for(const c of ['יח׳ משובצות לאספקה','יח׳ באספקה הקרובה','תאריך האספקה הקרוב',
+                 'תאריך האספקה האחרון','יח׳ ברכש בלי תאריך','יח׳ שתאריכן כבר עבר'])
+  ok('גיליון הייצוא המלא נושא את העמודה «'+c+'»',after.xHdr.includes(c));
+
+ /* ── STALE_ETA — מסלול «אספקות שתאריכן עבר» ── */
+ ok('יש בכלל שורה שתאריכה חלף בדוח המבחן',after.pastPns.length>0,
+    after.pastPns.join(', '));
+ ok('הרשימה היא בדיוק מי שיש לו יחידות בתאריך שחלף',
+    after.stalePns.slice().sort().join(',')===after.pastPns.slice().sort().join(','),
+    `רשימה [${after.stalePns}] · בפועל [${after.pastPns}]`);
+ ok('המונה בסרגל שווה לאורך הרשימה',
+    after.navStale===after.staleN,`${after.navStale} מול ${after.staleN}`);
+ ok('בלי דוח ETA המסלול ריק — ואינו ממציא שורות',
+    before.staleN===0,String(before.staleN));
+ ok('המסלול מציג את העמודות שצריך כדי לבדוק מול SAP',
+    ['יח׳ שתאריכן עבר','התאריך שעבר','ימים מאז','מסמך רכש / אספקה']
+      .every(c=>stale.head.includes(c)),stale.head);
+ ok('והשורות על המסך הן אותן שורות',
+    stale.nRows===after.staleN,`${stale.nRows} מול ${after.staleN}`);
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
