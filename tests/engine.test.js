@@ -430,10 +430,15 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    btnVis:btn.offsetParent!==null,btnOn:btn.classList.contains('on'),
    sub:document.getElementById('phdSub').textContent,
    trackStrip:getComputedStyle(document.getElementById('track')).display}});
- /* היה 8. עמודת «הגעה» נוספה לכל ארבע הדלתות (ראה DOOR_ETA), ולכן 9.
+ /* היה 8, ואז 9 כש«הגעה» נוספה לארבע הדלתות (DOOR_ETA). עכשיו 10:
+    «דגם» נכנס לברירת המחדל של כל טבלה (MODEL_EVERYWHERE) — 36 דגמים
+    על 7,599 פריטים, אפס ריקים.
     המספר הקשיח נשאר כדי שאיבוד עמודה בטעות ייתפס — ההשוואה
-    nth===cells לבדה עוברת גם כששתיהן נופלות יחד. */
- ok('כותרות המסלול תואמות למספר התאים',tv.nth===tv.cells&&tv.nth===9,tv.nth+' / '+tv.cells);
+    nth===cells לבדה עוברת גם כששתיהן נופלות יחד.
+    והעמודה עצמה נבדקת בשמה, לא רק במניין. */
+ ok('כותרות המסלול תואמות למספר התאים',tv.nth===tv.cells&&tv.nth===10,tv.nth+' / '+tv.cells);
+ ok('ו«דגם» בין הכותרות, מיד אחרי המק״ט',
+    (h=>h.indexOf('דגם')===h.indexOf('מק״ט')+1&&h.indexOf('דגם')>0)(tv.head.split('|')),tv.head);
  ok('אין גלישה אופקית במסלול המגמה',!tv.over);
  ok('כפתור המגמה נראה ומסומן',tv.btnVis&&tv.btnOn);
  ok('רצועת המסלולים מוסתרת',tv.trackStrip==='none',tv.trackStrip);
@@ -614,11 +619,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const trs=[...document.querySelectorAll('#tbl tbody tr')];
   const dat=trs.filter(t=>t.dataset.i!==undefined);
   const tb=document.getElementById('tbl'),b=document.getElementById('apBtn');
-  return {nth:th.length,cells:dat.length?dat[0].children.length:0,
+  return {nth:th.length,head:th.join('|'),cells:dat.length?dat[0].children.length:0,
    grps:trs.filter(t=>t.classList.contains('grp')).length,rows:dat.length,
    over:tb.scrollWidth>tb.clientWidth+2,btnVis:b.offsetParent!==null,btnOn:b.classList.contains('on'),
    strip:getComputedStyle(document.getElementById('track')).display};});
- ok('כותרות «יושמו» תואמות למספר התאים',apv.nth===apv.cells&&apv.nth===7,apv.nth+' / '+apv.cells);
+ /* 6 -> 7 (DOOR_ETA) -> 8 (MODEL_EVERYWHERE) */
+ ok('כותרות «יושמו» תואמות למספר התאים',apv.nth===apv.cells&&apv.nth===8,apv.nth+' / '+apv.cells);
+ ok('ו«דגם» בין הכותרות, מיד אחרי המק״ט',
+    (h=>h.indexOf('דגם')===h.indexOf('מק״ט')+1&&h.indexOf('דגם')>0)(apv.head.split('|')),apv.head);
  ok('שלוש קבוצות — יושם, שונה אחרת, לא נגעו',apv.grps===3,apv.grps+' קבוצות');
  ok('כל התשע מרונדרות',apv.rows===9,apv.rows+' שורות');
  ok('אין גלישה אופקית ב«יושמו»',!apv.over);
@@ -742,13 +750,16 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const trs=[...document.querySelectorAll('#tbl tbody tr')];
   const dat=trs.filter(t=>t.dataset.i!==undefined);
   const tb=document.getElementById('tbl'),btn=document.getElementById('custBtn');
-  return {nth:th.length,cells:dat.length?dat[0].children.length:0,
+  return {nth:th.length,head:th.join('|'),cells:dat.length?dat[0].children.length:0,
    grps:trs.filter(t=>t.classList.contains('grp')).length,rows:dat.length,
    over:tb.scrollWidth>tb.clientWidth+2,
    btnVis:btn.offsetParent!==null,btnOn:btn.classList.contains('on'),
    strip:getComputedStyle(document.getElementById('track')).display,
    sub:document.getElementById('phdSub').textContent};});
- ok('כותרות «לקוח ממתין» תואמות למספר התאים',cv.nth===cv.cells&&cv.nth===8,cv.nth+' / '+cv.cells);
+ /* 7 -> 8 (DOOR_ETA) -> 9 (MODEL_EVERYWHERE) */
+ ok('כותרות «לקוח ממתין» תואמות למספר התאים',cv.nth===cv.cells&&cv.nth===9,cv.nth+' / '+cv.cells);
+ ok('ו«דגם» בין הכותרות, מיד אחרי המק״ט',
+    (h=>h.indexOf('דגם')===h.indexOf('מק״ט')+1&&h.indexOf('דגם')>0)(cv.head.split('|')),cv.head);
  ok('אין גלישה אופקית ב«לקוח ממתין»',!cv.over);
  ok('יש כותרת קבוצה לכל קטע',cv.grps>=2,cv.grps+' קבוצות · '+cv.rows+' שורות');
  ok('כל הפריטים מרונדרים',cv.rows===cw.n,cv.rows+' / '+cw.n);

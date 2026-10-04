@@ -1971,6 +1971,33 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
    כל השאר מספרים, וכל פיקסל שנחתך מהם הוא ספרה שנעלמת. */
 #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:130px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ============ MODEL_WIDTH ============
+   «דגם» נכנס לכל טבלה, והדפדפן נתן לו את מה שנשאר — נמדד 38px
+   במסלול אחד ו-230px באחר, ובמסלול «תכנון ו-MRP» הטקסט נשבר לשתי
+   שורות והשורות הגלויות ירדו מ-22 ל-15. עמודה שרוחבה מקרי אינה
+   עמודה. 36 הדגמים בדוח האמיתי, והארוך בהם 22 תווים; 108px נושאים
+   את רובם במלואם, והשאר נחתכים עם הטקסט המלא ב-title. */
+/* רוחב *מקסימלי* ומינימלי בלבד, בלי `width` קשיח: גרירת הידית
+   כותבת width משלה, ו«לחיצה כפולה = חזרה לאוטומטי» מוחקת אותו —
+   width קבוע כאן היה הופך את האוטומטי לקבוע ושובר את התכונה. */
+#tbl td.mdl,#tbl th[data-ck="model"]{min-width:70px;max-width:108px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tbl td.mdl{color:var(--dim)}
+/* ברוחב צר הדגם מתכווץ יחד עם שאר הטקסט החופשי — והתיאור מוותר
+   קצת יותר, כי הדגם נושא עכשיו חלק מהזיהוי שהיה רק בו. */
+@media(max-width:1560px){#tbl td.mdl,#tbl th[data-ck="model"]{min-width:64px;max-width:92px}}
+@media(max-width:1344px){
+ #tbl td.mdl,#tbl th[data-ck="model"]{min-width:56px;max-width:72px}
+ #tbl td.dsc{max-width:104px}}
+/* ============ 1300 ומטה ============
+   מסלול החוסרים נושא 15 עמודות, והתקציב האופקי נגמר. הדגם מתכווץ
+   לשמונה תווים — מספיק כדי להבחין בין משפחות דגמים, והשם המלא
+   ב-title — והתיאור, הספק והפעולה מוותרים יחד איתו. */
+@media(max-width:1300px){
+ #tbl td.mdl,#tbl th[data-ck="model"]{min-width:48px;max-width:58px}
+ #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:74px}
+ #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:58px}
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:58px}}
 /* ============ הספים זזו ברוחב המסילה ============
    שלבי הצפיפות האלה נמדדו כשהטבלה קיבלה את כל רוחב החלון. המסילה
    לוקחת 164-224px, ולכן טבלה ב-1440px עומדת היום ברוחב שהיה פעם
@@ -6461,8 +6488,11 @@ const SCOL={
   cell:r=>{const d=movDaysSince(r);
    const c=d==null?'var(--dim)':d<=30?'var(--grn)':d<=90?'#d97706':'var(--red)';
    return `<td><span class="dot" style="background:${c}"></span></td>`}},
- model:{t:'דגם',val:r=>String(r.model||''),ttl:'הדגם כפי שהוא בדוח',
-  cell:r=>`<td>${esc((r.model||'').slice(0,16))}</td>`},
+ /* «LCK6129H Elegance 2.0» הוא 21 תווים והחיתוך ל-16 בלע את הגרסה.
+    הארוך ביותר בדוח האמיתי הוא 22; הטקסט המלא תמיד ב-title. */
+ model:{t:'דגם',val:r=>String(r.model||''),ttl:'הדגם שאליו משויך החלק — כפי שהוא בדוח',
+  cell:r=>{const m=String(r.model||'');
+   return `<td class="mdl" title="${esc(m)}"><bdi>${esc(m.length>22?m.slice(0,21)+'…':m)||'—'}</bdi></td>`}},
  sdate:{t:'תאריך מכירה',val:r=>(r.sales&&r.sales.date)?+r.sales.date:0,
   fval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'—',
   xval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'',
@@ -6535,19 +6565,24 @@ const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','spa
  'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
- dec:['pn','desc','sup','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
- sup:['pn','desc','free','otw','cust','missq','buy','cova','age','cat'],
+ /* «ספק» יצא מברירת המחדל כאן וה«דגם» נכנס במקומו: ב-14 עמודות
+    התקציב האופקי של המסלול הזה גמור, ו-15 גולשות ב-1280 וב-1180
+    (נמדד: 1,097px בתוך 1,046). הספק לא נמחק — הוא בבורר העמודות,
+    הוא מסלול קיבוץ שלם («לפי ספק»), והוא בכרטיס הפריט. הדגם, לעומתו,
+    לא היה בשום מקום בטבלאות העבודה. */
+ dec:['pn','model','desc','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
+ sup:['pn','model','desc','free','otw','cust','missq','buy','cova','age','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
- fix:['pn','desc','rop','ss','need','lt','fix'],
- floor:['pnPlain','desc','ssMin','need','fgap','fval','eta','d12'],
- trend:['pnPlain','desc','tpct','trate','trop','tgap','tval','eta'],
- rise:['pnPlain','desc','upct','urate','urop','ugap','eta','freeRop'],
- cust:['pnPlain','desc','waiting','stock','eta','lt','custVal'],
- applied:['pnPlain','desc','apRop','apSs','cons11','apState'],
- done:['pnPlain','desc','markLbl','markWhen','undo'],
- m1:['pnPlain','desc','c3','r3','freeDry','m1gap','poPlain'],
- cap:['pn','desc','capType','capVal','capPct','act','capCov'],
+ fix:['pn','model','desc','rop','ss','need','lt','fix'],
+ floor:['pnPlain','model','desc','ssMin','need','fgap','fval','eta','d12'],
+ trend:['pnPlain','model','desc','tpct','trate','trop','tgap','tval','eta'],
+ rise:['pnPlain','model','desc','upct','urate','urop','ugap','eta','freeRop'],
+ cust:['pnPlain','model','desc','waiting','stock','eta','lt','custVal'],
+ applied:['pnPlain','model','desc','apRop','apSs','cons11','apState'],
+ done:['pnPlain','model','desc','markLbl','markWhen','undo'],
+ m1:['pnPlain','model','desc','c3','r3','freeDry','m1gap','poPlain'],
+ cap:['pn','model','desc','capType','capVal','capPct','act','capCov'],
  /* שלושת טאבי התנועות — בדיוק העמודות שהיו על המסך לפני הרישום,
     ובאותו סדר. לכל טאב פריסה משלו, כי הוא עוסק בתאריך אחר. */
  mv_sales:['mdot','pnPlain','desc','model','sdate','mage','mdelta','free','abc','mrp'],
@@ -6555,26 +6590,38 @@ const SCOL_DEF={
  mv_stuck:['mdot','pnPlain','desc','model','edate','mage','mlast','free','abc','mrp'],
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג. אותן עשר
     עמודות שהיו כתובות בתוכו. */
- catalog:['cPn','cDesc','cCat','cSpark','cMiss','cFree','cCust','cPo','cCov','cRisk'],
+ catalog:['cPn','model','cDesc','cCat','cSpark','cMiss','cFree','cCust','cPo','cCov','cRisk'],
  /* ============ סדר היום ============
     לפי המפרט, כל שורה עונה על ארבע: מה הבעיה · מה הדחיפות ·
     הנתונים המרכזיים · הצעד הבא. בדיוק בסדר הזה, משמאל לימין. */
- agenda:['pn','desc','cat','sup','free','cust','poPlain','miss','val','act','age'],
+ /* גם כאן «ספק» פינה את מקומו לדגם — ומרכז העבודה גלש אופקית
+    ‏185px ב-1366 ו-77px ב-1512 *לפני* השינוי, כלומר זו גם סגירה של
+    פער קיים ולא רק פינוי מקום. */
+ agenda:['pn','model','desc','cat','free','cust','poPlain','miss','val','act','age'],
  /* מה שבור בנתון, ומה מציעים במקומו */
- qual:['pnPlain','desc','cat','rop','ss','need','lt','fix'],
+ qual:['pnPlain','model','desc','cat','rop','ss','need','lt','fix'],
  /* מה צריך כדי לבדוק מול SAP: מי, כמה, ממתי, ולפי איזה מסמך */
- stale:['pnPlain','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck']};
+ stale:['pnPlain','model','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
    שמשמעותן זהה בכל מסלול. עמודה ששייכת למסלול אחר (למשל «% מצטבר»
    מחוץ להון הכלוא) אינה מוצעת — היא הייתה מציגה מקף בכל שורה. */
-const SCOL_POOL=['sup','spark','free','cust','po','tr','eta','cova','val','act',
+/* ============ MODEL_EVERYWHERE ============
+   «דגם» היה בבריכת התנועות בלבד — כלומר בשלושת טאבי התנועות אפשר
+   היה להוסיף אותו, ובשום מסך עבודה אחר הוא לא היה קיים גם בבורר.
+   נמדד על הדוח האמיתי: 7,599 פריטים, **36 דגמים, אפס ריקים** —
+   כיסוי מלא וקרדינליות נמוכה. זהו מימד זיהוי מהמעלה הראשונה אצל
+   מעתד חלפים («לאיזה רכב החלק הזה»), ולא נתון משני.
+   הוא עובר לבריכה הכללית ונכנס לברירת המחדל של כל טבלה, מיד אחרי
+   המק״ט. כעמודה אמיתית הוא גם ממוין, מסונן, מקובץ ומיוצא — מה
+   שקישוט ליד המק״ט לא היה נותן. */
+const SCOL_POOL=['model','sup','spark','free','cust','po','tr','eta','cova','val','act',
  'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq'];
 /* עמודות התנועות מוצעות רק בטבלת התנועות: מחוץ לה «Δ כניסה→מכירה»
    הוא עמודה שרירותית, ובתוכה שלושת הטאבים חולקים את כולן — טאב
    המכירות יכול להוסיף את תאריך הכניסה ולהפך. */
-const MCOL_POOL=['model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
+const MCOL_POOL=['sdate','edate','mage','mdelta','mlast','abc','mrp'];
 function colChoices(v){const d=SCOL_DEF[v]||[];
  const pool=String(v).slice(0,3)==='mv_'?MCOL_POOL.concat(SCOL_POOL):SCOL_POOL;
  return SCOL_ORDER.filter(k=>d.includes(k)||pool.includes(k))}
