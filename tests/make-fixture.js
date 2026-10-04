@@ -69,6 +69,38 @@ const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — תכנון מלאי'],[],hdr
 const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ZMRP');
 XLSX.writeFile(wb,__dirname+'/zmrp-demo.xlsx');
 
+/* ============ DAY2 — הדוח של מחר ============
+   כל 1,053 הבדיקות טענו דוח אחד לתוך דפדפן ריק. הבאג של 4.10 חי
+   בדיוק במה שהן לא ראו: מעתד שחוזר למחרת עם סימונים, דוח ETA שמור,
+   היסטוריה ומסך אחרון — ומעלה דוח *אחר*.
+   הדוח הזה הוא אותם מק״טים אחרי יום עבודה: מלאי זז, הזמנות לקוח
+   השתנו, חלק מהרכש נסגר, 8 פריטים ירדו מהדוח ו-8 חדשים נכנסו.
+   בלי ההבדלים האלה השוואת ההיסטוריה (חדשים · חוזרים · נפתרו)
+   מחזירה אפס ואינה נבדקת כלל. */
+const D2_FREE=hdr.indexOf('מלאי פנוי'),D2_CUST=hdr.indexOf('כמות בהז.פ'),
+      D2_PO=hdr.indexOf('הז. רכש'),D2_STK=hdr.indexOf('סה"כ מלאי');
+const D2_M1=hdr.indexOf('צר.חודש-11');   /* החודש האחרון בחלון */
+const day2=rows.slice(8).map((r,i)=>{const c=r.slice();
+ const d=(v,lo,hi)=>Math.max(0,Math.round(+v+R(lo,hi)));
+ c[D2_FREE]=d(c[D2_FREE],-6,6);
+ c[D2_CUST]=d(c[D2_CUST],-3,5);
+ c[D2_PO]=rnd()<.3?0:d(c[D2_PO],-2,4);
+ c[D2_STK]=Math.max(+c[D2_FREE],d(c[D2_STK],-6,6));
+ /* גם הצריכה זזה. בלי זה שני הדוחות נושאים אותה חתימה
+    (`runSig` = חודש·מספר פריטים·סכום צריכה 12ח׳), הכלי מכריז
+    «אותו קובץ שוב», וההשוואה בין הימים לא נבדקת כלל. */
+ if(D2_M1>=0&&rnd()<.4)c[D2_M1]=d(c[D2_M1],0,6);
+ return c});
+for(let i=0;i<8;i++){const src=rows[i%rows.length].slice();
+ src[0]='NEW-'+String(i).padStart(3,'0');
+ src[1]='פריט חדש בדוח של מחר '+i;
+ src[D2_FREE]=0;src[D2_CUST]=I(3,20);src[D2_PO]=0;src[D2_STK]=0;
+ day2.push(src)}
+XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet(
+  [['דוח ZMRP — תכנון מלאי'],[],hdr,...day2]),'ZMRP');return w})(),
+ __dirname+'/zmrp-demo-day2.xlsx');
+
 /* דוח ETA תואם, נגזר מאותם מק״טים. בלעדיו בודק הניגודיות לעולם אינו
    רואה את «משובץ» ו«תקוע» — הן פשוט לא מרונדרות בלי דוח ETA, וצבע
    שלא נמדד הוא בדיוק איך שנכנס באג ניגודיות בפעם הקודמת.
@@ -87,4 +119,4 @@ XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet(
   [['אספקה','פריט','חומר','תיאור','כמות באספקה',"א'",'תארי.אספקה'],...erows]),'גיליון1');return w})(),
  __dirname+'/zmrp-demo-eta.xlsx');
-console.log('wrote',rows.length,'rows,',hdr.length,'cols · ETA:',erows.length,'שורות');
+console.log('wrote',rows.length,'rows,',hdr.length,'cols · ETA:',erows.length,'שורות · day2:',day2.length,'שורות');

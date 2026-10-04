@@ -5380,8 +5380,20 @@ let HIST={runs:[],items:{}};
 try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
  if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
 function saveHist(){storeSet(HIST_KEY,JSON.stringify(HIST),'ההיסטוריה בין ההרצות')}
-function runSig(items){let c=0;for(const x of items)c+=(x.d12||0);
- return `${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}|${items.length}|${c}`}
+/* ============ RUNSIG_BLIND ============
+   «אותו קובץ שוב» נקבע לפי חודש · מספר פריטים · סכום צריכה 12ח׳
+   בלבד — כלומר החתימה עיוורת בדיוק למה שהמעתד עובד עליו: מלאי,
+   הזמנות לקוח ורכש פתוח. שני דוחות שנבדלים רק בהם הוכרזו זהים.
+   זה לא תיאורטי: `repeat` משתיק את ההשוואה בין הימים — `seen` אינו
+   עולה, ולכן *כל* פריט נשאר «חדש» לנצח, «חוזר» ו«תקוע» נשארים אפס,
+   והרצועה «מאז ההעלאה הקודמת» מדווחת שקר.
+   נתפס בבדיקת DAY2: שני דוחות עם 900 פריטים ואותה צריכה, אבל מלאי
+   והזמנות לקוח שונים לגמרי, נספרו כהעלאה אחת.
+   שלושת הסכומים נוספים לחתימה. אין כאן שינוי סף או סיווג — רק
+   שאלת «האם זה אותו קובץ» שנענית נכון. */
+function runSig(items){let c=0,f=0,u=0,o=0;
+ for(const x of items){c+=(x.d12||0);f+=(x.free||0);u+=(x.cust||0);o+=(x.po||0)}
+ return `${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}|${items.length}|${c}|${f}|${u}|${o}`}
 /* התור שהזיכרון עוקב אחריו: מה שדורש פעולה, לא הקטלוג */
 function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs.follow,...Qs.quality]}
 function recordRun(items,Qs){
