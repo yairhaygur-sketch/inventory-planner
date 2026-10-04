@@ -8046,6 +8046,9 @@ function sameDayNow(t){const d=new Date(t),n=new Date();
  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()}
 function syncDataState(){
  const z=document.getElementById('zchip'),u=document.getElementById('updated');
+ /* מזהה הבנייה בהישג יד בלי להפיל כלום — «איזו גרסה אצלך» היא
+    השאלה הראשונה בכל דיווח תקלה. */
+ if(u)u.title=`בנייה ${BUILD}`;
  if(z){
   if(!ZN){z.hidden=true}
   else{z.hidden=false;
@@ -8121,8 +8124,12 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
    for(let i=0;i<Math.min(30,a.length);i++){const row=a[i].map(CLEAN);
     if(row.some(c=>/מק"ט מוביל|מק״ט מוביל/.test(c))&&row.filter(Boolean).length>10){best={hdr:a[i],rows:a.slice(i+1),nm,hl:i+1,pre:a.slice(0,i)};break}}
    if(best)break}
-  if(!best){document.getElementById('updated').textContent='לא זוהתה שורת כותרות';
-   const el=document.getElementById('diag');el.className='diag show err';el.innerHTML='⛔ לא נמצאה שורת כותרות עם "מק״ט מוביל".';return}
+  if(!best){document.getElementById('updated').textContent='לא זוהתה שורת הכותרות';
+   /* ההודעה הקודמת אמרה מה לא נמצא ולא איפה חיפשנו. מעתד שמקבל
+      אותה על ייצוא חדש מ-SAP צריך לדעת את שני התנאים כדי לבדוק. */
+   const sheets=wb.SheetNames.join(', ');
+   const el=document.getElementById('diag');el.className='diag show err';
+   el.textContent=`⛔ הקובץ נפתח, אבל לא נמצאה בו שורת כותרות עם «מק״ט מוביל». מחפשים ב-30 השורות הראשונות של כל גיליון, ודורשים שבשורה יהיו לפחות 11 תאים מלאים. גיליונות שנסרקו: ${sheets}. אם זה ייצוא חדש מ-SAP — ייתכן שהכותרת ירדה נמוך יותר או שהעמודות השתנו. · בנייה ${BUILD}`;return}
   let detected=null;
   for(const row of best.pre){for(const c of row){
     if(c instanceof Date&&!isNaN(c)){detected=c;break}
@@ -8176,8 +8183,16 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
      שם המסך אבל לא את ה-track שלו, ובלי הקריאה הזאת המסילה סימנה
      «מרכז עבודה» בזמן שהטבלה הציגה את «רכש ואספקות». */
   setMode(modeSaved()||mode);
-  colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent=loadErrTxt(err)}};
- rd.onerror=()=>{document.getElementById('updated').textContent='שגיאה בקריאת הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent='⛔ הדפדפן לא הצליח לקרוא את הקובץ.'};
+  colFilters={};apply();welToggle();LOADMS=Math.round(performance.now()-t0);showBrief(HRUN)}catch(err){console.error(err);
+  /* ============ LOAD_ERR_SCOPE ============
+     ה-try הזה עוטף את *כל* הצינור — פענוח, סיווג, רינדור ושחזור
+     המסך האחרון. כלומר תקלה בכל אחד מהם הציגה «שגיאה בקריאת הקובץ»
+     והאשימה את האקסל. הכותרת אומרת עכשיו באיזה שלב זה נפל, וההודעה
+     נושאת את טקסט השגיאה ואת מזהה הבנייה — בלעדיהם אין על מה לדווח
+     ואי אפשר לדעת אם התיקון בכלל הגיע למסך. */
+  document.getElementById('updated').textContent=loadErrHead(err);
+  const el=document.getElementById('diag');el.className='diag show err';el.textContent=loadErrTxt(err)}};
+ rd.onerror=()=>{document.getElementById('updated').textContent='הדפדפן לא הצליח לפתוח את הקובץ';const el=document.getElementById('diag');el.className='diag show err';el.textContent=`⛔ הדפדפן לא הצליח לקרוא את הקובץ מהדיסק — ייתכן שהוא נעול בתוכנה אחרת, או שהוא על כונן רשת שנותק. נסה להעתיק אותו לשולחן העבודה ולהעלות משם. · בנייה ${BUILD}`};
  rd.readAsArrayBuffer(file)};
 /* ============ מסך הפתיחה, נתוני הדגמה, והסבר פורמט הדוח ============
    המסך מופיע כל עוד לא נטען דוח, ונעלם ברגע שיש נתונים. הוא אינו
@@ -8245,12 +8260,32 @@ function demoRows(){
    הספרייה משובצת עכשיו בקובץ (ראה NO_CDN), ולכן המקרה הראשון כמעט
    אינו אפשרי — אבל «כמעט» אינו «לא», וכשהוא קורה הוא אומר מה קרה.
    הטקסט המקורי של השגיאה נאמר, כי בלעדיו אין על מה לדווח. */
+/* ============ BUILD_ID ============
+   «עדיין מקבל שגיאה» אינה שאלה שאפשר לענות עליה בלי לדעת על איזו
+   בנייה המשתמש יושב. דפדפן מחזיק HTML במטמון, והבדל בין «לא תוקן»
+   ל«תוקן אבל לא הגיע אליך» הוא כל ההבדל. המזהה נאמר בכל הודעת
+   שגיאה ובתפריט «עוד», ולכן תמיד אפשר לשאול עליו. */
+const BUILD='2026-10-04b';
+/* שלוש משפחות כשל, ולכל אחת פעולה אחרת לגמרי:
+   אין ספרייה -> תקלה בכלי · הקובץ לא נפתח -> הקובץ · נפתח ונפל
+   אחר כך -> באג אצלנו, והקובץ של המשתמש תקין. */
+function loadErrKind(err){
+ if(typeof XLSX==='undefined'||!XLSX||!XLSX.read)return 'lib';
+ const m=((err&&(err.message||err))+'').toLowerCase();
+ return /zip|password|encrypt|unsupported|cfb|corrupt|not a |bad |xml|sheet/.test(m)?'file':'app'}
+function loadErrHead(err){const k=loadErrKind(err);
+ return k==='lib'?'תקלה בכלי — הספרייה לא נטענה'
+  :k==='file'?'הקובץ לא נקרא'
+  :'תקלה בכלי אחרי קריאת הקובץ'}
 function loadErrTxt(err){
- if(typeof XLSX==='undefined'||!XLSX||!XLSX.read)
-  return '⛔ ספריית קריאת האקסל לא נטענה — זו תקלה בכלי ולא בקובץ שלך. רענן את הדף (Ctrl+F5). אם זה חוזר, שלח צילום מסך.';
- const m=(err&&(err.message||err))+'';
- return '⛔ לא ניתן לקרוא את קובץ האקסל. ודא שהקובץ תקין ואינו מוגן בסיסמה, ושהוא נשמר כ-xlsx ולא כ-HTML עם סיומת xlsx.'
-   +(m?` · פירוט: ${m.slice(0,160)}`:'');}
+ const k=loadErrKind(err),m=((err&&(err.message||err))+'').slice(0,200);
+ const tail=` · בנייה ${BUILD}`;
+ if(k==='lib')
+  return `⛔ ספריית קריאת האקסל לא נטענה — זו תקלה בכלי ולא בקובץ שלך. רענן עם Ctrl+F5.${tail}`;
+ if(k==='file')
+  return `⛔ הקובץ לא נפתח. ודא שהוא תקין, אינו מוגן בסיסמה, ושנשמר כ-xlsx אמיתי ולא כ-HTML עם סיומת xlsx (SAP מייצא כך לפעמים — פתח ב-Excel ושמור מחדש כ«חוברת עבודה של Excel»). · פירוט: ${m}${tail}`;
+ /* הקובץ נקרא. מה שנפל הוא אנחנו — ואסור שהמסך יגיד אחרת. */
+ return `⛔ הקובץ נקרא בהצלחה, והכלי נפל אחריו. זו תקלה אצלנו ולא בקובץ שלך. שלח את ההודעה הזאת כמו שהיא. · פירוט: ${m}${tail}`;}
 function demoExit(){
  if(!DEMO)return false;
  DEMO=false;
