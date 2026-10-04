@@ -46,15 +46,28 @@ const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+'
     ההודעה חייבת להבחין בין «הספרייה לא נטענה» ל«הקובץ פגום».
     היא נבדקת ישירות, כי אי אפשר יותר לייצר את המצב הראשון מבחוץ —
     וזה בדיוק העניין. */
- const msgs=await p.evaluate(()=>{
-   const real=loadErrTxt(new Error('Corrupted zip: missing End of Central Directory'));
-   const saved=window.XLSX;window.XLSX=undefined;
-   const noLib=loadErrTxt(new Error('XLSX is not defined'));
-   window.XLSX=saved;return {real,noLib}});
- ok('קובץ פגום — ההודעה מצביעה על הקובץ ונושאת את הסיבה',
-    /הקובץ|מוגן/.test(msgs.real)&&/Corrupted zip/.test(msgs.real),msgs.real.slice(0,140));
- ok('ספרייה חסרה — ההודעה אומרת שזו תקלה בכלי, לא בקובץ',
-    /תקלה בכלי/.test(msgs.noLib)&&!/ודא שהקובץ תקין/.test(msgs.noLib),msgs.noLib.slice(0,140));
+ /* ============ LOAD_ERR_SCOPE ============
+    ה-try סביב הטעינה עוטף גם את הסיווג, הרינדור ושחזור המסך — ולכן
+    באג שלנו *אחרי* קריאת הקובץ הוצג כ«שגיאה בקריאת הקובץ» והאשים
+    את האקסל של המעתד. שלוש משפחות הכשל חייבות להיקרא שונה. */
+ const kinds=await p.evaluate(()=>{
+   const g=e=>({head:loadErrHead(e),txt:loadErrTxt(e)});
+   const file=g(new Error('Corrupted zip: missing End of Central Directory'));
+   const app=g(new TypeError("Cannot read properties of null (reading 'length')"));
+   const saved=window.XLSX;window.XLSX=undefined;const lib=g(new Error('x'));window.XLSX=saved;
+   return {file,app,lib,build:BUILD}});
+ ok('קובץ פגום — הכותרת מצביעה על הקובץ',
+    /הקובץ לא נקרא/.test(kinds.file.head)&&/Corrupted zip/.test(kinds.file.txt),
+    kinds.file.head+' | '+kinds.file.txt.slice(0,90));
+ ok('תקלה שלנו אחרי הקריאה — הכותרת אומרת שזו תקלה בכלי',
+    /תקלה בכלי/.test(kinds.app.head)&&/לא בקובץ שלך/.test(kinds.app.txt),
+    kinds.app.head+' | '+kinds.app.txt.slice(0,90));
+ ok('ואינה מבקשת מהמעתד לבדוק את הקובץ שלו',
+    !/ודא שהוא תקין|מוגן בסיסמה/.test(kinds.app.txt),kinds.app.txt.slice(0,120));
+ ok('ספרייה חסרה — משפחה שלישית, נפרדת',
+    /הספרייה לא נטענה/.test(kinds.lib.head),kinds.lib.head);
+ ok('כל הודעת שגיאה נושאת את מזהה הבנייה',
+    [kinds.file.txt,kinds.app.txt,kinds.lib.txt].every(t=>t.includes(kinds.build)),kinds.build);
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
  console.log(out.join('\n'));
