@@ -5480,10 +5480,31 @@ function saveParams(){if(DEMO)return;try{localStorage.setItem(PAR_KEY,JSON.strin
    ש-paramFix דלוק עליו הוצג בפועל ברשימת העבודה. לדווח «40 מתוך 1,373»
    היה מציג את המתכנן כמי שהתעלם מ-97% מההמלצות — כשרובן מעולם לא הוצגו
    לו. השאלה היא אם עשו את מה שנאמר, ולכן המכנה הוא מה שנאמר. */
-function paramSnap(items){const it={};
+/* ============ OUTCOME — «ומה קרה אחר כך» ============
+   עד כאן הכלי ידע לומר *מה יושם* ולא *אם זה עזר*. שתי השאלות
+   נפרדות, והשנייה היא כל העניין: פרמטר שתוקן ושהפריט חזר אחריו
+   לחוסר הוא תיקון שלא עבד.
+   התמונה שומרת מעכשיו גם את מצב החוסר ברגע הצילום — איבר חמישי
+   אחד למק״ט. תמונות ישנות נושאות ארבעה איברים ונקראות כ-undefined,
+   ולכן הן פשוט אינן נספרות בתוצאה. אין כאן השלמה בדיעבד: מה שלא
+   נמדד אז לא יומצא היום.
+   נמדד על שני דוחות אמיתיים במרווח של חודש (7,548 ו-7,599 פריטים):
+   721 פריטים נשאו המלצת פרמטר, 466 יושמו במדויק, 88 חלקית,
+   80 לא נגעו, ו-87 זזו *נגד* ההמלצה. */
+/* התור מגיע כפרמטר ולא מ-QF הגלובלי: recordParams רץ *לפני* ש-QF
+   מוצב (ראה סדר הטעינה), ולכן inShortQ על QF החזיר אפס תמיד —
+   שתי הקבוצות יצאו 0.0% וההשוואה הייתה חסרת משמעות. */
+function shortSet(Qs){const s=new Set();
+ for(const k of ['waiting','immediate','follow','prevent'])
+  for(const x of (Qs&&Qs[k])||[])s.add(x.pn);
+ return s}
+/* SQ אופציונלי: הפונקציה נקראת גם מבחוץ (בדיקת הקוד המת), ושם אין
+   תור להעביר. בלי הברירה הזאת היא זורקת, ו«מצב החוסר» פשוט יוצא 0 —
+   מה שנכון, כי בלי תור אין מה למדוד. */
+function paramSnap(items,SQ){const it={},Sq=SQ||new Set();
  for(const x of items){if(!x.paramFix)continue;
   if(x.rop===x.sugROP&&x.ss===x.sugSS)continue;
-  it[x.pn]=[x.rop,x.ss,x.sugROP,x.sugSS]}
+  it[x.pn]=[x.rop,x.ss,x.sugROP,x.sugSS,Sq.has(x.pn)?1:0]}
  return it}
 /* מה קרה לפרמטר בודד מאז התמונה הקודמת */
 function parState(then,sug,now){
@@ -5491,23 +5512,27 @@ function parState(then,sug,now){
  if(now===sug)return 'done';                /* יושם בדיוק */
  if(now!==then)return 'other';              /* שונה, אבל לא למספר שהוצע */
  return 'none'}                             /* לא נגעו */
-function recordParams(items){
+function recordParams(items,Qs){
+ const SQ=shortSet(Qs);
  const sig=runSig(items),now=Date.now();
  const last=PARAMS.runs[PARAMS.runs.length-1];
  const repeat=!!last&&last.sig===sig;
  /* העלאה חוזרת של אותו קובץ לא יוצרת תמונה חדשה — אחרת היינו משווים
     קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. */
  if(repeat)last.ts=now;
- else{PARAMS.runs.push({sig,ts:now,it:paramSnap(items)});
+ else{PARAMS.runs.push({sig,ts:now,it:paramSnap(items,SQ)});
   if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
  saveParams();
  const prev=PARAMS.runs[PARAMS.runs.length-2];
  for(const x of items){x.apStatus=null;x.apPrev=null}
  if(!prev)return null;
  let done=0,other=0,none=0,gone=0,total=0;
+ /* OUTCOME — ארבעה דליים: יושם/לא × בחוסר היום/לא.
+    נספרים רק פריטים שהתמונה הקודמת מדדה בהם את מצב החוסר. */
+ const OC={doneN:0,doneShort:0,restN:0,restShort:0,measured:0};
  const byPn=new Map(items.map(x=>[x.pn,x]));
  for(const pn in prev.it){
-  const [rop0,ss0,sug0,sugSS0]=prev.it[pn];
+  const [rop0,ss0,sug0,sugSS0,was]=prev.it[pn];
   const x=byPn.get(pn);
   total++;
   if(!x){gone++;continue}
@@ -5516,9 +5541,43 @@ function recordParams(items){
   /* הפריט "יושם" רק אם כל שדה שהומלץ עליו הגיע למספר המוצע */
   const cls=st.every(v=>v==='done')?'done':st.some(v=>v==='done'||v==='other')?'other':'none';
   x.apStatus=cls;x.apPrev={rop:rop0,ss:ss0,sugROP:sug0,sugSS:sugSS0,rState:a,sState:b};
-  if(cls==='done')done++;else if(cls==='other')other++;else none++}
- return {total,done,other,none,gone,ts:prev.ts,
+  if(cls==='done')done++;else if(cls==='other')other++;else none++;
+  if(was!==undefined){OC.measured++;
+   const isNow=SQ.has(x.pn)?1:0;
+   if(cls==='done'){OC.doneN++;OC.doneShort+=isNow}
+   else{OC.restN++;OC.restShort+=isNow}}}
+ return {total,done,other,none,gone,ts:prev.ts,outcome:OC,
    runs:PARAMS.runs.length,days:Math.max(0,Math.round((now-prev.ts)/864e5))}}
+/* ============ OUTCOME_HONEST ============
+   שני סייגים, ושניהם נמדדו ולא הונחו:
+
+   1 · זו *תצפית* ולא ניסוי. הפריטים שהמעתד בחר לתקן אינם מדגם
+       אקראי, ולכן פער בין הקבוצות אינו «התיקון גרם ל».
+
+   2 · ובעיקר — מתי בכלל מותר להציג אחוז. על שני הדוחות האמיתיים
+       יצא «43 שיושמו — 11.6% בחוסר · 672 שלא — 6.1%», כלומר
+       כאילו התיקון הזיק. חמישה אירועים מול 41. בגודל כזה ההפרש
+       אינו ניתן להבחנה מרעש, ומסך שמציג אותו משקר בביטחון.
+       לכן האחוזים מוצגים רק כששתי הקבוצות ‎50+ פריטים וגם ‎10+
+       אירועי חוסר בכל אחת; אחרת נאמרות הספירות ונאמר במפורש
+       שאין מספיק כדי להשוות. */
+const OC_MIN_N=50, OC_MIN_EV=10;
+function outcomeTxt(h){const o=h&&h.outcome;
+ if(!o||!o.measured)return '';
+ const when=h.days>0?` לפני ${h.days} ימים`:' בהעלאה הקודמת';
+ /* «אפס יושמו» הוא מידע ולא היעדר מידע — הוא אומר שהמלצות
+    הפרמטרים אינן מגיעות ל-SAP, וזו בדיוק שאלה שכדאי לשאול. */
+ if(!o.doneN)return `מתוך ${o.measured.toLocaleString('he-IL')} שנמדדו${when}`
+   +` — אף המלצה לא יושמה במדויק, ולכן אין מה להשוות`;
+ const head=`מתוך מי שנמדד${when}: ${o.doneN.toLocaleString('he-IL')} יושמו במדויק`;
+ const thin=o.doneN<OC_MIN_N||o.restN<OC_MIN_N
+   ||o.doneShort<OC_MIN_EV||o.restShort<OC_MIN_EV;
+ if(thin)return `${head}, ${o.doneShort.toLocaleString('he-IL')} מהם בחוסר היום`
+   +` · מעט מדי כדי להשוות מול ${o.restN.toLocaleString('he-IL')} שלא יושמו`;
+ const pc=(a,b)=>(Math.round(a/b*1000)/10).toFixed(1)+'%';
+ return `${head} — ${pc(o.doneShort,o.doneN)} מהם בחוסר היום · `
+  +`${o.restN.toLocaleString('he-IL')} שלא יושמו — ${pc(o.restShort,o.restN)}. `
+  +`זו תצפית ולא ניסוי: הפריטים שבחרת לתקן אינם מדגם אקראי.`}
 function paramsReset(){PARAMS={runs:[]};saveParams()}
 /* ============ מצב עבודה — גיבוי והעברה ============
    כל מה שהמתכנן החליט יושב ב-localStorage של דפדפן אחד: הסימונים,
@@ -6833,9 +6892,12 @@ function renderApplied(rows){
  document.getElementById('pgR').textContent=A
   ?`${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו${A.gone?` · ${A.gone} כבר לא בדוח`:''}`
   :'';
- setPhdSub(A
+ /* «מה יושם» הוא חצי שאלה. החצי השני — «ומה קרה אחר כך» — נאמר
+    כאן כשיש תמונה שמדדה אותו (ראה OUTCOME). */
+ const oc=outcomeTxt(A);
+ setPhdSub((A
   ?`מתוך ${A.total} ההמלצות שהיו בהעלאה הקודמת${A.days?` לפני ${A.days} ימים`:''} — מה שונה בפועל ב-SAP`
-  :'השוואה בין שתי העלאות');
+  :'השוואה בין שתי העלאות')+(oc?' · '+oc:''));
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
@@ -8239,7 +8301,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
   etaOrphanSync();
-  HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL);
+  HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL,Q);
   /* ============ הכותרת אומרת את מה שהיא סופרת ============
      היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
      6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
