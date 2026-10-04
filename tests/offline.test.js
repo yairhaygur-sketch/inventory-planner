@@ -6,7 +6,7 @@
    ואינו מוגן».
    כאן *כל* בקשה שאינה file:// נחסמת. אם הכלי עדיין קורא דוח ZMRP
    מלא — הוא באמת עצמאי, כפי שהמפרט דורש. */
-const XLSXW=require('xlsx'),{chromium}=require('playwright'),fs=require('fs'),path=require('path');
+const {chromium}=require('playwright'),fs=require('fs'),path=require('path');
 const SD=__dirname, HTML='file://'+path.join(SD,'..','index.html');
 const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+']':''}`);
 (async()=>{
@@ -30,7 +30,12 @@ const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+'
     !blocked.some(u=>/sheetjs/.test(u)),blocked.join(' · ')||'—');
 
  /* ודוח אמיתי באמת נקרא — לא רק שהאובייקט קיים */
- await p.setInputFiles('#f',SD+'/eta-zmrp.xlsx');await p.waitForTimeout(3000);
+ /* הדוח של make-fixture, שרץ ראשון ב-npm test. eta-zmrp.xlsx נוצר
+    רק בתוך eta.test.js — כלומר הוא אינו קיים בצ'קאאוט נקי, וזה
+    בדיוק מה שהפיל את הריצה הראשונה ב-CI תוך ארבע שניות. */
+ const FIX=SD+'/zmrp-demo.xlsx';
+ if(!fs.existsSync(FIX)){console.log('FAIL · חסר קובץ הבדיקה zmrp-demo.xlsx — הרץ npm run fixture');process.exit(1)}
+ await p.setInputFiles('#f',FIX);await p.waitForTimeout(4000);
  const st=await p.evaluate(()=>({n:(typeof ALL!=='undefined'&&ALL)?ALL.length:0,
    diag:(document.getElementById('diag')||{}).textContent||'',
    upd:(document.getElementById('updated')||{}).textContent||''}));
