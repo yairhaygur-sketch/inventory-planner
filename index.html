@@ -3568,9 +3568,19 @@ function etaClear(){ETA=null;ETA_ORPH=null;
  DIAG.warn=DIAG.warn.filter(w=>!/לא שויכו לאף פריט בקטלוג/.test(w));
  if(typeof showDiag==='function')showDiag();if(!DEMO)try{localStorage.removeItem(ETA_KEY)}catch(_){}
  if(ALL&&ALL.length){etaApply(ALL);apply()}etaChip()}
+/* ============ ROW_AUDIT — כמה שורות נקראו, וכמה נכנסו ============
+   `if(!pn)continue` מפיל שורה בלי מק״ט בשקט. זה נכון — שורת סיכום,
+   שורה ריקה או זנב של ייצוא אינם פריט — אבל **השקט** אינו נכון:
+   מעתד שרואה 7,594 בכלי מול 8,000 בגיליון אינו יכול לדעת אם הכלי
+   חתך, אם הקובץ שונה, או אם 406 שורות באמת אינן פריטים.
+
+   נמדד: הכלי קורא קובץ של 15,974 שורות במלואו — אין שום תקרה.
+   מה שחסר היה הדיווח, לא היכולת. */
+const ROWS={read:0,used:0,noPn:0};
 function build(rows,hdr){const m=mapCols(hdr),out=[];
+  ROWS.read=rows.length;ROWS.used=0;ROWS.noPn=0;
   if(DIAG.hardStop)return out;
-  for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn)continue;
+  for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn){ROWS.noPn++;continue}
     const months=m.months.map(i=>i>=0?NUM(r[i]):0);
     const curMonth=m.curMonth>=0?NUM(r[m.curMonth]):null;
     const sales=m.sales>=0?movCell(r[m.sales]):null;
@@ -8591,7 +8601,14 @@ function syncDataState(){
  if(u){u.textContent=ZLOAD
    ?`נטען ${sameDayNow(ZLOAD)?'היום':new Date(ZLOAD).toLocaleDateString('he-IL')} ${hhmm(ZLOAD)}`
    :'לא נטען קובץ';
-  u.title=ZLOAD?'מועד ההעלאה לדפדפן — לא תאריך הדוח':''}}
+  /* ============ ROW_AUDIT ============
+     המשוואה זמינה תמיד, לא רק כשהיא נשברת. «קראנו N · נכנסו M»
+     הוא המשפט שהיה עונה בשנייה על «הכלי לא קורא יותר מ-7,594». */
+  u.title=ZLOAD?('מועד ההעלאה לדפדפן — לא תאריך הדוח'
+    +(ROWS.read?`\n\nנקראו ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת`
+      +` · נכנסו ${ROWS.used.toLocaleString('he-IL')} פריטים`
+      +(ROWS.noPn?` · ${ROWS.noPn.toLocaleString('he-IL')} שורות ללא מק״ט לא נכללו`:' · ללא דילוגים')
+      :'')):''}}
 function etaChip(){const el=document.getElementById('etachip');if(!el)return;
  if(!ETA){el.hidden=true;return}
  const d=etaAgeDays(),stale=d!=null&&d>ETA_STALE_DAYS;
@@ -8665,6 +8682,15 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
+  /* ============ ROW_AUDIT ============
+     המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
+     כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
+     מה שבגיליון למה שבכלי נראה כמו תקרה שאינה קיימת. */
+  ROWS.used=ALL.length;
+  if(ROWS.noPn>0)DIAG.warn.push(
+    `הגיליון «${best.nm}» מכיל ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת, `+
+    `ומתוכן ${ROWS.used.toLocaleString('he-IL')} פריטים — `+
+    `${ROWS.noPn.toLocaleString('he-IL')} שורות ללא מק״ט (שורות סיכום, ריקות או זנב הייצוא) אינן פריט ולא נכללו.`);
   etaApply(ALL);
   ledgerRecord(ALL);
   const futureDates=ALL.filter(x=>x.entFuture||x.saleFuture).length;
