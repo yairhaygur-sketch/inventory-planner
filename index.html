@@ -127,24 +127,62 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
    של היום כשבבים לחיצים. היא מחליפה ארבעה כרטיסים שניצלו 43%
    מגובה החלון ולא ענו «באיזה סדר». */
 #track:empty{display:none}
-.aband{display:flex;flex-direction:column;gap:6px;padding:7px 14px 8px;
+/* ============ KPI_TILES ============
+   «מה עוד ממתין» היה שורת שבבים דקה — ארבעה מספרים בגופן קטן על
+   רקע לבן, בלי היררכיה ובלי צבע. אותם ארבעה מספרים הם עכשיו
+   אריחים: גוון סמנטי רחב ורגוע, שבב אייקון עגול ורווי, והמספר
+   בגודל שמאפשר לקרוא אותו מרחוק.
+   הצבע לעולם אינו לבד — לכל אריח אייקון ותווית. נבדק: דיו-על-אריח
+   13.8 בבהיר ו-10.6 בכהה (המספר ב---ink ולא בגוון — גוון רווי על
+   גוון דהוי נותן 4.15 ונופל); תווית-על-אריח 6.5 ו-5.2; שבב-על-אריח
+   אינו טקסט, ולבן-על-שבב ‎5.17–7.10‎ בבהיר ו-‎6.54–9.29‎ בכהה.
+   ה-DOM נשמר: .abchip, data-go ו-<b> המספר — הבדיקות קוראות אותם.
+
+   הבורר הוא ‎.abnext .abchip‎ ולא ‎.abchip‎, ולא מתוך נימוס: ‎#track‎
+   נושא עד היום את המחלקה ‎seg‎ משכבה ישנה, ולכן ‎.seg button‎ —
+   ‎background:none;border:none;padding:6px 10px;font-size:11.5px‎ —
+   ניצח בספציפיות (0,1,1 מול 0,1,0) כל אריח שנבנה כאן. נמדד:
+   ‎getComputedStyle(.abchip).backgroundColor === 'rgba(0,0,0,0)'‎ —
+   כלומר הגוון שבניתי מעולם לא הופיע על המסך, וגם ה-hover נחטף
+   לכחול המבטא. אותו כלל ישן חי אחרי המדיה, ולכן גם הכיווץ ב-1300
+   מסומן ‎.abnext‎. */
+.aband{display:flex;flex-direction:column;gap:7px;padding:8px 14px 9px;
  border-block-end:1px solid var(--line2)}
-.abgap{display:flex;gap:7px;align-items:flex-start;font-size:var(--f-xs);
+.abgap{display:flex;gap:8px;align-items:center;font-size:var(--f-xs);
  /* --high-bg ולא צבע קשיח: לטוקן הזה יש ערך גם בנושא הכהה
     (‎#3A2C15‎). נמדד עם רקע קשיח בהיר — 1.11 ניגודיות בכהה. */
  color:var(--ink-2);background:var(--high-bg);border:1px solid var(--line2);
- border-radius:var(--r-ctl);padding:5px 9px}
-.abgap .abi{color:var(--high);flex:0 0 auto}
+ border-radius:var(--r-md);padding:5px 10px}
+.abgap .abi{flex:0 0 auto;width:19px;height:19px;border-radius:var(--r-pill);
+ background:var(--high);color:var(--on-fill);display:grid;place-items:center;font-size:12px}
 .abgap b{color:var(--ink);font-weight:700}
-.abnext{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.abnext .abl{font-size:var(--f-xs);color:var(--dimmer);font-weight:700;
- letter-spacing:.04em;white-space:nowrap}
-.abchip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;
- font-size:var(--f-xs);border:1px solid var(--line);background:var(--panel);
- color:var(--ink-2);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
-.abchip b{font-family:var(--num);font-weight:800;color:var(--ink)}
-.abchip:hover{border-color:var(--accent);color:var(--accent-ink)}
-.abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.abnext{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ align-items:stretch;gap:8px}
+/* הכותרת «מה עוד ממתין» ירדה: מסובבת היא נקראת לרעה, ואופקית היא
+   עולה שורה. ארבעת האריחים נושאים אייקון ותווית ומסבירים את עצמם. */
+.abnext .abl{display:none}
+.abnext .abchip{display:flex;align-items:center;gap:10px;font-family:inherit;text-align:start;
+ font-size:var(--f-sm);border:1px solid color-mix(in srgb,var(--tfg) 34%,var(--panel));
+ background:color-mix(in srgb,var(--tfg) 16%,var(--panel));color:var(--ink-2);
+ border-radius:var(--r-lg);padding:7px 12px;cursor:pointer;min-width:0;
+ box-shadow:var(--e-1);transition:box-shadow .15s,transform .15s}
+.abchip .ic{flex:0 0 auto;width:28px;height:28px;border-radius:var(--r-pill);
+ /* --on-fill ולא #fff: בכהה --high הוא ענבר *בהיר*, ולבן עליו נותן
+    2.01. הטוקן מתהפך עם הנושא ונותן 5.17–7.10 בבהיר ו-6.54–9.29
+    בכהה. נתפס על ידי בודק הניגודיות, לא בעין. */
+ background:var(--tfg,var(--calm));color:var(--on-fill);
+ display:grid;place-items:center;font-size:14px;line-height:1}
+.abchip .lb{flex:1;min-width:0;display:block;line-height:1.25;
+ overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.abchip b{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-weight:800;font-size:19px;color:var(--ink);flex:0 0 auto}
+.abnext .abchip:hover{box-shadow:var(--e-2);transform:translateY(-1px);
+ background:color-mix(in srgb,var(--tfg) 24%,var(--panel))}
+.abnext .abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:1300px){
+ .abnext .abchip{padding:6px 9px;gap:8px;border-radius:var(--r-md)}
+ .abchip .ic{width:24px;height:24px;font-size:12px}
+ .abchip b{font-size:16px}}
 .kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;flex-direction:row-reverse;justify-content:flex-end;background:#fff}
 /* המדד הוא כפתור: לחיצה פותחת את הרשימה שהוא סופר. הוא נבנה כ-button
    ולכן צריך לאפס את ברירות המחדל של הדפדפן ולשמור יישור RTL. */
@@ -479,6 +517,15 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     בטוקן שבאמת נצרך. הרדיוס והצל חלים על הרצועה בלבד, ולא על
     הווידג׳טים: הפריסה כאן היא מלוא-הרוחב, ולהפוך אותה לכרטיסים
     צפים גוזל גובה מרשימת העבודה — וזה בדיוק המחיר שסירבנו לשלם. */
+ /* ============ DESIGN_TOKENS — צורה ועומק ============
+    נמדד לפני השינוי: 108 ערכי border-radius קשיחים בקוד מול 23
+    שימושים בטוקן, ו-`--shadow:none` — כלומר לכלי הייתה מערכת צבע
+    ואפס מערכת צורה. זה מה שגרם לו להיראות שטוח וזוויתי.
+    סולם אחד לרדיוס, סולם אחד לעומק, ומכאן כל רכיב חדש נבנה מהם. */
+ --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:24px; --r-pill:999px;
+ --e-1:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.08);
+ --e-2:0 4px 8px -2px rgba(16,24,40,.08),0 2px 4px -2px rgba(16,24,40,.05);
+ --e-3:0 14px 24px -6px rgba(16,24,40,.12),0 4px 8px -4px rgba(16,24,40,.06);
  --r-card:12px;
  --shadow-card:0 1px 2px rgba(11,21,34,.07),0 6px 18px rgba(11,21,34,.08);
 
@@ -535,6 +582,11 @@ body.dark{
  /* לבן על המילוי הבהיר נותן 2.98:1. דיו כהה נותן 6.31:1. ההיפוך מכוון. */
  --on-fill:#0B131C;
 
+ /* העומק בכהה אינו הצללה חזקה יותר אלא טבעת אור דקה: על משטח כהה
+    צל שחור אינו נראה, ומה שמפריד משטחים הוא הקצה המואר. */
+ --e-1:0 0 0 1px rgba(255,255,255,.04),0 1px 2px rgba(0,0,0,.4);
+ --e-2:0 0 0 1px rgba(255,255,255,.05),0 4px 10px rgba(0,0,0,.45);
+ --e-3:0 0 0 1px rgba(255,255,255,.06),0 14px 28px rgba(0,0,0,.5);
  /* הרצועה במצב כהה בהירה מהרקע ולא כהה ממנו — משטח מורם. ההפרש
     מהרקע הוא 1.31 בלבד, ולכן הגבול נשען גם על קו ולא על הצבע לבדו. */
  --shell:#0B131C;
@@ -849,25 +901,44 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .railfoot b{color:var(--shell-ink)}
 /* הטאבים הופכים לפריטי מסילה אנכיים. .tab ו-.navtab נשמרו. */
 .rail .tabs{display:flex;flex-direction:column;gap:1px;background:none;padding:0;margin:0;border:0}
-.rail .tab.navtab{display:flex;align-items:center;gap:9px;width:100%;border:0;border-radius:0;
- background:none;color:var(--shell-dim);padding:8px 14px;font:inherit;text-align:start;
- border-inline-start:3px solid transparent;position:relative;min-width:0;flex:0 0 auto;box-shadow:none}
+.rail .tab.navtab{display:flex;align-items:center;gap:10px;width:auto;border:0;
+ border-radius:var(--r-md);background:none;color:var(--shell-dim);
+ padding:7px 10px;margin:0 8px;font:inherit;text-align:start;
+ position:relative;min-width:0;flex:0 0 auto;box-shadow:none;
+ transition:background .13s}
 .rail .tab.navtab:hover{background:var(--shell-btn);color:var(--shell-ink)}
+/* הבחירה היא משטח מלא ומעוגל ולא פס צד — זה מה שמייצר תחושת כרטיס */
 .rail .tab.navtab.sel{background:var(--shell-btn);color:var(--shell-ink);
- border-inline-start-color:var(--acc);font-weight:700}
-.rail .tab.navtab .nico{font-size:14px;width:17px;text-align:center;opacity:.9;flex:0 0 auto}
+ font-weight:700;box-shadow:inset 0 0 0 1px var(--shell-track)}
+.rail .tab.navtab.sel .nico{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 28%,transparent),
+ 0 1px 2px rgba(0,0,0,.35)}
+/* ============ RAIL_CHIPS ============
+   המסילה הייתה פס שטוח: אייקון חיוור, שם, וגלולת מונה אחידה. היא
+   אותו רכיב שבתמונה שהמעתד הביא הוא כרטיס עם שבב עגול צבעוני.
+   הצבע חוזר לכאן — אבל לא על הטקסט. ההערה למטה מתעדת שצבעי המותג
+   נתנו 1.86–2.77 על כחול המסילה; לכן הם עוברים לשבב, שהוא משטח
+   משלו, והטקסט נשאר בדיו הסרגל.
+   ובתוך המסילה הטוקנים נדרסים לערכי הנושא הכהה — המסילה כהה בשני
+   המצבים, ולכן היא צריכה את הפלטה שנועדה לרקע כהה. נמדד:
+   שבב-על-מסילה 6.54–9.29, דיו-על-שבב 6.54–9.29. */
+.rail{--critical:#FF7B7B;--high:#F0A93C;--steady:#6BA0FF;--capital:#4FC48A;
+ --trend:#B49BEA;--calm:#8B9AB0;--acc:#6BA0FF}
+.rail .tab.navtab .nico{flex:0 0 auto;width:28px;height:28px;border-radius:var(--r-pill);
+ background:var(--c,var(--shell-track));color:var(--shell);display:grid;place-items:center;
+ font-size:13px;line-height:1;opacity:1;text-align:center;
+ box-shadow:0 1px 2px rgba(0,0,0,.35)}
 .rail .tab.navtab .t{flex:1;font-size:var(--f-md);font-weight:500;white-space:nowrap;
  overflow:hidden;text-overflow:ellipsis;color:inherit}
 /* השם אינו מתעבה בבחירה: ב-1366 ההתעבות הספיקה כדי לחתוך את
    «חוסרים ולקוחות» ברגע שנבחר — כלומר השם נחתך בדיוק כשהסתכלו
    עליו. הבחירה מסומנת ממילא בפס הצד, ברקע ובדיו הבהיר. */
 .rail .tab.navtab .t{font-weight:600}
-.rail .tab.navtab .bdg{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-sm);
- font-weight:700;background:var(--shell-track);color:var(--shell-ink);border-radius:99px;
- padding:1px 7px;min-width:26px;text-align:center;flex:0 0 auto}
+.rail .tab.navtab .bdg{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-md);
+ font-weight:800;background:none;color:var(--shell-ink);border-radius:var(--r-pill);
+ padding:0;min-width:0;text-align:end;flex:0 0 auto;letter-spacing:-.01em}
 /* מונה אפס אינו מעלים יעד — הוא משנה את מראה המונה בלבד */
 .rail .tab.navtab .bdg.zero{background:transparent;color:var(--shell-mute);
- border:1px solid var(--shell-track);font-weight:600}
+ border:0;font-weight:600;opacity:.6}
 /* ============ צבעי התחום על המסילה ============
    הסמל והתיאור ירשו את צבעי הסרגל האופקי — צבעי מותג שנבדקו על רקע
    בהיר. על הכחול הכהה של המסילה הם נתנו 1.86-2.77 מול 4.5 הנדרש,
@@ -881,20 +952,38 @@ body.xp #tbl,body.xp .rows{cursor:default}
 @media(max-width:1400px){:root{--rail-w:186px}
  /* «חוסרים ולקוחות» דרש 92px בתוך 87 — חמישה פיקסלים. הם באים
     מהריפוד ומהמרווח, ולא מהרחבת המסילה על חשבון הטבלה. */
- .rail .tab.navtab{padding:7px 8px;gap:6px}
+ .rail .tab.navtab{padding:7px 8px;gap:7px;margin:0 6px}
+ /* השבב מתכווץ עם המסילה. בלי זה «חוסרים ולקוחות» נחתך ב-1366:
+    השבב גדל מ-17 ל-28px, והרוחב שנותר לשם קטן בהתאם. */
+ .rail .tab.navtab .nico{width:24px;height:24px;font-size:12px}
  .railsub2{padding-inline:10px}}
 @media(max-width:1240px){:root{--rail-w:164px}
- .rail .tab.navtab{padding:6px 8px;gap:6px}
- .rail .tab.navtab .nico{width:14px;font-size:13px}
- .rail .tab.navtab .bdg{padding:0 5px;min-width:0}
+ .rail .tab.navtab{padding:6px 7px;gap:6px;margin:0 5px}
+ .rail .tab.navtab .nico{width:21px;height:21px;font-size:11px}
+ .rail .tab.navtab .bdg{padding:0;min-width:0}
  .railsub2{padding-inline:8px}}
 
-.rail .tab.navtab .nico{color:inherit}
-.rail .tab.navtab.sel{border-inline-start-color:var(--c,var(--shell-acc))}
-.rail .tab.navtab.sel .t,.rail .tab.navtab.sel .nico{color:var(--shell-ink)}
+/* שלוש שורות שנשארו מהעיצוב הקודם וישבו *אחרי* המדיה, ולכן דרסו
+   את השבב: הן החזירו צבע יורש לסמל, פס צד לבחירה, ודיו בהיר על
+   השבב הצבעוני. הצבע של התחום חי עכשיו בשבב עצמו. */
+.rail .tab.navtab.sel .t{color:var(--shell-ink)}
 .rail .tab.navtab.sel .bdg{background:var(--shell-track);color:var(--shell-ink)}
-.rail .tab.navtab.alert .bdg{background:var(--shell-crit);color:var(--shell)}
-.rail .tab.navtab.sel.alert .bdg{background:var(--shell-crit);color:var(--shell)}
+/* «יש כאן חומרה 3» היה גלולה ורודה מלאה מאחורי המספר — היא נשארה
+   מהעיצוב הקודם ועכשיו התנגשה עם שבב האייקון הצבעוני ממש לידה.
+   האות עובר לדיו של המספר ולנקודה קטנה: אותה אמירה, בלי שני
+   משטחים צבעוניים נאבקים על אותה שורה. */
+.rail .tab.navtab.alert .bdg,.rail .tab.navtab.sel.alert .bdg{
+ background:none;color:var(--shell-crit)}
+/* הנקודה יושבת על השבב ולא ליד המספר. כשהיא הייתה בתג היא הרחיבה
+   אותו ב-10px, ו«חוסרים ולקוחות» נחתך ב-1366 בשלושה פיקסלים —
+   נמדד 92px בתוך 89. על השבב היא עולה אפס רוחב, וזה גם המקום
+   הנכון לה: סימון על הסמל, כמו כל התראה. */
+.rail .tab.navtab{position:relative}
+.rail .tab.navtab.alert .nico::after{content:'';position:absolute;
+ inset-block-start:-2px;inset-inline-end:-2px;width:8px;height:8px;
+ border-radius:50%;background:var(--shell-crit);
+ box-shadow:0 0 0 2px var(--shell)}
+.rail .tab.navtab .nico{position:relative}
 /* אזור העבודה — עמודה אחת: מדדים · סינון · טבלה. בלי גרירה. */
 .dash{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;min-height:0}
 /* הווידג'טים מאבדים את המסגרת שלהם — הרקע שייך לאזור העבודה. היוצא
@@ -1145,6 +1234,10 @@ body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 /* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
    בלי ההצהרה המפורשת הזאת הוא נותן דיו בהיר על מילוי בהיר: 2.48:1. */
 .tab.navtab.sel .t,.tab.navtab.sel .nico{color:var(--on-fill)}
+/* הכלל שמעל גנרי ויושב אחרי כללי המסילה, ולכן הוא ניצח אותם: השבב
+   הנבחר קיבל --on-fill (לבן בבהיר) על צבע תחום בהיר — 2.19–2.59.
+   המסילה כהה בשני הנושאים, ולכן הדיו שלה הוא תמיד --shell. */
+.rail .tab.navtab .nico,.rail .tab.navtab.sel .nico{color:var(--shell)}
 .tab.navtab.sel .bdg{background:color-mix(in srgb,var(--on-fill) 22%,transparent);color:var(--on-fill)}
 .tab.navtab.sel.alert .bdg{background:var(--critical);color:var(--on-fill)}
 /* המשנה של הטאב הפעיל בלבד — ספירה בוחרת מסלול, הסכום שייך לתוכו */
@@ -6089,12 +6182,21 @@ function renderAgendaBand(){
  const orph=(typeof etaOrphanTxt==='function')?etaOrphanTxt():'';
  /* «מה עוד ממתין» — אותם מונים בדיוק של המסילה, כדי ששני המקומות
     לא יוכלו להיפרד. */
- const NEXT=[['line','רכש ואספקות',null],
-   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow],
-   ['qual','איכות נתונים',null],['cap','הון כלוא',null]];
- const chips=NEXT.map(([k,l,fixed])=>{let n=fixed;
+ /* הצבע והאייקון של כל אריח הם אותם של התחום במסילה — מי שלומד
+    שסגול הוא «תכנון ו-MRP» רואה את אותו סגול בשני המקומות.
+    הצבע לעולם אינו לבד: אייקון ותווית בכל אריח. */
+ const NEXT=[['line','רכש ואספקות',null,'steady','⇄'],
+   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow,'trend','◆'],
+   ['qual','איכות נתונים',null,'high','⚒'],
+   ['cap','הון כלוא',null,'capital','❤']];
+ const chips=NEXT.map(([k,l,fixed,c,ic])=>{let n=fixed;
    if(n==null){try{n=navCount(k).n}catch(_){n=0}}
-   return `<button type="button" class="abchip" data-go="${k}">${esc(l)}<b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
+   return `<button type="button" class="abchip" data-go="${k}"`
+    +` style="--tfg:var(--${c})"`
+    +` title="${esc(l)} — ${n.toLocaleString('he-IL')}">`
+    +`<span class="ic" aria-hidden="true">${ic}</span>`
+    +`<span class="lb">${esc(l)}</span>`
+    +`<b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
  t.style.display='';
  t.innerHTML=`<div class="aband">`
   +(gaps.length?`<div class="abgap"><span class="abi">⚠</span><span>${gaps.join(' · ')}${orph?' · '+esc(orph):''}</span></div>`:'')
@@ -8471,7 +8573,7 @@ function demoRows(){
    בנייה המשתמש יושב. דפדפן מחזיק HTML במטמון, והבדל בין «לא תוקן»
    ל«תוקן אבל לא הגיע אליך» הוא כל ההבדל. המזהה נאמר בכל הודעת
    שגיאה ובתפריט «עוד», ולכן תמיד אפשר לשאול עליו. */
-const BUILD='2026-10-04b';
+const BUILD='2026-10-05a';
 /* שלוש משפחות כשל, ולכל אחת פעולה אחרת לגמרי:
    אין ספרייה -> תקלה בכלי · הקובץ לא נפתח -> הקובץ · נפתח ונפל
    אחר כך -> באג אצלנו, והקובץ של המשתמש תקין. */
