@@ -632,13 +632,20 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' · '),
      pgR:document.getElementById('pgR').textContent, cells,
      /* מיון לפי שווי הפער — יורד */
-     sorted:(()=>{const v=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,8)
-       .map(tr=>+((tr.children[6]||{}).textContent||'0').replace(/[^\d.]/g,''));
+     /* האינדקסים זזו ב-1: «דגם» נכנס אחרי המק״ט בכל טבלה
+        (MODEL_EVERYWHERE). נגזרים מהכותרת ולא קבועים, כדי שהזזה
+        הבאה לא תדרוש עריכה — ושגיאה בשם עמודה תיפול מיד. */
+     sorted:(()=>{const H=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+       const ix=H.indexOf('שווי הפער');
+       const v=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,8)
+       .map(tr=>+((tr.children[ix]||{}).textContent||'0').replace(/[^\d.]/g,''));
        for(let i=1;i<v.length;i++)if(v[i]>v[i-1]+0.001)return false;return true})()}});
  ok('המסלול מציג פריטים',fv.rows>0,fv.rows+' פריטים');
  ok('עמודות ייעודיות',fv.heads.includes('שווי הפער'),fv.heads);
  ok('ממוין לפי שווי הפער',fv.sorted);
- ok('הפער חיובי בכל שורה',+fv.cells[5]>0,fv.cells.join(' | '));
+ ok('הפער חיובי בכל שורה',
+    (ix=>ix>0&&+fv.cells[ix]>0)(fv.heads.split(' · ').indexOf('פער')),
+    fv.heads+' || '+fv.cells.join(' | '));
  ok('הפוטר מסכם יחידות וכסף',/יח׳ מעל הדרישה/.test(fv.pgR),fv.pgR);
  /* ============ הדלת הורחבה מ-409 ל-2,287 ============
     התנאי rate>0 הוסר: הפער נמדד היום על כל פריט מנוהל־מלאי. שתי
@@ -647,6 +654,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const fw=await p.evaluate(()=>{
   const all=(QF&&QF.all?QF.all:[]);
   const rows=floorRows();
+  /* אינדקס עמודה לפי שמה בכותרת. האינדקסים הקבועים נשברו כש«דגם»
+     נכנס אחרי המק״ט (MODEL_EVERYWHERE); כך הם לא יישברו שוב. */
+  const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
   return {n:rows.length,
    narrow:all.filter(r=>r.rate>0&&!r.isOD&&!r.noStock&&(r.ssMinEff||0)>(r.ssStat||0)).length,
    noRate:rows.filter(ssNoRate).length,
@@ -660,8 +670,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      const shown=tr.map(t=>currentRows()[+t.dataset.i]);
      return {n:tr.length,
        want:shown.filter(ssNoRate).length,
-       got:tr.filter(t=>(t.children[4]||{}).textContent.trim()==='—').length,
-       match:tr.every((t,i)=>((t.children[4]||{}).textContent.trim()==='—')===ssNoRate(shown[i]))}})(),
+       /* אינדקס לפי הכותרת, לא קבוע — ראה MODEL_EVERYWHERE */
+       got:(ix=>tr.filter(t=>(t.children[ix]||{}).textContent.trim()==='—').length)(HX('הדרישה')),
+       match:(ix=>tr.every((t,i)=>((t.children[ix]||{}).textContent.trim()==='—')===ssNoRate(shown[i])))(HX('הדרישה'))}})(),
    pgR:document.getElementById('pgR').textContent,
    sub:document.getElementById('phdSub').textContent}});
  ok('הדלת כוללת גם פריטים בלי קצב מדוד',fw.n>fw.narrow,
@@ -702,7 +713,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const dv=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
    heads:[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).join(' · '),
    undo:document.querySelectorAll('#tbl .dn[data-undo]').length,
-   when:/\d\d\.\d\d/.test((document.querySelectorAll('#tbl tbody tr[data-i] td')[4]||{}).textContent||''),
+   when:(ix=>/\d\d\.\d\d/.test((document.querySelectorAll('#tbl tbody tr[data-i] td')[ix]||{}).textContent||''))(
+     [...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf('מתי סומן')),
    pgR:document.getElementById('pgR').textContent}));
  ok('המסך מציג את שלושת הפריטים',dv.rows===3);
  ok('עמודות ייעודיות ולא של "כל הפריטים"',dv.heads.includes('הסימון'),dv.heads);
@@ -1324,9 +1336,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך ⌛» אחת. */
  const hasEta=await p.evaluate(()=>!!ETA);
  ok('ברירת המחדל של «לפי החלטה» לא השתנתה',
+   /* MODEL_EVERYWHERE: «דגם» נכנס מיד אחרי המק״ט, ו«ספק» יצא מברירת
+      המחדל של המסלול הזה — ב-15 עמודות הוא גלש אופקית ב-1280 וב-1180
+      (נמדד 1,097px בתוך 1,046). הספק נשאר בבורר, במסלול «לפי ספק»
+      ובכרטיס הפריט. */
    cDec.th.join('|')===(hasEta
-     ?'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
-     :'#|מק״ט|תיאור|ספק|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
+     ?'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
+     :'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
    `ETA=${hasEta} · ${cDec.th.join('|')}`);
 
  await p.click('#colsBtn');await p.waitForTimeout(350);
@@ -1672,7 +1688,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     רישום, ולכן יש לו גם בורר.
     מה שנעול: העמודות והתאים לא השתנו, ברירת המחדל היא עדיין
     חומרה, והמיון והסינון עובדים דרך אותו מנגנון של שאר הטבלאות. */
- const CATDEF='מק״ט|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|הון כלוא';
+ /* «דגם» נכנס לברירת המחדל של כל טבלה מיד אחרי המק״ט
+    (MODEL_EVERYWHERE) — 36 דגמים על 7,599 פריטים, אפס ריקים.
+    עשר עמודות הפכו לאחת-עשרה. */
+ const CATDEF='מק״ט|דגם|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|הון כלוא';
  const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
    th:[...document.querySelectorAll('#tbl thead th')]
      .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
@@ -1687,12 +1706,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  for(const m of ['catalog','all','excess']){
    await p.evaluate(k=>setMode(k),m);await p.waitForTimeout(600);
    const c=await catScan();
-   ok(`«${m}» — אותן עשר עמודות, כותרת לכל תא`,
-     c.th===CATDEF&&c.nth===c.ntd&&c.nth===10,`${c.nth}/${c.ntd} · ${c.th}`);
+   ok(`«${m}» — אותן אחת-עשרה עמודות, כותרת לכל תא`,
+     c.th===CATDEF&&c.nth===c.ntd&&c.nth===11,`${c.nth}/${c.ntd} · ${c.th}`);
    ok(`«${m}» — הפס לפי חומרה וכפתור «✓ טופל» בכל שורה`,
      c.pnc===c.rows&&c.dn===c.rows&&c.rows>0,`${c.pnc} תאי מק״ט · ${c.dn} כפתורים · ${c.rows} שורות`);
    ok(`«${m}» — כל עמודה שניתן למיין לפיה נושאת גם ▾, ויש בורר`,
-     c.reg&&c.srt===9&&c.fil===9&&c.btn,
+     c.reg&&c.srt===10&&c.fil===10&&c.btn,
      `רישום=${c.reg} · ${c.srt} ממוינות · ${c.fil} מסננות · בורר=${c.btn}`);
  }
  await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(600);
@@ -1751,7 +1770,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.waitForTimeout(600);
  const catAdd=await catScan();
  ok('טבלה כללית · הוספת «ספק» מוסיפה כותרת ותא — והמק״ט נשאר ראשון',
-   catAdd.nth===11&&catAdd.ntd===11&&catAdd.th.indexOf('מק״ט')===0
+   catAdd.nth===12&&catAdd.ntd===12&&catAdd.th.indexOf('מק״ט')===0
    &&catAdd.th.includes('ספק')&&catAdd.pnc===catAdd.rows,
    `${catAdd.nth}/${catAdd.ntd} · ${catAdd.th}`);
  await p.evaluate(()=>{const cb=document.querySelector('#colspick input[data-ck="cPn"]');if(cb)cb.click()});
@@ -1760,7 +1779,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    (await catScan()).th.indexOf('מק״ט')===0);
  await p.evaluate(()=>{colsOpen(false);colReset('catalog');render()});
  await p.waitForTimeout(500);
- ok('ו«חזרה לברירת המחדל» מחזירה בדיוק את עשר העמודות',
+ ok('ו«חזרה לברירת המחדל» מחזירה בדיוק את אחת-עשרה העמודות',
    (await catScan()).th===CATDEF,(await catScan()).th);
  await goNav(p,'today');await p.waitForTimeout(500);
 

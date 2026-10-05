@@ -117,6 +117,65 @@ const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_histo
   catch(e){r.push('גיליון מלא: '+e.message.slice(0,60))}
   return r.filter(Boolean)});
  ok('כרטיס הפריט והייצוא עובדים ביום השני',deep.length===0,deep.join(' · '));
+ /* ============ OUTCOME ============
+    «מה יושם» היה חצי שאלה. החצי השני — «ומה קרה אחר כך» — נמדד
+    מתמונת הפרמטרים, שמחזיקה מעכשיו גם את מצב החוסר ברגע הצילום.
+    שני הסייגים נבדקים כאן: שהתמונה באמת מדדה (ולא אפס, כפי
+    שקרה כש-inShortQ נשען על QF שעוד לא הוצב), ושהמסך אינו מציג
+    אחוזים על מדגם קטן מדי. */
+ await p.evaluate(()=>setMode('applied'));await p.waitForTimeout(800);
+ const oc=await p.evaluate(()=>{
+   const A=APPLIED;
+   return {has:!!A,o:A&&A.outcome?A.outcome:null,txt:typeof outcomeTxt==='function'?outcomeTxt(A):'',
+     sub:(document.getElementById('phdSub')||{}).textContent||''}});
+ ok('יש השוואת פרמטרים בין שתי ההעלאות',!!oc.has&&!!oc.o,JSON.stringify(oc.o));
+ ok('התמונה הקודמת מדדה מצב חוסר — ולא אפס',
+    !!oc.o&&oc.o.measured>0&&(oc.o.doneN+oc.o.restN)>0,JSON.stringify(oc.o));
+ ok('התוצאה נספרת בשתי הקבוצות',
+    !!oc.o&&(oc.o.doneShort+oc.o.restShort)>=0&&oc.o.restN>0,JSON.stringify(oc.o));
+ /* הסייג שאסור לוותר עליו: אחוז מוצג רק כשיש על מה */
+ const thin=!!oc.o&&(oc.o.doneN<50||oc.o.restN<50||oc.o.doneShort<10||oc.o.restShort<10);
+ ok('מדגם קטן — נאמר «אין מה להשוות» ולא אחוז',
+    !thin||(/מעט מדי כדי להשוות|אין מה להשוות/.test(oc.txt)&&!/%/.test(oc.txt)),
+    `דק=${thin} · ${oc.txt}`);
+ ok('וגם «אפס יושמו» נאמר ולא נבלע',
+    (oc.o&&oc.o.doneN>0)||/אף המלצה לא יושמה/.test(oc.txt),oc.txt);
+ ok('מדגם מספיק — נאמר גם שזו תצפית ולא ניסוי',
+    thin||/תצפית ולא ניסוי/.test(oc.txt),oc.txt);
+
+ /* ============ SAP_MASS ============
+    קובץ שנכתב ל-SAP. כל טענה כאן היא על מה שאסור שייכתב לא פחות
+    מעל מה שכן: «פרופיל MRP» חייבת להישאר ריקה (מילוי אוטומטי היה
+    ממיר מאות פריטים), ו«מלאי ביטחון מינימלי» חייב להיות הערך
+    הקיים ב-SAP ולא ה-SS המוצע (רצפה שעלתה נועלת מלאי). */
+ const sap=await p.evaluate(()=>{
+   const a=sapMassRows(QF.all);
+   const H=['חומר ','אתר','מלאי בטחון','מלאי ביטחון מינימלי',
+     'נקודת הזמנה חוזרת','קבוצת רכש','פרופיל MRP','זמן אספקה מתוכנן'];
+   const body=a.slice(1);
+   const byPn={};for(const r of ALL)byPn[r.pn]=r;
+   return {hdrOk:JSON.stringify(a[0])===JSON.stringify(H),hdr:a[0],
+     n:body.length,
+     profileBlank:body.every(r=>r[6]===''),
+     ssMinKept:body.every(r=>{const x=byPn[r[0]];return !x||r[3]===(x.ssMin||0)}),
+     ssIsSug:body.every(r=>{const x=byPn[r[0]];return !x||r[2]===x.sugSS}),
+     ropIsSug:body.every(r=>{const x=byPn[r[0]];return !x||r[4]===x.sugROP}),
+     ltEcho:body.every(r=>{const x=byPn[r[0]];return !x||r[7]===x.ltD}),
+     /* שורה שאינה שינוי אינה עדכון */
+     noNoop:body.every(r=>{const x=byPn[r[0]];return !x||x.sugSS!==x.ss||x.sugROP!==x.rop}),
+     noLT:body.every(r=>+r[7]>0),
+     pnText:body.every(r=>typeof r[0]==='string')};
+ });
+ ok('קובץ ה-SAP נושא בדיוק את כותרות הפורמט',sap.hdrOk,JSON.stringify(sap.hdr));
+ ok('«פרופיל MRP» ריקה — המרת פרופיל אינה עדכון פרמטרים',sap.profileBlank);
+ ok('«מלאי ביטחון מינימלי» הוא הקיים ב-SAP ולא ה-SS המוצע',sap.ssMinKept);
+ ok('מלאי בטחון ונקודת הזמנה הם המספרים שהמנוע מחשב',
+    sap.ssIsSug&&sap.ropIsSug,`ss=${sap.ssIsSug} rop=${sap.ropIsSug}`);
+ ok('זמן אספקה מועתק ואינו מומצא',sap.ltEcho);
+ ok('שורה שאינה שינוי אינה נכנסת',sap.noNoop,`${sap.n} שורות`);
+ ok('ובלי זמן אספקה אין שורה',sap.noLT);
+ ok('המק״ט נשאר טקסט — אפס מוביל אינו נבלע',sap.pnText);
+
  ok('אין שגיאות JS ביום השני',errs2.length===0,errs2.join(' | '));
  await ctx.close();
 
