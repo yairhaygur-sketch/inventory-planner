@@ -144,7 +144,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
    return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
-     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),actN:(r.act||[]).length,paramFix:r.paramFix,why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
+     act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),actN:(r.act||[]).length,paramFix:r.paramFix,tierFloor:!!r.tierFloor,why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
           runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
           oneA:g('LOW-ONE-A'),tA:g('TIER-A'),tB:g('TIER-B'),tC:g('TIER-C'),tOut:g('TIER-OUT'),
@@ -324,8 +324,20 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('וההמלצה אומרת את המספר החדש',/ל-3/.test(o.cheap.act),o.cheap.act);
  ok('ההסבר מנמק במחיר וללא המרת מטבע',/\$5/.test(o.cheap.acts+o.cheap.why),o.cheap.why);
  ok('ההסבר נוקב בשם המדרגה',/מדרגת/.test(o.cheap.why+o.cheap.acts),o.cheap.why);
+ /* הסיווג השתנה בכוונה (ראה SAP_SPLIT ב-index.html): «רצפת מדרגה»
+    יצאה מ«עדכון פרמטרים» לדלת משלה, ו-paramFix כבוי שם כדי שההחלטה
+    הזאת — שהיא מדיניות אחת לכל המדרגה — לא תיכנס לקובץ הפרמטרים
+    ל-SAP. כוונת הבדיקה נשמרת ומתחדדת: הפריט אינו «תקין», יש לו
+    שורת עבודה, והיא בדלת הנכונה. */
  ok('פריט זול בלי נוכחות ב-SAP מקבל שורת עבודה',
-    o.cheap0.cat==='עדכון פרמטרים'&&o.cheap0.q==='quality',`${o.cheap0.q} · ${o.cheap0.cat} (לפני: תקין)`);
+    o.cheap0.cat==='רצפת מדרגה'&&o.cheap0.q==='tier',
+    `${o.cheap0.q} · ${o.cheap0.cat} (לפני: quality · עדכון פרמטרים)`);
+ /* ‎paramFix‎ כן דלוק — הוא הסמן ש«מישהו נושא את ההחלטה», ובדיקת
+    «אין פער שאיש אינו מדווח עליו» נשענת עליו. ההפרדה מקובץ ה-SAP
+    נעשית לפי הסיווג, ולכן זו הבדיקה הנכונה כאן. */
+ ok('ושורת העבודה אינה נכנסת לקובץ הפרמטרים השוטף ל-SAP',
+    o.cheap0.paramFix===true&&o.cheap0.tierFloor===true,
+    `paramFix=${o.cheap0.paramFix} tierFloor=${o.cheap0.tierFloor}`);
  ok('וההחלטה היא לקבוע 3',/לקבוע נקודת הזמנה 3/.test(o.cheap0.act),o.cheap0.act);
  /* הבקשה המפורשת: «פריטים עם צריכה בודדת עם FOB נמוך, אני רוצה
     להחזיק במלאי». יחידה אחת בשנה ב-2$ — הרצפה היא 3, לא 1. */

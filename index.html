@@ -127,24 +127,62 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
    של היום כשבבים לחיצים. היא מחליפה ארבעה כרטיסים שניצלו 43%
    מגובה החלון ולא ענו «באיזה סדר». */
 #track:empty{display:none}
-.aband{display:flex;flex-direction:column;gap:6px;padding:7px 14px 8px;
+/* ============ KPI_TILES ============
+   «מה עוד ממתין» היה שורת שבבים דקה — ארבעה מספרים בגופן קטן על
+   רקע לבן, בלי היררכיה ובלי צבע. אותם ארבעה מספרים הם עכשיו
+   אריחים: גוון סמנטי רחב ורגוע, שבב אייקון עגול ורווי, והמספר
+   בגודל שמאפשר לקרוא אותו מרחוק.
+   הצבע לעולם אינו לבד — לכל אריח אייקון ותווית. נבדק: דיו-על-אריח
+   13.8 בבהיר ו-10.6 בכהה (המספר ב---ink ולא בגוון — גוון רווי על
+   גוון דהוי נותן 4.15 ונופל); תווית-על-אריח 6.5 ו-5.2; שבב-על-אריח
+   אינו טקסט, ולבן-על-שבב ‎5.17–7.10‎ בבהיר ו-‎6.54–9.29‎ בכהה.
+   ה-DOM נשמר: .abchip, data-go ו-<b> המספר — הבדיקות קוראות אותם.
+
+   הבורר הוא ‎.abnext .abchip‎ ולא ‎.abchip‎, ולא מתוך נימוס: ‎#track‎
+   נושא עד היום את המחלקה ‎seg‎ משכבה ישנה, ולכן ‎.seg button‎ —
+   ‎background:none;border:none;padding:6px 10px;font-size:11.5px‎ —
+   ניצח בספציפיות (0,1,1 מול 0,1,0) כל אריח שנבנה כאן. נמדד:
+   ‎getComputedStyle(.abchip).backgroundColor === 'rgba(0,0,0,0)'‎ —
+   כלומר הגוון שבניתי מעולם לא הופיע על המסך, וגם ה-hover נחטף
+   לכחול המבטא. אותו כלל ישן חי אחרי המדיה, ולכן גם הכיווץ ב-1300
+   מסומן ‎.abnext‎. */
+.aband{display:flex;flex-direction:column;gap:7px;padding:8px 14px 9px;
  border-block-end:1px solid var(--line2)}
-.abgap{display:flex;gap:7px;align-items:flex-start;font-size:var(--f-xs);
+.abgap{display:flex;gap:8px;align-items:center;font-size:var(--f-xs);
  /* --high-bg ולא צבע קשיח: לטוקן הזה יש ערך גם בנושא הכהה
     (‎#3A2C15‎). נמדד עם רקע קשיח בהיר — 1.11 ניגודיות בכהה. */
  color:var(--ink-2);background:var(--high-bg);border:1px solid var(--line2);
- border-radius:var(--r-ctl);padding:5px 9px}
-.abgap .abi{color:var(--high);flex:0 0 auto}
+ border-radius:var(--r-md);padding:5px 10px}
+.abgap .abi{flex:0 0 auto;width:19px;height:19px;border-radius:var(--r-pill);
+ background:var(--high);color:var(--on-fill);display:grid;place-items:center;font-size:12px}
 .abgap b{color:var(--ink);font-weight:700}
-.abnext{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.abnext .abl{font-size:var(--f-xs);color:var(--dimmer);font-weight:700;
- letter-spacing:.04em;white-space:nowrap}
-.abchip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;
- font-size:var(--f-xs);border:1px solid var(--line);background:var(--panel);
- color:var(--ink-2);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
-.abchip b{font-family:var(--num);font-weight:800;color:var(--ink)}
-.abchip:hover{border-color:var(--accent);color:var(--accent-ink)}
-.abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.abnext{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ align-items:stretch;gap:8px}
+/* הכותרת «מה עוד ממתין» ירדה: מסובבת היא נקראת לרעה, ואופקית היא
+   עולה שורה. ארבעת האריחים נושאים אייקון ותווית ומסבירים את עצמם. */
+.abnext .abl{display:none}
+.abnext .abchip{display:flex;align-items:center;gap:10px;font-family:inherit;text-align:start;
+ font-size:var(--f-sm);border:1px solid color-mix(in srgb,var(--tfg) 34%,var(--panel));
+ background:color-mix(in srgb,var(--tfg) 16%,var(--panel));color:var(--ink-2);
+ border-radius:var(--r-lg);padding:7px 12px;cursor:pointer;min-width:0;
+ box-shadow:var(--e-1);transition:box-shadow .15s,transform .15s}
+.abchip .ic{flex:0 0 auto;width:28px;height:28px;border-radius:var(--r-pill);
+ /* --on-fill ולא #fff: בכהה --high הוא ענבר *בהיר*, ולבן עליו נותן
+    2.01. הטוקן מתהפך עם הנושא ונותן 5.17–7.10 בבהיר ו-6.54–9.29
+    בכהה. נתפס על ידי בודק הניגודיות, לא בעין. */
+ background:var(--tfg,var(--calm));color:var(--on-fill);
+ display:grid;place-items:center;font-size:14px;line-height:1}
+.abchip .lb{flex:1;min-width:0;display:block;line-height:1.25;
+ overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.abchip b{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-weight:800;font-size:19px;color:var(--ink);flex:0 0 auto}
+.abnext .abchip:hover{box-shadow:var(--e-2);transform:translateY(-1px);
+ background:color-mix(in srgb,var(--tfg) 24%,var(--panel))}
+.abnext .abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:1300px){
+ .abnext .abchip{padding:6px 9px;gap:8px;border-radius:var(--r-md)}
+ .abchip .ic{width:24px;height:24px;font-size:12px}
+ .abchip b{font-size:16px}}
 .kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;flex-direction:row-reverse;justify-content:flex-end;background:#fff}
 /* המדד הוא כפתור: לחיצה פותחת את הרשימה שהוא סופר. הוא נבנה כ-button
    ולכן צריך לאפס את ברירות המחדל של הדפדפן ולשמור יישור RTL. */
@@ -479,6 +517,15 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     בטוקן שבאמת נצרך. הרדיוס והצל חלים על הרצועה בלבד, ולא על
     הווידג׳טים: הפריסה כאן היא מלוא-הרוחב, ולהפוך אותה לכרטיסים
     צפים גוזל גובה מרשימת העבודה — וזה בדיוק המחיר שסירבנו לשלם. */
+ /* ============ DESIGN_TOKENS — צורה ועומק ============
+    נמדד לפני השינוי: 108 ערכי border-radius קשיחים בקוד מול 23
+    שימושים בטוקן, ו-`--shadow:none` — כלומר לכלי הייתה מערכת צבע
+    ואפס מערכת צורה. זה מה שגרם לו להיראות שטוח וזוויתי.
+    סולם אחד לרדיוס, סולם אחד לעומק, ומכאן כל רכיב חדש נבנה מהם. */
+ --r-xs:6px; --r-sm:10px; --r-md:14px; --r-lg:18px; --r-xl:24px; --r-pill:999px;
+ --e-1:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.08);
+ --e-2:0 4px 8px -2px rgba(16,24,40,.08),0 2px 4px -2px rgba(16,24,40,.05);
+ --e-3:0 14px 24px -6px rgba(16,24,40,.12),0 4px 8px -4px rgba(16,24,40,.06);
  --r-card:12px;
  --shadow-card:0 1px 2px rgba(11,21,34,.07),0 6px 18px rgba(11,21,34,.08);
 
@@ -535,6 +582,11 @@ body.dark{
  /* לבן על המילוי הבהיר נותן 2.98:1. דיו כהה נותן 6.31:1. ההיפוך מכוון. */
  --on-fill:#0B131C;
 
+ /* העומק בכהה אינו הצללה חזקה יותר אלא טבעת אור דקה: על משטח כהה
+    צל שחור אינו נראה, ומה שמפריד משטחים הוא הקצה המואר. */
+ --e-1:0 0 0 1px rgba(255,255,255,.04),0 1px 2px rgba(0,0,0,.4);
+ --e-2:0 0 0 1px rgba(255,255,255,.05),0 4px 10px rgba(0,0,0,.45);
+ --e-3:0 0 0 1px rgba(255,255,255,.06),0 14px 28px rgba(0,0,0,.5);
  /* הרצועה במצב כהה בהירה מהרקע ולא כהה ממנו — משטח מורם. ההפרש
     מהרקע הוא 1.31 בלבד, ולכן הגבול נשען גם על קו ולא על הצבע לבדו. */
  --shell:#0B131C;
@@ -560,11 +612,35 @@ body.dark{
  --shadow:none; --shadowH:0 10px 30px rgba(0,0,0,.55);
 }
 body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
-/* קצוות חדים בכל הממשק */
-.widget,.kpi,.tab,.btn,.badge,.chip,.fchip,.rq,.cp,.dn,.qbtn,.sxls,.seg,.menu,.ddpanel,.colpop,.modal,
-.sinput,.qsearch,.ddbtn,.marknote,.sres,.spanel,.kv,.acts li,.fixbox,.mvcard,.snone,.msg,.calc,.flag,
-.agebadge,.avb,.markbadge,.kbd,.updated,.fclear,.explain,.toast,.rank,.top input[type=month],.colpop input,.colpop .rng input
- {border-radius:0}
+/* ============ RADIUS_SCALE — במקום «קצוות חדים בכל הממשק» ============
+   כאן ישב כלל אחד שאיפס `border-radius` על ארבעים מחלקות בבת אחת.
+   הוא שריד מכיוון עיצובי קודם, והוא — ולא עשרות החלטות נפרדות —
+   הסיבה שהכלי נראה זוויתי: `.badge` נכתב בקוד עם 20px, `.msg` עם
+   9px, `.kv` עם 9px, `.menu` עם 11px, `.modal` עם 14px. כולם צוירו
+   מרובעים.
+
+   במקומו סולם לפי תפקיד, מאותם טוקנים שהרצועה והטבלה כבר מדברות:
+
+     --r-pill  שבב — דבר שעוטף מספר או מילה אחת
+     --r-sm    פקד — דבר שלוחצים או מקלידים לתוכו
+     --r-md    משטח — דבר שיושב עליו תוכן
+
+   הכלל הזה *מגדיר* רדיוס ואינו מאפס אותו, ולכן רכיב שצריך צורה
+   אחרת דורס אותו בספציפיות ולא נאבק בו. canvas נשאר מרובע: הוא
+   יושב בתוך מכולה מעוגלת ממילא, וקימור כפול מייצר חריץ.
+
+   ‎.widget‎ אינו ברשימה בכוונה. הוא היה בכלל השטוח, אבל יש לו כבר
+   שתי הצהרות מפורשות שמאפסות אותו («הווידג׳טים מאבדים את המסגרת
+   שלהם — הרקע שייך לאזור העבודה»), וזו החלטת פריסה ולא שריד.
+   להכניס אותו לסולם היה מרמז שהוא מעוגל בזמן שהוא לא. */
+.badge,.chip,.fchip,.rq,.cp,.dn,.agebadge,.avb,.markbadge,.kbd,.rank
+ {border-radius:var(--r-pill)}
+.btn,.bpri,.bsec,.qbtn,.sxls,.seg,.sinput,.qsearch,.ddbtn,.fclear,.explain,
+.updated,.tab,.kpi,.top input[type=month],.colpop input,.colpop .rng input
+ {border-radius:var(--r-sm)}
+.menu,.ddpanel,.colpop,.modal,.marknote,.sres,.spanel,.kv,
+.acts li,.fixbox,.mvcard,.snone,.msg,.calc,.flag,.toast
+ {border-radius:var(--r-md)}
 canvas{border-radius:0}
 /* משטחים — עוקבים אחרי הערכה במקום לבן קשיח */
 .top,.widget,.wqueue,.wdetail,.wfilters,.whead,.menu,.ddpanel,.colpop,.modal{background:var(--panel)}
@@ -607,7 +683,8 @@ td{border-bottom:1px solid var(--line2)}
 .wdetail .ohead{border-bottom:2px solid var(--line)}
 .opn{font-family:var(--num);font-size:16px;color:var(--acc);direction:ltr;text-align:start}
 .sec h3{text-transform:uppercase;letter-spacing:.1em;color:var(--dimmer);font-size:10px}
-.acts li::before{border-radius:0;background:var(--acc);color:var(--panel)}
+/* המונה ברשימת הפעולות הוא עיגול, לא ריבוע */
+.acts li::before{border-radius:50%;background:var(--acc);color:var(--panel)}
 .fixbox{border:1px solid var(--line);border-inline-start:4px solid var(--acc)}
 .fixbox .new{color:var(--acc);font-size:26px}
 .explain,.btn.pri{background:var(--acc);color:var(--panel);border-color:var(--acc);font-weight:700}
@@ -849,25 +926,44 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .railfoot b{color:var(--shell-ink)}
 /* הטאבים הופכים לפריטי מסילה אנכיים. .tab ו-.navtab נשמרו. */
 .rail .tabs{display:flex;flex-direction:column;gap:1px;background:none;padding:0;margin:0;border:0}
-.rail .tab.navtab{display:flex;align-items:center;gap:9px;width:100%;border:0;border-radius:0;
- background:none;color:var(--shell-dim);padding:8px 14px;font:inherit;text-align:start;
- border-inline-start:3px solid transparent;position:relative;min-width:0;flex:0 0 auto;box-shadow:none}
+.rail .tab.navtab{display:flex;align-items:center;gap:10px;width:auto;border:0;
+ border-radius:var(--r-md);background:none;color:var(--shell-dim);
+ padding:7px 10px;margin:0 8px;font:inherit;text-align:start;
+ position:relative;min-width:0;flex:0 0 auto;box-shadow:none;
+ transition:background .13s}
 .rail .tab.navtab:hover{background:var(--shell-btn);color:var(--shell-ink)}
+/* הבחירה היא משטח מלא ומעוגל ולא פס צד — זה מה שמייצר תחושת כרטיס */
 .rail .tab.navtab.sel{background:var(--shell-btn);color:var(--shell-ink);
- border-inline-start-color:var(--acc);font-weight:700}
-.rail .tab.navtab .nico{font-size:14px;width:17px;text-align:center;opacity:.9;flex:0 0 auto}
+ font-weight:700;box-shadow:inset 0 0 0 1px var(--shell-track)}
+.rail .tab.navtab.sel .nico{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 28%,transparent),
+ 0 1px 2px rgba(0,0,0,.35)}
+/* ============ RAIL_CHIPS ============
+   המסילה הייתה פס שטוח: אייקון חיוור, שם, וגלולת מונה אחידה. היא
+   אותו רכיב שבתמונה שהמעתד הביא הוא כרטיס עם שבב עגול צבעוני.
+   הצבע חוזר לכאן — אבל לא על הטקסט. ההערה למטה מתעדת שצבעי המותג
+   נתנו 1.86–2.77 על כחול המסילה; לכן הם עוברים לשבב, שהוא משטח
+   משלו, והטקסט נשאר בדיו הסרגל.
+   ובתוך המסילה הטוקנים נדרסים לערכי הנושא הכהה — המסילה כהה בשני
+   המצבים, ולכן היא צריכה את הפלטה שנועדה לרקע כהה. נמדד:
+   שבב-על-מסילה 6.54–9.29, דיו-על-שבב 6.54–9.29. */
+.rail{--critical:#FF7B7B;--high:#F0A93C;--steady:#6BA0FF;--capital:#4FC48A;
+ --trend:#B49BEA;--calm:#8B9AB0;--acc:#6BA0FF}
+.rail .tab.navtab .nico{flex:0 0 auto;width:28px;height:28px;border-radius:var(--r-pill);
+ background:var(--c,var(--shell-track));color:var(--shell);display:grid;place-items:center;
+ font-size:13px;line-height:1;opacity:1;text-align:center;
+ box-shadow:0 1px 2px rgba(0,0,0,.35)}
 .rail .tab.navtab .t{flex:1;font-size:var(--f-md);font-weight:500;white-space:nowrap;
  overflow:hidden;text-overflow:ellipsis;color:inherit}
 /* השם אינו מתעבה בבחירה: ב-1366 ההתעבות הספיקה כדי לחתוך את
    «חוסרים ולקוחות» ברגע שנבחר — כלומר השם נחתך בדיוק כשהסתכלו
    עליו. הבחירה מסומנת ממילא בפס הצד, ברקע ובדיו הבהיר. */
 .rail .tab.navtab .t{font-weight:600}
-.rail .tab.navtab .bdg{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-sm);
- font-weight:700;background:var(--shell-track);color:var(--shell-ink);border-radius:99px;
- padding:1px 7px;min-width:26px;text-align:center;flex:0 0 auto}
+.rail .tab.navtab .bdg{font-family:var(--num);font-variant-numeric:tabular-nums;font-size:var(--f-md);
+ font-weight:800;background:none;color:var(--shell-ink);border-radius:var(--r-pill);
+ padding:0;min-width:0;text-align:end;flex:0 0 auto;letter-spacing:-.01em}
 /* מונה אפס אינו מעלים יעד — הוא משנה את מראה המונה בלבד */
 .rail .tab.navtab .bdg.zero{background:transparent;color:var(--shell-mute);
- border:1px solid var(--shell-track);font-weight:600}
+ border:0;font-weight:600;opacity:.6}
 /* ============ צבעי התחום על המסילה ============
    הסמל והתיאור ירשו את צבעי הסרגל האופקי — צבעי מותג שנבדקו על רקע
    בהיר. על הכחול הכהה של המסילה הם נתנו 1.86-2.77 מול 4.5 הנדרש,
@@ -881,20 +977,38 @@ body.xp #tbl,body.xp .rows{cursor:default}
 @media(max-width:1400px){:root{--rail-w:186px}
  /* «חוסרים ולקוחות» דרש 92px בתוך 87 — חמישה פיקסלים. הם באים
     מהריפוד ומהמרווח, ולא מהרחבת המסילה על חשבון הטבלה. */
- .rail .tab.navtab{padding:7px 8px;gap:6px}
+ .rail .tab.navtab{padding:7px 8px;gap:7px;margin:0 6px}
+ /* השבב מתכווץ עם המסילה. בלי זה «חוסרים ולקוחות» נחתך ב-1366:
+    השבב גדל מ-17 ל-28px, והרוחב שנותר לשם קטן בהתאם. */
+ .rail .tab.navtab .nico{width:24px;height:24px;font-size:12px}
  .railsub2{padding-inline:10px}}
 @media(max-width:1240px){:root{--rail-w:164px}
- .rail .tab.navtab{padding:6px 8px;gap:6px}
- .rail .tab.navtab .nico{width:14px;font-size:13px}
- .rail .tab.navtab .bdg{padding:0 5px;min-width:0}
+ .rail .tab.navtab{padding:6px 7px;gap:6px;margin:0 5px}
+ .rail .tab.navtab .nico{width:21px;height:21px;font-size:11px}
+ .rail .tab.navtab .bdg{padding:0;min-width:0}
  .railsub2{padding-inline:8px}}
 
-.rail .tab.navtab .nico{color:inherit}
-.rail .tab.navtab.sel{border-inline-start-color:var(--c,var(--shell-acc))}
-.rail .tab.navtab.sel .t,.rail .tab.navtab.sel .nico{color:var(--shell-ink)}
+/* שלוש שורות שנשארו מהעיצוב הקודם וישבו *אחרי* המדיה, ולכן דרסו
+   את השבב: הן החזירו צבע יורש לסמל, פס צד לבחירה, ודיו בהיר על
+   השבב הצבעוני. הצבע של התחום חי עכשיו בשבב עצמו. */
+.rail .tab.navtab.sel .t{color:var(--shell-ink)}
 .rail .tab.navtab.sel .bdg{background:var(--shell-track);color:var(--shell-ink)}
-.rail .tab.navtab.alert .bdg{background:var(--shell-crit);color:var(--shell)}
-.rail .tab.navtab.sel.alert .bdg{background:var(--shell-crit);color:var(--shell)}
+/* «יש כאן חומרה 3» היה גלולה ורודה מלאה מאחורי המספר — היא נשארה
+   מהעיצוב הקודם ועכשיו התנגשה עם שבב האייקון הצבעוני ממש לידה.
+   האות עובר לדיו של המספר ולנקודה קטנה: אותה אמירה, בלי שני
+   משטחים צבעוניים נאבקים על אותה שורה. */
+.rail .tab.navtab.alert .bdg,.rail .tab.navtab.sel.alert .bdg{
+ background:none;color:var(--shell-crit)}
+/* הנקודה יושבת על השבב ולא ליד המספר. כשהיא הייתה בתג היא הרחיבה
+   אותו ב-10px, ו«חוסרים ולקוחות» נחתך ב-1366 בשלושה פיקסלים —
+   נמדד 92px בתוך 89. על השבב היא עולה אפס רוחב, וזה גם המקום
+   הנכון לה: סימון על הסמל, כמו כל התראה. */
+.rail .tab.navtab{position:relative}
+.rail .tab.navtab.alert .nico::after{content:'';position:absolute;
+ inset-block-start:-2px;inset-inline-end:-2px;width:8px;height:8px;
+ border-radius:50%;background:var(--shell-crit);
+ box-shadow:0 0 0 2px var(--shell)}
+.rail .tab.navtab .nico{position:relative}
 /* אזור העבודה — עמודה אחת: מדדים · סינון · טבלה. בלי גרירה. */
 .dash{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;min-height:0}
 /* הווידג'טים מאבדים את המסגרת שלהם — הרקע שייך לאזור העבודה. היוצא
@@ -1145,6 +1259,10 @@ body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 /* .tab .t קיים משכבה קודמת עם color:var(--ink) וספציפיות גבוהה יותר.
    בלי ההצהרה המפורשת הזאת הוא נותן דיו בהיר על מילוי בהיר: 2.48:1. */
 .tab.navtab.sel .t,.tab.navtab.sel .nico{color:var(--on-fill)}
+/* הכלל שמעל גנרי ויושב אחרי כללי המסילה, ולכן הוא ניצח אותם: השבב
+   הנבחר קיבל --on-fill (לבן בבהיר) על צבע תחום בהיר — 2.19–2.59.
+   המסילה כהה בשני הנושאים, ולכן הדיו שלה הוא תמיד --shell. */
+.rail .tab.navtab .nico,.rail .tab.navtab.sel .nico{color:var(--shell)}
 .tab.navtab.sel .bdg{background:color-mix(in srgb,var(--on-fill) 22%,transparent);color:var(--on-fill)}
 .tab.navtab.sel.alert .bdg{background:var(--critical);color:var(--on-fill)}
 /* המשנה של הטאב הפעיל בלבד — ספירה בוחרת מסלול, הסכום שייך לתוכו */
@@ -1527,19 +1645,25 @@ td.pnc{padding:5px 14px;font-size:13px}
 #movesPanel td,#movesPanel th .thc{padding:5px 9px}
 
 /* כרטיס הפריט: 1066px תוכן בחלון 328px. מכווץ ומקפל את הצלילה. */
+/* ה-`border-radius:7px` ירד מכל הכללים כאן: השכבה הזאת שולטת
+   בריפוד ובגודל, לא בצורה. הצורה באה מ-`RADIUS_SCALE` — אחרת כל
+   שינוי בסולם צריך להיזכר גם כאן, ואחד מהם תמיד יישכח. נמדד:
+   אחרי החלפת הכלל השטוח הכללים האלה החזירו את .kv ו-.fixbox
+   ו-.mvcard ל-7px בשקט, בזמן ש-.msg (שיש לו כלל ייעודי בכרטיס)
+   נשאר 14. אותו רכיב, שתי צורות. */
 .opad{padding:10px 14px;gap:9px}
 .sec h3{font-size:10.5px;margin-bottom:4px;padding-bottom:3px}
-.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
-.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
+.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
+.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
 .acts li::before{width:16px;height:16px;font-size:9.5px}
-.kv{grid-template-columns:repeat(4,1fr);border-radius:7px}
+.kv{grid-template-columns:repeat(4,1fr)}
 .kv .box{padding:4px 7px}
 .kv .box b{font-size:12px}
 .kv .box span{font-size:9px}
 .mvrow{gap:6px;margin-top:4px}
-.mvcard{padding:5px 9px;border-radius:7px}
+.mvcard{padding:5px 9px}
 .mvcard .dt{font-size:13px}
-.fixbox{padding:6px;border-radius:7px}
+.fixbox{padding:6px}
 .fixbox .new{font-size:19px}
 .dcs{padding:12px 16px}
 .dca{font-size:17px;margin-top:6px}
@@ -2403,6 +2527,68 @@ tr.grp.sup b{font-size:var(--f-md)}
 .ag i{font-style:normal;color:var(--red);margin-inline-start:1px}
 #histChip{cursor:default}
 #histChip b{font-family:var(--num)}
+
+/* ============ TABLE_PILL — הסיווג הופך לגלולה ============
+   `.badge{border-radius:0}` שרד משכבה שטוחה ישנה ודרס את ה-20px
+   שנכתבו לו; הסיווג היה טקסט צבעוני עם הדגשה צמודה, לא תג.
+   הגלולה נבנית מ---c שה-inline של sCatStyle מספק, ולכן הטבעת
+   והמילוי תמיד מאותו גוון של השורה.
+   הגובה נשמר במכוון: line-height 1.35 על 10-11px נותן קופסה של
+   15-17px, בדיוק כמו שורת הטקסט שהייתה שם. נמדד — 20 שורות לפני
+   ו-20 אחרי, בכל שלושת הרוחבים.
+   ובלי טבעת: ניסיתי ‎inset 0 0 0 1px‎ ב-26%, והטור נראה כמו שש-עשרה
+   קופסאות משורטטות זו מעל זו. גוון הרקע לבדו כבר אומר «גלולה»,
+   והעמודה חוזרת להיות ניתנת לסריקה. */
+#tbl td .ocat,#tbl td .badge,#movtbl td .badge{display:inline-block;
+ border-radius:var(--r-pill);padding:1px 7px;line-height:1.35;
+ font-weight:700;white-space:nowrap;
+ box-shadow:none}
+/* `td.note .ocat` נתן ‎color:var(--c)‎ בספציפיות (0,2,0) ו---c לא היה
+   מוגדר שם; ההצהרה שרדה רק כי ה-inline של sCatStyle ניצח.
+
+   והמרווח השלילי אינו קוסמטיקה אלא תקציב: ב-1366 לעמודת «הפעולה
+   הבאה» אין ולו פיקסל אחד עודף. נמדד — ריפוד של 6px לגלולה (ואפילו
+   3px) הרחיב את עמודת הסיווג, «הפעולה הבאה» איבדה את אותו רוחב,
+   והשורות עם הטקסט הארוך קפצו מ-31px ל-46px: שתי שורות במקום אחת,
+   ושורה שלמה פחות על המסך. ‎-5px‎ מחזיר את ריפוד הגלולה אל תוך ריפוד
+   התא (‎9px‎ ממילא), ולכן העמודה לא גדלה בכלל. נמדד אחרי: 31px בכל
+   22 השורות הראשונות, 20 שורות שלמות בשלושת הרוחבים. */
+#tbl td.note .ocat{margin-inline:-5px}
+/* ============ TABLE_SEPARATORS — הקו בין השורות מתרכך ============
+   נמדד: ‎--line2‎ מלא בין כל שתי שורות נותן רשת. בשיעור 62% הקו עדיין
+   מפריד אך אינו מצייר. הריחוף עובר מ---panel2 (משטח) לגוון החומרה
+   של אותה שורה ב-7% — השורה שהעכבר עליה מאירה בצבע שלה. */
+#tbl tbody td{border-bottom-color:color-mix(in srgb,var(--line2) 62%,transparent)}
+#tbl tbody tr:hover>td{background:color-mix(in srgb,var(--rowc,var(--calm)) 7%,var(--panel))}
+#tbl tbody tr.sel>td{background:color-mix(in srgb,var(--steady) 14%,var(--panel))}
+#tbl tbody tr.sev3{--rowc:var(--critical)}
+#tbl tbody tr.sev2{--rowc:var(--high)}
+#tbl tbody tr.sev1{--rowc:var(--steady)}
+#tbl tbody tr.sev0{--rowc:var(--calm)}
+
+/* ============ CARD_ROUND — כרטיס הפריט ============
+   השורש נמצא, והוא כלל אחד: «קצוות חדים בכל הממשק» מאפס
+   `border-radius` על 40 מחלקות בבת אחת —
+   `.widget,.kpi,.tab,.btn,.badge,.chip,.msg,.kv,.acts li,.fixbox…`.
+   הוא שריד מכיוון עיצובי קודם, ולא עשרות החלטות נפרדות: זו הסיבה
+   היחידה שהכלי נראה זוויתי.
+
+   הכלל הוחלף מאז בסולם `RADIUS_SCALE` החל על כל הממשק (ראה שם),
+   והבלוק הזה התכווץ למה שבאמת ייחודי לכרטיס. */
+/* ============ CARD_STRIP — חמשת המספרים ============
+   אותה שפה של אריחי מסך הפתיחה: פינה עגולה, גוון סמנטי, המספר
+   נקרא לפני התווית. «פער» נשאר אדום — אבל ‎--critical-bg‎ ולא גוון
+   חזק יותר: ‎--critical‎ על תערובת של 16% נותן 3.95 ונופל, ועל
+   ‎--critical-bg‎ (כ-10%) הוא נותן 4.52. המסגרת מתרככת, לא המילוי. */
+.wdetail .cstrip{gap:7px}
+.wdetail .cstrip .cs{border-radius:var(--r-md);padding:6px 10px;min-width:62px}
+.wdetail .cstrip .cs.g{border-color:color-mix(in srgb,var(--critical) 38%,var(--panel))}
+/* ============ CARD_MSG — «מה מצדיק את זה» ============
+   הפס הצדדי נשאר (הוא נושא את החומרה), אבל הפינה שלו מתעגלת עם
+   הקופסה במקום להיחתך בזווית ישרה. */
+.wdetail .dcwhy .msg,.wdetail .dcnote{border-radius:var(--r-md)}
+.wdetail .dcnote{border-start-start-radius:var(--r-xs);border-end-start-radius:var(--r-xs)}
+.wdetail .dcwhy .msg{border-start-start-radius:var(--r-xs);border-end-start-radius:var(--r-xs)}
 </style>
 </head>
 <body>
@@ -2416,7 +2602,8 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים. «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
+    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
+    <button class="btn" id="sapSlowXls" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
@@ -3630,7 +3817,30 @@ function onDemand(it){if(it.isPDItem||OD_GROUPS.has(it.mkt1))return true;
 function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
-function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
+/* ============ PARAM_SPLIT — «עדכון פרמטרים» היה שלושה דברים ============
+   נמדד על הדוח של 5.10 (7,987 פריטים · 755 המלצות פרמטר):
+
+   | קבוצה | פריטים | שווי הפערים | הבסיס |
+   |---|---|---|---|
+   | פרמטר מעל צריכת 3 שנים | 118 | $89,109 · 59% | צריכה בפועל |
+   | רצפת מדרגת מחיר | 520 | $17,867 · 12% | מדרגת מחיר |
+   | ביקוש מדיד (d12>3) | 103 | $43,795 · 29% | חישוב סטטיסטי |
+
+   שלושתן נקראו «עדכון פרמטרים» וישבו באותה רשימה של 755 — ולכן
+   ההמלצה החזקה בכלי (118 פריטים, 59% מהכסף, ובלי שום תחזית: ב-SAP
+   יושב פרמטר גדול מכל מה שנצרך בשלוש שנים) נקברה תחת 520 שורות של
+   ‎$34‎ בממוצע, שהן בכלל *החלטת מדיניות אחת* ולא 520 החלטות.
+
+   הפיצול אינו משנה אף חישוב: אותם ‎sugROP‎/‎sugSS‎ בדיוק. הוא משנה את
+   השם, את הדלת ואת מי שנכנס לקובץ ה-SAP. */
+const PB_MONTHS=1;
+function paramGapQ(r){return Math.max(Math.abs((r.sugROP||0)-(r.rop||0)),
+                                      Math.abs((r.sugSS||0)-(r.ss||0)))}
+/* «זניח» מוגדר רק במקום שבו יש ביקוש לחלק בו. בלי קצב אין חודשי
+   ביקוש, ולכן פריט תנועה-נדירה לעולם אינו נופל לכאן — הוא מסווג
+   לפי הבסיס שלו ולא לפי סף. */
+function paramThin(r){return r.rate>0&&paramGapQ(r)/r.rate<PB_MONTHS}
+function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[],over3y:[],tier:[]};
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
@@ -3942,26 +4152,34 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      הסף אינו שרירותי: פרמטר שגדול מכל מה שנמכר בשלוש שנים אינו סביר. */
   {const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
    if(it.rate<=0&&!it.isPDItem&&(it.rop>bar||it.ss>bar)){
-    it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    /* הסיווג נפרד מ«עדכון פרמטרים»: כאן אין תחזית ואין מודל — יש
+       עובדה מהדוח. זו ההמלצה שאפשר להגן עליה בלי לדון בשיטה. */
+    it.sev=1;it.cat='פרמטר מעל 3 שנים';it.paramFix=true;it.over3y=true;
     const tgt=`נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS}`;
     it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
             ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר'],
             it.lowFloor?['info',`ההמלצה אינה אפס אלא ${it.lowFloor}: ${money(it.price,it.currency)} ליחידה (מדרגת «${it.lowBand?it.lowBand.name:''}») — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)}, פחות מהמתנה של ${Math.round(it.ltD)} יום`]:null].filter(Boolean);
     it.act=[`לשנות ${tgt}`,
             'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
-    Q.quality.push(it);continue}}
+    Q.over3y.push(it);continue}}
   /* ============ הצד השני של אותה מדיניות ============
      פריט זול בלהקת 1–3 שב-SAP יושב עליו אפס, או שיושבת עליו רצפה
      רדודה מדי למדרגה שלו. ראה LOWDEM_TIERS. */
   if(it.lowFloor&&it.rate<=0&&!it.isPDItem&&!it.isOD&&(it.rop<it.sugROP||it.ss<it.sugSS)){
-   it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+   /* ‎paramFix‎ נשאר דלוק, וזה לא פרט טכני. בדיקת «אין פער בין
+      הרצפה ל-SAP שאיש אינו מדווח עליו» משתמשת בו כסמן ש*מישהו*
+      נושא את ההחלטה — «לא חשוב איזה רונג שם אותו, חשוב שמישהו שם».
+      כיביתי אותו כאן, והבדיקה תפסה חמישה פריטים עם פער ‎0→3‎ שאיש
+      כבר לא דיווח עליהם. ההפרדה מקובץ ה-SAP נעשית לפי הסיווג
+      (כמו ‎SAP_CAP_CATS‎) ולא בכיבוי הסמן. */
+   it.sev=1;it.cat='רצפת מדרגה';it.tierFloor=true;it.paramFix=true;
    it.why=[['warn',`נוכחות רדודה מדי: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
            ['info',`${it.d12} יח׳ ב-11 חודשים — מעט מדי לחישוב סטטיסטי, אבל לא אפס`],
            ['idea',`${money(it.price,it.currency)} ליחידה · מדרגת «${it.lowBand?it.lowBand.name:''}» · אספקה ${Math.round(it.ltD)} יום — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)} ומכסים את השנה`],
            it.free<=0?['err','מלאי פנוי אפס — הפריט חשוף עכשיו']:null].filter(Boolean);
    it.act=[`לקבוע נקודת הזמנה ${it.sugROP} ומלאי ביטחון ${it.sugSS}`,
            'אם המדיניות לפריט היא לפי דרישה — לשנות סוג MRP במקום להשאיר אפס'];
-   Q.quality.push(it);continue}
+   Q.tier.push(it);continue}
   it.why=[['ok','לא זוהתה בעיה — הפריט תקין ביחס לביקוש, לכיסוי ולפרמטרים']];it.act=['אין פעולה נדרשת'];Q.ok.push(it)}
  /* ============ שקט אחרי מכירה ============
     הקצב נמדד על ששת החודשים האחרונים בלבד. פריט שנמכר יפה לפני שמונה
@@ -4083,6 +4301,29 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
    ssGap&&ropGap?`לעדכן מלאי ביטחון ל-${it.sugSS} ונקודת הזמנה ל-${it.sugROP}`
    :ssGap?`לעדכן מלאי ביטחון ל-${it.sugSS}`
    :`לעדכן נקודת הזמנה ל-${it.sugROP}`].slice(0,4)}
+ /* ============ PARAM_BAND — פער שאינו מהותי יורד מרשימת העבודה ============
+    הסף הוא חודש ביקוש אחד. עם זמן אספקה של 120 יום זה רבע מהביקוש
+    בזמן האספקה — מהותי מספיק כדי להצדיק נגיעה ב-SAP.
+
+    נמדד על 103 הפריטים שבהם הביקוש מדיד: סף 0.5 משאיר 87 · סף 1
+    משאיר 72 · סף 1.5 משאיר 50 · סף 2 משאיר 33. נבחר 1.
+
+    הפריט אינו נעלם — הוא מסווג «פער פרמטרים זניח», נספר בקטלוג
+    ונשאר בר-סינון. מה שיורד הוא התביעה שלו לזמן של המעתד. */
+ for(const it of items){
+  /* ‎odStale‎ ברשימה הזאת כי הוא נתפס בבדיקה: פריט שההחרגה «לפי
+     דרישה» שלו פגה מסווג «עדכון פרמטרים» — אבל הפעולה שם היא
+     *לאמת את ההחרגה*, לא לתקן מספר. הסף הוריד אותו ל«זניח» ומחק
+     את האימות. ארבעת הדגלים כאן הם כל המקרים שבהם הסיווג הזה אינו
+     נובע מפער מספרי: החרגה שפגה, רמת שירות חסרה, זמן אספקה חסר,
+     ופרמטר מעל צריכת 3 שנים. */
+  if(!it.paramFix||it.over3y||it.serviceMissing||it.ltMissing||it.odStale)continue;
+  if(it.cat!=='עדכון פרמטרים'||!paramThin(it))continue;
+  const g=paramGapQ(it),m=(g/it.rate);
+  it.cat='פער פרמטרים זניח';it.sev=0;it.paramFix=false;it.thinGap=true;
+  it.why=[['info',`הפער בין הקיים למוצע הוא ${g} יח׳ — ${m.toFixed(2)} חודשי ביקוש`],
+    ['idea',`מתחת ל-${PB_MONTHS} חודשי ביקוש ההפרש בין המספר שב-SAP למוצע קטן מרעש הביקוש עצמו`]];
+  it.act=['אין פעולה נדרשת — הפער קטן מכדי להצדיק עדכון'];}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
@@ -4327,11 +4568,13 @@ const NAV=[
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
+ over3y:'month',tier:'month',
  qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
- month:[['month','תיקוני פרמטרים'],['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
+ month:[['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
+   ['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
  qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
  cap:[['cap','הון כלוא']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
@@ -4350,6 +4593,8 @@ const NAV_WHAT={
  catalog:'חיפוש ובדיקה של כל הפריטים',
  burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
  cust:'הזמנת לקוח שהמלאי והרכש יחד אינם מכסים',
+ over3y:'ב-SAP יושב פרמטר גדול מכל מה שנצרך בשלוש שנים — עובדה מהדוח, לא תחזית',
+ tier:'חלק זול שב-SAP יושב עליו אפס — החלטת מדיניות אחת לכל המדרגה',
  floor:'רצפת ssMin שגבוהה מהדרישה הסטטיסטית',
  trend:'הביקוש ירד בתוך חלון הקצב',
  rise:'הביקוש עלה ונקודת ההזמנה מפגרת',
@@ -4624,6 +4869,10 @@ const MODESET={
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
  done:{cur:'marked',track:'done'},
  /* רצפת מלאי הביטחון — כל הפריטים, לא רק תור העבודה */
+ /* cur:'today' ולא 'all': עם 'all' גם currentRows גם modeRows
+    מחזירים את הקטלוג כולו, והמונה היה מראה 7,987 במקום 118.
+    הדלתות האלה הן רשימות החלטה, כמו «תיקוני פרמטרים» שלידן. */
+ over3y:{cur:'today',track:'over3y'},tier:{cur:'today',track:'tier'},
  floor:{cur:'all',track:'floor'},
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
@@ -4743,12 +4992,27 @@ let track='line', trackPicked=false;
    למסלול שיש בו עבודה. ברגע שהמשתמש בוחר מסלול ידנית, הבחירה שלו קובעת. */
 /* המצב קובע את המסלול, ולכן אין יותר החלפה אוטומטית מאחורי הגב */
 function autoTrack(){}
-function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
- /* #c2740c היה קשיח כאן — אותו צבע בשני הנושאים, ונופל בשניהם:
-    3.33 על --orgL בהיר ו-4.27 על --orgL כהה, מול דרישה של 4.5.
-    הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך. */
- const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'var(--org)':'var(--gray)';
- return `background:${bg};color:${fg}`}
+/* ============ SEV_SCALE — סולם החומרה היה הפוך בין 1 ל-2 ============
+   #c2740c היה קשיח כאן — אותו צבע בשני הנושאים, ונופל בשניהם:
+   3.33 על --orgL בהיר ו-4.27 על --orgL כהה, מול דרישה של 4.5.
+   הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך.
+
+   ומה שהתגלה מתחתיו: הגלולה והפס הצדדי של *אותה שורה* אמרו שני
+   דברים שונים. הפס (`tr.sev2>td.rnk`) היה ענבר לחומרה 2 וכחול
+   לחומרה 1 — סולם עולה. הגלולה הייתה כחולה לחומרה 2 וענבר לחומרה
+   1 — סולם יורד. כלומר «חשד אזילה» (2) נצבע כחול ו«עדכון
+   פרמטרים» (1) נצבע ענבר, וענבר חם יותר מכחול: הטור נקרא כאילו
+   עדכון פרמטרים דחוף מחשד אזילה.
+
+   הגלולה מיושרת עכשיו לפס, ושניהם לפלטה הסמנטית שהמסילה והאריחים
+   מדברים: 3 critical · 2 high · 1 steady · 0 calm. הערכים זהים
+   לטוקנים הישנים (‎--red≡--critical‎, ‎--org≡--high‎, ‎--acc≡--steady‎,
+   ‎--gray≡--calm‎), ולכן אין כאן צבע חדש — רק ההצמדה תוקנה.
+   הסיווג עצמו, הספים והמנוע לא נגעו. */
+function sevTone(r){const v=r&&r.sev||0;
+ return v>=3?'critical':v===2?'high':v===1?'steady':'calm'}
+function sCatStyle(r){const c=sevTone(r);
+ return `--c:var(--${c});background:var(--${c}-bg);color:var(--${c})`}
 /* ==================== TIMELINE — ציר של שבע תחנות ====================
    הרפורמה: המק״ט מפסיק להיות ציר הארגון. הציר הוא הזמן.
 
@@ -4849,7 +5113,11 @@ function SHORTLIKE(){return track==='short'||(track==='line'&&LINE_SEL!=='recur'
    בעמודות של מסלול הפרמטרים — ROP, SS, הדרישה, ומה לתקן. זה השדרוג
    שהמתכנן ביקש: הפרמטר מפסיק להיות מסלול תחזוקה נפרד ונעשה הסיבה
    שהציר ייראה אותו דבר בעוד חודשיים. */
+/* שתי הדלתות החדשות מציגות את אותן עמודות של תיקוני הפרמטרים —
+   קיים מול מוצע, זמן אספקה והפעולה — ולכן הן FIXLIKE. בלי זה
+   colViewKey נופל למרנדר הגנרי והטבלה מאבדת את עמודות ה-ROP/SS. */
 function FIXLIKE(){return track==='fix'||track==='month'
+  ||track==='over3y'||track==='tier'
   ||(track==='line'&&LINE_SEL==='recur')}
 const heDate=d=>{const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)};
 function lineMoney(list){return moneyMix(list,lineVal)}
@@ -5187,12 +5455,26 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  /* שני המקומות שהפילו את הטעינה ניגשו ל-QF בלי הגנה, בעוד `base`
     שתי שורות מעליהם כבר נזהר. הגישה עוברת דרך קורא אחד. */
  const qf=k=>(QF&&QF[k])||[];
- const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&qf('follow').includes(r)))
+ /* ============ SAP_SPLIT — הדלת מסכימה עם הקובץ ============
+    `paramFix` דלוק גם על פריט «מלאי איטי», כי יישור ROP הוא אכן
+    תיקון פרמטר. אבל אחרי שהוא הוצא מקובץ העדכון, השארתו ברשימת
+    העבודה הייתה משאירה דלת של 868 שמייצאת 212 — ואין דבר שמרגיל
+    מהר יותר להתעלם מרשימה מאשר רשימה שהכפתור שלה אינו מסכים איתה.
+    אותו בורר בדיוק בשני המקומות. */
+ const capCat=r=>SAP_CAP_CATS.has(r.cat)||!!r.tierFloor;
+ const out=(tr==='fix'||tr==='month')
+    ?base.filter(r=>(r.paramFix&&!capCat(r))||(tr==='month'&&qf('follow').includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='agenda'?agendaRows()
   /* תור `quality` כפי שהמנוע כבר בנה אותו — לא סף חדש ולא סיווג חדש */
   :tr==='qual'?qf('quality').filter(passColFilters)
      .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
+  /* שתי הדלתות החדשות נשענות על התורים שהמנוע בנה, כמו `qual` —
+     לא על סינון חוזר של הקטלוג. הסדר: הגדול בשווי הפער קודם. */
+  :tr==='over3y'?qf('over3y').filter(passColFilters)
+     .sort((a,b)=>(paramGapQ(b)*(b.price||0))-(paramGapQ(a)*(a.price||0)))
+  :tr==='tier'?qf('tier').filter(passColFilters)
+     .sort((a,b)=>(paramGapQ(b)*(b.price||0))-(paramGapQ(a)*(a.price||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='line'?lineRows()
   /* «לקוח ממתין ללא רכש» לפני «אין מלאי»: isT1 דורש מדף אפס *בדיוק*,
@@ -6089,12 +6371,21 @@ function renderAgendaBand(){
  const orph=(typeof etaOrphanTxt==='function')?etaOrphanTxt():'';
  /* «מה עוד ממתין» — אותם מונים בדיוק של המסילה, כדי ששני המקומות
     לא יוכלו להיפרד. */
- const NEXT=[['line','רכש ואספקות',null],
-   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow],
-   ['qual','איכות נתונים',null],['cap','הון כלוא',null]];
- const chips=NEXT.map(([k,l,fixed])=>{let n=fixed;
+ /* הצבע והאייקון של כל אריח הם אותם של התחום במסילה — מי שלומד
+    שסגול הוא «תכנון ו-MRP» רואה את אותו סגול בשני המקומות.
+    הצבע לעולם אינו לבד: אייקון ותווית בכל אריח. */
+ const NEXT=[['line','רכש ואספקות',null,'steady','⇄'],
+   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow,'trend','◆'],
+   ['qual','איכות נתונים',null,'high','⚒'],
+   ['cap','הון כלוא',null,'capital','❤']];
+ const chips=NEXT.map(([k,l,fixed,c,ic])=>{let n=fixed;
    if(n==null){try{n=navCount(k).n}catch(_){n=0}}
-   return `<button type="button" class="abchip" data-go="${k}">${esc(l)}<b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
+   return `<button type="button" class="abchip" data-go="${k}"`
+    +` style="--tfg:var(--${c})"`
+    +` title="${esc(l)} — ${n.toLocaleString('he-IL')}">`
+    +`<span class="ic" aria-hidden="true">${ic}</span>`
+    +`<span class="lb">${esc(l)}</span>`
+    +`<b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
  t.style.display='';
  t.innerHTML=`<div class="aband">`
   +(gaps.length?`<div class="abgap"><span class="abi">⚠</span><span>${gaps.join(' · ')}${orph?' · '+esc(orph):''}</span></div>`:'')
@@ -7852,19 +8143,39 @@ const SAP_COLS=['חומר ','אתר','מלאי בטחון','מלאי ביטחו�
   'נקודת הזמנה חוזרת','קבוצת רכש','פרופיל MRP','זמן אספקה מתוכנן'];
 /* שורה נכנסת רק אם יש בה המלצה *ושונה* מהקיים. פריט שכבר במספר
    המוצע אינו עדכון — הוא רעש בקובץ ושורה מיותרת ב-SAP. */
-function sapMassUsable(r){
+/* ============ SAP_SPLIT — שני קבצים, לא אחד ============
+   נמדד על הדוח של 5.10: קובץ העדכון יצא עם 720 שורות, ומתוכן
+   **507 היו «מלאי איטי» ועוד אחת «ירידה בביקוש»** — 648 מכלל 720
+   בלי קצב ביקוש מדיד בכלל.
+
+   זה לא באג: שתי לולאות מאוחרות מדליקות `paramFix` על פריט שכבר
+   מסווג, כי «היא יישור פרמטר» (ההערה שם). אבל ההחלטה על פריט איטי
+   היא «להפסיק להזמין את זה» — החלטת הון שדורשת בדיקה אחרת לגמרי
+   מ«לכוון את ROP ל-14 במקום 11». כשהן באותו קובץ, 212 החלטות
+   פרמטר נבלעות בתוך 508 החלטות הון, ומי שמאשר את הקובץ מאשר את
+   שתיהן בלי לראות שהן שתיים.
+
+   אותם מספרים בדיוק, אותו פורמט, שני קבצים. */
+const SAP_CAP_CATS=new Set(['מלאי איטי','מלאי מת','מלאי מת — לבדיקה',
+ 'עודף מלאי','ירידה בביקוש']);
+function sapUsableBase(r){
  if(!r||!r.paramFix)return false;
  if(!(r.ltD>0))return false;                 /* בלי זמן אספקה אין על מה לבנות */
  const ss=r.sugSS,rop=r.sugROP;
  if(!(ss>0)&&!(rop>0))return false;
  return ss!==r.ss||rop!==r.rop}
-function sapMassRows(list){
+function sapMassUsable(r){return sapUsableBase(r)&&!SAP_CAP_CATS.has(r.cat)&&!r.tierFloor}
+function sapSlowUsable(r){return sapUsableBase(r)&&SAP_CAP_CATS.has(r.cat)}
+function sapTierUsable(r){return sapUsableBase(r)&&!!r.tierFloor}
+function sapRowsBy(list,pred){
  const out=[SAP_COLS.slice()];
- for(const r of (list||[]).filter(sapMassUsable))
+ for(const r of (list||[]).filter(pred))
   out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
             r.sugROP, r.pGroup||'', '', r.ltD]);
  return out}
-function doSapMass(){
+function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
+function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
+function doSapMass(kind){
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
@@ -7872,8 +8183,13 @@ function doSapMass(){
     המלצה, והקובץ יצא עם 178 — 607 שורות נעלמו בשקט, בקובץ שנכתב
     ל-SAP. סדר השורות בקובץ העלאה אינו משנה; שלמותו כן. */
  const view=currentRows();
- const aoa=sapMassRows(view);
- if(aoa.length<2){toast('אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
+ /* עומדים על דלת «רצפת מדרגה» → הקובץ הוא שלה. בכל דלת אחרת זהו
+    קובץ הפרמטרים השוטף, בלי רצפות ובלי מלאי איטי. */
+ const aoa=kind==='slow'?sapSlowRows(view)
+   :(track==='tier'?sapRowsBy(view,sapTierUsable):sapMassRows(view));
+ if(aoa.length<2){toast(kind==='slow'
+   ?'אין בתצוגה הזאת פריט מלאי איטי/מת עם המלצה שונה מהקיים'
+   :'אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
  const ws=XLSX.utils.aoa_to_sheet(aoa);
  /* «חומר» חייב להישאר טקסט — 13 מק״טים בדוח האמיתי נפתחים באפס,
     ומספר יבלע אותו. */
@@ -7881,8 +8197,9 @@ function doSapMass(){
  ws['!cols']=[{wch:18},{wch:8},{wch:12},{wch:18},{wch:18},{wch:12},{wch:12},{wch:16}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'גיליון1');
  const d=new Date(),p2=n=>String(n).padStart(2,'0');
- XLSX.writeFile(wb,`SAP_Params_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
- toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות · «פרופיל MRP» ריקה למילוי ידני`)}
+ const nm=kind==='slow'?'SAP_SlowStock':'SAP_Params';
+ XLSX.writeFile(wb,`${nm}_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
+ toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות${kind==='slow'?' · מלאי איטי/מת':''} · «פרופיל MRP» ריקה למילוי ידני`)}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  const aoa=exportRows(currentRows());
@@ -8216,6 +8533,7 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
 document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
 {const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>doSapMass();}
+{const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>doSapMass('slow');}
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
  const parts=[];
@@ -8471,7 +8789,7 @@ function demoRows(){
    בנייה המשתמש יושב. דפדפן מחזיק HTML במטמון, והבדל בין «לא תוקן»
    ל«תוקן אבל לא הגיע אליך» הוא כל ההבדל. המזהה נאמר בכל הודעת
    שגיאה ובתפריט «עוד», ולכן תמיד אפשר לשאול עליו. */
-const BUILD='2026-10-04b';
+const BUILD='2026-10-05a';
 /* שלוש משפחות כשל, ולכל אחת פעולה אחרת לגמרי:
    אין ספרייה -> תקלה בכלי · הקובץ לא נפתח -> הקובץ · נפתח ונפל
    אחר כך -> באג אצלנו, והקובץ של המשתמש תקין. */
@@ -8585,7 +8903,7 @@ function tourWire(){
 /* «עדכון ל-SAP» יורד ל«עוד» מיד אחרי מצב כהה והגיבוי: הוא פעולה
    של סוף תהליך, לא של כל רגע. בלעדיו הסרגל גלש ב-10px ב-1366 —
    הכפתור החדש נכנס לסרגל בלי להירשם בסדר הוויתור. */
-const TOP_DROP=['darkToggle','stBtn','sapXls','expXls','exportXls','filtBtn'];
+const TOP_DROP=['darkToggle','stBtn','sapSlowXls','sapXls','expXls','exportXls','filtBtn'];
 function fitTop(){
  const lc=document.querySelector('.top .lc'),wrap=document.getElementById('moreWrap'),
        menu=document.getElementById('moreMenu');
