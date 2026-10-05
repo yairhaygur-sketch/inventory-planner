@@ -2602,7 +2602,8 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים. «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
+    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
+    <button class="btn" id="sapSlowXls" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
@@ -3816,7 +3817,30 @@ function onDemand(it){if(it.isPDItem||OD_GROUPS.has(it.mkt1))return true;
 function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
-function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[]};
+/* ============ PARAM_SPLIT — «עדכון פרמטרים» היה שלושה דברים ============
+   נמדד על הדוח של 5.10 (7,987 פריטים · 755 המלצות פרמטר):
+
+   | קבוצה | פריטים | שווי הפערים | הבסיס |
+   |---|---|---|---|
+   | פרמטר מעל צריכת 3 שנים | 118 | $89,109 · 59% | צריכה בפועל |
+   | רצפת מדרגת מחיר | 520 | $17,867 · 12% | מדרגת מחיר |
+   | ביקוש מדיד (d12>3) | 103 | $43,795 · 29% | חישוב סטטיסטי |
+
+   שלושתן נקראו «עדכון פרמטרים» וישבו באותה רשימה של 755 — ולכן
+   ההמלצה החזקה בכלי (118 פריטים, 59% מהכסף, ובלי שום תחזית: ב-SAP
+   יושב פרמטר גדול מכל מה שנצרך בשלוש שנים) נקברה תחת 520 שורות של
+   ‎$34‎ בממוצע, שהן בכלל *החלטת מדיניות אחת* ולא 520 החלטות.
+
+   הפיצול אינו משנה אף חישוב: אותם ‎sugROP‎/‎sugSS‎ בדיוק. הוא משנה את
+   השם, את הדלת ואת מי שנכנס לקובץ ה-SAP. */
+const PB_MONTHS=1;
+function paramGapQ(r){return Math.max(Math.abs((r.sugROP||0)-(r.rop||0)),
+                                      Math.abs((r.sugSS||0)-(r.ss||0)))}
+/* «זניח» מוגדר רק במקום שבו יש ביקוש לחלק בו. בלי קצב אין חודשי
+   ביקוש, ולכן פריט תנועה-נדירה לעולם אינו נופל לכאן — הוא מסווג
+   לפי הבסיס שלו ולא לפי סף. */
+function paramThin(r){return r.rate>0&&paramGapQ(r)/r.rate<PB_MONTHS}
+function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[],over3y:[],tier:[]};
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
@@ -4128,26 +4152,34 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      הסף אינו שרירותי: פרמטר שגדול מכל מה שנמכר בשלוש שנים אינו סביר. */
   {const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
    if(it.rate<=0&&!it.isPDItem&&(it.rop>bar||it.ss>bar)){
-    it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    /* הסיווג נפרד מ«עדכון פרמטרים»: כאן אין תחזית ואין מודל — יש
+       עובדה מהדוח. זו ההמלצה שאפשר להגן עליה בלי לדון בשיטה. */
+    it.sev=1;it.cat='פרמטר מעל 3 שנים';it.paramFix=true;it.over3y=true;
     const tgt=`נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS}`;
     it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
             ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר'],
             it.lowFloor?['info',`ההמלצה אינה אפס אלא ${it.lowFloor}: ${money(it.price,it.currency)} ליחידה (מדרגת «${it.lowBand?it.lowBand.name:''}») — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)}, פחות מהמתנה של ${Math.round(it.ltD)} יום`]:null].filter(Boolean);
     it.act=[`לשנות ${tgt}`,
             'לבדוק אם הפריט עדיין פעיל או שהוא מועמד לחיסול'];
-    Q.quality.push(it);continue}}
+    Q.over3y.push(it);continue}}
   /* ============ הצד השני של אותה מדיניות ============
      פריט זול בלהקת 1–3 שב-SAP יושב עליו אפס, או שיושבת עליו רצפה
      רדודה מדי למדרגה שלו. ראה LOWDEM_TIERS. */
   if(it.lowFloor&&it.rate<=0&&!it.isPDItem&&!it.isOD&&(it.rop<it.sugROP||it.ss<it.sugSS)){
-   it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+   /* ‎paramFix‎ נשאר דלוק, וזה לא פרט טכני. בדיקת «אין פער בין
+      הרצפה ל-SAP שאיש אינו מדווח עליו» משתמשת בו כסמן ש*מישהו*
+      נושא את ההחלטה — «לא חשוב איזה רונג שם אותו, חשוב שמישהו שם».
+      כיביתי אותו כאן, והבדיקה תפסה חמישה פריטים עם פער ‎0→3‎ שאיש
+      כבר לא דיווח עליהם. ההפרדה מקובץ ה-SAP נעשית לפי הסיווג
+      (כמו ‎SAP_CAP_CATS‎) ולא בכיבוי הסמן. */
+   it.sev=1;it.cat='רצפת מדרגה';it.tierFloor=true;it.paramFix=true;
    it.why=[['warn',`נוכחות רדודה מדי: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
            ['info',`${it.d12} יח׳ ב-11 חודשים — מעט מדי לחישוב סטטיסטי, אבל לא אפס`],
            ['idea',`${money(it.price,it.currency)} ליחידה · מדרגת «${it.lowBand?it.lowBand.name:''}» · אספקה ${Math.round(it.ltD)} יום — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)} ומכסים את השנה`],
            it.free<=0?['err','מלאי פנוי אפס — הפריט חשוף עכשיו']:null].filter(Boolean);
    it.act=[`לקבוע נקודת הזמנה ${it.sugROP} ומלאי ביטחון ${it.sugSS}`,
            'אם המדיניות לפריט היא לפי דרישה — לשנות סוג MRP במקום להשאיר אפס'];
-   Q.quality.push(it);continue}
+   Q.tier.push(it);continue}
   it.why=[['ok','לא זוהתה בעיה — הפריט תקין ביחס לביקוש, לכיסוי ולפרמטרים']];it.act=['אין פעולה נדרשת'];Q.ok.push(it)}
  /* ============ שקט אחרי מכירה ============
     הקצב נמדד על ששת החודשים האחרונים בלבד. פריט שנמכר יפה לפני שמונה
@@ -4269,6 +4301,29 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
    ssGap&&ropGap?`לעדכן מלאי ביטחון ל-${it.sugSS} ונקודת הזמנה ל-${it.sugROP}`
    :ssGap?`לעדכן מלאי ביטחון ל-${it.sugSS}`
    :`לעדכן נקודת הזמנה ל-${it.sugROP}`].slice(0,4)}
+ /* ============ PARAM_BAND — פער שאינו מהותי יורד מרשימת העבודה ============
+    הסף הוא חודש ביקוש אחד. עם זמן אספקה של 120 יום זה רבע מהביקוש
+    בזמן האספקה — מהותי מספיק כדי להצדיק נגיעה ב-SAP.
+
+    נמדד על 103 הפריטים שבהם הביקוש מדיד: סף 0.5 משאיר 87 · סף 1
+    משאיר 72 · סף 1.5 משאיר 50 · סף 2 משאיר 33. נבחר 1.
+
+    הפריט אינו נעלם — הוא מסווג «פער פרמטרים זניח», נספר בקטלוג
+    ונשאר בר-סינון. מה שיורד הוא התביעה שלו לזמן של המעתד. */
+ for(const it of items){
+  /* ‎odStale‎ ברשימה הזאת כי הוא נתפס בבדיקה: פריט שההחרגה «לפי
+     דרישה» שלו פגה מסווג «עדכון פרמטרים» — אבל הפעולה שם היא
+     *לאמת את ההחרגה*, לא לתקן מספר. הסף הוריד אותו ל«זניח» ומחק
+     את האימות. ארבעת הדגלים כאן הם כל המקרים שבהם הסיווג הזה אינו
+     נובע מפער מספרי: החרגה שפגה, רמת שירות חסרה, זמן אספקה חסר,
+     ופרמטר מעל צריכת 3 שנים. */
+  if(!it.paramFix||it.over3y||it.serviceMissing||it.ltMissing||it.odStale)continue;
+  if(it.cat!=='עדכון פרמטרים'||!paramThin(it))continue;
+  const g=paramGapQ(it),m=(g/it.rate);
+  it.cat='פער פרמטרים זניח';it.sev=0;it.paramFix=false;it.thinGap=true;
+  it.why=[['info',`הפער בין הקיים למוצע הוא ${g} יח׳ — ${m.toFixed(2)} חודשי ביקוש`],
+    ['idea',`מתחת ל-${PB_MONTHS} חודשי ביקוש ההפרש בין המספר שב-SAP למוצע קטן מרעש הביקוש עצמו`]];
+  it.act=['אין פעולה נדרשת — הפער קטן מכדי להצדיק עדכון'];}
  /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
@@ -4513,11 +4568,13 @@ const NAV=[
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
+ over3y:'month',tier:'month',
  qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
- month:[['month','תיקוני פרמטרים'],['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
+ month:[['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
+   ['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
  qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
  cap:[['cap','הון כלוא']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
@@ -4536,6 +4593,8 @@ const NAV_WHAT={
  catalog:'חיפוש ובדיקה של כל הפריטים',
  burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
  cust:'הזמנת לקוח שהמלאי והרכש יחד אינם מכסים',
+ over3y:'ב-SAP יושב פרמטר גדול מכל מה שנצרך בשלוש שנים — עובדה מהדוח, לא תחזית',
+ tier:'חלק זול שב-SAP יושב עליו אפס — החלטת מדיניות אחת לכל המדרגה',
  floor:'רצפת ssMin שגבוהה מהדרישה הסטטיסטית',
  trend:'הביקוש ירד בתוך חלון הקצב',
  rise:'הביקוש עלה ונקודת ההזמנה מפגרת',
@@ -4810,6 +4869,10 @@ const MODESET={
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
  done:{cur:'marked',track:'done'},
  /* רצפת מלאי הביטחון — כל הפריטים, לא רק תור העבודה */
+ /* cur:'today' ולא 'all': עם 'all' גם currentRows גם modeRows
+    מחזירים את הקטלוג כולו, והמונה היה מראה 7,987 במקום 118.
+    הדלתות האלה הן רשימות החלטה, כמו «תיקוני פרמטרים» שלידן. */
+ over3y:{cur:'today',track:'over3y'},tier:{cur:'today',track:'tier'},
  floor:{cur:'all',track:'floor'},
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
@@ -5050,7 +5113,11 @@ function SHORTLIKE(){return track==='short'||(track==='line'&&LINE_SEL!=='recur'
    בעמודות של מסלול הפרמטרים — ROP, SS, הדרישה, ומה לתקן. זה השדרוג
    שהמתכנן ביקש: הפרמטר מפסיק להיות מסלול תחזוקה נפרד ונעשה הסיבה
    שהציר ייראה אותו דבר בעוד חודשיים. */
+/* שתי הדלתות החדשות מציגות את אותן עמודות של תיקוני הפרמטרים —
+   קיים מול מוצע, זמן אספקה והפעולה — ולכן הן FIXLIKE. בלי זה
+   colViewKey נופל למרנדר הגנרי והטבלה מאבדת את עמודות ה-ROP/SS. */
 function FIXLIKE(){return track==='fix'||track==='month'
+  ||track==='over3y'||track==='tier'
   ||(track==='line'&&LINE_SEL==='recur')}
 const heDate=d=>{const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)};
 function lineMoney(list){return moneyMix(list,lineVal)}
@@ -5388,12 +5455,26 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
  /* שני המקומות שהפילו את הטעינה ניגשו ל-QF בלי הגנה, בעוד `base`
     שתי שורות מעליהם כבר נזהר. הגישה עוברת דרך קורא אחד. */
  const qf=k=>(QF&&QF[k])||[];
- const out=(tr==='fix'||tr==='month')?base.filter(r=>r.paramFix||(tr==='month'&&qf('follow').includes(r)))
+ /* ============ SAP_SPLIT — הדלת מסכימה עם הקובץ ============
+    `paramFix` דלוק גם על פריט «מלאי איטי», כי יישור ROP הוא אכן
+    תיקון פרמטר. אבל אחרי שהוא הוצא מקובץ העדכון, השארתו ברשימת
+    העבודה הייתה משאירה דלת של 868 שמייצאת 212 — ואין דבר שמרגיל
+    מהר יותר להתעלם מרשימה מאשר רשימה שהכפתור שלה אינו מסכים איתה.
+    אותו בורר בדיוק בשני המקומות. */
+ const capCat=r=>SAP_CAP_CATS.has(r.cat)||!!r.tierFloor;
+ const out=(tr==='fix'||tr==='month')
+    ?base.filter(r=>(r.paramFix&&!capCat(r))||(tr==='month'&&qf('follow').includes(r)))
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
   :tr==='agenda'?agendaRows()
   /* תור `quality` כפי שהמנוע כבר בנה אותו — לא סף חדש ולא סיווג חדש */
   :tr==='qual'?qf('quality').filter(passColFilters)
      .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
+  /* שתי הדלתות החדשות נשענות על התורים שהמנוע בנה, כמו `qual` —
+     לא על סינון חוזר של הקטלוג. הסדר: הגדול בשווי הפער קודם. */
+  :tr==='over3y'?qf('over3y').filter(passColFilters)
+     .sort((a,b)=>(paramGapQ(b)*(b.price||0))-(paramGapQ(a)*(a.price||0)))
+  :tr==='tier'?qf('tier').filter(passColFilters)
+     .sort((a,b)=>(paramGapQ(b)*(b.price||0))-(paramGapQ(a)*(a.price||0)))
   :tr==='m1'?m1Rows(base)
   :tr==='line'?lineRows()
   /* «לקוח ממתין ללא רכש» לפני «אין מלאי»: isT1 דורש מדף אפס *בדיוק*,
@@ -8062,19 +8143,39 @@ const SAP_COLS=['חומר ','אתר','מלאי בטחון','מלאי ביטחו�
   'נקודת הזמנה חוזרת','קבוצת רכש','פרופיל MRP','זמן אספקה מתוכנן'];
 /* שורה נכנסת רק אם יש בה המלצה *ושונה* מהקיים. פריט שכבר במספר
    המוצע אינו עדכון — הוא רעש בקובץ ושורה מיותרת ב-SAP. */
-function sapMassUsable(r){
+/* ============ SAP_SPLIT — שני קבצים, לא אחד ============
+   נמדד על הדוח של 5.10: קובץ העדכון יצא עם 720 שורות, ומתוכן
+   **507 היו «מלאי איטי» ועוד אחת «ירידה בביקוש»** — 648 מכלל 720
+   בלי קצב ביקוש מדיד בכלל.
+
+   זה לא באג: שתי לולאות מאוחרות מדליקות `paramFix` על פריט שכבר
+   מסווג, כי «היא יישור פרמטר» (ההערה שם). אבל ההחלטה על פריט איטי
+   היא «להפסיק להזמין את זה» — החלטת הון שדורשת בדיקה אחרת לגמרי
+   מ«לכוון את ROP ל-14 במקום 11». כשהן באותו קובץ, 212 החלטות
+   פרמטר נבלעות בתוך 508 החלטות הון, ומי שמאשר את הקובץ מאשר את
+   שתיהן בלי לראות שהן שתיים.
+
+   אותם מספרים בדיוק, אותו פורמט, שני קבצים. */
+const SAP_CAP_CATS=new Set(['מלאי איטי','מלאי מת','מלאי מת — לבדיקה',
+ 'עודף מלאי','ירידה בביקוש']);
+function sapUsableBase(r){
  if(!r||!r.paramFix)return false;
  if(!(r.ltD>0))return false;                 /* בלי זמן אספקה אין על מה לבנות */
  const ss=r.sugSS,rop=r.sugROP;
  if(!(ss>0)&&!(rop>0))return false;
  return ss!==r.ss||rop!==r.rop}
-function sapMassRows(list){
+function sapMassUsable(r){return sapUsableBase(r)&&!SAP_CAP_CATS.has(r.cat)&&!r.tierFloor}
+function sapSlowUsable(r){return sapUsableBase(r)&&SAP_CAP_CATS.has(r.cat)}
+function sapTierUsable(r){return sapUsableBase(r)&&!!r.tierFloor}
+function sapRowsBy(list,pred){
  const out=[SAP_COLS.slice()];
- for(const r of (list||[]).filter(sapMassUsable))
+ for(const r of (list||[]).filter(pred))
   out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
             r.sugROP, r.pGroup||'', '', r.ltD]);
  return out}
-function doSapMass(){
+function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
+function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
+function doSapMass(kind){
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
@@ -8082,8 +8183,13 @@ function doSapMass(){
     המלצה, והקובץ יצא עם 178 — 607 שורות נעלמו בשקט, בקובץ שנכתב
     ל-SAP. סדר השורות בקובץ העלאה אינו משנה; שלמותו כן. */
  const view=currentRows();
- const aoa=sapMassRows(view);
- if(aoa.length<2){toast('אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
+ /* עומדים על דלת «רצפת מדרגה» → הקובץ הוא שלה. בכל דלת אחרת זהו
+    קובץ הפרמטרים השוטף, בלי רצפות ובלי מלאי איטי. */
+ const aoa=kind==='slow'?sapSlowRows(view)
+   :(track==='tier'?sapRowsBy(view,sapTierUsable):sapMassRows(view));
+ if(aoa.length<2){toast(kind==='slow'
+   ?'אין בתצוגה הזאת פריט מלאי איטי/מת עם המלצה שונה מהקיים'
+   :'אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
  const ws=XLSX.utils.aoa_to_sheet(aoa);
  /* «חומר» חייב להישאר טקסט — 13 מק״טים בדוח האמיתי נפתחים באפס,
     ומספר יבלע אותו. */
@@ -8091,8 +8197,9 @@ function doSapMass(){
  ws['!cols']=[{wch:18},{wch:8},{wch:12},{wch:18},{wch:18},{wch:12},{wch:12},{wch:16}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'גיליון1');
  const d=new Date(),p2=n=>String(n).padStart(2,'0');
- XLSX.writeFile(wb,`SAP_Params_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
- toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות · «פרופיל MRP» ריקה למילוי ידני`)}
+ const nm=kind==='slow'?'SAP_SlowStock':'SAP_Params';
+ XLSX.writeFile(wb,`${nm}_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
+ toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות${kind==='slow'?' · מלאי איטי/מת':''} · «פרופיל MRP» ריקה למילוי ידני`)}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  const aoa=exportRows(currentRows());
@@ -8426,6 +8533,7 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
 document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
 {const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>doSapMass();}
+{const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>doSapMass('slow');}
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
  const parts=[];
@@ -8795,7 +8903,7 @@ function tourWire(){
 /* «עדכון ל-SAP» יורד ל«עוד» מיד אחרי מצב כהה והגיבוי: הוא פעולה
    של סוף תהליך, לא של כל רגע. בלעדיו הסרגל גלש ב-10px ב-1366 —
    הכפתור החדש נכנס לסרגל בלי להירשם בסדר הוויתור. */
-const TOP_DROP=['darkToggle','stBtn','sapXls','expXls','exportXls','filtBtn'];
+const TOP_DROP=['darkToggle','stBtn','sapSlowXls','sapXls','expXls','exportXls','filtBtn'];
 function fitTop(){
  const lc=document.querySelector('.top .lc'),wrap=document.getElementById('moreWrap'),
        menu=document.getElementById('moreMenu');
