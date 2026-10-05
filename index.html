@@ -612,11 +612,35 @@ body.dark{
  --shadow:none; --shadowH:0 10px 30px rgba(0,0,0,.55);
 }
 body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
-/* קצוות חדים בכל הממשק */
-.widget,.kpi,.tab,.btn,.badge,.chip,.fchip,.rq,.cp,.dn,.qbtn,.sxls,.seg,.menu,.ddpanel,.colpop,.modal,
-.sinput,.qsearch,.ddbtn,.marknote,.sres,.spanel,.kv,.acts li,.fixbox,.mvcard,.snone,.msg,.calc,.flag,
-.agebadge,.avb,.markbadge,.kbd,.updated,.fclear,.explain,.toast,.rank,.top input[type=month],.colpop input,.colpop .rng input
- {border-radius:0}
+/* ============ RADIUS_SCALE — במקום «קצוות חדים בכל הממשק» ============
+   כאן ישב כלל אחד שאיפס `border-radius` על ארבעים מחלקות בבת אחת.
+   הוא שריד מכיוון עיצובי קודם, והוא — ולא עשרות החלטות נפרדות —
+   הסיבה שהכלי נראה זוויתי: `.badge` נכתב בקוד עם 20px, `.msg` עם
+   9px, `.kv` עם 9px, `.menu` עם 11px, `.modal` עם 14px. כולם צוירו
+   מרובעים.
+
+   במקומו סולם לפי תפקיד, מאותם טוקנים שהרצועה והטבלה כבר מדברות:
+
+     --r-pill  שבב — דבר שעוטף מספר או מילה אחת
+     --r-sm    פקד — דבר שלוחצים או מקלידים לתוכו
+     --r-md    משטח — דבר שיושב עליו תוכן
+
+   הכלל הזה *מגדיר* רדיוס ואינו מאפס אותו, ולכן רכיב שצריך צורה
+   אחרת דורס אותו בספציפיות ולא נאבק בו. canvas נשאר מרובע: הוא
+   יושב בתוך מכולה מעוגלת ממילא, וקימור כפול מייצר חריץ.
+
+   ‎.widget‎ אינו ברשימה בכוונה. הוא היה בכלל השטוח, אבל יש לו כבר
+   שתי הצהרות מפורשות שמאפסות אותו («הווידג׳טים מאבדים את המסגרת
+   שלהם — הרקע שייך לאזור העבודה»), וזו החלטת פריסה ולא שריד.
+   להכניס אותו לסולם היה מרמז שהוא מעוגל בזמן שהוא לא. */
+.badge,.chip,.fchip,.rq,.cp,.dn,.agebadge,.avb,.markbadge,.kbd,.rank
+ {border-radius:var(--r-pill)}
+.btn,.bpri,.bsec,.qbtn,.sxls,.seg,.sinput,.qsearch,.ddbtn,.fclear,.explain,
+.updated,.tab,.kpi,.top input[type=month],.colpop input,.colpop .rng input
+ {border-radius:var(--r-sm)}
+.menu,.ddpanel,.colpop,.modal,.marknote,.sres,.spanel,.kv,
+.acts li,.fixbox,.mvcard,.snone,.msg,.calc,.flag,.toast
+ {border-radius:var(--r-md)}
 canvas{border-radius:0}
 /* משטחים — עוקבים אחרי הערכה במקום לבן קשיח */
 .top,.widget,.wqueue,.wdetail,.wfilters,.whead,.menu,.ddpanel,.colpop,.modal{background:var(--panel)}
@@ -659,7 +683,8 @@ td{border-bottom:1px solid var(--line2)}
 .wdetail .ohead{border-bottom:2px solid var(--line)}
 .opn{font-family:var(--num);font-size:16px;color:var(--acc);direction:ltr;text-align:start}
 .sec h3{text-transform:uppercase;letter-spacing:.1em;color:var(--dimmer);font-size:10px}
-.acts li::before{border-radius:0;background:var(--acc);color:var(--panel)}
+/* המונה ברשימת הפעולות הוא עיגול, לא ריבוע */
+.acts li::before{border-radius:50%;background:var(--acc);color:var(--panel)}
 .fixbox{border:1px solid var(--line);border-inline-start:4px solid var(--acc)}
 .fixbox .new{color:var(--acc);font-size:26px}
 .explain,.btn.pri{background:var(--acc);color:var(--panel);border-color:var(--acc);font-weight:700}
@@ -1620,19 +1645,25 @@ td.pnc{padding:5px 14px;font-size:13px}
 #movesPanel td,#movesPanel th .thc{padding:5px 9px}
 
 /* כרטיס הפריט: 1066px תוכן בחלון 328px. מכווץ ומקפל את הצלילה. */
+/* ה-`border-radius:7px` ירד מכל הכללים כאן: השכבה הזאת שולטת
+   בריפוד ובגודל, לא בצורה. הצורה באה מ-`RADIUS_SCALE` — אחרת כל
+   שינוי בסולם צריך להיזכר גם כאן, ואחד מהם תמיד יישכח. נמדד:
+   אחרי החלפת הכלל השטוח הכללים האלה החזירו את .kv ו-.fixbox
+   ו-.mvcard ל-7px בשקט, בזמן ש-.msg (שיש לו כלל ייעודי בכרטיס)
+   נשאר 14. אותו רכיב, שתי צורות. */
 .opad{padding:10px 14px;gap:9px}
 .sec h3{font-size:10.5px;margin-bottom:4px;padding-bottom:3px}
-.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
-.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px;border-radius:7px}
+.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
+.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
 .acts li::before{width:16px;height:16px;font-size:9.5px}
-.kv{grid-template-columns:repeat(4,1fr);border-radius:7px}
+.kv{grid-template-columns:repeat(4,1fr)}
 .kv .box{padding:4px 7px}
 .kv .box b{font-size:12px}
 .kv .box span{font-size:9px}
 .mvrow{gap:6px;margin-top:4px}
-.mvcard{padding:5px 9px;border-radius:7px}
+.mvcard{padding:5px 9px}
 .mvcard .dt{font-size:13px}
-.fixbox{padding:6px;border-radius:7px}
+.fixbox{padding:6px}
 .fixbox .new{font-size:19px}
 .dcs{padding:12px 16px}
 .dca{font-size:17px;margin-top:6px}
@@ -2542,19 +2573,8 @@ tr.grp.sup b{font-size:var(--f-md)}
    הוא שריד מכיוון עיצובי קודם, ולא עשרות החלטות נפרדות: זו הסיבה
    היחידה שהכלי נראה זוויתי.
 
-   כאן הוא מנוטרל **בתוך הכרטיס בלבד** — זה ההיקף שאושר. בסבב
-   הבא הכלל עצמו יוחלף בסולם, והבלוק הזה יאבד את התחילית
-   `.wdetail` במקום להימחק. */
-.wdetail .msg,.wdetail .kv,.wdetail .acts li,.wdetail .fixbox,
-.wdetail .mvcard,.wdetail .calc,.wdetail .flag,.wdetail .snone,
-.wdetail .marknote,.wdetail .spanel,.wdetail .sres{border-radius:var(--r-md)}
-.wdetail .badge,.wdetail .chip,.wdetail .fchip,.wdetail .rq,
-.wdetail .cp,.wdetail .dn,.wdetail .agebadge,.wdetail .markbadge,
-.wdetail .kbd,.wdetail .rank{border-radius:var(--r-pill)}
-.wdetail .btn,.wdetail .qbtn,.wdetail .sxls,.wdetail .seg,
-.wdetail .explain,.wdetail .bpri,.wdetail .bsec{border-radius:var(--r-sm)}
-/* המונה ברשימת הפעולות היה עיגול, והכלל השטוח ריבע אותו */
-.wdetail .acts li::before{border-radius:50%}
+   הכלל הוחלף מאז בסולם `RADIUS_SCALE` החל על כל הממשק (ראה שם),
+   והבלוק הזה התכווץ למה שבאמת ייחודי לכרטיס. */
 /* ============ CARD_STRIP — חמשת המספרים ============
    אותה שפה של אריחי מסך הפתיחה: פינה עגולה, גוון סמנטי, המספר
    נקרא לפני התווית. «פער» נשאר אדום — אבל ‎--critical-bg‎ ולא גוון
