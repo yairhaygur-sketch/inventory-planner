@@ -7866,7 +7866,12 @@ function sapMassRows(list){
  return out}
 function doSapMass(){
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
- const view=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
+ /* ============ SAP_NO_CAP ============
+    כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
+    הרינדור. נמדד על הדוח האמיתי: בקטלוג המסונן יש 785 פריטים עם
+    המלצה, והקובץ יצא עם 178 — 607 שורות נעלמו בשקט, בקובץ שנכתב
+    ל-SAP. סדר השורות בקובץ העלאה אינו משנה; שלמותו כן. */
+ const view=currentRows();
  const aoa=sapMassRows(view);
  if(aoa.length<2){toast('אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
  const ws=XLSX.utils.aoa_to_sheet(aoa);

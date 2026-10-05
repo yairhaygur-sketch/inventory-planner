@@ -175,6 +175,19 @@ const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_histo
  ok('שורה שאינה שינוי אינה נכנסת',sap.noNoop,`${sap.n} שורות`);
  ok('ובלי זמן אספקה אין שורה',sap.noLT);
  ok('המק״ט נשאר טקסט — אפס מוביל אינו נבלע',sap.pnText);
+ /* SAP_NO_CAP — הקובץ נבנה מהרשימה המסוננת ולא משורות שרונדרו.
+    LAST_VIEW נחתך במגבלת הרינדור, ועל הדוח האמיתי זה הוריד קובץ
+    של 785 שורות ל-178 — בשקט, בקובץ שנכתב ל-SAP. */
+ const cap=await p.evaluate(()=>{
+   setMode('catalog');
+   const full=currentRows();
+   const lv=(typeof LAST_VIEW!=='undefined'&&LAST_VIEW)?LAST_VIEW.length:0;
+   return {full:full.length,rendered:lv,
+     sapFull:sapMassRows(full).length-1,
+     sapRendered:sapMassRows((typeof LAST_VIEW!=='undefined'&&LAST_VIEW)||[]).length-1}});
+ ok('קובץ ה-SAP נבנה מהרשימה המסוננת ולא מהשורות שרונדרו',
+    cap.sapFull>=cap.sapRendered,
+    `מסוננת ${cap.full} (${cap.sapFull} שורות) · מרונדרות ${cap.rendered} (${cap.sapRendered})`);
 
  ok('אין שגיאות JS ביום השני',errs2.length===0,errs2.join(' | '));
  await ctx.close();
