@@ -2496,6 +2496,44 @@ tr.grp.sup b{font-size:var(--f-md)}
 .ag i{font-style:normal;color:var(--red);margin-inline-start:1px}
 #histChip{cursor:default}
 #histChip b{font-family:var(--num)}
+
+/* ============ TABLE_PILL — הסיווג הופך לגלולה ============
+   `.badge{border-radius:0}` שרד משכבה שטוחה ישנה ודרס את ה-20px
+   שנכתבו לו; הסיווג היה טקסט צבעוני עם הדגשה צמודה, לא תג.
+   הגלולה נבנית מ---c שה-inline של sCatStyle מספק, ולכן הטבעת
+   והמילוי תמיד מאותו גוון של השורה.
+   הגובה נשמר במכוון: line-height 1.35 על 10-11px נותן קופסה של
+   15-17px, בדיוק כמו שורת הטקסט שהייתה שם. נמדד — 20 שורות לפני
+   ו-20 אחרי, בכל שלושת הרוחבים.
+   ובלי טבעת: ניסיתי ‎inset 0 0 0 1px‎ ב-26%, והטור נראה כמו שש-עשרה
+   קופסאות משורטטות זו מעל זו. גוון הרקע לבדו כבר אומר «גלולה»,
+   והעמודה חוזרת להיות ניתנת לסריקה. */
+#tbl td .ocat,#tbl td .badge,#movtbl td .badge{display:inline-block;
+ border-radius:var(--r-pill);padding:1px 7px;line-height:1.35;
+ font-weight:700;white-space:nowrap;
+ box-shadow:none}
+/* `td.note .ocat` נתן ‎color:var(--c)‎ בספציפיות (0,2,0) ו---c לא היה
+   מוגדר שם; ההצהרה שרדה רק כי ה-inline של sCatStyle ניצח.
+
+   והמרווח השלילי אינו קוסמטיקה אלא תקציב: ב-1366 לעמודת «הפעולה
+   הבאה» אין ולו פיקסל אחד עודף. נמדד — ריפוד של 6px לגלולה (ואפילו
+   3px) הרחיב את עמודת הסיווג, «הפעולה הבאה» איבדה את אותו רוחב,
+   והשורות עם הטקסט הארוך קפצו מ-31px ל-46px: שתי שורות במקום אחת,
+   ושורה שלמה פחות על המסך. ‎-5px‎ מחזיר את ריפוד הגלולה אל תוך ריפוד
+   התא (‎9px‎ ממילא), ולכן העמודה לא גדלה בכלל. נמדד אחרי: 31px בכל
+   22 השורות הראשונות, 20 שורות שלמות בשלושת הרוחבים. */
+#tbl td.note .ocat{margin-inline:-5px}
+/* ============ TABLE_SEPARATORS — הקו בין השורות מתרכך ============
+   נמדד: ‎--line2‎ מלא בין כל שתי שורות נותן רשת. בשיעור 62% הקו עדיין
+   מפריד אך אינו מצייר. הריחוף עובר מ---panel2 (משטח) לגוון החומרה
+   של אותה שורה ב-7% — השורה שהעכבר עליה מאירה בצבע שלה. */
+#tbl tbody td{border-bottom-color:color-mix(in srgb,var(--line2) 62%,transparent)}
+#tbl tbody tr:hover>td{background:color-mix(in srgb,var(--rowc,var(--calm)) 7%,var(--panel))}
+#tbl tbody tr.sel>td{background:color-mix(in srgb,var(--steady) 14%,var(--panel))}
+#tbl tbody tr.sev3{--rowc:var(--critical)}
+#tbl tbody tr.sev2{--rowc:var(--high)}
+#tbl tbody tr.sev1{--rowc:var(--steady)}
+#tbl tbody tr.sev0{--rowc:var(--calm)}
 </style>
 </head>
 <body>
@@ -4836,12 +4874,27 @@ let track='line', trackPicked=false;
    למסלול שיש בו עבודה. ברגע שהמשתמש בוחר מסלול ידנית, הבחירה שלו קובעת. */
 /* המצב קובע את המסלול, ולכן אין יותר החלפה אוטומטית מאחורי הגב */
 function autoTrack(){}
-function sCatStyle(r){const bg=r.sev>=3?'var(--redL)':r.sev===2?'var(--accL)':r.sev===1?'var(--orgL)':'var(--neutralL)';
- /* #c2740c היה קשיח כאן — אותו צבע בשני הנושאים, ונופל בשניהם:
-    3.33 על --orgL בהיר ו-4.27 על --orgL כהה, מול דרישה של 4.5.
-    הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך. */
- const fg=r.sev>=3?'var(--red)':r.sev===2?'var(--accD)':r.sev===1?'var(--org)':'var(--gray)';
- return `background:${bg};color:${fg}`}
+/* ============ SEV_SCALE — סולם החומרה היה הפוך בין 1 ל-2 ============
+   #c2740c היה קשיח כאן — אותו צבע בשני הנושאים, ונופל בשניהם:
+   3.33 על --orgL בהיר ו-4.27 על --orgL כהה, מול דרישה של 4.5.
+   הוא לא נראה עד שהשכבות החדשות הביאו «מעקב אספקה» למסך.
+
+   ומה שהתגלה מתחתיו: הגלולה והפס הצדדי של *אותה שורה* אמרו שני
+   דברים שונים. הפס (`tr.sev2>td.rnk`) היה ענבר לחומרה 2 וכחול
+   לחומרה 1 — סולם עולה. הגלולה הייתה כחולה לחומרה 2 וענבר לחומרה
+   1 — סולם יורד. כלומר «חשד אזילה» (2) נצבע כחול ו«עדכון
+   פרמטרים» (1) נצבע ענבר, וענבר חם יותר מכחול: הטור נקרא כאילו
+   עדכון פרמטרים דחוף מחשד אזילה.
+
+   הגלולה מיושרת עכשיו לפס, ושניהם לפלטה הסמנטית שהמסילה והאריחים
+   מדברים: 3 critical · 2 high · 1 steady · 0 calm. הערכים זהים
+   לטוקנים הישנים (‎--red≡--critical‎, ‎--org≡--high‎, ‎--acc≡--steady‎,
+   ‎--gray≡--calm‎), ולכן אין כאן צבע חדש — רק ההצמדה תוקנה.
+   הסיווג עצמו, הספים והמנוע לא נגעו. */
+function sevTone(r){const v=r&&r.sev||0;
+ return v>=3?'critical':v===2?'high':v===1?'steady':'calm'}
+function sCatStyle(r){const c=sevTone(r);
+ return `--c:var(--${c});background:var(--${c}-bg);color:var(--${c})`}
 /* ==================== TIMELINE — ציר של שבע תחנות ====================
    הרפורמה: המק״ט מפסיק להיות ציר הארגון. הציר הוא הזמן.
 
