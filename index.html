@@ -2534,6 +2534,41 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl tbody tr.sev2{--rowc:var(--high)}
 #tbl tbody tr.sev1{--rowc:var(--steady)}
 #tbl tbody tr.sev0{--rowc:var(--calm)}
+
+/* ============ CARD_ROUND — כרטיס הפריט ============
+   השורש נמצא, והוא כלל אחד: «קצוות חדים בכל הממשק» מאפס
+   `border-radius` על 40 מחלקות בבת אחת —
+   `.widget,.kpi,.tab,.btn,.badge,.chip,.msg,.kv,.acts li,.fixbox…`.
+   הוא שריד מכיוון עיצובי קודם, ולא עשרות החלטות נפרדות: זו הסיבה
+   היחידה שהכלי נראה זוויתי.
+
+   כאן הוא מנוטרל **בתוך הכרטיס בלבד** — זה ההיקף שאושר. בסבב
+   הבא הכלל עצמו יוחלף בסולם, והבלוק הזה יאבד את התחילית
+   `.wdetail` במקום להימחק. */
+.wdetail .msg,.wdetail .kv,.wdetail .acts li,.wdetail .fixbox,
+.wdetail .mvcard,.wdetail .calc,.wdetail .flag,.wdetail .snone,
+.wdetail .marknote,.wdetail .spanel,.wdetail .sres{border-radius:var(--r-md)}
+.wdetail .badge,.wdetail .chip,.wdetail .fchip,.wdetail .rq,
+.wdetail .cp,.wdetail .dn,.wdetail .agebadge,.wdetail .markbadge,
+.wdetail .kbd,.wdetail .rank{border-radius:var(--r-pill)}
+.wdetail .btn,.wdetail .qbtn,.wdetail .sxls,.wdetail .seg,
+.wdetail .explain,.wdetail .bpri,.wdetail .bsec{border-radius:var(--r-sm)}
+/* המונה ברשימת הפעולות היה עיגול, והכלל השטוח ריבע אותו */
+.wdetail .acts li::before{border-radius:50%}
+/* ============ CARD_STRIP — חמשת המספרים ============
+   אותה שפה של אריחי מסך הפתיחה: פינה עגולה, גוון סמנטי, המספר
+   נקרא לפני התווית. «פער» נשאר אדום — אבל ‎--critical-bg‎ ולא גוון
+   חזק יותר: ‎--critical‎ על תערובת של 16% נותן 3.95 ונופל, ועל
+   ‎--critical-bg‎ (כ-10%) הוא נותן 4.52. המסגרת מתרככת, לא המילוי. */
+.wdetail .cstrip{gap:7px}
+.wdetail .cstrip .cs{border-radius:var(--r-md);padding:6px 10px;min-width:62px}
+.wdetail .cstrip .cs.g{border-color:color-mix(in srgb,var(--critical) 38%,var(--panel))}
+/* ============ CARD_MSG — «מה מצדיק את זה» ============
+   הפס הצדדי נשאר (הוא נושא את החומרה), אבל הפינה שלו מתעגלת עם
+   הקופסה במקום להיחתך בזווית ישרה. */
+.wdetail .dcwhy .msg,.wdetail .dcnote{border-radius:var(--r-md)}
+.wdetail .dcnote{border-start-start-radius:var(--r-xs);border-end-start-radius:var(--r-xs)}
+.wdetail .dcwhy .msg{border-start-start-radius:var(--r-xs);border-end-start-radius:var(--r-xs)}
 </style>
 </head>
 <body>
