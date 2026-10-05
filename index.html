@@ -2416,6 +2416,7 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
+    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים. «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
@@ -2864,6 +2865,9 @@ const NAMES={pn:['מק"ט מוביל','מק״ט מוביל'],desc:['תיאור �
  ssMin:['מל.בט.מינ.'],price:['מחיר FOB'],currency:['מטבע FOB'],stock:['סה"כ מלאי'],free:['מלאי פנוי'],wh:['מלאי מרלוג'],
  po:['הז. רכש'],transfer:['בהעברה'],openDel:['אספקות פת.'],cust:['כמות בהז.פ'],supplier:['שם ספק'],
  matType:['סוג חומר'],mkt1:['ת.היר.1 מח'],mkt2:['ת.היר.2 מח'],
+ /* שני שדות שהדוח נושא ואיש לא קרא עד שנדרש קובץ עדכון ל-SAP.
+    שניהם מועתקים כמות שהם ואינם נכנסים לשום חישוב. */
+ site:['אתר'],pGroup:['קבוצת רכש'],
  brand:['קב.חו.חיצו','מותג'],planner:['טקסט ארוך'],warranty:['תב.אח.הש.','אחריות'],
  blockedCust:['הזמנות לקוח חסומות','כמות בהז.פ חסומה','כמות הזמנה חסומה','חסום למשלוח'],
  grpTxt:['תיאור קבוצת חומרים','תיא.קבוצ.חומרים','תיאור קבוצת חומר 2'],origin:['שם'],created:['נוצר'],lastSale:["תאר' מכירה"],
@@ -3545,7 +3549,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       unsQty,unsVal,unsGross,
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
-      model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
+      model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',
+      site:CLEAN(r[m.site]),pGroup:CLEAN(r[m.pGroup]),isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
       ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
@@ -7819,6 +7824,60 @@ function movExportRows(){const list=movRows();
  if(!keys.length)return [];
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.fval||c.val)(r)}catch(_){return ''}};
  return [keys.map(k=>SCOL[k].t),...list.map(r=>keys.map(k=>val(k,r)))]}
+/* ============ SAP_MASS — קובץ עדכון פרמטרים ל-SAP ============
+   החסם שהמעתד תיאר: «העדכון ב-SAP מסורבל». 802 המלצות פרמטר, ואין
+   דרך להזין אותן חוץ מידנית, אחת-אחת. הקובץ הזה הוא בדיוק הפורמט
+   שהוא שלח — שמונה עמודות, אותו סדר, אותן כותרות.
+
+   שלוש הכרעות שלו, ושלושתן נגד הכתיבה הרחבה:
+
+   · «פרופיל MRP» — העמודה אינה קיימת בדוח ZMRP בכלל, ובקובץ
+     הדוגמה כל 88 השורות ZM-C. מילוי אוטומטי שלה היה ממיר 802
+     פריטים בבת אחת — שינוי מדיניות ולא עדכון פרמטרים. העמודה
+     יוצאת עם כותרת וריקה, והמעתד ממלא אותה ידנית.
+
+   · «מלאי ביטחון מינימלי» — בקובץ הדוגמה הוא תמיד שווה ל-SS.
+     אצלנו זו רצפה דביקה שהכלי לעולם אינו מציע להוריד, והשוואה
+     ל-SS המוצע הייתה מעלה אותה ב-496 פריטים — ורצפה שעלתה נועלת
+     מלאי גם כשהביקוש יורד. יוצא הערך הקיים ב-SAP, בלי שינוי.
+
+   · «זמן אספקה מתוכנן» — מועתק מהדוח. הכלי אינו מציע זמן אספקה.
+
+   ומה שכן נכתב: מלאי בטחון ונקודת הזמנה — שני המספרים היחידים
+   שהמנוע באמת מחשב. */
+/* הכותרות מועתקות תו-בתו מקובץ הדוגמה, כולל הרווח הנגרר ב«חומר » —
+   טוען מוני שמתאים כותרות כמחרוזת ייפול על רווח חסר, וזה בדיוק סוג
+   התקלה שמתגלה רק מול SAP. */
+const SAP_COLS=['חומר ','אתר','מלאי בטחון','מלאי ביטחון מינימלי',
+  'נקודת הזמנה חוזרת','קבוצת רכש','פרופיל MRP','זמן אספקה מתוכנן'];
+/* שורה נכנסת רק אם יש בה המלצה *ושונה* מהקיים. פריט שכבר במספר
+   המוצע אינו עדכון — הוא רעש בקובץ ושורה מיותרת ב-SAP. */
+function sapMassUsable(r){
+ if(!r||!r.paramFix)return false;
+ if(!(r.ltD>0))return false;                 /* בלי זמן אספקה אין על מה לבנות */
+ const ss=r.sugSS,rop=r.sugROP;
+ if(!(ss>0)&&!(rop>0))return false;
+ return ss!==r.ss||rop!==r.rop}
+function sapMassRows(list){
+ const out=[SAP_COLS.slice()];
+ for(const r of (list||[]).filter(sapMassUsable))
+  out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
+            r.sugROP, r.pGroup||'', '', r.ltD]);
+ return out}
+function doSapMass(){
+ if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
+ const view=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
+ const aoa=sapMassRows(view);
+ if(aoa.length<2){toast('אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
+ const ws=XLSX.utils.aoa_to_sheet(aoa);
+ /* «חומר» חייב להישאר טקסט — 13 מק״טים בדוח האמיתי נפתחים באפס,
+    ומספר יבלע אותו. */
+ for(let i=2;i<=aoa.length;i++){const c=ws['A'+i];if(c){c.t='s';c.z='@'}}
+ ws['!cols']=[{wch:18},{wch:8},{wch:12},{wch:18},{wch:18},{wch:12},{wch:12},{wch:16}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'גיליון1');
+ const d=new Date(),p2=n=>String(n).padStart(2,'0');
+ XLSX.writeFile(wb,`SAP_Params_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
+ toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות · «פרופיל MRP» ריקה למילוי ידני`)}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  const aoa=exportRows(currentRows());
@@ -8151,6 +8210,7 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
   +(n?` <span class="fn">${n}</span>`:'')}
 document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
+{const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>doSapMass();}
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
  const parts=[];
@@ -8517,7 +8577,10 @@ function tourWire(){
    יורדים, והם ממילא אינם ב-.lc. */
 /* «וידג'טים / שמור תצוגה / אפס תצוגה» כבר מוסרים מה-DOM בסוף הקובץ
    בהחלטה קודמת, ולכן אינם ברשימה. */
-const TOP_DROP=['darkToggle','stBtn','expXls','exportXls','filtBtn'];
+/* «עדכון ל-SAP» יורד ל«עוד» מיד אחרי מצב כהה והגיבוי: הוא פעולה
+   של סוף תהליך, לא של כל רגע. בלעדיו הסרגל גלש ב-10px ב-1366 —
+   הכפתור החדש נכנס לסרגל בלי להירשם בסדר הוויתור. */
+const TOP_DROP=['darkToggle','stBtn','sapXls','expXls','exportXls','filtBtn'];
 function fitTop(){
  const lc=document.querySelector('.top .lc'),wrap=document.getElementById('moreWrap'),
        menu=document.getElementById('moreMenu');
