@@ -623,8 +623,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    grps:trs.filter(t=>t.classList.contains('grp')).length,rows:dat.length,
    over:tb.scrollWidth>tb.clientWidth+2,btnVis:b.offsetParent!==null,btnOn:b.classList.contains('on'),
    strip:getComputedStyle(document.getElementById('track')).display};});
- /* 6 -> 7 (DOOR_ETA) -> 8 (MODEL_EVERYWHERE) */
- ok('כותרות «יושמו» תואמות למספר התאים',apv.nth===apv.cells&&apv.nth===8,apv.nth+' / '+apv.cells);
+ /* 6 -> 7 (DOOR_ETA) -> 8 (MODEL_EVERYWHERE) -> 9 (DRIFT) */
+ ok('כותרות «יושמו» תואמות למספר התאים',apv.nth===apv.cells&&apv.nth===9,apv.nth+' / '+apv.cells);
+ /* DRIFT — העמודה שפותחת את דלי «שונה אחרת»: לאן SAP זז ביחס
+    להמלצה. בלי הבדיקה הזאת היא יכולה לרדת מברירת המחדל בשקט. */
+ ok('ו«כיוון» בין הכותרות',apv.head.split('|').includes('כיוון'),apv.head);
  ok('ו«דגם» בין הכותרות, מיד אחרי המק״ט',
     (h=>h.indexOf('דגם')===h.indexOf('מק״ט')+1&&h.indexOf('דגם')>0)(apv.head.split('|')),apv.head);
  ok('שלוש קבוצות — יושם, שונה אחרת, לא נגעו',apv.grps===3,apv.grps+' קבוצות');

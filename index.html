@@ -5804,6 +5804,29 @@ function paramSnap(items,SQ){const it={},Sq=SQ||new Set();
   it[x.pn]=[x.rop,x.ss,x.sugROP,x.sugSS,Sq.has(x.pn)?1:0]}
  return it}
 /* מה קרה לפרמטר בודד מאז התמונה הקודמת */
+/* ============ DRIFT — לאן SAP זז ביחס להמלצה ============
+   «מה יושם» מחלק לשלושה: יושם במדויק · שונה אחרת · לא נגעו.
+   הדלי השני הוא הגדול (326 מתוך 719 בדוחות האמיתיים) והוא גם
+   חסר המידע ביותר: «שונה אחרת» אומר שהפרמטר זז, ולא לאן.
+
+   הכיוון הוא המדד היחיד שנקרא **במחזור החודשי הראשון**, בלי
+   התערבות ובלי הגרלה — ולכן הוא מה שאפשר להפעיל היום. הניסוי
+   על החוסרים דורש ~1,700 פריטים בכל זרוע ויש 375; הוא לא ייתן
+   תשובה (ראה ממצא 26).
+
+   ============ ומה הוא *אינו* אומר ============
+   «התקרב» אינו «SAP קיבל את ההמלצה». המנוע שלנו מסמן פריט כשהביקוש
+   זז מספיק, והחיזוי החודשי של SAP כותב מחדש כשהמודל *שלו* רואה את
+   אותה תזוזה. שניהם פונקציה של אותם נתונים. התכנסות היא עדות
+   להסכמה, לא להשפעה — וזה נאמר על המסך, לא רק כאן. */
+function parDrift(then,sug,now){
+ if(then===sug)return null;                 /* לא הייתה המלצה על השדה */
+ if(now===sug)return 'done';                /* הגיע בדיוק */
+ if(now===then)return 'none';               /* לא זז */
+ const d0=Math.abs(then-sug),d1=Math.abs(now-sug);
+ /* «זז באותו מרחק» הוא מקרה אמיתי: 10→18 כשהוצע 14. הוא אינו
+    התקרבות ואינו התרחקות, ולספור אותו כאחד מהם היה מטה את המדד. */
+ return d1<d0?'toward':d1>d0?'away':'side'}
 function parState(then,sug,now){
  if(then===sug)return null;                 /* לא הייתה המלצה על השדה הזה */
  if(now===sug)return 'done';                /* יושם בדיוק */
@@ -5821,9 +5844,11 @@ function recordParams(items,Qs){
   if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
  saveParams();
  const prev=PARAMS.runs[PARAMS.runs.length-2];
- for(const x of items){x.apStatus=null;x.apPrev=null}
+ for(const x of items){x.apStatus=null;x.apPrev=null;x.apDrift=null}
  if(!prev)return null;
  let done=0,other=0,none=0,gone=0,total=0;
+ /* DRIFT — פירוק של דלי «שונה אחרת» לכיוונים */
+ const DR={toward:0,away:0,side:0};
  /* OUTCOME — ארבעה דליים: יושם/לא × בחוסר היום/לא.
     נספרים רק פריטים שהתמונה הקודמת מדדה בהם את מצב החוסר. */
  const OC={doneN:0,doneShort:0,restN:0,restShort:0,measured:0};
@@ -5835,15 +5860,23 @@ function recordParams(items,Qs){
   if(!x){gone++;continue}
   const a=parState(rop0,sug0,x.rop), b=parState(ss0,sugSS0,x.ss);
   const st=[a,b].filter(Boolean);
+  /* הכיוון נקבע פסימית: שדה אחד שהתרחק קובע «התרחק», גם אם השני
+     התקרב. מדד שמעגל שתי תזוזות מנוגדות ל«התקרב» מסתיר בדיוק את
+     מה שהוא אמור לחשוף. */
+  const dr=[parDrift(rop0,sug0,x.rop),parDrift(ss0,sugSS0,x.ss)].filter(Boolean);
+  x.apDrift=dr.includes('away')?'away':dr.includes('toward')?'toward'
+    :dr.includes('side')?'side':null;
   /* הפריט "יושם" רק אם כל שדה שהומלץ עליו הגיע למספר המוצע */
   const cls=st.every(v=>v==='done')?'done':st.some(v=>v==='done'||v==='other')?'other':'none';
   x.apStatus=cls;x.apPrev={rop:rop0,ss:ss0,sugROP:sug0,sugSS:sugSS0,rState:a,sState:b};
   if(cls==='done')done++;else if(cls==='other')other++;else none++;
+  if(cls==='other'&&x.apDrift)DR[x.apDrift]++;
+  else if(cls!=='other')x.apDrift=null;
   if(was!==undefined){OC.measured++;
    const isNow=SQ.has(x.pn)?1:0;
    if(cls==='done'){OC.doneN++;OC.doneShort+=isNow}
    else{OC.restN++;OC.restShort+=isNow}}}
- return {total,done,other,none,gone,ts:prev.ts,outcome:OC,
+ return {total,done,other,none,gone,drift:DR,ts:prev.ts,outcome:OC,
    runs:PARAMS.runs.length,days:Math.max(0,Math.round((now-prev.ts)/864e5))}}
 /* ============ OUTCOME_HONEST ============
    שני סייגים, ושניהם נמדדו ולא הונחו:
@@ -5875,6 +5908,29 @@ function outcomeTxt(h){const o=h&&h.outcome;
  return `${head} — ${pc(o.doneShort,o.doneN)} מהם בחוסר היום · `
   +`${o.restN.toLocaleString('he-IL')} שלא יושמו — ${pc(o.restShort,o.restN)}. `
   +`זו תצפית ולא ניסוי: הפריטים שבחרת לתקן אינם מדגם אקראי.`}
+/* ============ DRIFT_TXT ============
+   סף של 20: מתחת לזה ההפרש בין «התקרב» ל«התרחק» אינו ניתן להבחנה
+   מרעש, ומשפט שמציג יחס על שבעה פריטים משקר בביטחון — אותו לקח
+   של OUTCOME (ראה OUTCOME_HONEST). מתחת לסף נאמרות הספירות בלבד.
+
+   והסייג נאמר תמיד, גם מעל הסף: שני המנועים קוראים את אותם נתוני
+   ביקוש, ולכן התכנסות היא עדות להסכמה ולא להשפעה. */
+const DR_MIN=20;
+function driftTxt(A){const d=A&&A.drift;if(!d)return '';
+ const n=d.toward+d.away+d.side;
+ if(!n)return '';
+ /* המכנה הוא n ולא A.other, והם אינם שווים: פריט שבו שדה אחד הגיע
+    בדיוק לְמה שהוצע והשני לא נגע מסווג «שונה אחרת» — אבל שום שדה
+    בו לא *נדד*, ולכן אין לו כיוון. נמדד על שני הדוחות האמיתיים:
+    311 שונו אחרת, ורק 257 מהם נושאים כיוון. משפט שמציג 149+88+20
+    מתוך 311 מציג מספרים שאינם מסתכמים, וזה בדיוק מה שמלמד
+    להפסיק לסמוך על המסך. */
+ const head=`${n} מתוך ${A.other} ששונו אחרת נדדו לכיוון מדיד — `
+   +`${d.toward} התקרבו למספר שהצענו · ${d.away} התרחקו`
+   +(d.side?` · ${d.side} באותו מרחק`:'');
+ if(n<DR_MIN)return head+' (מעט מדי כדי להסיק כיוון)';
+ const pct=Math.round(d.toward/n*100);
+ return head+` — ${pct}% התקרבו. התכנסות אינה השפעה: שני המנועים קוראים את אותו ביקוש`}
 function paramsReset(){PARAMS={runs:[]};saveParams()}
 /* ============ מצב עבודה — גיבוי והעברה ============
    כל מה שהמתכנן החליט יושב ב-localStorage של דפדפן אחד: הסימונים,
@@ -6766,6 +6822,16 @@ const SCOL={
  cons11:{t:'צריכה 11ח׳',ttl:'צריכה באחד עשר החודשים שבחלון',
   val:r=>r.d12||0,xval:r=>r.d12||0,
   cell:r=>`<td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>`},
+ /* DRIFT — הכיוון, לא רק «שזז». ריק בשורות שיושמו במדויק או שלא
+    נגעו בהן, כי שם אין כיוון למדוד. */
+ apDrift:{t:'כיוון',ttl:'בפריטים ששונו אחרת — האם SAP התקרב למספר שהצענו או התרחק ממנו. «התקרב» אינו «SAP קיבל את ההמלצה»: שני המנועים מגיבים לאותם נתוני ביקוש',
+  val:r=>({away:0,side:1,toward:2})[r.apDrift]!==undefined?({away:0,side:1,toward:2})[r.apDrift]:-1,
+  xval:r=>({toward:'התקרב',away:'התרחק',side:'זז באותו מרחק'})[r.apDrift]||'',
+  cell:r=>{const d=r.apDrift;
+   if(!d)return '<td><span class="mut">—</span></td>';
+   const L={toward:['↗','התקרב','capital'],away:['↘','התרחק','critical'],
+            side:['→','זז באותו מרחק','calm']}[d];
+   return `<td><span class="badge" style="--c:var(--${L[2]});background:var(--${L[2]}-bg);color:var(--${L[2]})">${L[0]} ${L[1]}</span></td>`}},
  apState:{t:'מצב',ttl:'הסיווג שהפריט קיבל בדוח הנוכחי',
   val:r=>String(r.cat||''),xval:r=>String(r.cat||''),
   cell:r=>`<td>${esc(r.cat||'')}</td>`},
@@ -6926,7 +6992,7 @@ const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','spa
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
- 'cRisk','capVal','capPct','capCov','val','custVal','act','fix','cCat','cat','capType','apState','state','markLbl','markWhen','undo','age',
+ 'cRisk','capVal','capPct','capCov','val','custVal','act','fix','cCat','cat','capType','apDrift','apState','state','markLbl','markWhen','undo','age',
  'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
@@ -6944,7 +7010,7 @@ const SCOL_DEF={
  trend:['pnPlain','model','desc','tpct','trate','trop','tgap','tval','eta'],
  rise:['pnPlain','model','desc','upct','urate','urop','ugap','eta','freeRop'],
  cust:['pnPlain','model','desc','waiting','stock','eta','lt','custVal'],
- applied:['pnPlain','model','desc','apRop','apSs','cons11','apState'],
+ applied:['pnPlain','model','desc','apRop','apSs','apDrift','cons11','apState'],
  done:['pnPlain','model','desc','markLbl','markWhen','undo'],
  m1:['pnPlain','model','desc','c3','r3','freeDry','m1gap','poPlain'],
  cap:['pn','model','desc','capType','capVal','capPct','act','capCov'],
@@ -7201,9 +7267,10 @@ function renderApplied(rows){
  /* «מה יושם» הוא חצי שאלה. החצי השני — «ומה קרה אחר כך» — נאמר
     כאן כשיש תמונה שמדדה אותו (ראה OUTCOME). */
  const oc=outcomeTxt(A);
+ const dr=driftTxt(A);
  setPhdSub((A
   ?`מתוך ${A.total} ההמלצות שהיו בהעלאה הקודמת${A.days?` לפני ${A.days} ימים`:''} — מה שונה בפועל ב-SAP`
-  :'השוואה בין שתי העלאות')+(oc?' · '+oc:''));
+  :'השוואה בין שתי העלאות')+(dr?' · '+dr:'')+(oc?' · '+oc:''));
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
  document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
