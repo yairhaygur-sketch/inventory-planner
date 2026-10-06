@@ -3015,6 +3015,31 @@ const M1_MIN3=10;
 const m1Active=it=>{const c=stCode(it.st);return c!==4&&c!==14&&!/לא פעיל|גמר המלאי/.test(it.stTxt||'')};
 const isM1=it=>m1Active(it)&&!it.isOD&&it.c3>=M1_MIN3&&it.free<it.r3;
 const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
+/* ============ AGE_AXIS — שם הציר, לא רק הערך ============
+   `ageLabel` מחזיר בדיוק את אותן מחרוזות של שלושה סיווגים: «מלאי מת»,
+   «מלאי איטי» ו«טרם הוכיח את עצמו». גיל המלאי והסיווג הם שני צירים
+   שונים, והם מוצגים זה לצד זה — בכרטיס הפריט ובתוצאות החיפוש.
+
+   נמדד על הדוח של 5.10: ב-2,239 מתוך 7,987 פריטים (28%) השבב קורא
+   בדיוק כמו סיווג שלפריט *אין*.
+
+   | מה שהשבב אמר | מה שהסיווג באמת | פריטים |
+   |---|---|---|
+   | טרם הוכיח את עצמו | רקע | 1,619 |
+   | מלאי איטי | עודף מלאי | 192 |
+   | טרם הוכיח את עצמו | תקין | 162 |
+   | מלאי מת | רקע | 124 |
+   | טרם הוכיח את עצמו | לפי דרישה | 51 |
+
+   ‏6608233674C15 הוא המקרה המלא: הכרטיס הראה «מלאי איטי» בלבד,
+   המנוע סיווג «עודף מלאי», ושם הסיווג לא הופיע על הכרטיס בשום מקום
+   — כלומר המילה היחידה שנראתה כמו סיווג הייתה השגויה.
+
+   `ageLabel` עצמו לא נגע: הערכים שלו מזינים את החיפוש ואת הייצוא,
+   ושם שם הציר כבר נאמר («גיל מלאי» ככותרת עמודה). כאן, במקום שבו
+   שני הצירים נראים יחד, השבב נושא את שם הציר — והערך מתקצר כדי
+   שלא תיאמר המילה «מלאי» פעמיים באותו שבב. */
+const ageAxis=t=>'גיל מלאי: '+(t==='dead'?'מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'איטי':'פעיל');
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 function colToIdx(letters){let n=0;for(const ch of letters.toUpperCase())n=n*26+(ch.charCodeAt(0)-64);return n-1}
@@ -6354,7 +6379,7 @@ function renderSug(){const p=qEl('qsug');
    +res.rows.map((r,i)=>`<div class="sgi s${r.sev}" data-i="${i}">
      <div class="r1"><span class="p">${hlMark(r.pn,SQ)}</span><span class="m">${r.risk?moneyShort(r.risk,r.currency):''}</span></div>
      <div class="d">${hlMark(r.desc,SQ)}</div>
-     <div class="c"><i>${esc(r.cat||'—')}</i><i>${esc(ageLabel(r.ageTier))}</i><i>פנוי ${r.free}</i>${r.po>0?`<i>בדרך ${r.po}</i>`:''}<i>${hlMark(r.supplier,SQ)}</i></div>
+     <div class="c"><i>${esc(r.cat||'—')}</i><i>${esc(ageAxis(r.ageTier))}</i><i>פנוי ${r.free}</i>${r.po>0?`<i>בדרך ${r.po}</i>`:''}<i>${hlMark(r.supplier,SQ)}</i></div>
     </div>`).join('')
    +(res.n>res.rows.length?`<div class="sgf">מוצגות ${res.rows.length} מתוך ${res.n.toLocaleString('he-IL')} — הרשימה בטבלה מסוננת לפי אותו חיפוש</div>`:SUGFOOT);
   p.querySelectorAll('.sgi').forEach(el=>el.onclick=()=>openSug(SUGROWS[+el.dataset.i]));
@@ -8057,7 +8082,14 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
        לא נמחקו. המטבע ממילא צמוד לכל סכום דרך money(). -->
   <div class="tags"><span class="tag">${esc(r.supplier.slice(0,20))}</span>
   <span class="tag">${esc(r.mrp)}</span>
-  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}">${ageLabel(r.ageTier)}</span>${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`:''}</div></div>
+  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}" title="גיל המלאי — ציר נפרד מהסיווג: כמה זמן הסחורה יושבת, לא מה הכלי החליט עליה">${ageAxis(r.ageTier)}</span>
+  <!-- ============ הסיווג עצמו לא היה על הכרטיס ============
+       שבב הסיווג הופיע רק כשהפריט מסומן (markbadge, ושם cat הוא
+       תווית הסימון ולא הסיווג). בפריט שאינו מסומן — כלומר ברוב —
+       הכרעת המנוע לא נאמרה בשום מקום בראש הכרטיס, ושבב גיל המלאי
+       נקרא במקומה. ראה AGE_AXIS. -->
+  ${r.mark?`<span class="markbadge${isDone?' done':''}">${esc(r.cat)}</span>`
+    :`<span class="tag b" title="הסיווג שהמנוע נתן לפריט">${esc(r.cat||'—')}</span>`}</div></div>
  ${decisionBlock(r)}
  <div class="dtabs" id="dtabs">
   <button class="dt on" data-dt="why" data-xp="dt-why">החלטה</button>
