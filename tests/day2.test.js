@@ -15,7 +15,10 @@ const SD=__dirname, HTML='file://'+path.join(SD,'..','index.html');
 const D1=SD+'/zmrp-demo.xlsx', D2=SD+'/zmrp-demo-day2.xlsx', ETA=SD+'/zmrp-demo-eta.xlsx';
 const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+']':''}`);
 const MODES=['home','today','line','month','qual','stale','cap','catalog',
-  'moves','burn','cust','done','floor','trend','rise','applied'];
+  'moves','burn','cust','done','floor','trend','rise','applied',
+  /* דלתות שנוספו אחרי שהרשימה נכתבה ולא נכנסו אליה: הפיצולים.
+     מסך שאינו ברשימה הזאת אינו נבדק כמצב שמור בכלל. */
+  'over3y','tier','floorNR','capPO','capStop','capBiz','capNone'];
 const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_history_v1',
   'planner_params_v1','planner_layout_v2','planner_cols_v1','planner_colw_v1',
   'planner_ledger_v1','planner_dark_v1','planner_groups_v1','planner_band_v1',

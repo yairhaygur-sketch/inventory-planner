@@ -2098,7 +2098,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(450);
 
  /* ============ בריאות המלאי על נתוני הדגמה מלאים ============
-    ב-routes.xlsx יש שני פריטים עם הון כלוא ושניהם עודף, ולכן הכלל
+    ב-routes.xlsx ההון הכלוא הוא שבעה פריטים בנויים ידנית (היו שניים
+    לפני CAP_SPLIT), ולכן הכלל
     «מה שאינו באף דלי נאמר במפורש» עובר שם בלי לבדוק דבר. כאן יש
     900 פריטים ורוב ההון הכלוא אינו באף אחד משלושת הדליים. */
  await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
