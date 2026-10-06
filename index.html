@@ -4578,13 +4578,14 @@ const NAV=[
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
- over3y:'month',tier:'month',
+ over3y:'month',tier:'month',floorNR:'month',
  qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
  month:[['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
-   ['floor','רצפת SS'],['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
+   ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],
+   ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
  qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
  cap:[['cap','הון כלוא']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
@@ -4605,7 +4606,9 @@ const NAV_WHAT={
  cust:'הזמנת לקוח שהמלאי והרכש יחד אינם מכסים',
  over3y:'ב-SAP יושב פרמטר גדול מכל מה שנצרך בשלוש שנים — עובדה מהדוח, לא תחזית',
  tier:'חלק זול שב-SAP יושב עליו אפס — החלטת מדיניות אחת לכל המדרגה',
- floor:'רצפת ssMin שגבוהה מהדרישה הסטטיסטית',
+ floor:'רצפת ssMin שגבוהה מהדרישה הסטטיסטית — בפריטים שיש בהם קצב למדוד',
+ floorNR:'רצפה על פריט בלי קצב מדיד — יש רצפה, ואין למה להשוות אותה',
+
  trend:'הביקוש ירד בתוך חלון הקצב',
  rise:'הביקוש עלה ונקודת ההזמנה מפגרת',
  applied:'מה מההמלצות הקודמות יושם ב-SAP',
@@ -4836,7 +4839,10 @@ function screenName(){
 function navCount(k){
  if(!QF)return {n:0,hot:0};
  const hot=rows=>rows.filter(r=>r.sev===3).length;
- if(k==='floor'){const r=floorRows();return {n:r.length,hot:hot(r)}}
+ /* הספירה אינה יכולה לקרוא ל-floorRows(): הוא נשען על `mode`
+    הנוכחי, והמסילה סופרת גם מסלולים שאינם פתוחים כרגע. */
+ if(k==='floor'||k==='floorNR'){const r=floorPick(floorAll(),k);
+  return {n:r.length,hot:hot(r)}}
  if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
  /* המונה הוא אורך הרשימה עצמה. קודם הוא היה סכום של שני מקורות
     בלי ניכוי חפיפה, והמסך הציג משהו אחר לגמרי. */
@@ -4883,7 +4889,7 @@ const MODESET={
     מחזירים את הקטלוג כולו, והמונה היה מראה 7,987 במקום 118.
     הדלתות האלה הן רשימות החלטה, כמו «תיקוני פרמטרים» שלידן. */
  over3y:{cur:'today',track:'over3y'},tier:{cur:'today',track:'tier'},
- floor:{cur:'all',track:'floor'},
+ floor:{cur:'all',track:'floor'},floorNR:{cur:'all',track:'floor'},
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
  /* לקוח ממתין — חוצה סיווג, ולכן כל הפריטים ולא תור עבודה */
@@ -6541,7 +6547,35 @@ function ssFloorGap(r){const f=r.ssMinEff||0;
  return (!r.isOD&&!r.noStock&&f>ssNeed(r))?f-ssNeed(r):0}
 /* «אין קצב מדוד» — המרכיב הסטטיסטי לא חושב, הוא לא יצא 0. */
 function ssNoRate(r){return !(r.rate>0)}
-function floorRows(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
+/* ============ FLOOR_SPLIT — «רצפת SS» הייתה שתי חיות ============
+   הדלת מוגדרת `ssMinEff > ssStat`, ו-`ssStat` מאופס *בהגדרה* כשאין
+   קצב מדיד. כלומר לפריט בלי קצב, «הרצפה גבוהה מהדרישה» מצטמצם
+   ל«הרצפה גבוהה מאפס» — נכון לכל פריט שיש לו רצפה כלשהי.
+
+   נמדד על הדוח של 5.10:
+
+   | | פריטים | שווי הפער |
+   |---|---|---|
+   | אין קצב מדיד — ssStat=0 בהגדרה | 1,852 (82%) | $235,866 |
+   | יש קצב מדיד — הרצפה מעל הסטטיסטי | 410 (18%) | $267,309 |
+
+   ו-1,677 מתוך 2,262 (74%) הם פער של **יחידה אחת**. חציון הפער
+   בכל הדלת: 1 יח׳, $22.
+
+   אבל ה-410 אינם רעש: חציון הפער בהם **2.25 חודשי ביקוש** (p90=8),
+   ו-351 מתוכם מעל חודש שלם. לכן *לא* נוסף כאן סף מהותיות — הוא
+   היה חותך 410→351, 8% שאינם מצדיקים את הסיבוך. לא מחילים תבנית
+   רק כי עבדה פעם.
+
+   הפיצול הוא לפי `mode` ולא לפי `track`: כל מסלול הרינדור —
+   עמודות, כותרות, סכומים, טקסט ריק, כפתור הקפיצה — כבר מותנה
+   ב-`track==='floor'`, ושכפולו למסלול שני היה מכפיל שמונה מקומות
+   שאפשר לשכוח אחד מהם. */
+function floorAll(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
+function floorMeasured(r){return r.rate>0&&r.ssStat>0}
+function floorPick(list,k){return k==='floorNR'
+  ?list.filter(r=>!floorMeasured(r)):list.filter(floorMeasured)}
+function floorRows(){return floorPick(floorAll(),mode)}
 function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
   const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
@@ -7371,7 +7405,9 @@ function renderDecisions(rows){
    `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
-     :track==='floor'?'אין פריט מנוהל־מלאי שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.'
+     :track==='floor'?(mode==='floorNR'
+        ?'אין פריט בלי קצב מדיד שיושבת עליו רצפת מלאי ביטחון.'
+        :'אין פריט עם קצב מדיד שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.')
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
@@ -7395,9 +7431,11 @@ function renderDecisions(rows){
  /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
  const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
  document.getElementById('pgR').textContent=(track==='floor'
-   ?(()=>{const nr=rows.filter(ssNoRate).length;
-      return `${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`
-       +(nr?` · מתוכם ${nr.toLocaleString('he-IL')} בלי קצב מדוד — שם הרצפה כולה היא הפער`:'')})()
+   /* הסייג «מתוכם N בלי קצב מדוד» ירד: אחרי FLOOR_SPLIT שתי
+      הקבוצות אינן יושבות יחד, והמשפט היה מדווח תמיד אפס. */
+   ?(mode==='floorNR'
+      ? `${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ רצפה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))} — אין קצב להשוות אליו`
+      : `${floorTotals(rows).units.toLocaleString('he-IL')} יח׳ מעל הדרישה · ${moneyMix(rows,r=>ssFloorGap(r)*(r.price||0))}`)
    :track==='rise'
    ?(()=>{const cov=rows.filter(riseCovered);
       return `${rows.reduce((a,r)=>a+riseGap(r),0).toLocaleString('he-IL')} יח׳ שנקודת ההזמנה מפגרת אחריהן · ${moneyMix(rows,r=>riseGap(r)*(r.price||0))}`
@@ -7417,7 +7455,9 @@ function renderDecisions(rows){
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
  setPhdSub(track==='floor'
-  ?'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · «הדרישה» = — פירושה שאין קצב מדוד, ולכן הרצפה כולה היא הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי'
+  ?(mode==='floorNR'
+   ?'לפריטים האלה אין קצב מדיד, ולכן אין דרישה סטטיסטית להשוות אליה — אפשר לומר שיש רצפה, לא שהיא גבוהה מדי · ההחלטה כאן היא מדיניות (להחזיק או לא), ולא מספר · ממוין לפי שווי הרצפה'
+   :'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי')
   :track==='trend'
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'

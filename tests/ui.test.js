@@ -647,10 +647,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     (ix=>ix>0&&+fv.cells[ix]>0)(fv.heads.split(' · ').indexOf('פער')),
     fv.heads+' || '+fv.cells.join(' | '));
  ok('הפוטר מסכם יחידות וכסף',/יח׳ מעל הדרישה/.test(fv.pgR),fv.pgR);
- /* ============ הדלת הורחבה מ-409 ל-2,287 ============
-    התנאי rate>0 הוסר: הפער נמדד היום על כל פריט מנוהל־מלאי. שתי
-    השאלות נשארות נפרדות *בתוך* הדלת — «הדרישה» מציגה «—» כשאין קצב
-    מדוד, והסיכום מפצל את שתי האוכלוסיות. */
+ /* ============ 409 → 2,287 (הורחבה) → פוצלה חזרה ============
+    ההרחבה הייתה מודעת: «הפער נמדד על כל פריט מנוהל־מלאי, ושתי
+    השאלות נשארות נפרדות *בתוך* הדלת» — «—» בעמודת הדרישה וסיכום
+    שמפצל. ההבחנה אכן הייתה שם, בשורה.
+
+    מה שנמדד אחר כך על הדוח האמיתי (FLOOR_SPLIT ב-index.html):
+    מתוך 2,262 — **1,852 (82%) בלי קצב מדיד**, ושם ssStat=0 *בהגדרה*,
+    כך ש«הרצפה גבוהה מהדרישה» מצטמצם ל«הרצפה גבוהה מאפס» — נכון לכל
+    פריט שיש לו רצפה. 1,677 מהם פער של יחידה אחת.
+
+    ההבחנה בשורה לא הספיקה, כי המספר על המסילה אמר 2,262 ואיש לא
+    נכנס. הדלת מפוצלת לשתיים; הבדיקות כאן נועלות את הפיצול **ואת
+    שימור הסך** — 410 + 1,852 חייבים להרכיב בדיוק את ההגדרה הישנה. */
  const fw=await p.evaluate(()=>{
   const all=(QF&&QF.all?QF.all:[]);
   const rows=floorRows();
@@ -675,8 +684,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
        match:(ix=>tr.every((t,i)=>((t.children[ix]||{}).textContent.trim()==='—')===ssNoRate(shown[i])))(HX('הדרישה'))}})(),
    pgR:document.getElementById('pgR').textContent,
    sub:document.getElementById('phdSub').textContent}});
- ok('הדלת כוללת גם פריטים בלי קצב מדוד',fw.n>fw.narrow,
-    `${fw.n} פריטים · ${fw.narrow} מהם עם קצב (לפני ההרחבה זה היה כל המסלול)`);
+ ok('הדלת מכילה אך ורק פריטים עם קצב מדיד',fw.n===fw.narrow&&fw.noRate===0,
+    `${fw.n} בדלת · ${fw.narrow} עם קצב · ${fw.noRate} בלי`);
  ok('ואף החרגה עסקית לא נכנסה איתם',fw.leaks===0,fw.leaks+' דליפות');
  ok('הפער נמדד מול הרצפה שבתוקף ולא מול ssMin הגולמי',fw.rawFloor===0,fw.rawFloor+' חריגות');
  ok('בעמודת הדרישה «—» מופיעה בדיוק בשורות שאין בהן קצב מדוד',
@@ -684,7 +693,34 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     `${fw.dash.got}/${fw.dash.want} מתוך ${fw.dash.n} שורות מרונדרות`);
  ok('והסיכום אומר כמה מהן בלי קצב',
     fw.noRate===0||/בלי קצב מדוד/.test(fw.pgR),fw.pgR);
- ok('והתת-כותרת מסבירה מה «—» אומרת',/אין קצב מדוד/.test(fw.sub),fw.sub.slice(0,140));
+ ok('והתת-כותרת מדברת על הפער מול הדרישה',/גבוהה מהדרישה הסטטיסטית/.test(fw.sub),fw.sub.slice(0,140));
+ /* ============ הדלת השנייה, ושימור הסך ============ */
+ await p.evaluate(()=>setMode('floorNR'));await p.waitForTimeout(600);
+ const fnr=await p.evaluate(()=>{
+  const all=(QF&&QF.all?QF.all:[]);
+  const rows=floorRows();
+  const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
+  const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+  return {n:rows.length,
+   withRate:rows.filter(r=>r.rate>0).length,
+   /* ההגדרה הישנה במלואה — שתי הדלתות יחד חייבות לכסות אותה */
+   old:all.filter(r=>ssFloorGap(r)>0).length,
+   leaks:rows.filter(r=>r.isOD||r.noStock||(r.ssMinEff||0)<=(r.ssStat||0)).length,
+   rawFloor:rows.filter(r=>ssFloorGap(r)!==(r.ssMinEff||0)-(r.ssStat||0)).length,
+   /* כאן «—» אמורה להופיע בכל שורה, כי לאף שורה אין קצב */
+   dashAll:(ix=>ix>0&&tr.length>0&&tr.every(t=>(t.children[ix]||{}).textContent.trim()==='—'))(HX('הדרישה')),
+   sub:document.getElementById('phdSub').textContent,
+   pgR:document.getElementById('pgR').textContent}});
+ ok('«רצפה בלי קצב מדיד» מכילה אך ורק פריטים בלי קצב',
+    fnr.n>0&&fnr.withRate===0,`${fnr.n} בדלת · ${fnr.withRate} מהם עם קצב`);
+ ok('ושתי הדלתות יחד הן בדיוק ההגדרה הישנה — אף פריט לא נעלם',
+    fw.n+fnr.n===fnr.old,`${fw.n} + ${fnr.n} = ${fw.n+fnr.n} מול ${fnr.old}`);
+ ok('גם כאן אף החרגה עסקית לא נכנסה',fnr.leaks===0,fnr.leaks+' דליפות');
+ ok('והפער נמדד מול הרצפה שבתוקף',fnr.rawFloor===0,fnr.rawFloor+' חריגות');
+ ok('«—» בעמודת הדרישה בכל שורה — אין קצב להשוות אליו',fnr.dashAll,fnr.sub.slice(0,80));
+ ok('והתת-כותרת אומרת שאי אפשר לקבוע שהרצפה גבוהה מדי',
+    /לא שהיא גבוהה מדי/.test(fnr.sub),fnr.sub.slice(0,140));
+ await p.evaluate(()=>setMode('floor'));await p.waitForTimeout(500);
  await p.click('#floorBtn');await p.waitForTimeout(600);
  ok('לחיצה על הסיכום מחזירה ל"החודש"','month'===await p.evaluate(()=>mode));
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
