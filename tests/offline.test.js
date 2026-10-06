@@ -80,7 +80,10 @@ const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+'
     כאן נבדק *כל* מסך כמצב שמור, בהקשר דפדפן נקי, בדיוק כמו מעתד
     שפותח בבוקר. אם אחד מהם ייפול שוב, זה ייתפס כאן ולא אצלו. */
  const MODES=['home','today','line','month','qual','stale','cap','catalog',
-   'moves','burn','cust','done','floor','trend','rise','applied'];
+   'moves','burn','cust','done','floor','trend','rise','applied',
+  /* דלתות שנוספו אחרי שהרשימה נכתבה ולא נכנסו אליה: הפיצולים.
+     מסך שאינו ברשימה הזאת אינו נבדק כמצב שמור בכלל. */
+  'over3y','tier','floorNR','capPO','capStop','capBiz','capNone'];
  const bad=[];
  for(const m of MODES){
   const c2=await b.newContext({viewport:{width:1512,height:860}});

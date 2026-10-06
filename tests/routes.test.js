@@ -482,6 +482,78 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('לוח לכל מטבע — ואין סכום אחד חוצה מטבעות',
     c.panels===c.curs&&c.money.length===c.curs,
     `${c.panels} לוחות · ${c.curs} מטבעות · ${c.money.join(' | ')}`);
+  /* ============ CAP_SPLIT — ארבע הידיות ============
+     הדלת הכוללת מסודרת לפי סיווג: מלאי מת · איטי · עודף · רקע. הסיווג
+     אומר למה הכסף תקוע, לא מה אפשר לעשות. נמדד על הדוח של 5.10
+     (2,700 בדלת): 1,651 מתוך 2,335 פריטי מת/איטי כבר מחזיקים ROP ≤ 1,
+     כלומר ההוראה «לאפס ROP/SS» מופנית למי שכבר כבוי; ו-277 פריטים
+     מחזיקים ROP > 1 על מלאי עודף אבל sugROP ≥ rop וגם sugSS ≥ ss —
+     הון כלוא בלי שום מספר להציע.
+
+     הבדיקות כאן נועלות שלושה דברים: שכל אחת מארבע הדלתות מכילה אך
+     ורק את מי שה-`capAct` שלו הוא היא, שארבעתן יחד הן **בדיוק**
+     הדלת הכוללת (אף פריט לא נעלם, אף פריט לא נספר פעמיים), ושכל
+     דלת אומרת למי שנכנס מה הידית — כולל «אין מה לשנות», שקיימת
+     כדי שלא יתחפש לרשימת עבודה. */
+  const cs=await p.evaluate(async()=>{
+   const tot=capPick(decisionList('cap'),'cap');
+   const K=['capPO','capStop','capBiz','capNone'];
+   const part={};for(const k of K)part[k]=capPick(decisionList('cap'),k);
+   /* חלוקה אמיתית: הסך נשמר, ואף פריט אינו בשתי דלתות */
+   const seen=new Set();let dup=0;
+   for(const k of K)for(const r of part[k]){if(seen.has(r))dup++;seen.add(r)}
+   return {tot:tot.length,n:Object.fromEntries(K.map(k=>[k,part[k].length])),
+    sum:K.reduce((a,k)=>a+part[k].length,0),dup,
+    nav:Object.fromEntries(['cap',...K].map(k=>[k,navCount(k).n])),
+    /* כל דלת והתנאי שהיא מתיימרת לקיים — נבדק מול השדות של המנוע */
+    poClean:part.capPO.filter(r=>!(r.po>0)).length,
+    stopClean:part.capStop.filter(r=>!(!(r.po>0)&&!r.floorClash&&r.rop>1
+       &&((r.sugROP||0)<(r.rop||0)||(r.sugSS||0)<(r.ss||0)))).length,
+    bizClean:part.capBiz.filter(r=>!(!(r.po>0)&&(r.floorClash
+       ||(!(r.rop>1)&&CAP_DEAD.has(r.cat))))).length,
+    /* «אין מה לשנות» חייבת להיות באמת כזו: או ROP כבוי ולא מת,
+       או ROP חי שהמנוע אינו מציע להקטין */
+    noneHasLever:part.capNone.filter(r=>r.po>0
+       ||((r.sugROP||0)<(r.rop||0)||(r.sugSS||0)<(r.ss||0))&&r.rop>1&&!r.floorClash).length,
+    /* ההון הכלוא חיובי בכל שורה בכל דלת — ההגדרה של הדלת הכוללת */
+    noCap:K.reduce((a,k)=>a+part[k].filter(r=>!(r.expCap>0)).length,0)}});
+  ok('ארבע הידיות יחד הן בדיוק הדלת הכוללת — אף פריט לא נעלם',
+    cs.sum===cs.tot&&cs.dup===0,
+    `${Object.values(cs.n).join(' + ')} = ${cs.sum} מול ${cs.tot} · ${cs.dup} כפולים`);
+  ok('והמונה במסילה מסכים עם הרשימה בכל אחת מהן',
+    ['capPO','capStop','capBiz','capNone','cap'].every(k=>cs.nav[k]===(k==='cap'?cs.tot:cs.n[k])),
+    JSON.stringify(cs.nav));
+  ok('«רכש בדרך לעודף» — לכל פריט בה יש רכש פתוח',cs.poClean===0,cs.poClean+' בלי רכש פתוח');
+  ok('«להפסיק להזמין» — ROP חי והמנוע עצמו מציע מספר נמוך ממנו',
+    cs.stopClean===0,cs.stopClean+' חריגות');
+  ok('«החלטה מסחרית» — מת עם ROP כבוי, או התנגשות מדיניות',
+    cs.bizClean===0,cs.bizClean+' חריגות');
+  ok('«אין מה לשנות» — ואין בה אף פריט שיש לו ידית',
+    cs.noneHasLever===0,cs.noneHasLever+' פריטים עם ידית');
+  ok('ובכל ארבעתן ההון הכלוא חיובי — זו ההגדרה של הדלת',cs.noCap===0,cs.noCap+' עם אפס');
+  /* הדלת חייבת לדבר. «אין מה לשנות» היא המקרה המסוכן: רשימה שנראית
+     כמו עבודה ואינה. */
+  const cd=[];
+  for(const k of ['capPO','capStop','capBiz','capNone']){
+   await p.evaluate(m=>setMode(m),k);await p.waitForTimeout(500);
+   cd.push(await p.evaluate(()=>({m:mode,
+     rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+     n:currentRows().length,
+     ttl:(document.querySelector('.phd .title')||{}).textContent||'',
+     sub:document.getElementById('phdSub').textContent||'',
+     pgR:document.getElementById('pgR').textContent||'',
+     over:(()=>{const t=document.getElementById('tbl');return t.scrollWidth>t.clientWidth+2})()})))}
+  ok('לכל ידית כותרת משלה, תת-כותרת שאומרת מה הידית, ושורות שתואמות את הרשימה',
+    cd.every(d=>d.ttl.includes('·')&&d.sub.length>40&&(d.n===0||d.rows>0)),
+    cd.map(d=>`${d.m}: ${d.rows}/${d.n} «${d.sub.slice(0,30)}»`).join(' | '));
+  ok('«אין מה לשנות» אומרת במפורש שאין מה לשנות',
+    (d=>/אין מולו שום מספר להציע|ROP כבר כבוי/.test(d.sub))(cd[3]),cd[3].sub.slice(0,120));
+  /* בקובץ ההדגמה הדלת הזאת יכולה לצאת ריקה — הסיכום נבדק כשיש בה מה לסכם */
+  ok('«רכש בדרך לעודף» מסכמת את הכמות שעוד לא נכנסה',
+    cd[0].n===0||/יח׳ רכש פתוח עוד בדרך פנימה/.test(cd[0].pgR),
+    `${cd[0].n} פריטים · ${cd[0].pgR.slice(0,110)}`);
+  ok('ואף אחת מהן אינה גולשת אופקית',cd.every(d=>!d.over),
+    cd.filter(d=>d.over).map(d=>d.m).join(',')||'אין גלישה');
   ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
   await ctx.close()}
 

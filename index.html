@@ -4579,7 +4579,9 @@ const NAV=[
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
  over3y:'month',tier:'month',floorNR:'month',
- qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog'};
+ qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
+ /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
+ capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
  line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
@@ -4587,7 +4589,8 @@ const SUBNAV={
    ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],
    ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
  qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
- cap:[['cap','הון כלוא']],
+ cap:[['cap','הון כלוא'],['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
+   ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
 /* ============ מה כל מסלול הוא ============
    הכיתוב הקבוע הזה יושב מתחת לשם, ולצידו המספר הדינמי. הוא עונה על
@@ -4847,7 +4850,10 @@ function navCount(k){
  /* המונה הוא אורך הרשימה עצמה. קודם הוא היה סכום של שני מקורות
     בלי ניכוי חפיפה, והמסך הציג משהו אחר לגמרי. */
  if(k==='home'){const r=agendaRows();return {n:r.length,hot:r.filter(x=>x.sev===3).length}}
- if(k==='cap'){const r=decisionList('cap');return {n:r.length,hot:0}}
+ /* הספירה אינה יכולה ליפול ל-modeRows: הוא קורא ל-decisionList(track)
+    בלבד, וארבעת הדלתות חולקות track אחד. capPick מקבל את המפתח. */
+ if(k==='cap'||k==='capPO'||k==='capStop'||k==='capBiz'||k==='capNone')
+  return {n:capPick(decisionList('cap'),k).length,hot:0}
  if(k==='burn'){const r=burnRows();return {n:r.length,hot:r.length}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
  if(k==='stale'){const r=staleRows();return {n:r.length,hot:0}}
@@ -4880,6 +4886,11 @@ const MODESET={
     מטבע, עם קו ה-80% לכל מטבע — המנגנון היה קיים ולא הגיעו אליו.
     «קטלוג פריטים» נשאר cur:'all' ולא זז. */
  cap:{cur:'today',track:'cap'},
+ /* CAP_SPLIT — אותו track בדיוק, ולכן כל שמונה ענפי הרינדור,
+    cut80, capView, בורר העמודות והייצוא ממשיכים לעבוד בלי שינוי.
+    מה שמבדיל הוא `mode`, כפי ש-floorNR עובד. */
+ capPO:{cur:'today',track:'cap'},capStop:{cur:'today',track:'cap'},
+ capBiz:{cur:'today',track:'cap'},capNone:{cur:'today',track:'cap'},
  line:{cur:'today',track:'line'},today:{cur:'today',track:'short'},month:{cur:'today',track:'month'},catalog:{cur:'all',track:'cap'},
  /* פריטים שסומנו "טופל" יוצאים מכל תורי העבודה ברונג הראשון של classify.
     בלי יעד משלהם אי אפשר היה להגיע אליהם כדי לבטל את הסימון. */
@@ -4983,6 +4994,9 @@ function groupRows(rows){const by={};for(const [g] of TGROUP)by[g]=[];
  for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
  return by}
 function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
+ /* CAP_SPLIT — ארבעת הדלתות חולקות track='cap', ולכן decisionList(track)
+    לבדו היה מחזיר את כל 2,700 לכל אחת מהן. */
+ if(c.track==='cap'&&c.cur==='today')return capPick(decisionList('cap'),m);
  return c.cur==='today'?decisionList(c.track):(QF.all||[]).filter(passColFilters)}
 /* ============ המסך האחרון שורד רענון ============
    הכלי נוחת ב«מרכז עבודה» בפתיחה ראשונה — זה נכון, זה סדר היום.
@@ -6355,7 +6369,11 @@ function passColFilters(r){
    if(f.min!=null&&(!(typeof val==='number')||val<f.min))return false;
    if(f.max!=null&&(!(typeof val==='number')||val>f.max))return false}
  return true}
-function currentRows(){if(cur==='today')return decisionList(track);
+function currentRows(){
+ /* CAP_SPLIT — הרשימה היא decisionList('cap') עצמה, כולל המיון
+    לפי שווי בבלוקי מטבע; capPick רק מצמצם אותה לידית אחת. */
+ if(cur==='today'&&track==='cap')return capRows();
+ if(cur==='today')return decisionList(track);
  /* הדלי הבוער — ממוין לפי שווי הפער, בתוך בלוק המטבע (מדיניות BZ) */
  if(track==='burn'){const by=burnRows().sort((a,b)=>(curPos(a)-curPos(b))||(burnVal(b)-burnVal(a)));
    return sortCol==='sev'?by:sortRowsBy(by)}
@@ -6576,6 +6594,74 @@ function floorMeasured(r){return r.rate>0&&r.ssStat>0}
 function floorPick(list,k){return k==='floorNR'
   ?list.filter(r=>!floorMeasured(r)):list.filter(floorMeasured)}
 function floorRows(){return floorPick(floorAll(),mode)}
+/* ============ CAP_SPLIT — «הון כלוא» עורבב לפי סיווג, לא לפי מי מחזיק בידית ============
+   הדלת הייתה רשימה אחת של 2,700 פריטים, מסודרת לפי שווי ההון הכלוא
+   ומחולקת לסיווגים: מלאי מת · מלאי איטי · עודף מלאי · רקע. הסיווג
+   אומר *למה* הכסף תקוע. הוא אינו אומר *מה אפשר לעשות*, וזו השאלה
+   היחידה שמעתד שואל כשהוא נכנס לרשימה.
+
+   נמדד על הדוח של 5.10 (7,987 פריטים · הדלת 2,700):
+
+   | הסיווג | פריטים | USD | ILS | EUR |
+   |---|---|---|---|---|
+   | מלאי מת | 1,342 | 205,665 | 139,326 | 362 |
+   | מלאי איטי | 993 | 421,037 | 62,854 | 14 |
+   | עודף מלאי | 254 | 360,048 | 8,786 | 30 |
+   | רקע (PD · לא פעיל) | 110 | 32,705 | 2,336 | 1,207 |
+   | ירידה בביקוש | 1 | 1 | — | — |
+
+   ואותם 2,700 פריטים לפי הידית שאפשר למשוך — כאן זה נראה אחרת:
+
+   | הידית | פריטים | USD | ILS | EUR |
+   |---|---|---|---|---|
+   | רכש פתוח שאפשר לבטל | 94 | 126,797 | 884 | — |
+   | הקטנת פרמטר שהמנוע עצמו מציע | 577 | 385,666 | 9,657 | 376 |
+   | החלטה שאינה של המעתד | 1,338 | 205,571 | 139,326 | — |
+   | אין שום מספר לשנות | 691 | 301,422 | 63,435 | 1,207 |
+
+   שני המספרים שמצדיקים את הפיצול:
+
+   1,651 מתוך 2,335 פריטי מת/איטי כבר מחזיקים ROP ≤ 1 — כלומר ההוראה
+   «לאפס ROP/SS» או «לא להזמין» מופנית למי שכבר כבוי. אין מה לכבות.
+
+   ו-277 פריטים (169,662 USD · 14,648 ILS) שבהם ROP > 1 על מלאי
+   עודף/איטי, אבל sugROP ≥ rop *וגם* sugSS ≥ ss — כלומר המנוע מדווח
+   הון כלוא ובאותה נשימה ממליץ לא לגעת בפרמטרים, או להעלות אותם.
+   זו אינה תקלה: 6608233674C15 מחזיק 61 יח׳ בקצב 2.83 לחודש (21
+   חודשי כיסוי, 13,573 USD כלואים) ו-ROP 13, והמנוע מציע 17 — כי
+   זמן האספקה 120 יום דורש 11.3 יח׳ ביקוש ועוד רצפת SS של 5. פסק
+   העודף קורא 12–36 חודשי כיסוי; חישוב ה-ROP קורא 4 חודשי אספקה.
+   שתי השעונים נכונים ואינם מדברים זה עם זה. ראה הצעה נפרדת —
+   כאן רק נאמר למי שנכנס שאין לו מה לעשות, במקום להסתיר אותו
+   בתוך רשימה שנראית כמו רשימת עבודה.
+
+   אין כאן נוסחה חדשה, סף חדש או סיווג חדש: `po`, `floorClash`,
+   `rop`, `sugROP`, `sugSS` ו-`cat` כולם כבר מחושבים במנוע, והמיון
+   לפי שווי ההון הכלוא בבלוקי מטבע נשאר כפי שהוא. הדלת הכוללת
+   «הון כלוא» נשארת במקומה — שום פריט אינו יוצא מהישג יד. */
+const CAP_DEAD=new Set(['מלאי מת','מלאי מת — לבדיקה']);
+const CAP_DOORS={
+ capPO:['רכש בדרך לעודף','רכש פתוח שימשיך להיכנס למלאי שכבר עודף — הידית היחידה שיש לה ספק, כמות ותאריך · ממוין לפי שווי ההון הכלוא בתוך כל מטבע'],
+ capStop:['להפסיק להזמין','נקודת ההזמנה חיה והמנוע עצמו מציע מספר נמוך ממנה — זו החלטת פרמטר של המעתד, והיא זו שעוצרת את ההזמנה הבאה'],
+ capBiz:['החלטה מסחרית','מלאי מת שה-ROP שלו כבר כבוי, או שיש בו התנגשות מדיניות — אין פרמטר לשנות. מה שנותר הוא חיסול, החזרה לספק, קמפיין או הכרעת מדיניות, ואלה אינם של המעתד'],
+ capNone:['אין מה לשנות','הון כלוא שאין מולו שום מספר להציע — ROP כבר כבוי, או שהמנוע ממליץ לא להקטין. מוצג כדי שלא יתחפש לרשימת עבודה בתוך הדלת הכוללת']};
+function capAct(r){
+ /* הסדר הוא סדר הדחיפות, ולכן הוא גם מה שהופך את זה לחלוקה ולא
+    לארבעה מסננים חופפים: רכש בדרך קודם לכל — הוא הכסף היחיד שעוד
+    זז, ובלבד שיעצר. */
+ if(r.po>0)return 'capPO';
+ /* התנגשות מדיניות: המנוע כבר הכריז במפורש שהוא אינו מכריע בין
+    «אין צריכה 3 שנים» ובין רצפת SS מאושרת. אין פרמטר להציע כאן. */
+ if(r.floorClash)return 'capBiz';
+ if(r.rop>1)return ((r.sugROP||0)<(r.rop||0)||(r.sugSS||0)<(r.ss||0))?'capStop':'capNone';
+ return CAP_DEAD.has(r.cat)?'capBiz':'capNone'}
+/* ============ הבורר מסנן רק לפי מפתח שהוא מכיר ============
+   היה `k && k!=='cap'` — כלומר *כל* מפתח אחר סינן. engine.test כופה
+   track='cap' בעודה mode='today' כדי לבדוק שהמסלול מרנדר, ואז
+   capAct(r)==='today' לא התקיים לאף פריט והדלת החזירה 0 שורות.
+   רק ארבעת מפתחות הדלתות מסננים; כל השאר מקבל את הרשימה כולה. */
+function capPick(list,k){return CAP_DOORS[k]?list.filter(r=>capAct(r)===k):list}
+function capRows(){return capPick(decisionList('cap'),mode)}
 function floorTotals(rows){const cur={};let units=0;
  for(const r of rows){const g=ssFloorGap(r);units+=g;
   const c=r.currency||'';cur[c]=(cur[c]||0)+g*(r.price||0)}
@@ -7048,6 +7134,8 @@ const SCOL_DEF={
  done:['pnPlain','model','desc','markLbl','markWhen','undo'],
  m1:['pnPlain','model','desc','c3','r3','freeDry','m1gap','poPlain'],
  cap:['pn','model','desc','capType','capVal','capPct','act','capCov'],
+ /* אותו מספר עמודות — `po` במקום `capPct` */
+ capPO:['pn','model','desc','capType','capVal','po','act','capCov'],
  /* שלושת טאבי התנועות — בדיוק העמודות שהיו על המסך לפני הרישום,
     ובאותו סדר. לכל טאב פריסה משלו, כי הוא עוסק בתאריך אחר. */
  mv_sales:['mdot','pnPlain','desc','model','sdate','mage','mdelta','free','abc','mrp'],
@@ -7104,6 +7192,10 @@ function colViewKey(){
  if(track==='stale')return 'stale';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
+ /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
+    ולכן היא מחזיקה עמודה משלה במקום אחוז ההון. שלוש האחרות חולקות
+    את תצוגת «הון כלוא» כפי שהייתה. */
+ if(track==='cap'&&cur==='today'&&mode==='capPO')return 'capPO';
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג — מציג תמיד את
     אותן עשר עמודות, ולכן הוא תצוגה אחת. «בריאות המלאי» חולק איתו
     track='cap' אבל רץ במרנדר ההחלטות; מה שמבדיל הוא cur.
@@ -7412,7 +7504,11 @@ function renderDecisions(rows){
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
      :track==='stale'?(ETA?'אף שורה בדוח ה-ETA אינה נושאת תאריך שכבר עבר — הדוח נקי.':'לא נטען דוח ETA, ולכן אין תאריכי הגעה לבדוק.')
-     :track==='cap'?'אין הון כלוא במסלול הזה.'
+     :track==='cap'?(mode==='capPO'?'אין פריט עם רכש פתוח שימשיך להיכנס למלאי עודף — שום כסף אינו בדרך לתוך ההון הכלוא.'
+        :mode==='capStop'?'אין פריט שבו נקודת ההזמנה חיה והמנוע מציע מספר נמוך ממנה — אין הזמנה חוזרת לעצור בפרמטר.'
+        :mode==='capBiz'?'אין מלאי מת שה-ROP שלו כבוי ואין התנגשות מדיניות — כל ההון הכלוא ניתן לטיפול בפרמטר או בביטול רכש.'
+        :mode==='capNone'?'אין הון כלוא שאין מולו מה לשנות — לכל פריט בדלת יש ידית.'
+        :'אין הון כלוא במסלול הזה.')
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
@@ -7424,13 +7520,20 @@ function renderDecisions(rows){
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
- if(track==='cap'){const yg=(QF&&QF.all?QF.all:[]).filter(r=>r.ageTier==='young'&&r.stock>0);
+ /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
+    ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
+ if(track==='cap'&&mode==='cap'){const yg=(QF&&QF.all?QF.all:[]).filter(r=>r.ageTier==='young'&&r.stock>0);
   if(yg.length){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
  /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
  const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
- document.getElementById('pgR').textContent=(track==='floor'
+ /* «רכש בדרך לעודף» — המספר שמכריע הוא הכמות שעוד לא נכנסה.
+    `po` הוא הרכש הפתוח כפי שהדוח מדווח אותו, בלי תאריך הגעה
+    ובלי להניח אחד. */
+ document.getElementById('pgR').textContent=(track==='cap'&&mode==='capPO'
+   ?`${rows.reduce((t,r)=>t+(r.po||0),0).toLocaleString('he-IL')} יח׳ רכש פתוח עוד בדרך פנימה · ${moneyMix(rows,r=>r.expCap||0)} הון כלוא כבר על המדף`
+   :track==='floor'
    /* הסייג «מתוכם N בלי קצב מדוד» ירד: אחרי FLOOR_SPLIT שתי
       הקבוצות אינן יושבות יחד, והמשפט היה מדווח תמיד אפס. */
    ?(mode==='floorNR'
@@ -7454,7 +7557,10 @@ function renderDecisions(rows){
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
    :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
- setPhdSub(track==='floor'
+ /* CAP_SPLIT — לכל ידית הכיתוב שלה, מתוך CAP_DOORS, כדי שמי שנכנס
+    יקרא מה הוא *יכול* לעשות ולא רק למה הכסף תקוע. */
+ const capDoor=(track==='cap'&&CAP_DOORS[mode])?CAP_DOORS[mode][1]:null;
+ setPhdSub(capDoor?capDoor:track==='floor'
   ?(mode==='floorNR'
    ?'לפריטים האלה אין קצב מדיד, ולכן אין דרישה סטטיסטית להשוות אליה — אפשר לומר שיש רצפה, לא שהיא גבוהה מדי · ההחלטה כאן היא מדיניות (להחזיק או לא), ולא מספר · ממוין לפי שווי הרצפה'
    :'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי')
@@ -7470,7 +7576,7 @@ function renderDecisions(rows){
   ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
-    :'כסף שיושב במחסן ולא זז — ממוין לפי ₪'));
+    :'כסף שיושב במחסן ולא זז — ממוין לפי שווי ההון הכלוא בתוך כל מטבע בנפרד · ארבע הדלתות שמתחת מחלקות אותו לפי הידית שאפשר למשוך'));
  wireCopy()}
 /* ============ RENDER_NEEDS_DATA ============
    התקלה שהמעתד דיווח עליה ב-4.10, מתוך ה-stack שהוא שלח:
