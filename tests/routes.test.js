@@ -48,7 +48,24 @@ const rows=[
  /* אותו מצב בדיוק, אבל יש רכש פתוח — זה כבר לא «ללא רכש» */
  mk('COVERED-BY-PO',{months:[3,3,3,3,3,3,3,3,3,3,3],free:1,cust:10,po:4,price:300,lt:60}),
  /* רקע שקט */
- mk('QUIET',{months:[1,1,1,1,1,1,1,1,1,1,1],free:500,price:20})];
+ mk('QUIET',{months:[1,1,1,1,1,1,1,1,1,1,1],free:500,price:20}),
+ /* ============ CAP_SPLIT · TWO_CLOCKS — פריטים לארבע הידיות ============
+    הקובץ הזה נבנה לפני שהדלת פוצלה, וההון הכלוא שבו היה שני פריטי
+    עודף בלבד — כלומר שלוש מארבע הידיות היו ריקות ולא נבדקו כלל,
+    ושורת «שני שעונים» לא הייתה מופיעה על אף פריט. הפריטים כאן נבנו
+    כל אחד למצב אחר; לאן המנוע מסווג אותם בפועל נמדד בבדיקה עצמה. */
+ /* רכש פתוח שעוד נכנס למלאי שכבר עודף */
+ mk('CAP-PO',{months:[1,1,1,1,1,1,1,1,1,1,1],free:60,po:10,rop:3,ss:1,ssMin:1,price:200,lt:60,saleAgo:40,entAgo:120}),
+ /* נקודת הזמנה גבוהה בהרבה מהנדרש — יש מה להקטין */
+ mk('CAP-STOP',{months:[1,1,1,1,1,1,1,1,1,1,1],free:60,rop:50,ss:20,price:200,lt:30,saleAgo:40,entAgo:120}),
+ /* מלאי מת: אין צריכה בשלוש שנים, ROP כבוי */
+ mk('CAP-DEAD',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:0,y1:0,y2:0,free:40,rop:0,ss:0,price:50,saleAgo:1400,entAgo:1400}),
+ /* שני שעונים, צורת «יש קצב מדיד»: 40 חודשי כיסוי על המדף,
+    וזמן אספקה של 4 חודשים שדורש ROP גבוה בהרבה מהקיים */
+ mk('CLOCKS-RATED',{months:[5,5,5,5,5,5,5,5,5,5,5],free:200,rop:3,ss:1,ssMin:2,price:150,lt:120,saleAgo:30,entAgo:150}),
+ /* שני שעונים, צורת «אין קצב מדיד»: הצריכה כולה מחוץ לחלון 11
+    החודשים, ולכן ה-ROP המוצע הוא רצפת ה-SS בלבד */
+ mk('CLOCKS-FLAT',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:40,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/routes.xlsx');
@@ -531,6 +548,45 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«אין מה לשנות» — ואין בה אף פריט שיש לו ידית',
     cs.noneHasLever===0,cs.noneHasLever+' פריטים עם ידית');
   ok('ובכל ארבעתן ההון הכלוא חיובי — זו ההגדרה של הדלת',cs.noCap===0,cs.noCap+' עם אפס');
+  /* ============ TWO_CLOCKS ============
+     277 פריטים הציגו «הון כלוא» ו«אל תקטין / העלה את ה-ROP» זה לצד
+     זה בלי הסבר, כי העודף נמדד בחודשי כיסוי וה-ROP בחודשי אספקה.
+     נוספה שורת נימוק בלבד — אף מספר לא השתנה. הבדיקה נועלת שלושה
+     דברים: שהיא מופיעה בדיוק על מי שעומד בתנאי, שהיא לעולם אינה
+     מופיעה על פריט שיש לו הקטנה להציע (שם היא הייתה שקר), ושהיא
+     אומרת את שני השעונים בשתי הצורות הנכונות — ביקוש בזמן אספקה
+     כשיש קצב מדיד, רצפת SS כשאין. */
+  const tc=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const TXT=r=>((r.why||[]).find(w=>w&&/שני שעונים/.test(w[1]||''))||[])[1]||null;
+   const has=all.filter(TXT);
+   const should=all.filter(r=>(r.cat==='עודף מלאי'||r.cat==='מלאי איטי')&&r.rop>ROP_MIN_ACT
+     &&(r.sugROP||0)>=(r.rop||0)&&(r.sugSS||0)>=(r.ss||0));
+   return {n:has.length,should:should.length,
+    /* אף פריט שיש לו הקטנה להציע, או שה-ROP שלו כבוי */
+    wrong:has.filter(r=>(r.sugROP||0)<(r.rop||0)||(r.sugSS||0)<(r.ss||0)
+       ||!(r.rop>ROP_MIN_ACT)).length,
+    /* הצורה חייבת להתאים לסיבה שמחזיקה את ה-ROP */
+    /* הנוסח נוקב בזמן האספקה בימים, לא בחודשים: ltM הוא ltD/30 ויצא
+       4.066666666666666 על הדוח האמיתי — מכפלה שהקורא יבדוק ולא תסתדר. */
+    badRated:has.filter(r=>r.rate>0&&r.cov!=null
+      &&!/ביקוש בזמן אספקה [\d.]+ יח׳ \(קצב [\d.]+ לחודש · זמן אספקה \d+ ימים\)/.test(TXT(r))).length,
+    badFlat:has.filter(r=>!(r.rate>0&&r.cov!=null)&&!/אין קצב מדיד/.test(TXT(r))).length,
+    /* «1 חודשי אספקה» אינו עברית */
+    plural:has.filter(r=>/\b1 חודשי/.test(TXT(r))).length,
+    /* המספרים בשורה הם של המנוע, לא מחושבים מחדש */
+    numOk:has.filter(r=>r.rate>0&&r.cov!=null)
+      .every(r=>TXT(r).includes(`ROP מוצע ${r.sugROP} =`)
+        &&TXT(r).includes(`מלאי ביטחון ${r.sugSS} `)),
+    sample:has.length?TXT(has.sort((a,b)=>(b.expCap||0)-(a.expCap||0))[0]):''}});
+  ok('«שני שעונים» מופיעה בדיוק על מי שעומד בתנאי',
+    tc.n===tc.should&&tc.n>0,`${tc.n} קיבלו · ${tc.should} עומדים בתנאי`);
+  ok('ולעולם לא על פריט שיש לו הקטנה להציע, או ש-ROP שלו כבוי',
+    tc.wrong===0,tc.wrong+' חריגות');
+  ok('הנוסח תואם לסיבה שמחזיקה את ה-ROP — ביקוש בזמן אספקה או רצפה',
+    tc.badRated===0&&tc.badFlat===0,`${tc.badRated} עם קצב · ${tc.badFlat} בלי`);
+  ok('והמספרים בשורה הם של המנוע עצמו',tc.numOk,tc.sample.slice(0,150));
+  ok('ואין «1 חודשי»',tc.plural===0,tc.plural+' מופעים');
   /* הדלת חייבת לדבר. «אין מה לשנות» היא המקרה המסוכן: רשימה שנראית
      כמו עבודה ואינה. */
   const cd=[];

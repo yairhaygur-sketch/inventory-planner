@@ -3850,6 +3850,48 @@ function paramGapQ(r){return Math.max(Math.abs((r.sugROP||0)-(r.rop||0)),
    ביקוש, ולכן פריט תנועה-נדירה לעולם אינו נופל לכאן — הוא מסווג
    לפי הבסיס שלו ולא לפי סף. */
 function paramThin(r){return r.rate>0&&paramGapQ(r)/r.rate<PB_MONTHS}
+/* ============ TWO_CLOCKS — «יש לך יותר מדי» ו«הזמן מוקדם יותר» ============
+   נמדד על הדוח של 5.10: 277 פריטי עודף/איטי מחזיקים ROP > 1, והמנוע
+   אינו מציע להקטין לא אותו ולא את ה-SS — ב-103 מהם הוא מציע ROP
+   *גבוה* יותר. הקורא רואה «הון כלוא $13,573» ובשורה אחרת
+   «להעלות נקודת הזמנה מ-13 ל-17», בלי שאיש אומר לו איך שניהם נכונים.
+
+   הם נכונים כי הם נמדדים בשני שעונים:
+   פסק העודף קורא חודשי כיסוי (12 לעודף · 24 לאיטי).
+   ‏`sugROP` קורא `dLT + sugSS` — ביקוש בזמן האספקה ועוד הרצפה.
+
+   6608233674C15: 61 יח׳ על המדף, קצב 2.83/חודש → 21.5 חודשי כיסוי,
+   ‏$13,573 כלואים. ltM=4 → ביקוש בזמן אספקה 11.3, ועוד רצפת SS 5
+   → ROP מוצע 17 מול 13 הקיים. הפרמטר נכון: פריט שיירד מתחת ל-17
+   באמת לא יגיע למשלוח הבא. הכמות על המדף היא הבעיה, לא הפרמטר.
+
+   הנוסחה לא נגעה, הסף לא נגע, הסיווג לא נגע ואף מספר לא השתנה —
+   זו שורת נימוק בלבד, והיא נאמרת רק כשהסתירה באמת קיימת.
+
+   שתי צורות, כי שתי סיבות שונות מחזיקות את ה-ROP:
+   כשיש קצב מדיד — ביקוש בזמן האספקה הוא שמחזיק אותו.
+   כשאין — `dLT=0`, ולכן `sugROP=sugSS`: *הרצפה* מחזיקה אותו לבדה,
+   ולומר «נדרש לכסות את זמן האספקה» היה שקר על 577 פריטים. */
+/* «1 חודשי כיסוי» אינו עברית. הריבוי נקבע מהמספר עצמו.
+   זמן האספקה נאמר בימים ולא בחודשים: ltM הוא ltD/30, ועל הדוח
+   האמיתי יצא ‎4.066666666666666‎ — ומכפלה שהקורא יבדוק ולא תסתדר
+   גרועה מלא לכתוב אותה בכלל. הימים הם המספר שבדוח. */
+const mon=n=>n===1?'חודש':'חודשי';
+function twoClocks(it){
+ if(!(it.rop>ROP_MIN_ACT))return null;
+ if(!((it.sugROP||0)>=(it.rop||0)&&(it.sugSS||0)>=(it.ss||0)))return null;
+ const up=(it.sugROP||0)>(it.rop||0);
+ if(it.rate>0&&it.cov!=null)
+  return ['info',`שני שעונים: ROP מוצע ${it.sugROP} = ביקוש בזמן אספקה `
+   +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש · זמן אספקה ${it.ltD} ימים) `
+   +`ועוד מלאי ביטחון ${it.sugSS} — ועל המדף ${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
+   +(up?`לכן הכלי מציע להעלות ${it.rop}→${it.sugROP} ובאותה נשימה מדווח הון כלוא: `
+      :`לכן אין מה להקטין, והון כלוא נשאר: `)
+   +`הפרמטר נכון, הכמות אינה. הידית כאן אינה ROP`];
+ return ['info',`שני שעונים: אין קצב מדיד, ולכן הביקוש בזמן האספקה הוא 0 `
+  +`ו-ROP המוצע ${it.sugROP} הוא רצפת מלאי הביטחון בלבד`
+  +(it.cov3y!=null&&it.cov3y>0?` · ${it.cov3y.toFixed(0)} ${mon(+it.cov3y.toFixed(0))} כיסוי בקצב 3 השנים`:'')
+  +`. אין מספר להקטין לפיו — ההון הכלוא אינו נפתר בפרמטר`]}
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[],over3y:[],tier:[]};
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
@@ -4060,6 +4102,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים — עודף של כ-${it.excessQty} יח׳ מעל 12 חודשי כיסוי`],['info',`שווי העודף ${money(it.expCap,it.currency)}`]];
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
     if(A.trend.pct<=-40&&A.trend.pct>-900)it.why.push(['idea',`הביקוש בירידה של ${Math.abs(A.trend.pct)}% — העודף צפוי להחמיר, לא להיפתר מעצמו`]);
+    {const tc=twoClocks(it);if(tc)it.why.push(tc)}
     it.act=[it.po>0?`לבדוק ביטול רכש פתוח (${it.po} יח׳)`:'אין רכש פתוח לביטול',
       it.rop>it.sugROP?`להקטין נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה סבירה',
       it.ss>it.sugSS?`להקטין מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון סביר','לסמן למעקב'];
@@ -4129,6 +4172,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['warn',`צריכה ${it.cons3y} יח׳ בלבד ב-3 שנים · כיסוי ${it.cov3y.toFixed(0)} חודשים בקצב הזה`],
       ['info',`מעל ${SLOW_MONTHS} חודשי כיסוי יושבות ${over} יח׳ בשווי ${money(it.expCap,it.currency)}`],
       it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:null].filter(Boolean);
+    {const tc=twoClocks(it);if(tc)it.why.push(tc)}
     it.act=[over>0?`לבחון הקטנת מלאי ב-${over} יח׳ — ${money(it.expCap,it.currency)}`:'לעקוב',
       it.rop>it.stock?`נקודת הזמנה ${it.rop} גבוהה מהמלאי כולו — לבדוק`:'לבדוק ROP/SS מול קצב אמיתי של 3 שנים',
       'לא להזמין עד שהמלאי יירד'];
