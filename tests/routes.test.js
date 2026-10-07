@@ -72,7 +72,17 @@ const rows=[
     שניהם נבנו למצב אחר: באחד יש יותר בדרך פנימה מההקטנה שתוצע,
     ובשני אין בכלל מה להקטין על המדף. */
  mk('SLOW-PO-OVER',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:40,po:60,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400}),
- mk('SLOW-PO-NONE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:3,po:10,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400})];
+ mk('SLOW-PO-NONE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:3,po:10,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400}),
+ /* ============ FOLLOW_ROP ============
+    «מעקב אספקה» עם נקודת הזמנה נמוכה מהנדרש — המצב של 6608440675,
+    שהמעתד הגיע איתו לחוסר. בקובץ הזה לא היה **אף** פריט «מעקב
+    אספקה», כלומר הבדיקה הייתה רצה על רשימה ריקה.
+    קצב 2 · LT 120 יום (ltM=4) · מדף 5 (כיסוי 2.5 < 4) · בדרך 10
+    (כיסוי כולל 7.5 ≥ 4) → הענף נתפס. ssMin 2 → sugSS 2, ולכן
+    sugROP = ⌈2×4 + 2⌉ = 10 מול rop=3: פער 7, ו-2.5 חודשים יבשים.
+    והבקרה השלילית: אותו מצב בדיוק עם rop=12, שאין בו פער. */
+ mk('FOLLOW-ROP-GAP',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:3,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60}),
+ mk('FOLLOW-ROP-OK',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:12,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/routes.xlsx');
@@ -658,6 +668,41 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«ביצוע ההמלצה» לא נאמר כשאין המלצה לבצע',sp.badPhrase===0,sp.badPhrase+' מופעים');
   ok('וכשיש יותר יחידות בדרך מההקטנה המוצעת — זה נאמר',sp.geSilent===0,sp.geSilent+' שתקו');
   ok('ופריט איטי בלי רכש פתוח אינו מקבל את השורה',sp.noPoLeak===0,sp.noPoLeak+' דליפות');
+  /* ============ FOLLOW_ROP — הרכש מכסה מחזור אחד, ה-ROP מנהל את כולם ====
+     שוחזר מ-6608440675, פריט שהמעתד הגיע איתו לחוסר. בספטמבר היו לו
+     5 על המדף, 7 בדרך, ROP=3 — ו-sugROP=13. בקצב 2.33 וזמן אספקה
+     120 יום, הזמנה שנפתחת ב-3 משאירה 2.7 חודשים יבשים. ספטמבר 5 →
+     אוקטובר 0, בדיוק לפי החשבון.
+
+     והכלי ידע: sugROP=13 ישב בדוח של ספטמבר. אבל מה שהוא אמר היה
+     «אין צורך ברכש יזום נוסף · לא לפתוח רכש נוסף בשלב זה» — אף מילה
+     על נקודת ההזמנה. ענף «מניעת חוסר» אומר «נקודת הזמנה X נמוכה
+     מהנדרש Y»; ענף «מעקב אספקה», שלוש שורות מעליו, שתק.
+
+     נמדד על הדוח של 5.10: 65 מתוך 138 פריטי «מעקב אספקה» מחזיקים
+     sugROP > rop, ו-64 שתקו. */
+  const fr=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const LN=r=>(r.why||[]).map(w=>w&&w[1]||'').find(t=>/נמוכה מהנדרש/.test(t))||null;
+   const fol=all.filter(r=>r.cat==='מעקב אספקה');
+   const gap=fol.filter(r=>(r.sugROP||0)>(r.rop||0));
+   const nogap=fol.filter(r=>!((r.sugROP||0)>(r.rop||0)));
+   return {fol:fol.length,gap:gap.length,nogap:nogap.length,
+    silent:gap.filter(r=>!LN(r)).length,
+    leak:nogap.filter(r=>LN(r)).length,
+    /* המספרים בשורה הם של המנוע, לא מחושבים מחדש */
+    nums:gap.every(r=>LN(r).includes(`נקודת הזמנה ${r.rop} נמוכה מהנדרש ${r.sugROP}`)),
+    /* זמן היובש נאמר רק כשיש קצב מדיד והוא חיובי */
+    dryBad:gap.filter(r=>{const has=/משאירה כ-[\d.]+ חודשים בלי מלאי/.test(LN(r));
+      const want=r.rate>0&&r.ltM>0&&(r.ltM-(r.rop/r.rate))>0;return has!==want}).length,
+    smp:gap.length?LN(gap[0]):''}});
+  ok('יש בקובץ «מעקב אספקה» עם פער ובלי — אחרת הבדיקה ריקה',
+    fr.gap>0&&fr.nogap>0,`${fr.gap} עם פער · ${fr.nogap} בלי · מתוך ${fr.fol}`);
+  ok('כל פריט «מעקב אספקה» שה-ROP שלו נמוך מהנדרש אומר זאת',
+    fr.silent===0,fr.silent+' שתקו');
+  ok('ופריט שאין בו פער אינו מקבל את השורה',fr.leak===0,fr.leak+' דליפות');
+  ok('המספרים בשורה הם של המנוע עצמו',fr.nums,fr.smp.slice(0,110));
+  ok('וזמן היובש נאמר בדיוק כשיש קצב מדיד והוא חיובי',fr.dryBad===0,fr.dryBad+' חריגות');
   /* ============ XDOOR — אותו פריט, כמה דלתות ============
      נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
      אבל רק 4,096 פריטים שונים — 1,360 (33%) יושבים בשתיים או יותר,
