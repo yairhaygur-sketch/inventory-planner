@@ -2537,6 +2537,10 @@ body.dark .lband{border:1px solid #2B3B50}
 .stwrap .kv2 b{display:block;font-family:var(--num);font-size:var(--f-lg)}
 .stwrap .kv2 span{font-size:var(--f-xs);color:var(--dim)}
 .stwrap p{margin:6px 0;font-size:var(--f-sm);color:var(--soft);line-height:1.55}
+/* פילוח לפי מותג ומעתד — מידע עזר, ולכן קטן יותר מהפילוח
+   לפי סוג הסימון. צבע ה-dim עומד ב-4.5:1 — סריקת הניגודיות
+   עוברת על הדיאלוג הזה ותתפוס אחרת. */
+.stwrap p.stby{font-size:var(--f-xs);color:var(--dim);margin:3px 0}
 .stwrap .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .stwrap button{font-family:inherit;font-size:var(--f-sm);padding:8px 14px;border-radius:8px;
  border:1px solid var(--line);background:var(--panel0);color:var(--ink);cursor:pointer}
@@ -6205,7 +6209,23 @@ function stateStats(blob){const k=blob&&blob.keys||{};
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
  const m=j(k['planner_marks_v1'])||{},h=j(k['planner_history_v1'])||{},q=j(k['planner_params_v1'])||{};
  const byT={};for(const key in m){const t=(m[key]&&m[key].t)||'—';byT[t]=(byT[t]||0)+1}
- return {marks:Object.keys(m).length,byT,
+ /* ============ המותג והמעתד כבר שמורים — במפתח ============
+    כתבתי ב-F-04 שמבנה הסימון הוא `{מק«ט: {t,note,ts}}` וש«אין
+    brand». זה לא נכון. נמדד: המפתח הוא `markKey` —
+    `מתכנן א׳|LINK&CO|22K322771` — ולכן המותג והמעתד של
+    הפריט ב-SAP שמורים בכל סימון מהיום הראשון. מה שחסר
+    הוא **מי לחץ על הכפתור** — שאינו בהכרח המעתד של
+    הפריט. הפילוח כאן אינו שדה חדש; הוא קריאה של מה
+    שכבר שם. מפתח ישן בלי שני מפרידים הוא «לא ידוע» —
+    ולא נזרק ולא משויך למישהו בניחוש. */
+ const byBrand={},byPlanner={};let legacyKeys=0;
+ for(const key in m){const parts=String(key).split('|');
+  if(parts.length<3){legacyKeys++;
+   byBrand['לא ידוע']=(byBrand['לא ידוע']||0)+1;
+   byPlanner['לא ידוע']=(byPlanner['לא ידוע']||0)+1;continue}
+  const pl=parts[0]||'לא ידוע',br=parts[1]||'לא ידוע';
+  byBrand[br]=(byBrand[br]||0)+1;byPlanner[pl]=(byPlanner[pl]||0)+1}
+ return {marks:Object.keys(m).length,byT,byBrand,byPlanner,legacyKeys,
    runs:(h.runs||[]).length,tracked:Object.keys(h.items||{}).length,
    snaps:(q.runs||[]).length,
    size:Math.round(Object.values(k).reduce((a,b)=>a+b.length,0)/1024)}}
@@ -8667,12 +8687,20 @@ function statePanel(incoming,err){
  const inc=incoming?stateStats(incoming):null;
  const lbl={handled:'טופל',ondemand:'לפי דרישה',campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג'};
  const brk=o=>Object.entries(o.byT).map(([t,n])=>`${lbl[t]||t} ${n}`).join(' · ')||'—';
+ /* כל ערך מגיע ממפתח שנבנה מנתוני הדוח — ולכן עובר ב-esc
+    לפני שהוא נכנס ל-innerHTML. */
+ const split=o=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1])
+   .map(([k,n])=>`${esc(k)} ${n.toLocaleString('he-IL')}`).join(' · ')||'—';
  const box=(o,t)=>`<div class="card"><h4>${t}</h4><div class="kv2">
    <div><b>${o.marks.toLocaleString('he-IL')}</b><span>סימונים</span></div>
    <div><b>${o.runs}</b><span>העלאות בזיכרון</span></div>
    <div><b>${o.snaps}</b><span>תמונות פרמטרים</span></div>
    <div><b>${o.size}KB</b><span>גודל</span></div></div>
-   <p>${brk(o)}</p></div>`;
+   <p>${brk(o)}</p>
+   <p class="stby">לפי מותג: ${split(o.byBrand)}</p>
+   <p class="stby">לפי מעתד ב-SAP: ${split(o.byPlanner)}</p>
+   ${o.legacyKeys?`<p class="stby">${o.legacyKeys.toLocaleString('he-IL')} סימונים במפתח ישן — מותג ומעתד לא ידועים</p>`:''}
+   </div>`;
  document.getElementById('mtitle').textContent='מצב עבודה — גיבוי והעברה';
  document.getElementById('mbody').innerHTML=`<div class="stwrap">
   ${err?`<div class="warn2">⚠ ${esc(err)}</div>`:''}
