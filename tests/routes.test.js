@@ -703,6 +703,64 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('ופריט שאין בו פער אינו מקבל את השורה',fr.leak===0,fr.leak+' דליפות');
   ok('המספרים בשורה הם של המנוע עצמו',fr.nums,fr.smp.slice(0,110));
   ok('וזמן היובש נאמר בדיוק כשיש קצב מדיד והוא חיובי',fr.dryBad===0,fr.dryBad+' חריגות');
+  /* ============ ROP_BRIDGE — הדלת שנולדה מהחוסר ============
+     השאלה: האם נקודת ההזמנה מגשרת על הביקוש בזמן האספקה. ב-6608440675
+     היא לא — ROP 3 מול ביקוש 9.33, ולכן 2.7 חודשים יבש בכל מחזור.
+
+     המדידה הראשונה שלי נתנה 25 חשופים. 14 מהם היו «רקע» עם ROP 0→0:
+     פריטי 04/14 ו«לפי דרישה» שהמנוע **בכוונה** אינו נותן להם המלצה,
+     ושאינם מנוהלים ב-ROP כלל. אחרי ההחרגה: 634 בתחום, **7 חשופים**,
+     246 עם כרית דקה. ההחרגה הזאת היא הדבר העיקרי שהבדיקה נועלת —
+     בלעדיה הדלת מציגה פי שלושה פריטים שאין בהם מה לעשות. */
+  const rb=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const gap=ropPick(ropAll(),'ropGap'),thin=ropPick(ropAll(),'ropThin');
+   const inSet=new Set([...gap,...thin]);
+   return {scope:all.filter(ropScope).length,gap:gap.length,thin:thin.length,
+    /* חלוקה: אין חפיפה, ושתיהן בתוך התחום */
+    overlap:gap.filter(r=>thin.includes(r)).length,
+    outOfScope:[...inSet].filter(r=>!ropScope(r)).length,
+    /* מי שהמנוע אינו ממליץ לו — לא נכנס. זו הטעות שכמעט שלחתי */
+    noRec:[...inSet].filter(r=>r.isOD||r.noStock||isPD(r.mrp)
+      ||(!(r.sugROP>0)&&!(r.sugSS>0))).length,
+    /* ההגדרה של כל דלת, מול שדות המנוע */
+    gapBad:gap.filter(r=>!(ropDry(r)>0)).length,
+    thinBad:thin.filter(r=>ropDry(r)>0||!((r.sugROP||0)>(r.rop||0))).length,
+    /* ropDry הוא בדיוק הנוסחה, לא קירוב */
+    formula:[...inSet].every(r=>Math.abs(ropDry(r)-(r.ltM-(r.rop/r.rate)))<1e-9),
+    /* ואין פריט חשוף שנשאר מחוץ לדלת */
+    missed:all.filter(r=>ropScope(r)&&ropDry(r)>0&&!gap.includes(r)).length}});
+  ok('יש בקובץ פריטים בשתי דלתות ה-ROP — אחרת הבדיקה ריקה',
+    rb.gap>0&&rb.thin>0,`${rb.gap} לא מגשר · ${rb.thin} מתחת למוצע · מתוך ${rb.scope} בתחום`);
+  ok('שתי הדלתות אינן חופפות ואף פריט חשוף לא נשאר בחוץ',
+    rb.overlap===0&&rb.missed===0,`${rb.overlap} חפיפות · ${rb.missed} הוחמצו`);
+  ok('כל פריט בדלתות נמצא בתחום — מנוהל מלאי, לא PD, ויש לו המלצה',
+    rb.outOfScope===0&&rb.noRec===0,`${rb.outOfScope} מחוץ לתחום · ${rb.noRec} בלי המלצה`);
+  ok('«ROP לא מגשר» מכילה אך ורק פריטים שהיובש שלהם חיובי',rb.gapBad===0,rb.gapBad+' חריגות');
+  ok('ו«מתחת למוצע» אך ורק פער בלי יובש',rb.thinBad===0,rb.thinBad+' חריגות');
+  ok('וחישוב היובש הוא בדיוק זמן האספקה פחות ROP÷קצב',rb.formula);
+  /* המסך: הגרוע ביותר קודם, והעמודה שמכריעה מציגה מספר */
+  await p.evaluate(()=>setMode('ropGap'));await p.waitForTimeout(700);
+  const rv=await p.evaluate(()=>{
+   const view=currentRows();
+   const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
+   const i=HX('בלי מלאי');
+   const shown=tr.map(t=>view[+t.dataset.i]);
+   return {rows:tr.length,hasCol:i>=0,
+    /* ממוין לפי חודשי היובש, הגרוע קודם */
+    sorted:shown.every((r,k)=>!k||ropDry(shown[k-1])>=ropDry(r)-1e-9),
+    /* ובכל שורה התא מראה מספר, לא «—» */
+    cells:i<0?null:tr.filter(t=>/[\d.]+ חו׳/.test(t.children[i].textContent)).length,
+    over:(()=>{const t=document.getElementById('tbl');return t.scrollWidth-t.clientWidth>2})(),
+    sub:document.getElementById('phdSub').textContent,
+    pgR:document.getElementById('pgR').textContent}});
+  ok('עמודת «בלי מלאי» קיימת ומציגה מספר בכל שורה',
+    rv.hasCol&&rv.cells===rv.rows,`${rv.cells}/${rv.rows}`);
+  ok('והדלת ממוינת כך שהגרוע ביותר ראשון',rv.sorted);
+  ok('התת-כותרת אומרת מה ההגדרה',/נמוכה מהביקוש בזמן האספקה/.test(rv.sub),rv.sub.slice(0,90));
+  ok('והסיכום אומר כמה כבר בלי מלאי',/כבר בלי מלאי/.test(rv.pgR),rv.pgR.slice(0,90));
+  ok('ואין גלישה אופקית',!rv.over);
   /* ============ XDOOR — אותו פריט, כמה דלתות ============
      נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
      אבל רק 4,096 פריטים שונים — 1,360 (33%) יושבים בשתיים או יותר,
