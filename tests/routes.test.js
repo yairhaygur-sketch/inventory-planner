@@ -587,6 +587,114 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     tc.badRated===0&&tc.badFlat===0,`${tc.badRated} עם קצב · ${tc.badFlat} בלי`);
   ok('והמספרים בשורה הם של המנוע עצמו',tc.numOk,tc.sample.slice(0,150));
   ok('ואין «1 חודשי»',tc.plural===0,tc.plural+' מופעים');
+  /* ============ XDOOR — אותו פריט, כמה דלתות ============
+     נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
+     אבל רק 4,096 פריטים שונים — 1,360 (33%) יושבים בשתיים או יותר,
+     ובכלי לא היה שום סימן לכך. 465 מהם נושאים «להקטין» מול רצפה
+     מאושרת שמחזיקה למעלה, ו-149 «להקטין פרמטר אחד ולהעלות את השני».
+
+     הבדיקות כאן נועלות את מה שחייב להיות נכון כדי שהסימן לא ישקר:
+     שהמפה מסכימה עם הדלתות *בשני הכיוונים*, שהדלת שאתה עומד בה
+     אינה נספרת כ«גם ב», שהסימן מופיע בדיוק על השורות שיש להן דלת
+     נוספת, ושהקפיצה אכן מגיעה לדלת ומשאירה את הפריט פתוח. */
+  const xd=await p.evaluate(()=>{
+   xBuild();
+   const lists={};for(const [k] of XDOORS)lists[k]=xRows(k);
+   /* כיוון א: כל זוג (פריט, דלת) במפה באמת נמצא באותה דלת */
+   let ghost=0;
+   for(const [r,ks] of XMAP)for(const k of ks)if(!lists[k].includes(r))ghost++;
+   /* כיוון ב: כל פריט בכל דלת נמצא במפה תחת אותה דלת */
+   let missed=0;
+   for(const k in lists)for(const r of lists[k]){
+     const a=XMAP.get(r);if(!a||a.indexOf(k)<0)missed++}
+   const all=QF.all||[];
+   return {ghost,missed,mapped:XMAP.size,
+    multi:all.filter(r=>xDoors(r).length>1).length,
+    /* אף פריט אינו רשום פעמיים תחת אותה דלת */
+    dup:[...XMAP.values()].filter(a=>a.length!==new Set(a).size).length}});
+  ok('מפת הדלתות מסכימה עם הדלתות עצמן — בשני הכיוונים',
+    xd.ghost===0&&xd.missed===0,`${xd.ghost} רפאים · ${xd.missed} חסרים`);
+  ok('ואף פריט אינו רשום פעמיים באותה דלת',xd.dup===0,xd.dup+' כפולים');
+  ok('ויש בקובץ פריטים שיושבים ביותר מדלת אחת — אחרת הבדיקה ריקה',
+    xd.multi>0,`${xd.multi} מתוך ${xd.mapped}`);
+  /* הסימן על המסך — בדיוק על השורות שיש להן דלת נוספת */
+  await p.evaluate(()=>setMode('capNone'));await p.waitForTimeout(700);
+  const xb=await p.evaluate(()=>{
+   const view=currentRows();
+   const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const shown=tr.map(t=>view[+t.dataset.i]);
+   return {rows:tr.length,
+    want:shown.filter(r=>xOther(r).length).length,
+    got:document.querySelectorAll('#tbl tbody .xd').length,
+    /* התאמה שורה-לשורה, לא רק סכום */
+    match:tr.every((t,i)=>!!t.querySelector('.xd')===(xOther(shown[i]).length>0)),
+    /* המספר על הסימן הוא מספר הדלתות הנוספות. הוא יושב ב-data-n
+       ומרונדר דרך CSS, כדי שלא ייכנס ל-textContent של תא המק״ט. */
+    num:tr.every((t,i)=>{const e=t.querySelector('.xd');
+      return !e||e.dataset.n===String(xOther(shown[i]).length)}),
+    /* והמק״ט עצמו נשאר נקי — מי שמעתיק אותו ל-SAP לא גורר סימן */
+    clean:tr.every((t,i)=>{const o=t.querySelector('.obj');
+      return o&&!/⧉/.test(t.textContent||'')&&o.textContent.trim()===String(shown[i].pn)}),
+    /* והדלת שאני עומד בה אינה נספרת */
+    self:shown.filter(r=>xOther(r).includes(mode)).length,
+    title:(document.querySelector('#tbl tbody .xd')||{}).title||''}});
+  ok('הסימן «גם ב» מופיע בדיוק על השורות שיש להן דלת נוספת',
+    xb.match&&xb.got===xb.want,`${xb.got}/${xb.want} מתוך ${xb.rows} שורות`);
+  ok('והמספר עליו הוא מספר הדלתות הנוספות',xb.num);
+  ok('ותא המק״ט נשאר נקי — הסימן אינו נכנס לטקסט שמעתיקים',xb.clean);
+  /* ============ והוא אינו עולה רוחב ============
+     בגרסה הראשונה הסימן היה inline והוסיף 34px לעמודת המק״ט
+     (325→359), גזל 6px מהתיאור, והפך את הכרעת הדחיפה ב-1920 —
+     שתי בדיקות ממשק נפלו. מיקום מוחלט הוא *המנגנון* שמחזיק את
+     העלות באפס, ולכן הוא נבדק ישירות ולא רק דרך תוצאותיו. */
+  const xpos=await p.evaluate(()=>{const e=document.querySelector('#tbl tbody .xd');
+    if(!e)return null;const cs=getComputedStyle(e);
+    const td=e.closest('td');
+    return {pos:cs.position,tdPos:td?getComputedStyle(td).position:null}});
+  ok('הסימן ממוקם מוחלט ואינו משתתף ברוחב העמודה',
+    xpos&&xpos.pos==='absolute'&&xpos.tdPos==='relative',
+    xpos?`${xpos.pos} בתוך td ${xpos.tdPos}`:'(אין סימן)');
+  ok('הדלת שאתה עומד בה אינה נספרת כ«גם ב»',xb.self===0,xb.self+' הפניות עצמיות');
+  ok('והכיתוב נוקב בשמות הדלתות',/נמצא גם ב: .+/.test(xb.title),xb.title.slice(0,90));
+  /* הכרטיס, והקפיצה */
+  const xj=await p.evaluate(async()=>{
+   const r=(QF.all||[]).find(x=>xOther(x).length>0&&currentRows().includes(x));
+   if(!r)return null;detail(r);
+   await new Promise(s=>setTimeout(s,400));
+   const btns=[...document.querySelectorAll('#detail .xgo')];
+   return {pn:r.pn,from:mode,
+     labels:btns.map(b=>b.textContent.trim()),
+     want:xOther(r).map(k=>XNAME[k]),
+     note:!!document.querySelector('#detail .dcxn')}});
+  ok('הכרטיס מונה את אותן דלתות בדיוק, בשמותיהן',
+    xj&&xj.labels.length>0&&xj.labels.join('|')===xj.want.join('|'),
+    xj?`${xj.labels.join(' · ')} מול ${xj.want.join(' · ')}`:'(לא נמצא פריט)');
+  ok('ויש סייג שאומר שההוראה אינה בהכרח זהה',!!(xj&&xj.note));
+  const xjump=await p.evaluate(async()=>{
+   const b=document.querySelector('#detail .xgo');if(!b)return null;
+   const want=b.dataset.go;b.click();
+   await new Promise(s=>setTimeout(s,600));
+   return {want,mode,open:!!document.querySelector('#detail'),
+     pn:((document.querySelector('#detail .opnt')||{}).textContent||'').trim()}});
+  ok('לחיצה על דלת בכרטיס מגיעה אליה — והפריט נשאר פתוח',
+    xjump&&xjump.mode===xjump.want&&xjump.open&&xjump.pn===xj.pn,
+    xjump?`${xjump.mode} (ביקשתי ${xjump.want}) · ${xjump.pn}`:'(אין כפתור)');
+  /* המפה נבנית מחדש בכל render — אחרת היא תשקר אחרי סינון */
+  /* ההרעלה היא הדרך היחידה להוכיח איפוס: render בונה את המפה מחדש
+     תוך כדי הרינדור, ולכן «XMAP===null» אחריו תמיד שקרי. */
+  const xstale=await p.evaluate(async()=>{
+   const pn=[...XMAP].find(([r,k])=>k.length>1)[0].pn;
+   XMAP=new Map();                      /* מפה מורעלת — ריקה */
+   const poisoned=xDoors((QF.all||[]).find(r=>r.pn===pn)).length;
+   render();await new Promise(s=>setTimeout(s,400));
+   const after=xDoors((QF.all||[]).find(r=>r.pn===pn)).length;
+   const lists={};for(const [k] of XDOORS)lists[k]=xRows(k);
+   let ghost=0;for(const [r,ks] of XMAP)for(const k of ks)if(!lists[k].includes(r))ghost++;
+   return {pn,poisoned,after,ghost}});
+  ok('render זורק מפה מורעלת ובונה אותה מחדש',
+    xstale.poisoned===0&&xstale.after>1,
+    `${xstale.pn}: ${xstale.poisoned} אחרי הרעלה · ${xstale.after} אחרי render`);
+  ok('והמפה החדשה עדיין מסכימה עם הדלתות',xstale.ghost===0,xstale.ghost+' רפאים');
   /* הדלת חייבת לדבר. «אין מה לשנות» היא המקרה המסוכן: רשימה שנראית
      כמו עבודה ואינה. */
   const cd=[];
