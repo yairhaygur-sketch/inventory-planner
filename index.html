@@ -8062,7 +8062,11 @@ function dropBar(ctx,x,y,w,h){const r=w/2;h=Math.max(h,r);
 const CHART_SURF='#23262e';
 /* הצעדים הכהים, קשיחים: המשטח אינו מתהפך, ולכן גם הם לא. */
 const CHART_C={base:'#8B9AB0',spike:'#F0A93C',drop:'#B49BEA',cur:'#9BA8BC',
-  med:'#6BA0FF',ink:'#E8EDF5',ink2:'#9BA8BC',ink3:'#7C8AA0'};
+  med:'#6BA0FF',ink:'#E8EDF5',ink2:'#9BA8BC',
+  /* היה #7C8AA0 — 4.32:1 מול הלוח, מתחת ל-4.5 שטקסט דורש. בחרתי
+     אותו בעין, וזו בדיוק הטעות; הבדיקה שנוספה ל-contrast.js תפסה
+     אותו מיד. #8794A8 נותן 4.92:1 ושומר על ההיררכיה מול ink2. */
+  ink3:'#8794A8'};
 /* קנבס חד: הציור עובר לפיקסלי CSS, ולכן כל גודל גופן הוא מה שכתוב. */
 function hidpi(cv,cssH){
  const dpr=Math.min(window.devicePixelRatio||1,3);
