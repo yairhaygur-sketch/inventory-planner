@@ -71,6 +71,12 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
  line-height:1.3;min-width:0;padding-inline:2px}
 .zchip{font-size:11px;font-family:var(--num);font-variant-numeric:tabular-nums;
  color:var(--ink-2);white-space:nowrap;font-weight:700}
+/* ============ ROW_AUDIT · כשהמשוואה אינה מסתדרת ============
+   השבב אומר «נקראו N · נוצלו M» בכל טעינה. כששתיהן שוות הוא שקט
+   ואפור; כשהן אינן, הוא משנה צבע — והפירוט המלא יורד ל-DIAG
+   במקביל. הצבע אינו הסימן היחיד: המספרים עצמם שונים בטקסט,
+   ונוסף ⚠. */
+.zchip.rgap{color:var(--org);font-weight:800}
 .dstate .updated{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
 .etachip{font-size:11.5px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
@@ -3638,11 +3644,20 @@ function etaClear(){ETA=null;ETA_ORPH=null;
 
    נמדד: הכלי קורא קובץ של 15,974 שורות במלואו — אין שום תקרה.
    מה שחסר היה הדיווח, לא היכולת. */
-const ROWS={read:0,used:0,noPn:0};
+/* ============ כפילויות — נמנות ולא מוסרות ============
+   שתי שורות את אותו מק«ט הן שני פריטים בכלי, וכל סכום
+   סופר אותם פעמיים. **הספירה הזאת אינה מסירה אף שורה** —
+   איזו משתי השורות נכונה הוא לא שלי להכריע, ולבחור בשקט
+   היה ממציא נתון. הכלי אומר שזה קרה וכמה פעמים.
+   נמדד על הדוח מ-5.10: 7,987 שורות, 7,987 מק«טים, 0 כפילויות.
+   הערך הצפוי הוא 0 — וזו בדיוק הסיבה להציג אותו. */
+const ROWS={read:0,used:0,noPn:0,dup:0,uniq:0};
 function build(rows,hdr){const m=mapCols(hdr),out=[];
-  ROWS.read=rows.length;ROWS.used=0;ROWS.noPn=0;
+  ROWS.read=rows.length;ROWS.used=0;ROWS.noPn=0;ROWS.dup=0;ROWS.uniq=0;
   if(DIAG.hardStop)return out;
+  const seenPn=new Set();
   for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn){ROWS.noPn++;continue}
+    if(seenPn.has(pn))ROWS.dup++;else seenPn.add(pn);
     const months=m.months.map(i=>i>=0?NUM(r[i]):0);
     const curMonth=m.curMonth>=0?NUM(r[m.curMonth]):null;
     const sales=m.sales>=0?movCell(r[m.sales]):null;
@@ -9244,10 +9259,27 @@ function syncDataState(){
  if(z){
   if(!ZN){z.hidden=true}
   else{z.hidden=false;
-   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח');
+   /* ============ ROW_AUDIT · המשוואה על המסך ============
+      «הכלי לא יודע לקרוא יותר מ-7,594 פריטים?» הייתה שאלה
+      שהמשוואה הזאת עונה עליה בשנייה, והיא ישבה ב-title בלבד —
+      כלומר נגישה למי שכבר חושד במשהו. עכשיו היא על המסך.
+      המקום הוא שבב קיים ולא רצועה חדשה: כרום נוסף גובה משלם
+      בשורות רשימה, וזה הדבר שהמעתד התלונן עליו קודם. */
+   const rgap=(ROWS.noPn||0)+(ROWS.dup||0);
+   const req=ROWS.read
+     ? ` · ${ROWS.used.toLocaleString('he-IL')} מ-${ROWS.read.toLocaleString('he-IL')} שורות`+(rgap?' ⚠':'')
+     : '';
+   z.classList.toggle('rgap',rgap>0);
+   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח')+req;
    z.title=(ZDATE?`תאריך הדוח עצמו, כפי שהוא מופיע בקובץ: ${ZDATE.toLocaleDateString('he-IL')}.`
      :'בקובץ אין תאריך מעל שורת הכותרות, ולכן תאריך הדוח אינו ידוע.')
-    +`\n${ZN.items.toLocaleString('he-IL')} מק״טים · ${ZN.tasks.toLocaleString('he-IL')} משימות.`
+    +(ROWS.read?`\n\nחשבונאות הקליטה:`
+      +`\nנקראו ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת`
+      +`\nנוצלו ${ROWS.used.toLocaleString('he-IL')} פריטים`
+      +`\nללא מק״ט ${(ROWS.noPn||0).toLocaleString('he-IL')}`
+      +`\nכפילויות מק״ט ${(ROWS.dup||0).toLocaleString('he-IL')}`
+      +`\nמק״טים ייחודיים ${(ROWS.uniq||ROWS.used).toLocaleString('he-IL')}`:'')
+    +`\n\n${ZN.items.toLocaleString('he-IL')} מק״טים · ${ZN.tasks.toLocaleString('he-IL')} משימות.`
     +`\nחודש הבסיס נבחר בנפרד — הוא החודש המלא האחרון שהדוח מכסה.`}}
  /* ============ הסרגל נמדד גם *אחרי* שנטען דוח ============
     fitTop() רץ פעם אחת בעלייה ובשינוי גודל חלון בלבד. השבבים
@@ -9344,7 +9376,12 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
      המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
      כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
      מה שבגיליון למה שבכלי נראה כמו תקרה שאינה קיימת. */
-  ROWS.used=ALL.length;
+  ROWS.used=ALL.length;ROWS.uniq=ALL.length-ROWS.dup;
+  if(ROWS.dup>0)DIAG.warn.push(
+    `בגיליון «${best.nm}» יש ${ROWS.dup.toLocaleString('he-IL')} שורות שחוזרות על מק«ט שכבר הופיע — `+
+    `${ROWS.uniq.toLocaleString('he-IL')} מק«טים ייחודיים ב-${ROWS.used.toLocaleString('he-IL')} פריטים. `+
+    `הכלי אינו מוחק אף שורה — איזו מהן נכונה אינה הכרעה שלו — אבל כל סכום כספי `+
+    `וכל מונה סופרים אותם פעמיים.`);
   if(ROWS.noPn>0)DIAG.warn.push(
     `הגיליון «${best.nm}» מכיל ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת, `+
     `ומתוכן ${ROWS.used.toLocaleString('he-IL')} פריטים — `+
