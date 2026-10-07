@@ -4165,9 +4165,35 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
     if(A.trend.pct<=-40&&A.trend.pct>-900)it.why.push(['idea',`הביקוש בירידה של ${Math.abs(A.trend.pct)}% — העודף צפוי להחמיר, לא להיפתר מעצמו`]);
     {const tc=twoClocks(it);if(tc)it.why.push(tc)}
+    /* ============ SEVIR — «סביר» הייתה אמירה, לא היעדר אמירה ============
+       שני התנאים כאן בדקו רק את כיוון ההקטנה: `rop > sugROP ? «להקטין» :
+       «נקודת הזמנה סבירה»`. כלומר כשהמנוע המליץ דווקא *להעלות*, ה-else
+       הצהיר שהפרמטר תקין — בניגוד למספר שהמנוע עצמו חישב שתי שורות
+       קודם. זו אינה אמירה חסרה; זו אמירה שקרית.
+
+       נמדד על הדוח של 5.10 — 84 פריטי «עודף מלאי»:
+       | | פריטים | סך הפער |
+       |---|---|---|
+       | «נקודת הזמנה סבירה» בעוד sugROP > rop | 66 | 165 יח׳ |
+       | «מלאי ביטחון סביר» בעוד sugSS > ss | 28 | 52 יח׳ |
+
+       1300-03-01134 — מלאי ביטחון 10 ב-SAP, המנוע מציע 20, והשורה
+       אמרה «מלאי ביטחון סביר». 9807-00-00094 — ROP 6→9 ו-SS 2→4,
+       ושניהם «סבירים». 6608233674C15 — ROP 13→17, «סבירה».
+       ‏$101,822 · ₪3,908 · €30 הון כלוא יושבים על אותן שורות.
+
+       להעלות נקודת הזמנה על פריט שיש בו עודף נשמע הפוך, והוא אינו:
+       שורת «שני שעונים» (TWO_CLOCKS) מסבירה בדיוק את זה — ההמלצה
+       נגזרת מזמן האספקה, והעודף נמדד בחודשי כיסוי. כאן רק מדווח
+       המספר שכבר חושב. שום סף, נוסחה או סיווג לא נגעו. */
+    const ropTxt=it.rop>it.sugROP?`להקטין נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`
+      :it.sugROP>it.rop?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP} — נדרש לזמן האספקה, גם כשיש עודף על המדף`
+      :'נקודת הזמנה תואמת למוצע';
+    const ssTxt=it.ss>it.sugSS?`להקטין מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`
+      :it.sugSS>it.ss?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`
+      :'מלאי ביטחון תואם למוצע';
     it.act=[it.po>0?`לבדוק ביטול רכש פתוח (${it.po} יח׳)`:'אין רכש פתוח לביטול',
-      it.rop>it.sugROP?`להקטין נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה סבירה',
-      it.ss>it.sugSS?`להקטין מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון סביר','לסמן למעקב'];
+      ropTxt,ssTxt,'לסמן למעקב'];
     Q.excess.push(it);continue}
   if(it.stock>0&&it.noCons3y){
     /* ROP=1 אינו "סיכון להזמנה חוזרת" — ראה ROP_MIN_ACT */
@@ -4234,10 +4260,41 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why=[['warn',`צריכה ${it.cons3y} יח׳ בלבד ב-3 שנים · כיסוי ${it.cov3y.toFixed(0)} חודשים בקצב הזה`],
       ['info',`מעל ${SLOW_MONTHS} חודשי כיסוי יושבות ${over} יח׳ בשווי ${money(it.expCap,it.currency)}`],
       it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:null].filter(Boolean);
+    /* ============ SLOW_PO — הענף האיטי לא קרא את הרכש הפתוח ============
+       ענף העודף בודק `po` בנימוק ובפעולה; הענף האיטי לא הזכיר אותו
+       כלל. נמדד על הדוח של 5.10 — 1,208 פריטי «מלאי איטי», 91 מהם
+       עם רכש פתוח, **847 יח׳ בדרך פנימה · $47,459 · ₪221**, וכל 91
+       שתקו עליו.
+
+       ו-**77 מתוך 91 (85%) מחזיקים `po ≥ over`** — יותר יחידות בדרך
+       פנימה מההקטנה שהכלי מציע:
+
+       | מק״ט | מדף | בדרך | ההקטנה שהוצעה |
+       |---|---|---|---|
+       | 8892021569 | 190 | **143** | 37 |
+       | 6608121807 | 32 | **70** | 3 |
+       | 6608242192 | 37 | **60** | 13 |
+       | 9809-80-00002 | 25 | **40** | «לעקוב» |
+       | 2400-86-01354 | 18 | **30** | 16 |
+
+       מי שמבצע את ההמלצה בלי לטפל ברכש *מגדיל* את המלאי. ו-46 מתוך
+       ה-91 אינם נראים גם בדלת «רכש בדרך לעודף», כי `over=0` ולכן
+       `expCap=0` והם מחוץ ל«בריאות המלאי» לגמרי.
+
+       אותה תבנית בדיוק כמו בענף העודף, ואף מספר אינו משתנה: `over`
+       נשאר כפי שחושב, והרכש הפתוח נאמר ולא מנוכה ממנו. */
     {const tc=twoClocks(it);if(tc)it.why.push(tc)}
-    it.act=[over>0?`לבחון הקטנת מלאי ב-${over} יח׳ — ${money(it.expCap,it.currency)}`:'לעקוב',
+    /* שלושה מצבים, ולכל אחד משפט משלו. «ביצוע ההמלצה יגדיל את המלאי»
+       נכון רק כשיש המלצה לבצע: ב-over=0 הפעולה היא «לעקוב», ואין מה
+       לבצע. נמדד: 9809-80-00002 — 25 על המדף, 40 בדרך, הקטנה 0. */
+    if(it.po>0)it.why.push(['err',
+      over===0?`רכש פתוח של ${it.po} יח׳ בדרך פנימה למלאי שכבר איטי, ואין מה להקטין על המדף — הידית היחידה כאן היא הרכש עצמו`
+      :it.po>=over?`רכש פתוח של ${it.po} יח׳ בדרך פנימה — יותר מ-${over} היחידות שמוצע להקטין. ביצוע ההמלצה בלי לטפל ברכש יגדיל את המלאי, לא יקטין אותו`
+      :`רכש פתוח של ${it.po} יח׳ ימשיך להיכנס למלאי שכבר איטי`]);
+    it.act=(it.po>0?[`לבדוק ביטול רכש פתוח (${it.po} יח׳)`]:[]).concat([
+      over>0?`לבחון הקטנת מלאי ב-${over} יח׳ — ${money(it.expCap,it.currency)}`:'לעקוב',
       it.rop>it.stock?`נקודת הזמנה ${it.rop} גבוהה מהמלאי כולו — לבדוק`:'לבדוק ROP/SS מול קצב אמיתי של 3 שנים',
-      'לא להזמין עד שהמלאי יירד'];
+      'לא להזמין עד שהמלאי יירד']);
     Q.excess.push(it);continue}
   if(A.trend.pct<=-50&&A.trend.pct>-900&&it.d12>=12){it.sev=1;it.cat='ירידה בביקוש';
     it.why=[['warn',`הביקוש ירד ב-${Math.abs(A.trend.pct)}%: ${A.trend.rec} יח׳ ב-5 החודשים האחרונים מול ${A.trend.pre} קודם`],
@@ -7965,55 +8022,128 @@ function roundRect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();
 function dropBar(ctx,x,y,w,h){const r=w/2;h=Math.max(h,r);
  ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x,y+r);
  ctx.arc(x+r,y+r,r,Math.PI,0);ctx.lineTo(x+w,y+h);ctx.closePath()}
+/* ============ CHART_LEGIBLE — הגרף שהמעתד לא הצליח לקרוא ============
+   שתי סיבות, שתיהן נמדדו.
+
+   **הגופן היה חצי ממה שנכתב.** הקנבס צויר ב-`clientWidth*2` בלי גובה
+   CSS מפורש, ולכן הדפדפן גזר את הגובה מיחס המידות של התכונות והציג
+   את הכל בחצי: «13px» של הערכים הגיע למסך כ-6.5px, והשנה כ-5px.
+   עכשיו הגובה נקבע ב-CSS, מאגר הפיקסלים הוא `css × dpr`, ו-`scale(dpr)`
+   מעביר את כל הציור לפיקסלי CSS — כלומר 13px הם באמת 13px.
+
+   **הצבעים צוירו על המשטח הלא נכון.** הלוח הוא תמיד כהה (#23262e),
+   אבל הקוד קרא את טוקני *הנושא הפעיל*. במצב בהיר, מול אותו משטח:
+
+   | | ניגודיות |
+   |---|---|
+   | תוויות החודש (calm בהיר #5D6878) | 2.68:1 |
+   | תוויות השנה (#6b7280 קשיח) | 3.13:1 |
+   | כיתוב החציון (accent בהיר #2563EB) | 2.93:1 |
+   | מילוי «צניחה» (trend בהיר #63489F) | 2.13:1 |
+
+   כולם נכשלים. הצעדים הכהים על אותו משטח: 5.29 · 6.28 · 6.35 · 7.52
+   · 12.87 — כולם עוברים. **משטח קבוע מחייב צעדים קבועים**, ולכן הגרף
+   נועל את הצעדים הכהים ואינו מתהפך עם הנושא.
+
+   המילויים אומתו ב-validate_palette: הפרדת CVD הגרועה ביותר בין
+   צמודים ΔE 18.3 (protan), ראייה רגילה 20.9, וכל השלושה מעל 3:1 מול
+   המשטח. שתי אזהרות «lightness band» ו«chroma floor» הן תוצר של
+   בדיקה קטגורית: כאן יש **סדרה אחת** עם הדגשות מצב, ובסיס אפור הוא
+   בדיוק מה שנדרש כדי שרק החריגים ייצבעו.
+
+   מה שירד: ההילה (shadowBlur) סביב פיק וצניחה — דיו שאינו נתון;
+   העיגול המלא סביב כל ערך; וצביעת *הטקסט* בצבע הנתון. החריגה
+   מחליפה את ההילה בתו ▲/▼ — ערוץ שאינו צבע, כפי שנדרש כשהבדל
+   צבע לבדו נושא מצב.
+
+   מה שנשאר במכוון: **מספר מעל כל עמודה.** הכלל הכללי הוא לא לתייג
+   כל נקודה, אבל כאן יש 12 מספרים שלמים קטנים, והמעתד אמר במפורש
+   «אני חייב לראות הכל». הרעש בא מהעיגולים ומההילה, לא מהמספרים. */
+const CHART_SURF='#23262e';
+/* הצעדים הכהים, קשיחים: המשטח אינו מתהפך, ולכן גם הם לא. */
+const CHART_C={base:'#8B9AB0',spike:'#F0A93C',drop:'#B49BEA',cur:'#9BA8BC',
+  med:'#6BA0FF',ink:'#E8EDF5',ink2:'#9BA8BC',
+  /* היה #7C8AA0 — 4.32:1 מול הלוח, מתחת ל-4.5 שטקסט דורש. בחרתי
+     אותו בעין, וזו בדיוק הטעות; הבדיקה שנוספה ל-contrast.js תפסה
+     אותו מיד. #8794A8 נותן 4.92:1 ושומר על ההיררכיה מול ink2. */
+  ink3:'#8794A8'};
+/* קנבס חד: הציור עובר לפיקסלי CSS, ולכן כל גודל גופן הוא מה שכתוב. */
+function hidpi(cv,cssH){
+ const dpr=Math.min(window.devicePixelRatio||1,3);
+ const cssW=cv.clientWidth;
+ cv.style.height=cssH+'px';
+ cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);
+ const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+ return {ctx,W:cssW,H:cssH}}
 function barChart(cv,r){
  /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
     ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
  if(!cv||!cv.clientWidth)return;
- const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=192;
+ const {ctx,W,H}=hidpi(cv,208);
  ctx.clearRect(0,0,W,H);
- ctx.fillStyle='#23262e';roundRect(ctx,0,0,W,H,18);ctx.fill();
+ ctx.fillStyle=CHART_SURF;roundRect(ctx,0,0,W,H,12);ctx.fill();
  const hist=[...r.months].reverse(),histLabs=[...LABELS].reverse();
  const hasCur=r.curMonth!=null;const cl=hasCur?curMonthLabel():null;
  const d=hasCur?[...hist,r.curMonth]:hist;
  const labs=hasCur?[...histLabs,{short:cl.short,yy:cl.yy}]:histLabs;
- const max=Math.max(...d.map(Math.abs),1),padX=28,padTop=28,padBot=42;
+ const max=Math.max(...d.map(Math.abs),1);
+ /* padTop עושה מקום למספר שמעל הכיפה; padBot לשתי שורות הציר. */
+ /* padTop שומר *רצועה* לכיתוב החציון שבראש הלוח, לא רק מקום למספר
+    שמעל הכיפה: ב-40 הסימן ▲ של העמודה הגבוהה נגע בכיתוב. */
+ const padX=14,padTop=52,padBot=36;
  const bw=(W-padX*2)/d.length,base=H-padBot;
  const spike=new Set(r.A.spikes.map(s=>s.i)),drop=new Set(r.A.drops.map(s=>s.i));
- /* הגרף קורא את אותם טוקנים כמו הספארקליין. היו כאן שישה ערכי hex
-    קשיחים שלא עברו דרך מערכת הצבעים. */
- const CS=getComputedStyle(document.documentElement);
- const T=(n,fb)=>(CS.getPropertyValue(n)||'').trim()||fb;
- const C_SPIKE=T('--high','#A35905'), C_DROP=T('--trend','#5B4B8A'),
-       C_BASE=T('--calm','#636D7A'),  C_CUR=T('--ink-3','#8A94A0'),
-       C_MED=T('--accent','#1F5C8B'), C_INK=T('--ink','#151A21'),
-       C_ON=T('--on-fill','#FFFFFF');
- const yOf=v=>base-(Math.abs(v)/max)*(H-padTop-padBot);
- if(r.A.med>0){const my=base-(r.A.med/max)*(H-padTop-padBot);
-   ctx.strokeStyle=C_MED;ctx.setLineDash([7,6]);ctx.lineWidth=2;
+ const yOf=v=>base-(Math.abs(v)/max)*(base-padTop);
+ /* קו הבסיס — hairline, לא מקווקו */
+ ctx.strokeStyle='rgba(232,237,245,.18)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(padX,base+.5);ctx.lineTo(W-padX,base+.5);ctx.stroke();
+ /* ============ הכיתוב ירד מהקו ============
+    הניסוח הראשון הצמיד את «חציון N» לקו עצמו, והוא התנגש בערכים של
+    העמודות שסביבו — בדיוק מה שאסור: תווית אינה נחתכת ואינה דורסת.
+    הקו נשאר נקי, והזיהוי עובר למקרא בראש הלוח, שם יש מקום ודאי. */
+ if(r.A.med>0){const my=base-(r.A.med/max)*(base-padTop);
+   ctx.strokeStyle=CHART_C.med;ctx.setLineDash([6,5]);ctx.lineWidth=1.5;
    ctx.beginPath();ctx.moveTo(padX,my);ctx.lineTo(W-padX,my);ctx.stroke();ctx.setLineDash([]);
-   ctx.fillStyle=C_MED;ctx.font='700 15px Arial';ctx.textAlign='left';ctx.fillText('חציון '+r.A.med+(r.A.active<11?' (חו׳ עם מכירה)':''),padX+4,my-6)}
+   const t='חציון '+r.A.med+(r.A.active<11?' · חו׳ עם מכירה':'');
+   ctx.font='600 11px system-ui,Arial';ctx.textAlign='right';ctx.textBaseline='alphabetic';
+   ctx.fillStyle=CHART_C.ink2;ctx.fillText(t,W-padX,16);
+   const tw=ctx.measureText(t).width;
+   ctx.strokeStyle=CHART_C.med;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
+   ctx.beginPath();ctx.moveTo(W-padX-tw-16,12);ctx.lineTo(W-padX-tw-4,12);ctx.stroke();ctx.setLineDash([])}
  d.forEach((v,i)=>{const isCur=hasCur&&i===d.length-1;const mi=isCur?-1:(11-i);
-   const w=Math.min(bw*.5,26),cx=padX+i*bw+bw/2,x=cx-w/2,y=yOf(v);
-   const col=isCur?C_CUR:(v<0?C_BASE:spike.has(mi)?C_SPIKE:drop.has(mi)?C_DROP:C_BASE);
-   const glow=(spike.has(mi)||drop.has(mi))&&!isCur;
-   ctx.fillStyle='rgba(255,255,255,.05)';dropBar(ctx,x,padTop,w,base-padTop);ctx.fill();
-   if(isCur){ctx.fillStyle='rgba(148,163,184,.15)';dropBar(ctx,x,y,w,base-y);ctx.fill();
-     ctx.strokeStyle=C_CUR;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;dropBar(ctx,x,y,w,base-y);ctx.stroke();ctx.setLineDash([])}
-   else{ctx.save();if(glow){ctx.shadowColor=col;ctx.shadowBlur=14}ctx.fillStyle=col;dropBar(ctx,x,y,w,base-y);ctx.fill();ctx.restore()}
-   const br=Math.min(w*.6,15);
-   ctx.save();if(glow){ctx.shadowColor=col;ctx.shadowBlur=12}
-   ctx.fillStyle=isCur?C_CUR:col;ctx.beginPath();ctx.arc(cx,y,br,0,7);ctx.fill();ctx.restore();
-   ctx.fillStyle=C_ON;ctx.font='800 13px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(v),cx,y);ctx.textBaseline='alphabetic';
-   ctx.fillStyle=isCur?C_CUR:(spike.has(mi)?C_SPIKE:drop.has(mi)?C_DROP:C_BASE);
-   ctx.font=glow?'700 12px Arial':'12px Arial';ctx.textAlign='center';ctx.fillText(labs[i].short,cx,H-22);
-   ctx.fillStyle='#6b7280';ctx.font='10px Arial';ctx.fillText(isCur?'חלקי':("'"+labs[i].yy),cx,H-8)})}
+   const isSpike=spike.has(mi)&&!isCur,isDrop=drop.has(mi)&&!isCur;
+   /* עמודה דקה: עד 24px, והאוויר שנשאר במשבצת הוא המפריד */
+   const w=Math.min(bw-6,22),cx=padX+i*bw+bw/2,x=cx-w/2,y=yOf(v);
+   const col=isCur?CHART_C.cur:isSpike?CHART_C.spike:isDrop?CHART_C.drop:CHART_C.base;
+   if(isCur){ctx.fillStyle='rgba(155,168,188,.18)';dropBar(ctx,x,y,w,base-y);ctx.fill();
+     ctx.strokeStyle=CHART_C.cur;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
+     dropBar(ctx,x,y+.5,w,base-y-.5);ctx.stroke();ctx.setLineDash([])}
+   /* ============ אפס נראה כמו אפס ============
+      `dropBar` כופה h ≥ רדיוס, ולכן חודש בלי מכירה צויר ככיפה בגובה
+      חצי עמודה — קריא כ-2 ולא כ-0. אפס מקבל נציג שטוח. */
+   else if(v===0){ctx.fillStyle='rgba(155,168,188,.45)';ctx.fillRect(x,base-2,w,2)}
+   else{ctx.fillStyle=col;dropBar(ctx,x,y,w,base-y);ctx.fill()}
+   /* הערך מעל הכיפה, בדיו. חריגה מקבלת ▲/▼ — ערוץ שאינו צבע. */
+   ctx.textAlign='center';ctx.textBaseline='alphabetic';
+   ctx.font=(isSpike||isDrop)?'800 13px system-ui,Arial':'600 13px system-ui,Arial';
+   ctx.fillStyle=(isSpike||isDrop)?CHART_C.ink:CHART_C.ink2;
+   ctx.fillText(String(v),cx,y-8);
+   if(isSpike||isDrop){ctx.font='700 9px system-ui,Arial';ctx.fillStyle=col;
+     ctx.fillText(isSpike?'▲':'▼',cx,y-21)}
+   ctx.font='600 12px system-ui,Arial';ctx.fillStyle=CHART_C.ink2;
+   ctx.fillText(labs[i].short,cx,H-19);
+   ctx.font='11px system-ui,Arial';ctx.fillStyle=CHART_C.ink3;
+   ctx.fillText(isCur?'חלקי':("'"+labs[i].yy),cx,H-6)})}
 function projChart(cv,r){
  /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
     ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
  if(!cv||!cv.clientWidth)return;
- const ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=150;
+ /* אותו פגם כמו ב-barChart: בלי גובה CSS מפורש הדפדפן גזר את הגובה
+    מיחס התכונות והציג הכל בחצי. `hidpi` מעביר את הציור לפיקסלי CSS,
+    ולכן «12px שבוע» הם באמת 12px ולא 6. */
+ const {ctx,W,H}=hidpi(cv,164);
  ctx.clearRect(0,0,W,H);
- ctx.fillStyle='#23262e';roundRect(ctx,0,0,W,H,16);ctx.fill();
+ ctx.fillStyle=CHART_SURF;roundRect(ctx,0,0,W,H,12);ctx.fill();
  const wk=12,padX=34,padTop=22,padBot=30,pts=[];
  for(let w=0;w<=wk;w++){const v=r.free-r.rate*(w*7/30);pts.push(v)}
  const mx=Math.max(...pts,r.rop,1),mn=Math.min(...pts,0);
@@ -8021,17 +8151,19 @@ function projChart(cv,r){
  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1.5;ctx.setLineDash([6,6]);
  ctx.beginPath();ctx.moveTo(padX,sy(0));ctx.lineTo(W-padX,sy(0));ctx.stroke();
  ctx.strokeStyle='rgba(233,167,0,.85)';ctx.beginPath();ctx.moveTo(padX,sy(r.rop));ctx.lineTo(W-padX,sy(r.rop));ctx.stroke();ctx.setLineDash([]);
- ctx.save();ctx.shadowColor='rgba(56,189,248,.85)';ctx.shadowBlur=12;
- ctx.strokeStyle='#38bdf8';ctx.lineWidth=3.5;ctx.lineJoin='round';ctx.beginPath();
- pts.forEach((v,w)=>w?ctx.lineTo(sx(w),sy(v)):ctx.moveTo(sx(w),sy(v)));ctx.stroke();ctx.restore();
+ /* קו 2px בלי הילה — ההילה היא דיו שאינו נתון */
+ ctx.strokeStyle=CHART_C.med;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
+ pts.forEach((v,w)=>w?ctx.lineTo(sx(w),sy(v)):ctx.moveTo(sx(w),sy(v)));ctx.stroke();
  const cz=pts.findIndex(v=>v<=0);
  if(cz>=0){const px=sx(cz),py=sy(pts[cz]);
    const g=ctx.createRadialGradient(px,py,0,px,py,28);g.addColorStop(0,'rgba(255,91,91,.55)');g.addColorStop(1,'rgba(255,91,91,0)');
    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,28,0,7);ctx.fill();
    ctx.fillStyle='#ff5b5b';ctx.beginPath();ctx.arc(px,py,6,0,7);ctx.fill();
-   ctx.fillStyle='#ffd0d0';ctx.font='700 13px Arial';ctx.textAlign='center';ctx.fillText('מלאי אפס — שבוע '+cz,px,py-16)}
- ctx.fillStyle='#aab3c5';ctx.font='12px Arial';ctx.textAlign='center';[0,4,8,12].forEach(w=>ctx.fillText('שבוע '+w,sx(w),H-10));
- ctx.textAlign='right';ctx.fillStyle='#e9a700';ctx.font='700 12px Arial';ctx.fillText('ROP '+r.rop,W-padX,sy(r.rop)-6)}
+   ctx.fillStyle=CHART_C.ink;ctx.font='700 13px system-ui,Arial';ctx.textAlign='center';ctx.fillText('מלאי אפס — שבוע '+cz,px,py-16)}
+ ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px system-ui,Arial';ctx.textAlign='center';
+ [0,4,8,12].forEach(w=>ctx.fillText('שבוע '+w,sx(w),H-10));
+ ctx.textAlign='right';ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px system-ui,Arial';
+ ctx.fillText('ROP '+r.rop,W-padX,sy(r.rop)-6)}
 function delta(c,n){return n>c?`<div class="dlt up">▲ להעלות ב-${n-c}</div>`:n<c?`<div class="dlt down">▼ להוריד ב-${c-n}</div>`:`<div class="dlt same">זהה</div>`}
 const PATDESC={'חלק':'ביקוש סדיר וצפוי','תנודתי':'סדיר בתדירות, משתנה בכמות',
  'ספורדי':'מפוזר עם חודשים ריקים — ממוצע מטעה','גושי':'נדיר באשכולות — עדיף לפי הזמנה','ללא ביקוש':'אין תנועה ב-11 חודשים'};

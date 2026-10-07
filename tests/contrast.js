@@ -62,6 +62,79 @@ let total=0;
   total+=fails.length;
   fails.sort((a,b)=>parseFloat(a)-parseFloat(b)).slice(0,25).forEach(f=>console.log('  '+f));
  }
+ /* ============ CANVAS_CONTRAST — מה שהסריקה הזאת לא ראתה ============
+    הלולאה שלמעלה סורקת **אלמנטים ב-DOM**. גרפי הפריט מצוירים בקנבס,
+    ולכן מעולם לא נבדקו — ושני פגמים שרדו שם עד שמעתד הסתכל בהם:
+
+    הלוח כהה תמיד (#23262e), אבל הקוד קרא את טוקני *הנושא הפעיל*.
+    במצב בהיר, מול אותו משטח: תוויות החודש 2.68:1, מילוי «צניחה»
+    2.13:1, כיתוב החציון 2.93:1 — כולם נכשלים.
+    ובמקביל הקנבס צויר ב-clientWidth*2 בלי גובה CSS, ולכן הדפדפן גזר
+    את הגובה מיחס התכונות והציג הכל בחצי — «13px» הגיעו כ-6.5px.
+
+    שלוש בדיקות, אחת לכל מצב כשל, ועוד אחת שמוודאת שהקבועים מתארים
+    את המציאות ולא רק את הכוונה. */
+ {
+  const HX=h=>{h=h.replace('#','');return [0,2,4].map(i=>parseInt(h.slice(i,i+2),16))};
+  const CR=(a,c)=>{const x=L(HX(a)),y=L(HX(c));return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05)};
+  await p.evaluate(()=>document.body.classList.remove('dark'));
+  await p.evaluate(()=>{const r=(QF.all||[]).find(x=>x.A&&x.months.some(v=>v>0))||(QF.all||[])[0];detail(r)});
+  await p.waitForTimeout(700);
+  const cc=await p.evaluate(()=>{
+   const cv=document.getElementById('c1');if(!cv||!cv.width)return null;
+   const g=cv.getContext('2d');
+   const px=(x,y)=>{const d=g.getImageData(x,y,1,1).data;
+     return '#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('')};
+   const b=cv.getBoundingClientRect();
+   const dpr=Math.min(window.devicePixelRatio||1,3);
+   return {surf:CHART_SURF,col:Object.assign({},CHART_C),
+     /* פיקסל מתוך הלוח עצמו, הרחק מכל סימן — מוכיח שהקבוע הוא המציאות */
+     panelPx:px(Math.round(cv.width*0.5),Math.round(cv.height*0.14)),
+     cssH:cv.style.height,
+     attrW:cv.width,attrH:cv.height,
+     wantW:Math.round(b.width*dpr),wantH:Math.round(b.height*dpr),
+     data:[...g.getImageData(0,0,cv.width,cv.height).data].join(',').length,
+     hash:(()=>{const d=g.getImageData(0,0,cv.width,cv.height).data;
+       let h=0;for(let i=0;i<d.length;i+=97)h=(h*31+d[i])>>>0;return h})()}});
+  const cfails=[];
+  if(!cc)cfails.push('הקנבס לא רונדר כלל');
+  else{
+   /* טקסט דורש 4.5, סימן גרפי דורש 3 */
+   const NEED={ink:4.5,ink2:4.5,ink3:4.5,base:3,spike:3,drop:3,cur:3,med:3};
+   /* צבע חסר או שאינו hex הוא כשל, לא קריסה: ערך שמגיע מטוקן של
+      הנושא (rgb(...) או ריק) הוא בדיוק הרגרסיה שהבדיקה נועדה לתפוס. */
+   for(const k in NEED){const v=cc.col[k];
+    if(typeof v!=='string'||!/^#[0-9a-f]{6}$/i.test(v)){
+     cfails.push(`CHART_C.${k} אינו צבע קבוע (${JSON.stringify(v)}) — צבע שנגזר מהנושא חוזר להתהפך מול לוח קבוע`);continue}
+    const r=CR(v,cc.surf);
+    if(r<NEED[k])cfails.push(`${r.toFixed(2)} (דרוש ${NEED[k]}) CHART_C.${k} ${v} על ${cc.surf}`)}
+   for(const k in cc.col)if(!(k in NEED))cfails.push(`CHART_C.${k} אינו מכוסה בבדיקה — הוסף אותו ל-NEED`);
+   if(cc.panelPx.toLowerCase()!==cc.surf.toLowerCase())
+    cfails.push(`הלוח שצויר ${cc.panelPx} אינו CHART_SURF ${cc.surf} — הקבוע אינו מתאר את המציאות`);
+   /* הגיאומטריה: גובה CSS מפורש, ומאגר פיקסלים css×dpr בשני הצירים.
+      בלי זה הגופן חוזר להיות חצי ממה שנכתב. */
+   if(!cc.cssH)cfails.push('אין גובה CSS על הקנבס — הדפדפן יגזור אותו מיחס התכונות ויקטין הכל');
+   if(Math.abs(cc.attrW-cc.wantW)>2||Math.abs(cc.attrH-cc.wantH)>2)
+    cfails.push(`מאגר הפיקסלים ${cc.attrW}×${cc.attrH} אינו css×dpr (${cc.wantW}×${cc.wantH})`);
+  }
+  /* הגרף אינו מתהפך עם הנושא — אותו ציור בדיוק בבהיר ובכהה */
+  let darkHash=null;
+  if(cc){
+   await p.evaluate(()=>{document.body.classList.add('dark');
+     const r=(typeof CURRENT_DETAIL!=='undefined'&&CURRENT_DETAIL)?CURRENT_DETAIL:null;if(r)detail(r)});
+   await p.waitForTimeout(700);
+   darkHash=await p.evaluate(()=>{const cv=document.getElementById('c1');
+     if(!cv||!cv.width)return null;const d=cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
+     let h=0;for(let i=0;i<d.length;i+=97)h=(h*31+d[i])>>>0;return h});
+   await p.evaluate(()=>document.body.classList.remove('dark'));
+   if(darkHash===null)cfails.push('הקנבס לא רונדר במצב כהה');
+   else if(darkHash!==cc.hash)
+    cfails.push(`הגרף משתנה עם הנושא — bright ${cc.hash} מול dark ${darkHash}. משטח קבוע מחייב צעדים קבועים`);
+  }
+  console.log(`\n=== canvas · גרף הפריט · ${cfails.length} כשלים ===`);
+  cfails.forEach(f=>console.log('  '+f));
+  total+=cfails.length;
+ }
  const bad=total>0;
  await b.close();
  process.exit(total>0?1:0);
