@@ -291,6 +291,27 @@ tbody tr:hover{background:var(--surface-2)}
 tbody tr.sel{background:var(--accL)}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%}
 .obj{color:var(--acc);font-weight:700}
+/* ============ XDOOR ============
+   הסימן יושב צמוד למק״ט ולא בעמודה משלו: תקציב הרוחב האופקי של
+   טבלאות העבודה גמור (ראה TABLE_BUDGET), ועמודה נוספת הייתה דוחקת
+   את התיאור. הוא אינו כפתור — הוא סימן שאומר «תסתכל בכרטיס», ושם
+   יושבת הרשימה עם הקפיצות. */
+.xd::after{content:"⧉" attr(data-n)}
+.xd{display:inline-block;margin-inline-start:5px;font-family:var(--num);
+ font-variant-numeric:tabular-nums;font-size:var(--f-xs);line-height:1.5;
+ padding:0 5px;border-radius:var(--r-pill);cursor:help;
+ background:color-mix(in srgb,var(--trend) 14%,var(--panel));
+ color:var(--trend);border:1px solid color-mix(in srgb,var(--trend) 32%,var(--panel))}
+.dcx{margin-top:10px}
+.dcxl{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.xgo{font-family:inherit;font-size:var(--f-sm);cursor:pointer;
+ padding:4px 10px;border-radius:var(--r-lg);
+ background:color-mix(in srgb,var(--trend) 12%,var(--panel));
+ color:var(--trend);border:1px solid color-mix(in srgb,var(--trend) 34%,var(--panel));
+ box-shadow:var(--e-1);transition:box-shadow .15s,transform .15s}
+.xgo:hover{box-shadow:var(--e-2);transform:translateY(-1px);
+ background:color-mix(in srgb,var(--trend) 20%,var(--panel))}
+.dcxn{margin-top:5px;font-size:var(--f-xs);color:var(--dim);line-height:1.5}
 .neg{color:var(--red);font-weight:700}.pos{color:var(--grn);font-weight:700}
 .badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
 .markbadge{display:inline-block;font-size:10px;padding:1px 8px;border-radius:20px;background:var(--neutralL);border:1px solid var(--line);color:var(--gray);font-weight:700;margin-inline-start:6px}
@@ -5232,7 +5253,7 @@ function lineRows(){
  if(LINE_SEL==='noprice')return m.dry.filter(r=>r.priceMissing);
  const st=m.stations.find(s=>s.date===LINE_SEL);
  return st?st.fixed:m.stuck}
-function lineSelect(k){LINE_SEL=k;DL_CACHE={};render()}
+function lineSelect(k){LINE_SEL=k;DL_CACHE={};XMAP=null;render()}
 /* ============ פלט: טיוטת מייל לספק ============
    הפעולה האמיתית מול 31 הפריטים שאין להם מענה היא מייל אחד לכל ספק,
    לא 31 בירורים. הטקסט נבנה מהבחירה הנוכחית על הציר ומקובץ לפי ספק,
@@ -6659,6 +6680,77 @@ function ssNoRate(r){return !(r.rate>0)}
    ב-`track==='floor'`, ושכפולו למסלול שני היה מכפיל שמונה מקומות
    שאפשר לשכוח אחד מהם. */
 function floorAll(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
+/* ============ XDOOR — אותו פריט, כמה דלתות, הוראות שונות ============
+   נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
+   אבל רק 4,096 פריטים שונים. **1,360 פריטים (33%) יושבים בשתי דלתות
+   או יותר**, ובכלי לא היה שום סימן לכך.
+
+   החפיפות הגדולות:
+   | | פריטים |
+   |---|---|
+   | להפסיק להזמין + רצפה בלי קצב מדיד | 362 |
+   | אין מה לשנות + רצפה בלי קצב מדיד | 265 |
+   | החלטה מסחרית + רצפה בלי קצב מדיד | 161 |
+   | להפסיק להזמין + רצפת SS | 79 |
+   | רצפה בלי קצב מדיד + רצפת מדרגה | 54 |
+
+   ומה שהפרמטרים של אותם 1,360 אומרים:
+   465 «להקטין» מול רצפה מאושרת שמחזיקה למעלה · 392 להעלות בלבד ·
+   346 בלי שינוי פרמטר · **149 להקטין פרמטר אחד ולהעלות את השני
+   באותה שורה** · 8 להקטין בלבד. ו-296 מהם נושאים הון כלוא *וגם*
+   המלצה להעלות — $141,888 · ₪4,754 · €30.
+
+   6608154017A15: יושב ב«רצפה בלי קצב מדיד» וב«להפסיק להזמין»,
+   מסווג «מלאי איטי», $6,251 כלואים — ROP 3→2 ו-SS 1→2 באותה שורה.
+
+   מעתד שעובד דלת-אחר-דלת פגש אותו עד שלוש פעמים, תחת שלוש כותרות,
+   בלי לדעת שזה אותו פריט. זה אינו סיווג חדש ואינו מספר חדש: אותן
+   דלתות בדיוק, אותן רשימות, רק שהפריט אומר היכן עוד הוא נמצא.
+
+   המפה נבנית פעם אחת ונשמרת לצד DL_CACHE, כי היא נשענת עליו:
+   דלת שמסוננת מסננת גם כאן, ולכן «גם ב» תמיד מסכים עם המונה. */
+const XDOORS=[['today','חוסרים ולקוחות'],['burn','אין רכש כלל'],['cust','כיסוי חלקי'],
+ ['line','ציר האספקות'],['rise','ביקוש עולה'],
+ ['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
+ ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],['trend','ביקוש יורד'],
+ ['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר'],
+ ['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
+ ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']];
+const XNAME=Object.fromEntries(XDOORS);
+let XMAP=null;
+function xRows(k){try{
+ if(k==='burn')return burnRows();
+ if(k==='cust')return custRows();
+ if(k==='rise')return riseRows();
+ if(k==='trend')return trendRows();
+ if(k==='stale')return staleRows();
+ if(k==='floor'||k==='floorNR')return floorPick(floorAll(),k);
+ if(k==='capPO'||k==='capStop'||k==='capBiz'||k==='capNone')return capPick(decisionList('cap'),k);
+ /* «חוסרים ולקוחות» הוא track='short', לא mode='today' */
+ if(k==='today')return decisionList('short');
+ return decisionList(k)}catch(_){return []}}
+function xBuild(){const m=new Map();
+ for(const [k] of XDOORS){const l=xRows(k);if(!l||!l.length)continue;
+  for(const r of l){let a=m.get(r);if(!a){a=[];m.set(r,a)}if(a.indexOf(k)<0)a.push(k)}}
+ return XMAP=m}
+function xDoors(r){return (XMAP||xBuild()).get(r)||[]}
+/* הדלת שאני עומד בה אינה «גם ב». «היום» ו«הבוער» חולקים פריטים
+   מעצם ההגדרה, ולכן גם האזור הנוכחי אינו נספר כשהוא אותו אזור. */
+function xOther(r){const cur=String(mode||'');
+ return xDoors(r).filter(k=>k!==cur)}
+function xTitle(r){const o=xOther(r);return o.length
+ ?'הפריט הזה נמצא גם ב: '+o.map(k=>XNAME[k]).join(' · ')
+ :''}
+/* ============ הסימן אינו טקסט בתא ============
+   בגרסה הראשונה הוא נכתב כתוכן של ה-span, ואז `textContent` של תא
+   המק״ט החזיר «BURN-PARTIAL⧉4». בדיקה קיימת שקוראת את המק״ט מהשורה
+   נפלה על כך מיד — אבל הבעיה אינה של הבדיקה: מי שמסמן את המק״ט
+   בעכבר ומעתיק אותו ל-SAP היה גורר את הסימן איתו.
+   התוכן עובר ל-CSS (`content: attr()`), שאינו נכנס ל-textContent
+   ואינו נבחר בגרירה. המק״ט נשאר נקי. */
+function xBadge(r){const o=xOther(r);if(!o.length)return '';
+ return `<span class="xd" data-n="${o.length}" title="${esc(xTitle(r))}" aria-label="${esc(xTitle(r))}"></span>`}
+
 function floorMeasured(r){return r.rate>0&&r.ssStat>0}
 function floorPick(list,k){return k==='floorNR'
   ?list.filter(r=>!floorMeasured(r)):list.filter(floorMeasured)}
@@ -6874,9 +6966,9 @@ const SCOL={
     לרישום, והוספה שקטה שלהם היא שינוי התנהגות — לא ניקוי. */
  pnPlain:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט',
   xval:r=>String(r.pn||''),
-  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}</span></td>`},
+  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span>${xBadge(r)}<span class="ract">${copyBtn(r.pn)}</span></td>`},
  pn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מתור העבודה',
-  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span><span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`},
+  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span>${xBadge(r)}<span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`},
  desc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
   cell:(r,x)=>`<td class="dsc">${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
    +((x.maj&&r.cat&&r.cat!==x.maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:'')+'</td>'},
@@ -7664,7 +7756,7 @@ function renderDecisions(rows){
    ציור שנדחה — יש ציור אחד במקום שניים, שהראשון בהם היה שגוי
    ממילא. מסך הפתיחה (בלי שום קובץ) מצויר על ידי welToggle. */
 function render(){if(!QF)return;
- DL_CACHE={};LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
+ DL_CACHE={};XMAP=null;LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
  if(typeof syncTrendBtn==='function')syncTrendBtn();
@@ -8035,6 +8127,9 @@ function decisionBlock(r){
   ${sub?`<div class="dcs2">${sub}</div>`:''}
   ${coverStrip(r)}
   ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
+  ${xOther(r).length?`<div class="dcx"><span class="dcmk">הפריט הזה נמצא גם ב</span>
+   <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
+   <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:''}
   ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div>
@@ -8183,6 +8278,14 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  /* אותה פונקציה שהמקלדת מפעילה — לא מסלול ניווט שני */
  document.querySelectorAll('#detail [data-dnav]').forEach(b=>b.onclick=()=>{
    if(b.disabled)return;moveSel(+b.dataset.dnav)});
+ /* ============ XDOOR — הקפיצה שומרת על הפריט פתוח ============
+    setMode סוגר את המגירה (closeDetail), ולכן קפיצה לדלת אחרת הייתה
+    משאירה את המעתד מול רשימה בלי לדעת איפה הפריט שבגללו הוא קפץ.
+    הכרטיס נפתח מחדש על אותו פריט אחרי המעבר. */
+ document.querySelectorAll('#detail .xgo[data-go]').forEach(b=>b.onclick=()=>{
+   const k=b.dataset.go;if(!MODESET[k])return;
+   setMode(k);
+   const nr=(ALL||[]).find(x=>x.pn===r.pn);if(nr)detail(nr)});
  const dm=document.querySelector('#detail [data-dmark]');
  if(dm)dm.onclick=()=>{setMark(r,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dc=document.querySelector('#detail [data-dcopy]');
