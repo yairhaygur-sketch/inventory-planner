@@ -297,11 +297,27 @@ tbody tr.sel{background:var(--accL)}
    את התיאור. הוא אינו כפתור — הוא סימן שאומר «תסתכל בכרטיס», ושם
    יושבת הרשימה עם הקפיצות. */
 .xd::after{content:"⧉" attr(data-n)}
-.xd{display:inline-block;margin-inline-start:5px;font-family:var(--num);
+/* ============ הסימן אינו עולה רוחב ============
+   בגרסה הראשונה הוא היה inline, והוסיף **34px לעמודת המק״ט**
+   (325→359) וגזל 6px מהתיאור (229→223). זה הספיק כדי להפוך את
+   הכרעת הדחיפה ב-1920: `updatePush` דורשת שהטבלה עדיין תיכנס
+   לקופסה *ושעמודת התיאור תישאר קריאה*, ושתי בדיקות ממשק נפלו על כך.
+   ראה TABLE_BUDGET — התקציב האופקי של טבלאות העבודה גמור, וכל פיקסל
+   נלקח מהתיאור.
+
+   הסימן עובר למיקום מוחלט בתוך התא, מעל השטח ש-.ract כבר שומר
+   ממילא. הוא אינו משתתף ברוחב הפנימי של העמודה, ולכן עלותו אפס.
+   בריחוף הוא מתפנה לכפתורי הפעולה — ומי שמרחף עומד ממילא לפתוח את
+   הכרטיס, שם יושבת הרשימה המלאה. */
+#tbl td.xdc{position:relative}
+.xd{position:absolute;inset-inline-end:4px;top:50%;transform:translateY(-50%);
+ font-family:var(--num);pointer-events:auto;
  font-variant-numeric:tabular-nums;font-size:var(--f-xs);line-height:1.5;
  padding:0 5px;border-radius:var(--r-pill);cursor:help;
+ transition:opacity .1s ease;
  background:color-mix(in srgb,var(--trend) 14%,var(--panel));
  color:var(--trend);border:1px solid color-mix(in srgb,var(--trend) 32%,var(--panel))}
+tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-events:none}
 .dcx{margin-top:10px}
 .dcxl{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
 .xgo{font-family:inherit;font-size:var(--f-sm);cursor:pointer;
@@ -6966,9 +6982,11 @@ const SCOL={
     לרישום, והוספה שקטה שלהם היא שינוי התנהגות — לא ניקוי. */
  pnPlain:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט',
   xval:r=>String(r.pn||''),
-  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span>${xBadge(r)}<span class="ract">${copyBtn(r.pn)}</span></td>`},
+  cell:r=>{const xb=xBadge(r);
+   return `<td${xb?' class="xdc"':''}><span class="obj">${hlMark(r.pn,SQ)}</span>${xb}<span class="ract">${copyBtn(r.pn)}</span></td>`}},
  pn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מתור העבודה',
-  cell:r=>`<td><span class="obj">${hlMark(r.pn,SQ)}</span>${xBadge(r)}<span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`},
+  cell:r=>{const xb=xBadge(r);
+   return `<td${xb?' class="xdc"':''}><span class="obj">${hlMark(r.pn,SQ)}</span>${xb}<span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`}},
  desc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
   cell:(r,x)=>`<td class="dsc">${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
    +((x.maj&&r.cat&&r.cat!==x.maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:'')+'</td>'},

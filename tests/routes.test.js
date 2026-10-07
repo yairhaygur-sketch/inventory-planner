@@ -642,6 +642,18 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     xb.match&&xb.got===xb.want,`${xb.got}/${xb.want} מתוך ${xb.rows} שורות`);
   ok('והמספר עליו הוא מספר הדלתות הנוספות',xb.num);
   ok('ותא המק״ט נשאר נקי — הסימן אינו נכנס לטקסט שמעתיקים',xb.clean);
+  /* ============ והוא אינו עולה רוחב ============
+     בגרסה הראשונה הסימן היה inline והוסיף 34px לעמודת המק״ט
+     (325→359), גזל 6px מהתיאור, והפך את הכרעת הדחיפה ב-1920 —
+     שתי בדיקות ממשק נפלו. מיקום מוחלט הוא *המנגנון* שמחזיק את
+     העלות באפס, ולכן הוא נבדק ישירות ולא רק דרך תוצאותיו. */
+  const xpos=await p.evaluate(()=>{const e=document.querySelector('#tbl tbody .xd');
+    if(!e)return null;const cs=getComputedStyle(e);
+    const td=e.closest('td');
+    return {pos:cs.position,tdPos:td?getComputedStyle(td).position:null}});
+  ok('הסימן ממוקם מוחלט ואינו משתתף ברוחב העמודה',
+    xpos&&xpos.pos==='absolute'&&xpos.tdPos==='relative',
+    xpos?`${xpos.pos} בתוך td ${xpos.tdPos}`:'(אין סימן)');
   ok('הדלת שאתה עומד בה אינה נספרת כ«גם ב»',xb.self===0,xb.self+' הפניות עצמיות');
   ok('והכיתוב נוקב בשמות הדלתות',/נמצא גם ב: .+/.test(xb.title),xb.title.slice(0,90));
   /* הכרטיס, והקפיצה */
