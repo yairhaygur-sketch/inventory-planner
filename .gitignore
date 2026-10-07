@@ -20,3 +20,8 @@ tests/status-e.xlsx
 design/*/*.html
 !design/*/*.dc.html
 tests/eta-orphan.xlsx
+
+# צילומי מסך שהבדיקות מייצרות — פלט, לא מקור.
+# הם משתנים בכל הרצה (רינדור גופנים) ויצרו ~750KB רעש בינארי
+# בכל commit, בלי שאיש קורא אותם.
+tests/*.png
