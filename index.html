@@ -7096,19 +7096,46 @@ function burnRows(){return (QF&&QF.waiting?QF.waiting:[]).filter(passColFilters)
    חומרה (sev) ← לקוח שכבר ממתין ← יחידות חסרות. יחידות ולא כסף,
    כדי שלא לדרג בין מטבעות — מדיניות BZ אוסרת לחבר אותם, והשוואה
    בין $1,000 ל-₪1,000 היא אותה שגיאה בלבוש אחר. */
+/* ============ AGENDA_RUNG — הרונג שנשכח במסך הנחיתה ============
+   הרשימה הייתה `burnRows()` ∪ `Q.prevent` — שני דליים מתוך
+   שלושה. ב-`classify` רונג הלקוח מתפצל לשניים בשורה אחת:
+
+     (noPO ? Q.waiting : Q.immediate).push(it)
+
+   אותה חומרה (sev 3), אותו `custGap`, אותו רונג — וההבדל
+   היחיד הוא אם קיימת הזמנת רכש כלשהי. `Q.immediate` לא היה
+   ברשימה בכלל.
+
+   נמדד על הדוח מ-5.10 (7,987 פריטים): שני פריטים בדרגת
+   חומרה 3 נעדרו מהמסך שכותרתו «מה דורש טיפול היום»:
+
+     8894765000  ממיר מתחים DC/DC
+                 14 הזמנות · 0 על המדף · 9 ברכש · חסרות 5
+                 $3,959.66 ליחידה — $19,798 ביקוש לקוח ללא מענה
+     6608302155LF9  סך שמש שמאל · 3 הזמנות · 0 על המדף · 2 ברכש
+
+   המונה בברכה («295 דורשים החלטה») כן ספר אותם — הוא סוכם
+   `waiting+immediate+follow+prevent+quality`. כלומר המספר והרשימה
+   לא הסכימו, וזה בדיוק הכשל שהפרוייקט בודק בכל דלת אחרת.
+
+   התיקון אינו נוגע במנוע: אותו סיווג, אותה חומרה, אותה
+   המלצה. רק בחירת השורות למסך הנחיתה השתנתה. */
+function immRows(){return (QF&&QF.immediate?QF.immediate:[]).filter(passColFilters)}
 function agendaRows(){
  if(!QF)return [];
  const seen=new Set(),out=[];
- for(const r of burnRows().concat((QF.prevent||[]).filter(passColFilters)))
+ for(const r of burnRows().concat(immRows(),(QF.prevent||[]).filter(passColFilters)))
   if(!seen.has(r)){seen.add(r);out.push(r)}
  /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא היחיד
     שבו ההבטחה ללקוח כבר ניתנה ואין מולה כלום. זה העיקרון שהכלי
     הצהיר עליו (ראה `burnRows` והכרטיס הראשון במסך הישן), והדירוג
     כאן מקיים אותו. סידור לפי חומרה בלבד היה מוריד לקוח שממתין
-    לשורה 9, מתחת לפריטים עם חוסר גדול יותר שאיש לא מחכה להם. */
- const burn=new Set(burnRows());
+    לשורה 9, מתחת לפריטים עם חוסר גדול יותר שאיש לא מחכה להם.
+    הרונג השני (לקוח עם רכש חלקי) נכנס ביניהם באותו היגיון. */
+ const burn=new Set(burnRows()),imm=new Set(immRows());
+ const rung=r=>burn.has(r)?0:imm.has(r)?1:2;
  return out.sort((a,b)=>
-   ((burn.has(b)?1:0)-(burn.has(a)?1:0))
+   (rung(a)-rung(b))
    ||(b.sev-a.sev)
    ||(((b.cust||0)>0?1:0)-((a.cust||0)>0?1:0))
    ||((b.miss||0)-(a.miss||0)))}
@@ -7687,6 +7714,78 @@ function decisionHead(){const cols=FIXLIKE()
 function custRow(r,i){
  return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
   +colRowHTML(r,{dlen:36})+'</tr>'}
+/* ============ AGENDA_GROUPS — שלוש השורות בבוקר ============
+   מסך הנחיתה הציג 52 שורות בלי אף כותרת ביניהן (נמדד: 0
+   שורות `.grp`). שמונה הראשונות היו דבר אחר לגמרי — הבטחה
+   שניתנה ואין מולה כלום — ושום דבר לא אמר זאת.
+
+   שלוש הקבוצות אינן קיבוץ שהמצאתי: הן **שלושת הרונגים של
+   המנוע עצמו** — `Q.waiting`, `Q.immediate`, `Q.prevent` — והדגלים
+   `burn` ו-`custGap` שהמנוע כבר מדליק הם המבחין. אין כאן סף
+   חדש, סיווג חדש או המלצה חדשה — רק מה שכבר הוכרע, נאמר.
+
+   הסכומים לפי מטבע בנפרד (`moneyMix`), כמו בכל מקום אחר בכלי.
+   הכותרות מתקפלות באותו `GCOLL` של כל הכותרות האחרות, ולכן
+   מי שלמד לקפל קבוצה ב«חוסרים» מקפל אותה גם כאן.
+
+   והכלל «היעדים אינם נעלמים כשהמונה אפס» חל גם כאן: קבוצה
+   ריקה מופיעה עם «אין פריטים», כמו ב-TGROUP. «אין לקוח ממתין
+   הבוקר» הוא מידע, וכותרת שנעלמה אינה אומרת אותו. */
+const AGROUP=[
+ ['ag1','לקוח ממתין ואין מולו שום רכש',
+   'ההבטחה ניתנה ואין מולה כלום — לפתוח הזמנת רכש','var(--critical)','אין רכש כלל'],
+ ['ag2','לקוח ממתין והרכש אינו מכסה',
+   'יש הזמנת רכש, והיא קטנה מההזמנה — להשלים את ההפרש','var(--high)','רכש חלקי'],
+ ['ag3','ייכנס לחוסר החודש אם לא תיגע',
+   'הקצב החודשי גדול ממה שיהיה זמין — תחזית, ואין לקוח ממתין','var(--trend)','חוסר צפוי']];
+/* המנוע כבר הדליק את שני הדגלים ב-`classify`; הקבוצה נקראת
+   מהם ולא מחיפוש בתוך התורים — O(1) לשורה. */
+const aGroup=r=>r&&r.custGap?(r.burn?'ag1':'ag2'):'ag3';
+function agendaGroups(rows){const by={ag1:[],ag2:[],ag3:[]};
+ for(const r of rows)(by[aGroup(r)]||by.ag3).push(r);
+ /* דירוג בתוך הקבוצה — בתוך המטבע, כמו בכל הכלי */
+ for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
+ return by}
+/* היחידות שכל קבוצה סופרת אינן אותן יחידות: בשתי קבוצות
+   הלקוח זו הכמות החסרה לכיסוי ההזמנה (`miss`), ובקבוצת
+   התחזית זו הכמות שלא תסופק החודש (`unsQty`). לסכום אותן
+   יחד היה להמציא מספר שאין לו מובן. */
+const aUnits=(g,list)=>list.reduce((t,r)=>t+(g==='ag3'?Math.ceil(r.unsQty||0):(r.miss||0)),0);
+const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
+function renderAgenda(rows){
+ const G=agendaGroups(rows),body=[];let idx=0;
+ const lim=300;
+ for(const [g,name,sub,col] of AGROUP){
+  const list=G[g],coll=GCOLL.has(g);
+  body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
+    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
+    <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
+    <span class="gu">${list.length
+      ?`${aUnits(g,list).toLocaleString('he-IL')} יח׳ · ${moneyMix(list,aVal(g))}${noPriceTxt(list)}`
+      :'אין פריטים'}</span></td></tr>`);
+  if(coll||!list.length)continue;
+  for(const r of list){if(idx>=lim)break;const i=idx++;
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:30})+'</tr>')}}
+ document.querySelector('#tbl tbody').innerHTML=body.join('')||
+  `<tr><td colspan="${NCOL()}" class="empty">אין פריט שדורש החלטה הבוקר.</td></tr>`;
+ /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
+    הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
+ const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
+ LAST_VIEW=view;
+ document.getElementById('pgL').textContent=
+  `מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ /* התווית הקצרה היא שדה משלה ב-AGROUP ולא חיתוך מהכותרת:
+    שינוי ניסוח בכותרת היה משבש את הפוטר בלי שיבחין בזה. */
+ document.getElementById('pgR').textContent=AGROUP
+   .map(([g,,,,short])=>`${short} ${G[g].length}`).join(' · ');
+ setPhdSub('שלושת הרונגים שהמנוע הכריע, בסדר הזה: הבטחה ללא רכש · '
+  +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.');
+ document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
+ document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
+  tr.classList.add('sel');detail(view[+tr.dataset.i])});
+ wireCopy()}
 function renderCust(rows){
  const G=custGroups(rows),body=[];let idx=0;
  const head=(key,color,name,n,sub,units,list)=>{const coll=GCOLL.has(key);
@@ -7781,6 +7880,7 @@ function renderDecisions(rows){
  const lim=FIXLIKE()?300:Math.min(rows.length,Math.max(300,c.n+3));
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  /* "לקוח ממתין" מרונדר בקבוצות משלו לפני כל שאר הענפים */
+ if(track==='agenda'){renderAgenda(rows);return}
  if(track==='cust'){renderCust(rows);return}
  if(track==='applied'){renderApplied(rows);return}
  const grouped=SHORTLIKE();

@@ -439,6 +439,82 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      היחיד שבו ההבטחה כבר ניתנה ואין מולה כלום. */
   ok('הבוערים פותחים את הרשימה',h.firstAreBurn,
     `${h.eng.burn} בוערים בראש ${h.agenda}`);
+  /* ============ AGENDA_RUNG + AGENDA_GROUPS ============
+     רשימת מסך הנחיתה הייתה `burnRows()` ∪ `Q.prevent` — שני
+     דליים מתוך שלושה. ב-`classify` רונג הלקוח מתפצל בשורה
+     אחת — `(noPO ? Q.waiting : Q.immediate)` — אותה חומרה, אותו
+     `custGap`, אותו רונג. `Q.immediate` לא היה ברשימה בכלל.
+
+     נמדד על הדוח מ-5.10: שני פריטים בחומרה 3 נעדרו,
+     ובהם ממיר DC/DC עם 14 הזמנות לקוח, 0 על המדף ופער של
+     5 יח׳ — $19,798. המונה בברכה כן ספר אותם.
+
+     שלוש הבדיקות: הרונג ברשימה, שלוש הקבוצות מסתכמות
+     לרשימה (פילוח שאינו מסתכם מסתיר משהו), והסדר של
+     שלושת הרונגים נשמר. */
+  const ag=await p.evaluate(()=>{
+    const G=agendaGroups(agendaRows());
+    const imm=(QF.immediate||[]).filter(passColFilters);
+    const rows=agendaRows();
+    const heads=[...document.querySelectorAll('#tbl tbody tr.grp')].map(e=>({
+      g:e.dataset.g,name:e.querySelector('b').textContent.trim(),
+      n:+e.querySelector('.gn').textContent,
+      gu:e.querySelector('.gu').textContent.trim()}));
+    const idxOf=r=>rows.indexOf(r);
+    return {n:{ag1:G.ag1.length,ag2:G.ag2.length,ag3:G.ag3.length},
+      sum:G.ag1.length+G.ag2.length+G.ag3.length,
+      len:rows.length,
+      immN:imm.length,
+      immAllIn:imm.every(r=>rows.includes(r)),
+      /* הסדר: כל בוער לפני כל רכש־חלקי, והוא לפני כל תחזית */
+      order:(()=>{const r1=G.ag1.map(idxOf),r2=G.ag2.map(idxOf),r3=G.ag3.map(idxOf);
+        const mx=a=>a.length?Math.max(...a):-1,mn=a=>a.length?Math.min(...a):Infinity;
+        return mx(r1)<mn(r2)&&mx(r2)<mn(r3)})(),
+      heads,
+      /* קבוצה ריקה אינה נעלמת */
+      allThree:heads.length===3,
+      emptySaid:heads.filter(x=>x.n===0).every(x=>/אין פריטים/.test(x.gu)),
+      /* אין סכימה בין מטבעות באף כותרת */
+      noCross:heads.every(x=>!/[$€₪][\d,.]+\s*\+/.test(x.gu)),
+      footerR:document.getElementById('pgR').textContent}});
+  ok('הרונג השלישי — לקוח שהרכש אינו מכסה — נמצא ברשימה',
+    ag.immAllIn&&ag.n.ag2===ag.immN,
+    `Q.immediate=${ag.immN} · בקבוצה ${ag.n.ag2} · כולם ברשימה=${ag.immAllIn}`);
+  ok('שלוש הקבוצות מסתכמות בדיוק לאורך הרשימה',
+    ag.sum===ag.len&&ag.len===h.agenda,
+    `${ag.n.ag1}+${ag.n.ag2}+${ag.n.ag3}=${ag.sum} · רשימה ${ag.len}`);
+  ok('שלוש הכותרות על המסך, גם כשקבוצה ריקה',
+    ag.allThree&&ag.emptySaid,
+    ag.heads.map(x=>`${x.g}:${x.n}`).join(' · '));
+  ok('והסדר הוא הסדר של שלושת הרונגים',ag.order,
+    `בוער ${ag.n.ag1} → רכש חלקי ${ag.n.ag2} → תחזית ${ag.n.ag3}`);
+  ok('ואין סכימה בין מטבעות באף כותרת',ag.noCross,
+    ag.heads.map(x=>x.gu.slice(0,40)).join(' | '));
+  /* הכלל «היעדים אינם נעלמים כשהמונה אפס» — בהזרקה, כי
+     בפיקסטורה שלושת הרונגים מאוכלסים והמסלול הזה לא היה
+     נבדק. המצב מוחזר בסוף, ונבדק שהוחזר. */
+  const agEmpty=await p.evaluate(()=>{
+    const keep=(QF.immediate||[]).slice();
+    QF.immediate=[];DL_CACHE={};XMAP=null;render();
+    const heads=[...document.querySelectorAll('#tbl tbody tr.grp')].map(e=>({
+      g:e.dataset.g,n:+e.querySelector('.gn').textContent,
+      gu:e.querySelector('.gu').textContent.trim()}));
+    const rows=document.querySelectorAll('#tbl tbody tr[data-i]').length;
+    const len=agendaRows().length;
+    QF.immediate=keep;DL_CACHE={};XMAP=null;render();
+    return {heads,rows,len,
+      restoredHeads:document.querySelectorAll('#tbl tbody tr.grp').length,
+      restoredRows:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+  ok('קבוצה שהתרוקנה נשארת על המסך ואומרת «אין פריטים»',
+    agEmpty.heads.length===3
+    &&(agEmpty.heads.find(x=>x.g==='ag2')||{}).n===0
+    &&/אין פריטים/.test((agEmpty.heads.find(x=>x.g==='ag2')||{}).gu||''),
+    agEmpty.heads.map(x=>`${x.g}:${x.n} ${x.gu.slice(0,18)}`).join(' · '));
+  ok('והמונה ירד יחד עם הרשימה, לא במקומה',
+    agEmpty.rows===agEmpty.len,`${agEmpty.rows} שורות · רשימה ${agEmpty.len}`);
+  ok('והמצב הוחזר אחרי הבדיקה',
+    agEmpty.restoredHeads===3&&agEmpty.restoredRows===h.agenda,
+    `${agEmpty.restoredRows} מתוך ${h.agenda}`);
   ok('רצועה עם ארבעה שבבים, כל אחד דלת לתחום',
     h.band&&h.chips.length===4&&h.chips.map(c=>c.go).join(',')==='line,month,qual,cap',
     h.chips.map(c=>c.go).join(' · '));

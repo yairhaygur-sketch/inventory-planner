@@ -2,6 +2,9 @@ node_modules/
 tests/zmrp-demo.xlsx
 tests/defects.xlsx
 tests/zmrp-demo-eta.xlsx
+# אחיהן של שתי השורות שמעליו: שלושתן נבנות ב-`npm run fixture`
+# ומשתנות בכל הרצה. זו נשארה במעקב בהיסח הדעת.
+tests/zmrp-demo-day2.xlsx
 tests/eta-zmrp.xlsx
 tests/eta-report.xlsx
 tests/ledger-d1.xlsx
