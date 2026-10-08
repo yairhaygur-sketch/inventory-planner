@@ -823,5 +823,103 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    vis.every(([m,v])=>v===(m==='today')),
    vis.map(([m,v])=>m+'='+v).join(' '));
 
+ /* ============ LT_ZERO — אין זמן אספקה, וזה נאמר ============
+    לכלי היה ממזורים ל«זמן אספקה חסר» — הרונג של `ltMissing`
+    ב-`classify` — אבל הוא מותנה ב-`it.rate>0`. נמדד על הדוח מ-5.10:
+    לאף אחד מ-53 הפריטים שלהם `ltD = 0` יש קצב מדיד, ולכן הממצא
+    נדלק על **0** פריטים בכל 7,987. הכלי ידע להגיד ולא אמר.
+
+    הבדיקות נועלות שלושה: העובדה נאמרת, הסיווג לא זז, ופריט
+    עם זמן אספקה תקין אינו מקבל את השורה. */
+ {
+  /* בפיקסטורה אין אף פריט עם `ltD = 0` (נמדד: 0 מתוך 900), ולכן
+     המסלול הזה אינו נבדק בלי הזרקה. להוסיף שורה לקובץ
+     הסינתטי היה משבר בדיקות שנועלות 900 שורות, ולשנות פריט
+     קיים היה מזיז את הסיווג שלו בבדיקות אחרות. ההזרקה
+     משנה `ltD` על שלושה פריטים, מריצה את הסיווג מחדש,
+     ומחזירה את המצב — ונבדק שהוחזר. */
+  const lzPre=await p.evaluate(()=>{
+   const all=ALL||[];
+   const pick=all.filter(r=>(r.ltD||0)>0&&!isPD(r.mrp)&&!r.isOD&&!r.noStock).slice(0,3);
+   window.__lz={pns:pick.map(r=>r.pn),lt:pick.map(r=>r.ltD),
+     /* נמדד **לפני** השינוי. הגרסה הראשונה מדדה אחרי ההזרקה
+        והשוותה 3===3 — בדיקה שעוברת בלי לבדוק כלום. */
+     flaggedBefore:((QF&&QF.all)||[]).filter(r=>r.ltZero).length};
+   for(const r of pick)r.ltD=0,r.ltM=0;
+   /* `apply()` הוא מסלול הקוד האמיתי: הוא מסנן, מסווג וממלא
+      את `QF.all`. קריאה ל-`classify()` לבדה משאירה את `QF.all` ריק,
+      והבדיקה הייתה מודדת מאגר ריק ומדווחת «עבר». */
+   apply();DL_CACHE={};XMAP=null;render();
+   return {picked:window.__lz.pns.length,
+     before:window.__lz.flaggedBefore,
+     after:(QF.all||[]).filter(r=>r.ltZero).length}});
+  const lz=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const lt0=all.filter(r=>(r.ltD||0)===0);
+   const flagged=all.filter(r=>r.ltZero);
+   const says=r=>(r.why||[]).some(w=>/אין זמן אספקה ב-SAP/.test(w[1]||''));
+   const actQ=new Set([].concat(QF.waiting,QF.immediate,QF.follow,QF.prevent));
+   /* כל פריט שאין לו זמן אספקה והכלי ממליץ לו משהו — חייב לדעת */
+   const inQueueMissing=lt0.filter(r=>actQ.has(r)&&!r.ltZero).length;
+   return {lt0:lt0.length, flagged:flagged.length,
+     allFlaggedSay:flagged.every(says),
+     noneElseSays:all.filter(r=>!r.ltZero&&says(r)).length,
+     withLtSays:all.filter(r=>(r.ltD||0)>0&&says(r)).length,
+     inQueueMissing,
+     /* הרונג הותיק לא נגע — הוא עדיין מותנה ב-rate>0 */
+     ltMissingStill:all.filter(r=>r.ltMissing).length,
+     ltMissingAllRated:all.filter(r=>r.ltMissing).every(r=>(r.rate||0)>0)}});
+  ok('כל פריט שסומן `ltZero` אומר בכרטיס שאין לו זמן אספקה',
+    lz.flagged>0&&lz.allFlaggedSay&&lz.noneElseSays===0,
+    `מסומנים ${lz.flagged} מתוך ${lz.lt0} עם ltD=0 · כולם אומרים=${lz.allFlaggedSay}`);
+  ok('ופריט שיש לו זמן אספקה אינו מקבל את השורה',
+    lz.withLtSays===0,`${lz.withLtSays} פריטים עם ltD>0 קיבלו את ההערה`);
+  /* זו הטענה העסקית: אם הכלי ממליץ לפתוח רכש ואין זמן
+     אספקה — המעתד חייב לדעת, גם כשהפריט PD ולא מנוהל־מלאי. */
+  ok('ואף פריט בתור עבודה לא נשאר בלי ההערה',
+    lz.inQueueMissing===0,`${lz.inQueueMissing} בתור ובלי הערה`);
+  /* הרונג הותיק הוא סיווג — ולכן לא נגע בו. הבדיקה
+     נועלת שהוא עדיין מותנה בקצב, כדי שההצעה לשנות אותו
+     תגיע כהכרעה מודעת ולא בהיסח הדעת. */
+  ok('הרונג הותיק של `ltMissing` לא נגע — הוא עדיין מותנה בקצב מדיד',
+    lz.ltMissingAllRated,
+    `${lz.ltMissingStill} פריטים עם ltMissing, וכולם עם rate>0=${lz.ltMissingAllRated}`);
+  const lzBack=await p.evaluate(()=>{
+   const by=new Map((ALL||[]).map(r=>[r.pn,r]));
+   window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
+     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30}});
+   apply();DL_CACHE={};XMAP=null;render();
+   const says=r=>(r.why||[]).some(w=>/אין זמן אספקה ב-SAP/.test(w[1]||''));
+   return {flagged:(QF.all||[]).filter(r=>r.ltZero).length,
+     lt0:(QF.all||[]).filter(r=>(r.ltD||0)===0).length,
+     says:(QF.all||[]).filter(says).length}});
+  /* הדגל חייב להתאפס כשהנתון משתנה — `classify` רץ על אותם
+     אובייקטים בכל סינון ובכל העלאה. זו הבדיקה שתפסה
+     דגל דביק: שלושה פריטים נשארו מסומנים אחרי שזמן
+     האספקה שלהם הוחזר. */
+  ok('ההזרקה אכן הדליקה את הדגל',
+    lzPre.after===lzPre.before+lzPre.picked&&lzPre.picked===3,
+    `לפני ${lzPre.before} · אחרי ${lzPre.after} · הוזרקו ${lzPre.picked}`);
+  ok('והדגל מתאפס כשהנתון חוזר — אינו דביק',
+    lzBack.flagged===lzPre.before&&lzBack.lt0===0&&lzBack.says===0,
+    `מסומנים ${lzBack.flagged} (לפני ${lzPre.before}) · ltD=0: ${lzBack.lt0} · שורות הסבר: ${lzBack.says}`);
+  /* השורה נוספת ב-`why.push`, ו-`classify` רץ מחדש בכל סינון —
+     אז היא עלולה להיערם. בפועל כל ענף משבץ `it.why=[...]`
+     מחדש ולכן לא — וזה נעול כאן במקום להישאר הנחה. */
+  const lzDup=await p.evaluate(()=>{
+   const by=new Map((ALL||[]).map(r=>[r.pn,r]));
+   window.__lz.pns.forEach(pn=>{const r=by.get(pn);if(r)r.ltD=0,r.ltM=0});
+   apply();apply();apply();
+   const f=(QF.all||[]).filter(r=>r.ltZero);
+   const per=f.map(r=>(r.why||[]).filter(w=>/אין זמן אספקה ב-SAP/.test(w[1]||'')).length);
+   window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
+     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30}});
+   apply();
+   return {n:f.length,max:per.length?Math.max(...per):0,min:per.length?Math.min(...per):0}});
+  ok('והשורה אינה נערמת בסינונים חוזרים',
+    lzDup.n>0&&lzDup.max===1&&lzDup.min===1,
+    `אחרי שלושה סינונים: ${lzDup.n} מסומנים · שורות לפריט ${lzDup.min}–${lzDup.max}`);
+ }
+
  await b.close();console.log(out.join('\n'));
  process.exit(out.some(l=>l.startsWith('FAIL'))?1:0)})();
