@@ -500,6 +500,39 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ספירת המיזוג מדויקת',
    stt.merged.added===1&&stt.merged.updated===1&&stt.merged.kept===1,JSON.stringify(stt.merged));
 
+ /* ============ המותג והמעתד כבר שמורים — במפתח ============
+    F-04 בתיק הסקירה טען שמבנה הסימון הוא `{מק«ט: {t,note,ts}}`
+    וש«אין brand». נמדד וזה לא נכון: `markKey` הוא
+    `מעתד|מותג|מק«ט`, ולכן שני השדות שמורים בכל סימון
+    מהיום הראשון. מה שחסר הוא מי לחץ על הכפתור.
+
+    הבדיקה נועלת שלושה: הפילוח קיים, הסכום שלו שווה
+    למספר הסימונים (פילוח שאינו מסתכם לשלם הוא פילוח
+    שמסתיר משהו), ומפתח ישן בלי מפרידים נופל ל«לא ידוע»
+    ולא משויך למישהו בניחוש. */
+ const brk=await p.evaluate(()=>{
+  MARKS={};
+  const l=QF.all.slice(0,30);
+  l.forEach((x,i)=>setMark(x,i%2?'supplier':'handled',''));
+  MARKS['LEGACY-PN-ONLY']={t:'handled',note:'',ts:Date.now()};
+  saveMarks();
+  const st=stateStats(stateBlob());
+  const sum=o=>Object.values(o||{}).reduce((a,b)=>a+b,0);
+  return {marks:st.marks,byBrand:st.byBrand,byPlanner:st.byPlanner,
+    legacyKeys:st.legacyKeys,sumBrand:sum(st.byBrand),sumPlanner:sum(st.byPlanner),
+    brands:Object.keys(st.byBrand||{}).length,
+    realBrands:new Set(l.map(x=>x.brand)).size}});
+ ok('הסימון יודע את המותג והמעתד — הם במפתח, לא נדרש שדה חדש',
+   brk.brands>=brk.realBrands&&Object.keys(brk.byPlanner||{}).length>=1,
+   `מותגים ${JSON.stringify(brk.byBrand)} · מעתדים ${JSON.stringify(brk.byPlanner)}`);
+ ok('והפילוח מסתכם בדיוק למספר הסימונים',
+   brk.sumBrand===brk.marks&&brk.sumPlanner===brk.marks,
+   `${brk.sumBrand} · ${brk.sumPlanner} · סימונים ${brk.marks}`);
+ ok('מפתח ישן נספר כ«לא ידוע» ולא משויך בניחוש',
+   brk.legacyKeys===1&&(brk.byBrand['לא ידוע']||0)===1
+   &&(brk.byPlanner['לא ידוע']||0)===1,
+   `legacy=${brk.legacyKeys} · ${JSON.stringify(brk.byBrand)}`);
+
  /* מסע הלוך-חזור: גיבוי, מחיקה, שחזור */
  const rt=await p.evaluate(()=>{
   MARKS={};QF.all.slice(0,5).forEach(x=>setMark(x,'handled',''));

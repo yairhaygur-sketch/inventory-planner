@@ -72,7 +72,17 @@ const rows=[
     שניהם נבנו למצב אחר: באחד יש יותר בדרך פנימה מההקטנה שתוצע,
     ובשני אין בכלל מה להקטין על המדף. */
  mk('SLOW-PO-OVER',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:40,po:60,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400}),
- mk('SLOW-PO-NONE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:3,po:10,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400})];
+ mk('SLOW-PO-NONE',{months:[0,0,0,0,0,0,0,0,0,0,0],y0:1,y1:1,y2:1,free:3,po:10,rop:3,ss:2,ssMin:4,price:80,saleAgo:300,entAgo:400}),
+ /* ============ FOLLOW_ROP ============
+    «מעקב אספקה» עם נקודת הזמנה נמוכה מהנדרש — המצב של 6608440675,
+    שהמעתד הגיע איתו לחוסר. בקובץ הזה לא היה **אף** פריט «מעקב
+    אספקה», כלומר הבדיקה הייתה רצה על רשימה ריקה.
+    קצב 2 · LT 120 יום (ltM=4) · מדף 5 (כיסוי 2.5 < 4) · בדרך 10
+    (כיסוי כולל 7.5 ≥ 4) → הענף נתפס. ssMin 2 → sugSS 2, ולכן
+    sugROP = ⌈2×4 + 2⌉ = 10 מול rop=3: פער 7, ו-2.5 חודשים יבשים.
+    והבקרה השלילית: אותו מצב בדיוק עם rop=12, שאין בו פער. */
+ mk('FOLLOW-ROP-GAP',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:3,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60}),
+ mk('FOLLOW-ROP-OK',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:12,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/routes.xlsx');
@@ -429,6 +439,82 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      היחיד שבו ההבטחה כבר ניתנה ואין מולה כלום. */
   ok('הבוערים פותחים את הרשימה',h.firstAreBurn,
     `${h.eng.burn} בוערים בראש ${h.agenda}`);
+  /* ============ AGENDA_RUNG + AGENDA_GROUPS ============
+     רשימת מסך הנחיתה הייתה `burnRows()` ∪ `Q.prevent` — שני
+     דליים מתוך שלושה. ב-`classify` רונג הלקוח מתפצל בשורה
+     אחת — `(noPO ? Q.waiting : Q.immediate)` — אותה חומרה, אותו
+     `custGap`, אותו רונג. `Q.immediate` לא היה ברשימה בכלל.
+
+     נמדד על הדוח מ-5.10: שני פריטים בחומרה 3 נעדרו,
+     ובהם ממיר DC/DC עם 14 הזמנות לקוח, 0 על המדף ופער של
+     5 יח׳ — $19,798. המונה בברכה כן ספר אותם.
+
+     שלוש הבדיקות: הרונג ברשימה, שלוש הקבוצות מסתכמות
+     לרשימה (פילוח שאינו מסתכם מסתיר משהו), והסדר של
+     שלושת הרונגים נשמר. */
+  const ag=await p.evaluate(()=>{
+    const G=agendaGroups(agendaRows());
+    const imm=(QF.immediate||[]).filter(passColFilters);
+    const rows=agendaRows();
+    const heads=[...document.querySelectorAll('#tbl tbody tr.grp')].map(e=>({
+      g:e.dataset.g,name:e.querySelector('b').textContent.trim(),
+      n:+e.querySelector('.gn').textContent,
+      gu:e.querySelector('.gu').textContent.trim()}));
+    const idxOf=r=>rows.indexOf(r);
+    return {n:{ag1:G.ag1.length,ag2:G.ag2.length,ag3:G.ag3.length},
+      sum:G.ag1.length+G.ag2.length+G.ag3.length,
+      len:rows.length,
+      immN:imm.length,
+      immAllIn:imm.every(r=>rows.includes(r)),
+      /* הסדר: כל בוער לפני כל רכש־חלקי, והוא לפני כל תחזית */
+      order:(()=>{const r1=G.ag1.map(idxOf),r2=G.ag2.map(idxOf),r3=G.ag3.map(idxOf);
+        const mx=a=>a.length?Math.max(...a):-1,mn=a=>a.length?Math.min(...a):Infinity;
+        return mx(r1)<mn(r2)&&mx(r2)<mn(r3)})(),
+      heads,
+      /* קבוצה ריקה אינה נעלמת */
+      allThree:heads.length===3,
+      emptySaid:heads.filter(x=>x.n===0).every(x=>/אין פריטים/.test(x.gu)),
+      /* אין סכימה בין מטבעות באף כותרת */
+      noCross:heads.every(x=>!/[$€₪][\d,.]+\s*\+/.test(x.gu)),
+      footerR:document.getElementById('pgR').textContent}});
+  ok('הרונג השלישי — לקוח שהרכש אינו מכסה — נמצא ברשימה',
+    ag.immAllIn&&ag.n.ag2===ag.immN,
+    `Q.immediate=${ag.immN} · בקבוצה ${ag.n.ag2} · כולם ברשימה=${ag.immAllIn}`);
+  ok('שלוש הקבוצות מסתכמות בדיוק לאורך הרשימה',
+    ag.sum===ag.len&&ag.len===h.agenda,
+    `${ag.n.ag1}+${ag.n.ag2}+${ag.n.ag3}=${ag.sum} · רשימה ${ag.len}`);
+  ok('שלוש הכותרות על המסך, גם כשקבוצה ריקה',
+    ag.allThree&&ag.emptySaid,
+    ag.heads.map(x=>`${x.g}:${x.n}`).join(' · '));
+  ok('והסדר הוא הסדר של שלושת הרונגים',ag.order,
+    `בוער ${ag.n.ag1} → רכש חלקי ${ag.n.ag2} → תחזית ${ag.n.ag3}`);
+  ok('ואין סכימה בין מטבעות באף כותרת',ag.noCross,
+    ag.heads.map(x=>x.gu.slice(0,40)).join(' | '));
+  /* הכלל «היעדים אינם נעלמים כשהמונה אפס» — בהזרקה, כי
+     בפיקסטורה שלושת הרונגים מאוכלסים והמסלול הזה לא היה
+     נבדק. המצב מוחזר בסוף, ונבדק שהוחזר. */
+  const agEmpty=await p.evaluate(()=>{
+    const keep=(QF.immediate||[]).slice();
+    QF.immediate=[];DL_CACHE={};XMAP=null;render();
+    const heads=[...document.querySelectorAll('#tbl tbody tr.grp')].map(e=>({
+      g:e.dataset.g,n:+e.querySelector('.gn').textContent,
+      gu:e.querySelector('.gu').textContent.trim()}));
+    const rows=document.querySelectorAll('#tbl tbody tr[data-i]').length;
+    const len=agendaRows().length;
+    QF.immediate=keep;DL_CACHE={};XMAP=null;render();
+    return {heads,rows,len,
+      restoredHeads:document.querySelectorAll('#tbl tbody tr.grp').length,
+      restoredRows:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+  ok('קבוצה שהתרוקנה נשארת על המסך ואומרת «אין פריטים»',
+    agEmpty.heads.length===3
+    &&(agEmpty.heads.find(x=>x.g==='ag2')||{}).n===0
+    &&/אין פריטים/.test((agEmpty.heads.find(x=>x.g==='ag2')||{}).gu||''),
+    agEmpty.heads.map(x=>`${x.g}:${x.n} ${x.gu.slice(0,18)}`).join(' · '));
+  ok('והמונה ירד יחד עם הרשימה, לא במקומה',
+    agEmpty.rows===agEmpty.len,`${agEmpty.rows} שורות · רשימה ${agEmpty.len}`);
+  ok('והמצב הוחזר אחרי הבדיקה',
+    agEmpty.restoredHeads===3&&agEmpty.restoredRows===h.agenda,
+    `${agEmpty.restoredRows} מתוך ${h.agenda}`);
   ok('רצועה עם ארבעה שבבים, כל אחד דלת לתחום',
     h.band&&h.chips.length===4&&h.chips.map(c=>c.go).join(',')==='line,month,qual,cap',
     h.chips.map(c=>c.go).join(' · '));
@@ -658,6 +744,99 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«ביצוע ההמלצה» לא נאמר כשאין המלצה לבצע',sp.badPhrase===0,sp.badPhrase+' מופעים');
   ok('וכשיש יותר יחידות בדרך מההקטנה המוצעת — זה נאמר',sp.geSilent===0,sp.geSilent+' שתקו');
   ok('ופריט איטי בלי רכש פתוח אינו מקבל את השורה',sp.noPoLeak===0,sp.noPoLeak+' דליפות');
+  /* ============ FOLLOW_ROP — הרכש מכסה מחזור אחד, ה-ROP מנהל את כולם ====
+     שוחזר מ-6608440675, פריט שהמעתד הגיע איתו לחוסר. בספטמבר היו לו
+     5 על המדף, 7 בדרך, ROP=3 — ו-sugROP=13. בקצב 2.33 וזמן אספקה
+     120 יום, הזמנה שנפתחת ב-3 משאירה 2.7 חודשים יבשים. ספטמבר 5 →
+     אוקטובר 0, בדיוק לפי החשבון.
+
+     והכלי ידע: sugROP=13 ישב בדוח של ספטמבר. אבל מה שהוא אמר היה
+     «אין צורך ברכש יזום נוסף · לא לפתוח רכש נוסף בשלב זה» — אף מילה
+     על נקודת ההזמנה. ענף «מניעת חוסר» אומר «נקודת הזמנה X נמוכה
+     מהנדרש Y»; ענף «מעקב אספקה», שלוש שורות מעליו, שתק.
+
+     נמדד על הדוח של 5.10: 65 מתוך 138 פריטי «מעקב אספקה» מחזיקים
+     sugROP > rop, ו-64 שתקו. */
+  const fr=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const LN=r=>(r.why||[]).map(w=>w&&w[1]||'').find(t=>/נמוכה מהנדרש/.test(t))||null;
+   const fol=all.filter(r=>r.cat==='מעקב אספקה');
+   const gap=fol.filter(r=>(r.sugROP||0)>(r.rop||0));
+   const nogap=fol.filter(r=>!((r.sugROP||0)>(r.rop||0)));
+   return {fol:fol.length,gap:gap.length,nogap:nogap.length,
+    silent:gap.filter(r=>!LN(r)).length,
+    leak:nogap.filter(r=>LN(r)).length,
+    /* המספרים בשורה הם של המנוע, לא מחושבים מחדש */
+    nums:gap.every(r=>LN(r).includes(`נקודת הזמנה ${r.rop} נמוכה מהנדרש ${r.sugROP}`)),
+    /* זמן היובש נאמר רק כשיש קצב מדיד והוא חיובי */
+    dryBad:gap.filter(r=>{const has=/משאירה כ-[\d.]+ חודשים בלי מלאי/.test(LN(r));
+      const want=r.rate>0&&r.ltM>0&&(r.ltM-(r.rop/r.rate))>0;return has!==want}).length,
+    smp:gap.length?LN(gap[0]):''}});
+  ok('יש בקובץ «מעקב אספקה» עם פער ובלי — אחרת הבדיקה ריקה',
+    fr.gap>0&&fr.nogap>0,`${fr.gap} עם פער · ${fr.nogap} בלי · מתוך ${fr.fol}`);
+  ok('כל פריט «מעקב אספקה» שה-ROP שלו נמוך מהנדרש אומר זאת',
+    fr.silent===0,fr.silent+' שתקו');
+  ok('ופריט שאין בו פער אינו מקבל את השורה',fr.leak===0,fr.leak+' דליפות');
+  ok('המספרים בשורה הם של המנוע עצמו',fr.nums,fr.smp.slice(0,110));
+  ok('וזמן היובש נאמר בדיוק כשיש קצב מדיד והוא חיובי',fr.dryBad===0,fr.dryBad+' חריגות');
+  /* ============ ROP_BRIDGE — הדלת שנולדה מהחוסר ============
+     השאלה: האם נקודת ההזמנה מגשרת על הביקוש בזמן האספקה. ב-6608440675
+     היא לא — ROP 3 מול ביקוש 9.33, ולכן 2.7 חודשים יבש בכל מחזור.
+
+     המדידה הראשונה שלי נתנה 25 חשופים. 14 מהם היו «רקע» עם ROP 0→0:
+     פריטי 04/14 ו«לפי דרישה» שהמנוע **בכוונה** אינו נותן להם המלצה,
+     ושאינם מנוהלים ב-ROP כלל. אחרי ההחרגה: 634 בתחום, **7 חשופים**,
+     246 עם כרית דקה. ההחרגה הזאת היא הדבר העיקרי שהבדיקה נועלת —
+     בלעדיה הדלת מציגה פי שלושה פריטים שאין בהם מה לעשות. */
+  const rb=await p.evaluate(()=>{
+   const all=QF.all||[];
+   const gap=ropPick(ropAll(),'ropGap'),thin=ropPick(ropAll(),'ropThin');
+   const inSet=new Set([...gap,...thin]);
+   return {scope:all.filter(ropScope).length,gap:gap.length,thin:thin.length,
+    /* חלוקה: אין חפיפה, ושתיהן בתוך התחום */
+    overlap:gap.filter(r=>thin.includes(r)).length,
+    outOfScope:[...inSet].filter(r=>!ropScope(r)).length,
+    /* מי שהמנוע אינו ממליץ לו — לא נכנס. זו הטעות שכמעט שלחתי */
+    noRec:[...inSet].filter(r=>r.isOD||r.noStock||isPD(r.mrp)
+      ||(!(r.sugROP>0)&&!(r.sugSS>0))).length,
+    /* ההגדרה של כל דלת, מול שדות המנוע */
+    gapBad:gap.filter(r=>!(ropDry(r)>0)).length,
+    thinBad:thin.filter(r=>ropDry(r)>0||!((r.sugROP||0)>(r.rop||0))).length,
+    /* ropDry הוא בדיוק הנוסחה, לא קירוב */
+    formula:[...inSet].every(r=>Math.abs(ropDry(r)-(r.ltM-(r.rop/r.rate)))<1e-9),
+    /* ואין פריט חשוף שנשאר מחוץ לדלת */
+    missed:all.filter(r=>ropScope(r)&&ropDry(r)>0&&!gap.includes(r)).length}});
+  ok('יש בקובץ פריטים בשתי דלתות ה-ROP — אחרת הבדיקה ריקה',
+    rb.gap>0&&rb.thin>0,`${rb.gap} לא מגשר · ${rb.thin} מתחת למוצע · מתוך ${rb.scope} בתחום`);
+  ok('שתי הדלתות אינן חופפות ואף פריט חשוף לא נשאר בחוץ',
+    rb.overlap===0&&rb.missed===0,`${rb.overlap} חפיפות · ${rb.missed} הוחמצו`);
+  ok('כל פריט בדלתות נמצא בתחום — מנוהל מלאי, לא PD, ויש לו המלצה',
+    rb.outOfScope===0&&rb.noRec===0,`${rb.outOfScope} מחוץ לתחום · ${rb.noRec} בלי המלצה`);
+  ok('«ROP לא מגשר» מכילה אך ורק פריטים שהיובש שלהם חיובי',rb.gapBad===0,rb.gapBad+' חריגות');
+  ok('ו«מתחת למוצע» אך ורק פער בלי יובש',rb.thinBad===0,rb.thinBad+' חריגות');
+  ok('וחישוב היובש הוא בדיוק זמן האספקה פחות ROP÷קצב',rb.formula);
+  /* המסך: הגרוע ביותר קודם, והעמודה שמכריעה מציגה מספר */
+  await p.evaluate(()=>setMode('ropGap'));await p.waitForTimeout(700);
+  const rv=await p.evaluate(()=>{
+   const view=currentRows();
+   const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+   const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
+   const i=HX('בלי מלאי');
+   const shown=tr.map(t=>view[+t.dataset.i]);
+   return {rows:tr.length,hasCol:i>=0,
+    /* ממוין לפי חודשי היובש, הגרוע קודם */
+    sorted:shown.every((r,k)=>!k||ropDry(shown[k-1])>=ropDry(r)-1e-9),
+    /* ובכל שורה התא מראה מספר, לא «—» */
+    cells:i<0?null:tr.filter(t=>/[\d.]+ חו׳/.test(t.children[i].textContent)).length,
+    over:(()=>{const t=document.getElementById('tbl');return t.scrollWidth-t.clientWidth>2})(),
+    sub:document.getElementById('phdSub').textContent,
+    pgR:document.getElementById('pgR').textContent}});
+  ok('עמודת «בלי מלאי» קיימת ומציגה מספר בכל שורה',
+    rv.hasCol&&rv.cells===rv.rows,`${rv.cells}/${rv.rows}`);
+  ok('והדלת ממוינת כך שהגרוע ביותר ראשון',rv.sorted);
+  ok('התת-כותרת אומרת מה ההגדרה',/נמוכה מהביקוש בזמן האספקה/.test(rv.sub),rv.sub.slice(0,90));
+  ok('והסיכום אומר כמה כבר בלי מלאי',/כבר בלי מלאי/.test(rv.pgR),rv.pgR.slice(0,90));
+  ok('ואין גלישה אופקית',!rv.over);
   /* ============ XDOOR — אותו פריט, כמה דלתות ============
      נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
      אבל רק 4,096 פריטים שונים — 1,360 (33%) יושבים בשתיים או יותר,

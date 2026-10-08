@@ -13,6 +13,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      # ============ npm ci ולא npm install ============
+      # package.json נועל "playwright": "1.62.1" מדויק, אבל npm install
+      # יכול בכל זאת לעדכן תלויות־משנה. npm ci מתקין בדיוק את מה שכתוב
+      # ב-package-lock.json, ולכן ה-CI מריץ את אותה גרסה כמו מקומית —
+      # ואיתה אותה גרסת Chromium. הבדל גרסת דפדפן משנה רינדור גופנים
+      # ולכן רוחבי עמודות, ובדיקות הפריסה רגישות לזה.
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm test
+      # ============ הלוג נשמר כ-artifact ============
+      # בלי זה אי אפשר לקרוא כישלון CI אלא דרך blob storage של GitHub,
+      # ולקוחות API רבים מסרבים להפניה לשם. כישלון שאי אפשר לקרוא
+      # שווה לכישלון שלא דיווחו עליו.
+      # `npm test | tee` מחזיר את קוד היציאה של tee ולא של npm, ולכן
+      # הצינור הזה חייב pipefail — בלעדיו ה-job עובר תמיד, גם כשהבדיקות
+      # נופלות. ברירת המחדל של Actions על לינוקס היא `bash -e` בלי
+      # pipefail; `shell: bash` מוסיף אותו.
+      - name: הרצת הבדיקות
+        shell: bash
+        run: npm test 2>&1 | tee test-output.log
+      - name: שמירת פלט הבדיקות
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: test-output.log
+          retention-days: 14

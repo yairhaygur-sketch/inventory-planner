@@ -71,6 +71,12 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
  line-height:1.3;min-width:0;padding-inline:2px}
 .zchip{font-size:11px;font-family:var(--num);font-variant-numeric:tabular-nums;
  color:var(--ink-2);white-space:nowrap;font-weight:700}
+/* ============ ROW_AUDIT · כשהמשוואה אינה מסתדרת ============
+   השבב אומר «נקראו N · נוצלו M» בכל טעינה. כששתיהן שוות הוא שקט
+   ואפור; כשהן אינן, הוא משנה צבע — והפירוט המלא יורד ל-DIAG
+   במקביל. הצבע אינו הסימן היחיד: המספרים עצמם שונים בטקסט,
+   ונוסף ⚠. */
+.zchip.rgap{color:var(--org);font-weight:800}
 .dstate .updated{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
 .etachip{font-size:11.5px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
@@ -2531,6 +2537,10 @@ body.dark .lband{border:1px solid #2B3B50}
 .stwrap .kv2 b{display:block;font-family:var(--num);font-size:var(--f-lg)}
 .stwrap .kv2 span{font-size:var(--f-xs);color:var(--dim)}
 .stwrap p{margin:6px 0;font-size:var(--f-sm);color:var(--soft);line-height:1.55}
+/* פילוח לפי מותג ומעתד — מידע עזר, ולכן קטן יותר מהפילוח
+   לפי סוג הסימון. צבע ה-dim עומד ב-4.5:1 — סריקת הניגודיות
+   עוברת על הדיאלוג הזה ותתפוס אחרת. */
+.stwrap p.stby{font-size:var(--f-xs);color:var(--dim);margin:3px 0}
 .stwrap .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .stwrap button{font-family:inherit;font-size:var(--f-sm);padding:8px 14px;border-radius:8px;
  border:1px solid var(--line);background:var(--panel0);color:var(--ink);cursor:pointer}
@@ -3638,11 +3648,20 @@ function etaClear(){ETA=null;ETA_ORPH=null;
 
    נמדד: הכלי קורא קובץ של 15,974 שורות במלואו — אין שום תקרה.
    מה שחסר היה הדיווח, לא היכולת. */
-const ROWS={read:0,used:0,noPn:0};
+/* ============ כפילויות — נמנות ולא מוסרות ============
+   שתי שורות את אותו מק«ט הן שני פריטים בכלי, וכל סכום
+   סופר אותם פעמיים. **הספירה הזאת אינה מסירה אף שורה** —
+   איזו משתי השורות נכונה הוא לא שלי להכריע, ולבחור בשקט
+   היה ממציא נתון. הכלי אומר שזה קרה וכמה פעמים.
+   נמדד על הדוח מ-5.10: 7,987 שורות, 7,987 מק«טים, 0 כפילויות.
+   הערך הצפוי הוא 0 — וזו בדיוק הסיבה להציג אותו. */
+const ROWS={read:0,used:0,noPn:0,dup:0,uniq:0};
 function build(rows,hdr){const m=mapCols(hdr),out=[];
-  ROWS.read=rows.length;ROWS.used=0;ROWS.noPn=0;
+  ROWS.read=rows.length;ROWS.used=0;ROWS.noPn=0;ROWS.dup=0;ROWS.uniq=0;
   if(DIAG.hardStop)return out;
+  const seenPn=new Set();
   for(const r of rows){const pn=CLEAN(r[m.pn]);if(!pn){ROWS.noPn++;continue}
+    if(seenPn.has(pn))ROWS.dup++;else seenPn.add(pn);
     const months=m.months.map(i=>i>=0?NUM(r[i]):0);
     const curMonth=m.curMonth>=0?NUM(r[m.curMonth]):null;
     const sales=m.sales>=0?movCell(r[m.sales]):null;
@@ -3912,6 +3931,48 @@ function paramGapQ(r){return Math.max(Math.abs((r.sugROP||0)-(r.rop||0)),
    ביקוש, ולכן פריט תנועה-נדירה לעולם אינו נופל לכאן — הוא מסווג
    לפי הבסיס שלו ולא לפי סף. */
 function paramThin(r){return r.rate>0&&paramGapQ(r)/r.rate<PB_MONTHS}
+/* ============ FOLLOW_ROP — הרכש מכסה מחזור אחד, ה-ROP מנהל את כולם ============
+   שוחזר מ-6608440675, פריט שהמעתד הגיע איתו לחוסר. שני צילומים של
+   אותו מק״ט — ספטמבר ו-5.10 — מספרים את הסיפור במלואו:
+
+   | | ספטמבר |
+   |---|---|
+   | מדף | 5 יח׳ |
+   | רכש פתוח | 7 יח׳ |
+   | **נקודת הזמנה ב-SAP** | **3** |
+   | **נקודת הזמנה שהמנוע חישב** | **13** |
+   | קצב | 2.33 יח׳/חודש · זמן אספקה 120 יום |
+
+   ‏`13 = ⌈9.33 + 3⌉`. ‏**ROP=3 נמוך מהביקוש בזמן האספקה לבדו (9.33).**
+   מ-3 יחידות בקצב 2.33 אתה יבש תוך 1.3 חודשים, והמשלוח מגיע אחרי 4:
+   **2.7 חודשים יבש בכל מחזור, מתוך החשבון עצמו.** ספטמבר 5 → אוקטובר 0.
+
+   והכלי ידע: `sugROP = 13` ישב בדוח של ספטמבר. אבל מה שהוא *אמר* היה
+   «עם הרכש הפתוח הכיסוי 5.1 חודשים — אין צורך ברכש יזום נוסף · לא
+   לפתוח רכש נוסף בשלב זה». **אף מילה על נקודת ההזמנה.**
+
+   האסימטריה כתובה בקוד: בענף «מניעת חוסר» יש שורה שאומרת «נקודת
+   הזמנה X נמוכה מהנדרש Y». בענף «מעקב אספקה», שלוש שורות מעליו,
+   אין אותה. **ההיגיון הפוך:** הרכש הפתוח הוא אירוע חד-פעמי שמכסה
+   מחזור אחד; נקודת ההזמנה היא הכלל הקבוע שמנהל את כל המחזורים
+   אחריו. הכלי השתיק את הכלל הקבוע *בגלל* האירוע החד-פעמי.
+
+   נמדד על הדוח של 5.10: מתוך 138 פריטי «מעקב אספקה», **65 מחזיקים
+   `sugROP > rop` ו-64 מהם שותקים על כך**. 40 עם פער של חודש ביקוש
+   ומעלה; סך הפער 465 יח׳ · $32,550 · ₪29.
+
+   אין כאן סף, נוסחה או סיווג חדש — `sugROP` כבר מחושב, והשורה רק
+   אומרת אותו במקום שבו הוא הושתק. */
+function ropGapWhy(it){
+ if(!((it.sugROP||0)>(it.rop||0)))return null;
+ /* כמה זמן תהיה יבש אם ההזמנה תיפתח ב-ROP הנוכחי: מגיעים לאפס אחרי
+    rop/rate חודשים, והמשלוח מגיע אחרי ltM. נאמר רק כשהוא חיובי
+    ורק כשיש קצב מדיד — בלי קצב אין מה לחשב. */
+ const dry=(it.rate>0&&it.ltM>0)?(it.ltM-(it.rop/it.rate)):null;
+ return ['warn',`נקודת הזמנה ${it.rop} נמוכה מהנדרש ${it.sugROP} — הרכש הפתוח מכסה את המחזור הזה, ה-ROP מנהל את הבא`
+  +((dry!==null&&dry>0)
+    ?`. בקצב ${it.rate.toFixed(2)} לחודש וזמן אספקה ${it.ltD} ימים, הזמנה שתיפתח ב-${it.rop} יח׳ משאירה כ-${dry.toFixed(1)} חודשים בלי מלאי`
+    :'')]}
 /* ============ TWO_CLOCKS — «יש לך יותר מדי» ו«הזמן מוקדם יותר» ============
    נמדד על הדוח של 5.10: 277 פריטי עודף/איטי מחזיקים ROP > 1, והמנוע
    אינו מציע להקטין לא אותו ולא את ה-SS — ב-103 מהם הוא מציע ROP
@@ -4071,6 +4132,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       un>0?['err',`${un} יח׳ עדיין לא מכוסות גם אחרי הרכש הפתוח`]:['info','ההזמנה מכוסה במלואה ברכש — משימת מעקב, לא חשיפה כספית'],
       [(ETA&&it.etaQty>0)?'ok':'info',
         otwWhy(it)+' — אם הרכש יתעכב, הפריט יחזור לרשימת החוסרים']];
+    {const rg=ropGapWhy(it);if(rg)it.why.push(rg)}
     it.act=(ETA&&it.etaQty>0)
       ?[etaAct(it),'לבדוק Back Order על היתרה אצל היצרן']
       :['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];
@@ -4145,6 +4207,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.why=[['info',`כיסוי ממלאי ${it.cov.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)} — אבל ${it.po} יח׳ כבר בדרך`],
         ['ok',`עם הרכש הפתוח הכיסוי ${it.covA.toFixed(1)} חודשים — אין צורך ברכש יזום נוסף`],
         ['warn',otwWhy(it)+' — אם האספקה תתעכב, הפריט יחזור לרשימת מניעת החוסר']];
+      {const rg=ropGapWhy(it);if(rg)it.why.push(rg)}
       it.act=(ETA&&it.etaQty>0)
         ?[etaAct(it),'לא לפתוח רכש נוסף בשלב זה']
         :['לוודא מול הספק שהרכש אכן בדרך','לבקש ETA','לא לפתוח רכש נוסף בשלב זה'];
@@ -4740,14 +4803,15 @@ const NAV=[
  ['catalog','קטלוג פריטים',    '☰','var(--calm)']];
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
- line:'line',rise:'line',month:'month',floor:'month',trend:'month',applied:'month',
+ line:'line',rise:'line',ropGap:'line',ropThin:'line',month:'month',floor:'month',trend:'month',applied:'month',
  over3y:'month',tier:'month',floorNR:'month',
  qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
  capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
- line:[['line','ציר האספקות'],['rise','ביקוש עולה']],
+ line:[['line','ציר האספקות'],['rise','ביקוש עולה'],
+   ['ropGap','ROP לא מגשר'],['ropThin','ROP מתחת למוצע']],
  month:[['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
    ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],
    ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
@@ -5027,6 +5091,8 @@ function navCount(k){
  if(k==='done'){const n=(QF.marked||[]).filter(x=>x.mark&&x.mark.t==='handled').length;
   return {n,hot:0}}
  if(k==='rise'){const r=riseRows();return {n:r.length,hot:hot(r)}}
+ /* כמו floor: הספירה אינה יכולה לקרוא ל-ropRows() שנשען על `mode`. */
+ if(k==='ropGap'||k==='ropThin'){const r=ropPick(ropAll(),k);return {n:r.length,hot:hot(r)}}
  /* «תנועות» מציגה את הטאב הפעיל בלבד (מכירות / כניסות / תקוע), ולכן
     המונה סופר אותו ולא את הקטלוג כולו. MODESET לבדו היה נותן 7,548. */
  if(k==='moves'){const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
@@ -5071,6 +5137,8 @@ const MODESET={
  /* הדלי הבוער: הזמנת לקוח שהמלאי אינו מכסה, ואין מולה שום רכש */
  burn:{cur:'all',track:'burn'},
  rise:{cur:'all',track:'rise'},
+ /* ROP_BRIDGE — אותו track לשתיהן, כמו floor/floorNR; `mode` מבדיל. */
+ ropGap:{cur:'all',track:'ropb'},ropThin:{cur:'all',track:'ropb'},
  /* מה יושם מאז ההעלאה הקודמת */
  applied:{cur:'all',track:'applied'},
  /* היו חסרים. navCount נופל ל-modeRows, ושם MODESET[m] היה undefined
@@ -6141,7 +6209,23 @@ function stateStats(blob){const k=blob&&blob.keys||{};
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
  const m=j(k['planner_marks_v1'])||{},h=j(k['planner_history_v1'])||{},q=j(k['planner_params_v1'])||{};
  const byT={};for(const key in m){const t=(m[key]&&m[key].t)||'—';byT[t]=(byT[t]||0)+1}
- return {marks:Object.keys(m).length,byT,
+ /* ============ המותג והמעתד כבר שמורים — במפתח ============
+    כתבתי ב-F-04 שמבנה הסימון הוא `{מק«ט: {t,note,ts}}` וש«אין
+    brand». זה לא נכון. נמדד: המפתח הוא `markKey` —
+    `מתכנן א׳|LINK&CO|22K322771` — ולכן המותג והמעתד של
+    הפריט ב-SAP שמורים בכל סימון מהיום הראשון. מה שחסר
+    הוא **מי לחץ על הכפתור** — שאינו בהכרח המעתד של
+    הפריט. הפילוח כאן אינו שדה חדש; הוא קריאה של מה
+    שכבר שם. מפתח ישן בלי שני מפרידים הוא «לא ידוע» —
+    ולא נזרק ולא משויך למישהו בניחוש. */
+ const byBrand={},byPlanner={};let legacyKeys=0;
+ for(const key in m){const parts=String(key).split('|');
+  if(parts.length<3){legacyKeys++;
+   byBrand['לא ידוע']=(byBrand['לא ידוע']||0)+1;
+   byPlanner['לא ידוע']=(byPlanner['לא ידוע']||0)+1;continue}
+  const pl=parts[0]||'לא ידוע',br=parts[1]||'לא ידוע';
+  byBrand[br]=(byBrand[br]||0)+1;byPlanner[pl]=(byPlanner[pl]||0)+1}
+ return {marks:Object.keys(m).length,byT,byBrand,byPlanner,legacyKeys,
    runs:(h.runs||[]).length,tracked:Object.keys(h.items||{}).length,
    snaps:(q.runs||[]).length,
    size:Math.round(Object.values(k).reduce((a,b)=>a+b.length,0)/1024)}}
@@ -6551,6 +6635,10 @@ function currentRows(){
    return sortCol==='sev'?by:sortRowsBy(by)}
  /* ממוין לפי הפער ביחידות ולא לפי שוויו: כאן המספר הוא סיכון מדף,
     לא הון שמשתחרר, והיחידות הן מה שקובע אם תיגמר הסחורה. */
+ /* ROP_BRIDGE — הגרוע ביותר קודם: מי שיישאר יבש הכי הרבה זמן */
+ if(track==='ropb'){const by=ropRows().filter(passColFilters)
+   .sort((a,b)=>(ropDry(b)-ropDry(a))||((b.sugROP-b.rop)-(a.sugROP-a.rop)));
+   return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='rise'){const by=riseRows().filter(passColFilters)
    .sort((a,b)=>riseGap(b)-riseGap(a)||(b.d12||0)-(a.d12||0));
    return sortCol==='sev'?by:sortRowsBy(by)}
@@ -6753,6 +6841,37 @@ function ssNoRate(r){return !(r.rate>0)}
    ב-`track==='floor'`, ושכפולו למסלול שני היה מכפיל שמונה מקומות
    שאפשר לשכוח אחד מהם. */
 function floorAll(){return (QF&&QF.all?QF.all:[]).filter(r=>ssFloorGap(r)>0)}
+/* ============ ROP_BRIDGE — האם נקודת ההזמנה מגשרת על זמן האספקה ============
+   נולד משחזור חוסר אמיתי (6608440675, ראה FOLLOW_ROP): ROP היה 3
+   כשזמן אספקה של 120 יום דורש 13, כלומר **נמוך מהביקוש בזמן
+   האספקה לבדו**. הזמנה שנפתחת ב-3 יח׳ בקצב 2.33 מתרוקנת תוך 1.3
+   חודשים, והמשלוח מגיע אחרי 4: 2.7 חודשים יבש בכל מחזור.
+
+   השאלה הזאת חלה רק על מי שמנוהל ב-ROP ויש לו קצב למדוד.
+   נמדד על הדוח של 5.10:
+
+   | | פריטים |
+   |---|---|
+   | בקטלוג | 7,987 |
+   | עם קצב מדיד | 666 |
+   | **בתחום** — מנוהל מלאי, יש המלצה | **634** |
+   | **ROP אינו מגשר — חשופים** | **7** |
+   | ROP מתחת למוצע אך עדיין מגשר | 246 |
+
+   המדידה הראשונה שלי נתנה 25 חשופים, ו-14 מהם היו «רקע» עם
+   `ROP 0→0`: פריטי 04/14 ו«לפי דרישה» שהמנוע **בכוונה** אינו נותן
+   להם המלצה. הם אינם מנוהלים ב-ROP, ולסמן אותם היה רעש.
+   `ropScope` הוא ההחרגה הזאת. */
+function ropScope(r){return !!r&&r.rate>0&&r.ltM>0&&!r.isOD&&!r.noStock
+  &&!isPD(r.mrp)&&((r.sugROP||0)>0||(r.sugSS||0)>0)}
+/* כמה חודשים תהיה בלי מלאי אם ההזמנה תיפתח ב-ROP הנוכחי:
+   מגיעים לאפס אחרי rop/rate חודשים, והמשלוח מגיע אחרי ltM. */
+function ropDry(r){return ropScope(r)?(r.ltM-((r.rop||0)/r.rate)):null}
+function ropAll(){return (QF&&QF.all?QF.all:[]).filter(ropScope)}
+function ropPick(list,k){return k==='ropThin'
+  ?list.filter(r=>!(ropDry(r)>0)&&(r.sugROP||0)>(r.rop||0))
+  :list.filter(r=>ropDry(r)>0)}
+function ropRows(){return ropPick(ropAll(),mode)}
 /* ============ XDOOR — אותו פריט, כמה דלתות, הוראות שונות ============
    נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות
    אבל רק 4,096 פריטים שונים. **1,360 פריטים (33%) יושבים בשתי דלתות
@@ -6977,19 +7096,46 @@ function burnRows(){return (QF&&QF.waiting?QF.waiting:[]).filter(passColFilters)
    חומרה (sev) ← לקוח שכבר ממתין ← יחידות חסרות. יחידות ולא כסף,
    כדי שלא לדרג בין מטבעות — מדיניות BZ אוסרת לחבר אותם, והשוואה
    בין $1,000 ל-₪1,000 היא אותה שגיאה בלבוש אחר. */
+/* ============ AGENDA_RUNG — הרונג שנשכח במסך הנחיתה ============
+   הרשימה הייתה `burnRows()` ∪ `Q.prevent` — שני דליים מתוך
+   שלושה. ב-`classify` רונג הלקוח מתפצל לשניים בשורה אחת:
+
+     (noPO ? Q.waiting : Q.immediate).push(it)
+
+   אותה חומרה (sev 3), אותו `custGap`, אותו רונג — וההבדל
+   היחיד הוא אם קיימת הזמנת רכש כלשהי. `Q.immediate` לא היה
+   ברשימה בכלל.
+
+   נמדד על הדוח מ-5.10 (7,987 פריטים): שני פריטים בדרגת
+   חומרה 3 נעדרו מהמסך שכותרתו «מה דורש טיפול היום»:
+
+     8894765000  ממיר מתחים DC/DC
+                 14 הזמנות · 0 על המדף · 9 ברכש · חסרות 5
+                 $3,959.66 ליחידה — $19,798 ביקוש לקוח ללא מענה
+     6608302155LF9  סך שמש שמאל · 3 הזמנות · 0 על המדף · 2 ברכש
+
+   המונה בברכה («295 דורשים החלטה») כן ספר אותם — הוא סוכם
+   `waiting+immediate+follow+prevent+quality`. כלומר המספר והרשימה
+   לא הסכימו, וזה בדיוק הכשל שהפרוייקט בודק בכל דלת אחרת.
+
+   התיקון אינו נוגע במנוע: אותו סיווג, אותה חומרה, אותה
+   המלצה. רק בחירת השורות למסך הנחיתה השתנתה. */
+function immRows(){return (QF&&QF.immediate?QF.immediate:[]).filter(passColFilters)}
 function agendaRows(){
  if(!QF)return [];
  const seen=new Set(),out=[];
- for(const r of burnRows().concat((QF.prevent||[]).filter(passColFilters)))
+ for(const r of burnRows().concat(immRows(),(QF.prevent||[]).filter(passColFilters)))
   if(!seen.has(r)){seen.add(r);out.push(r)}
  /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא היחיד
     שבו ההבטחה ללקוח כבר ניתנה ואין מולה כלום. זה העיקרון שהכלי
     הצהיר עליו (ראה `burnRows` והכרטיס הראשון במסך הישן), והדירוג
     כאן מקיים אותו. סידור לפי חומרה בלבד היה מוריד לקוח שממתין
-    לשורה 9, מתחת לפריטים עם חוסר גדול יותר שאיש לא מחכה להם. */
- const burn=new Set(burnRows());
+    לשורה 9, מתחת לפריטים עם חוסר גדול יותר שאיש לא מחכה להם.
+    הרונג השני (לקוח עם רכש חלקי) נכנס ביניהם באותו היגיון. */
+ const burn=new Set(burnRows()),imm=new Set(immRows());
+ const rung=r=>burn.has(r)?0:imm.has(r)?1:2;
  return out.sort((a,b)=>
-   ((burn.has(b)?1:0)-(burn.has(a)?1:0))
+   (rung(a)-rung(b))
    ||(b.sev-a.sev)
    ||(((b.cust||0)>0?1:0)-((a.cust||0)>0?1:0))
    ||((b.miss||0)-(a.miss||0)))}
@@ -7107,6 +7253,18 @@ const SCOL={
  ssMin:{t:'SS מוגדר',ttl:'מל.בט.מינ. — הרצפה שהוגדרה ב-SAP',
   val:r=>r.ssMin||0,xval:r=>r.ssMin||0,
   cell:r=>`<td class="num"><b>${(r.ssMin||0).toLocaleString('he-IL')}</b></td>`},
+ /* ============ ROP_BRIDGE — שתי העמודות שמכריעות ============
+    «ביקוש בזמן האספקה» הוא המספר שה-ROP אמור לגשר עליו, ו«בלי מלאי»
+    הוא מה שקורה כשהוא לא. שתיהן נגזרות משדות שהמנוע כבר מחשב. */
+ dLT:{t:'ביקוש בזמן האספקה',ttl:'כמה יחידות נמכרות במהלך זמן האספקה — קצב × זמן אספקה. זה המספר שנקודת ההזמנה אמורה לגשר עליו',
+  val:r=>ropScope(r)?+(r.rate*r.ltM).toFixed(1):-1,xval:r=>ropScope(r)?+(r.rate*r.ltM).toFixed(1):'',
+  cell:r=>`<td class="num">${ropScope(r)?(r.rate*r.ltM).toFixed(1):'—'}</td>`},
+ dryM:{t:'בלי מלאי',ttl:'כמה חודשים תישאר בלי מלאי אם ההזמנה תיפתח בנקודת ההזמנה הנוכחית: מתרוקן אחרי ROP÷קצב חודשים, והמשלוח מגיע אחרי זמן האספקה. «—» = נקודת ההזמנה מגשרת',
+  val:r=>{const d=ropDry(r);return d>0?d:-1},
+  xval:r=>{const d=ropDry(r);return d>0?+d.toFixed(1):''},
+  cell:r=>{const d=ropDry(r);
+   return d>0?`<td class="num"><span class="stake short">${d.toFixed(1)} חו׳</span></td>`
+             :`<td class="num dim">—</td>`}},
  lt:{t:'זמן אספקה',ttl:'זמן האספקה התכנוני בימים. «חסר» = אין נתון בדוח',
   val:r=>r.ltD||0,xval:r=>r.ltD||0,
   cell:r=>`<td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>`},
@@ -7346,7 +7504,7 @@ const SCOL={
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
 const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
- 'rop','ss','apRop','apSs','need','ssMin','lt','d12','c3','r3','cons11',
+ 'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
  'cRisk','capVal','capPct','capCov','val','custVal','act','fix','cCat','cat','capType','apDrift','apState','state','markLbl','markWhen','undo','age',
  'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
@@ -7365,6 +7523,9 @@ const SCOL_DEF={
  floor:['pnPlain','model','desc','ssMin','need','fgap','fval','eta','d12'],
  trend:['pnPlain','model','desc','tpct','trate','trop','tgap','tval','eta'],
  rise:['pnPlain','model','desc','upct','urate','urop','ugap','eta','freeRop'],
+ /* ROP_BRIDGE — השאלה בשורה: כמה נמכר בזמן האספקה, מה ה-ROP, וכמה
+    זמן תהיה יבש. «מדף» ו«בדרך» כי הם קובעים אם זה דחוף עכשיו. */
+ ropb:['pnPlain','model','desc','rop','dLT','dryM','lt','freeRop','poPlain'],
  cust:['pnPlain','model','desc','waiting','stock','eta','lt','custVal'],
  applied:['pnPlain','model','desc','apRop','apSs','apDrift','cons11','apState'],
  done:['pnPlain','model','desc','markLbl','markWhen','undo'],
@@ -7417,13 +7578,14 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
-const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale']);
+const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale','ropb']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
     ולכן בלי מיון, בלי סינון ובלי בורר. נמדד. */
  if(cur==='moves')return 'mv_'+movTab;
  if(track==='agenda')return 'agenda';
+ if(track==='ropb')return 'ropb';
  if(track==='qual')return 'qual';
  if(track==='stale')return 'stale';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
@@ -7552,6 +7714,78 @@ function decisionHead(){const cols=FIXLIKE()
 function custRow(r,i){
  return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
   +colRowHTML(r,{dlen:36})+'</tr>'}
+/* ============ AGENDA_GROUPS — שלוש השורות בבוקר ============
+   מסך הנחיתה הציג 52 שורות בלי אף כותרת ביניהן (נמדד: 0
+   שורות `.grp`). שמונה הראשונות היו דבר אחר לגמרי — הבטחה
+   שניתנה ואין מולה כלום — ושום דבר לא אמר זאת.
+
+   שלוש הקבוצות אינן קיבוץ שהמצאתי: הן **שלושת הרונגים של
+   המנוע עצמו** — `Q.waiting`, `Q.immediate`, `Q.prevent` — והדגלים
+   `burn` ו-`custGap` שהמנוע כבר מדליק הם המבחין. אין כאן סף
+   חדש, סיווג חדש או המלצה חדשה — רק מה שכבר הוכרע, נאמר.
+
+   הסכומים לפי מטבע בנפרד (`moneyMix`), כמו בכל מקום אחר בכלי.
+   הכותרות מתקפלות באותו `GCOLL` של כל הכותרות האחרות, ולכן
+   מי שלמד לקפל קבוצה ב«חוסרים» מקפל אותה גם כאן.
+
+   והכלל «היעדים אינם נעלמים כשהמונה אפס» חל גם כאן: קבוצה
+   ריקה מופיעה עם «אין פריטים», כמו ב-TGROUP. «אין לקוח ממתין
+   הבוקר» הוא מידע, וכותרת שנעלמה אינה אומרת אותו. */
+const AGROUP=[
+ ['ag1','לקוח ממתין ואין מולו שום רכש',
+   'ההבטחה ניתנה ואין מולה כלום — לפתוח הזמנת רכש','var(--critical)','אין רכש כלל'],
+ ['ag2','לקוח ממתין והרכש אינו מכסה',
+   'יש הזמנת רכש, והיא קטנה מההזמנה — להשלים את ההפרש','var(--high)','רכש חלקי'],
+ ['ag3','ייכנס לחוסר החודש אם לא תיגע',
+   'הקצב החודשי גדול ממה שיהיה זמין — תחזית, ואין לקוח ממתין','var(--trend)','חוסר צפוי']];
+/* המנוע כבר הדליק את שני הדגלים ב-`classify`; הקבוצה נקראת
+   מהם ולא מחיפוש בתוך התורים — O(1) לשורה. */
+const aGroup=r=>r&&r.custGap?(r.burn?'ag1':'ag2'):'ag3';
+function agendaGroups(rows){const by={ag1:[],ag2:[],ag3:[]};
+ for(const r of rows)(by[aGroup(r)]||by.ag3).push(r);
+ /* דירוג בתוך הקבוצה — בתוך המטבע, כמו בכל הכלי */
+ for(const g of Object.keys(by))by[g].sort((a,b)=>cmpMoneyDesc(a,b,'unsVal'));
+ return by}
+/* היחידות שכל קבוצה סופרת אינן אותן יחידות: בשתי קבוצות
+   הלקוח זו הכמות החסרה לכיסוי ההזמנה (`miss`), ובקבוצת
+   התחזית זו הכמות שלא תסופק החודש (`unsQty`). לסכום אותן
+   יחד היה להמציא מספר שאין לו מובן. */
+const aUnits=(g,list)=>list.reduce((t,r)=>t+(g==='ag3'?Math.ceil(r.unsQty||0):(r.miss||0)),0);
+const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
+function renderAgenda(rows){
+ const G=agendaGroups(rows),body=[];let idx=0;
+ const lim=300;
+ for(const [g,name,sub,col] of AGROUP){
+  const list=G[g],coll=GCOLL.has(g);
+  body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
+    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
+    <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
+    <span class="gu">${list.length
+      ?`${aUnits(g,list).toLocaleString('he-IL')} יח׳ · ${moneyMix(list,aVal(g))}${noPriceTxt(list)}`
+      :'אין פריטים'}</span></td></tr>`);
+  if(coll||!list.length)continue;
+  for(const r of list){if(idx>=lim)break;const i=idx++;
+   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:30})+'</tr>')}}
+ document.querySelector('#tbl tbody').innerHTML=body.join('')||
+  `<tr><td colspan="${NCOL()}" class="empty">אין פריט שדורש החלטה הבוקר.</td></tr>`;
+ /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
+    הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
+ const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
+ LAST_VIEW=view;
+ document.getElementById('pgL').textContent=
+  `מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ /* התווית הקצרה היא שדה משלה ב-AGROUP ולא חיתוך מהכותרת:
+    שינוי ניסוח בכותרת היה משבש את הפוטר בלי שיבחין בזה. */
+ document.getElementById('pgR').textContent=AGROUP
+   .map(([g,,,,short])=>`${short} ${G[g].length}`).join(' · ');
+ setPhdSub('שלושת הרונגים שהמנוע הכריע, בסדר הזה: הבטחה ללא רכש · '
+  +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.');
+ document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
+ document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
+  tr.classList.add('sel');detail(view[+tr.dataset.i])});
+ wireCopy()}
 function renderCust(rows){
  const G=custGroups(rows),body=[];let idx=0;
  const head=(key,color,name,n,sub,units,list)=>{const coll=GCOLL.has(key);
@@ -7646,6 +7880,7 @@ function renderDecisions(rows){
  const lim=FIXLIKE()?300:Math.min(rows.length,Math.max(300,c.n+3));
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  /* "לקוח ממתין" מרונדר בקבוצות משלו לפני כל שאר הענפים */
+ if(track==='agenda'){renderAgenda(rows);return}
  if(track==='cust'){renderCust(rows);return}
  if(track==='applied'){renderApplied(rows);return}
  const grouped=SHORTLIKE();
@@ -7736,6 +7971,9 @@ function renderDecisions(rows){
      :track==='floor'?(mode==='floorNR'
         ?'אין פריט בלי קצב מדיד שיושבת עליו רצפת מלאי ביטחון.'
         :'אין פריט עם קצב מדיד שבו הרצפה שהגדרת גבוהה מהדרישה הסטטיסטית.')
+     :track==='ropb'?(mode==='ropThin'
+        ?'אין פריט שנקודת ההזמנה שלו מתחת למוצע אך עדיין מגשרת על זמן האספקה.'
+        :'אין פריט שנקודת ההזמנה שלו נמוכה מהביקוש בזמן האספקה — כל נקודת הזמנה מגשרת.')
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
@@ -7767,7 +8005,11 @@ function renderDecisions(rows){
  /* «רכש בדרך לעודף» — המספר שמכריע הוא הכמות שעוד לא נכנסה.
     `po` הוא הרכש הפתוח כפי שהדוח מדווח אותו, בלי תאריך הגעה
     ובלי להניח אחד. */
- document.getElementById('pgR').textContent=(track==='cap'&&mode==='capPO'
+ document.getElementById('pgR').textContent=(track==='ropb'
+   ?(mode==='ropGap'
+      ?`${rows.filter(r=>r.free<=0).length.toLocaleString('he-IL')} מהם כבר בלי מלאי · ${rows.filter(r=>!(r.po>0)).length.toLocaleString('he-IL')} בלי רכש פתוח · הפער ${rows.reduce((t,r)=>t+Math.max(0,(r.sugROP||0)-(r.rop||0)),0).toLocaleString('he-IL')} יח׳`
+      :`הפער ${rows.reduce((t,r)=>t+Math.max(0,(r.sugROP||0)-(r.rop||0)),0).toLocaleString('he-IL')} יח׳ · ${moneyMix(rows,r=>Math.max(0,(r.sugROP||0)-(r.rop||0))*(r.price||0))} — כרית, לא חוסר`)
+   :track==='cap'&&mode==='capPO'
    ?`${rows.reduce((t,r)=>t+(r.po||0),0).toLocaleString('he-IL')} יח׳ רכש פתוח עוד בדרך פנימה · ${moneyMix(rows,r=>r.expCap||0)} הון כלוא כבר על המדף`
    :track==='floor'
    /* הסייג «מתוכם N בלי קצב מדוד» ירד: אחרי FLOOR_SPLIT שתי
@@ -7796,7 +8038,11 @@ function renderDecisions(rows){
  /* CAP_SPLIT — לכל ידית הכיתוב שלה, מתוך CAP_DOORS, כדי שמי שנכנס
     יקרא מה הוא *יכול* לעשות ולא רק למה הכסף תקוע. */
  const capDoor=(track==='cap'&&CAP_DOORS[mode])?CAP_DOORS[mode][1]:null;
- setPhdSub(capDoor?capDoor:track==='floor'
+ const ropDoor=track==='ropb'?(mode==='ropThin'
+   ?'נקודת ההזמנה נמוכה מהמוצע אבל עדיין גדולה מהביקוש בזמן האספקה — כרית דקה מהנדרש, לא חוסר מתקרב · ממוין לפי גודל הפער'
+   :'נקודת ההזמנה נמוכה מהביקוש בזמן האספקה עצמו: הזמנה שתיפתח בה מתרוקנת לפני שהמשלוח מגיע, בכל מחזור · ממוין לפי מספר החודשים בלי מלאי')
+   :null;
+ setPhdSub(ropDoor?ropDoor:capDoor?capDoor:track==='floor'
   ?(mode==='floorNR'
    ?'לפריטים האלה אין קצב מדיד, ולכן אין דרישה סטטיסטית להשוות אליה — אפשר לומר שיש רצפה, לא שהיא גבוהה מדי · ההחלטה כאן היא מדיניות (להחזיק או לא), ולא מספר · ממוין לפי שווי הרצפה'
    :'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי')
@@ -7875,6 +8121,11 @@ function render(){if(!QF)return;
    renderDecisions(rows);return}
  if(track==='rise'){const tkR=document.getElementById('track');
    if(tkR){tkR.innerHTML='';tkR.style.display='none'}
+   renderDecisions(rows);return}
+ /* ROP_BRIDGE — בלי השורה הזאת המסלול נופל למרנדר הקטלוג הגנרי,
+    והכותרת והסיכום של הדלת אינם מגיעים למסך כלל. נמדד. */
+ if(track==='ropb'){const tkB=document.getElementById('track');
+   if(tkB){tkB.innerHTML='';tkB.style.display='none'}
    renderDecisions(rows);return}
  if(track==='stale'){const tkS=document.getElementById('track');
    if(tkS){tkS.innerHTML='';tkS.style.display='none'}
@@ -8536,12 +8787,20 @@ function statePanel(incoming,err){
  const inc=incoming?stateStats(incoming):null;
  const lbl={handled:'טופל',ondemand:'לפי דרישה',campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג'};
  const brk=o=>Object.entries(o.byT).map(([t,n])=>`${lbl[t]||t} ${n}`).join(' · ')||'—';
+ /* כל ערך מגיע ממפתח שנבנה מנתוני הדוח — ולכן עובר ב-esc
+    לפני שהוא נכנס ל-innerHTML. */
+ const split=o=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1])
+   .map(([k,n])=>`${esc(k)} ${n.toLocaleString('he-IL')}`).join(' · ')||'—';
  const box=(o,t)=>`<div class="card"><h4>${t}</h4><div class="kv2">
    <div><b>${o.marks.toLocaleString('he-IL')}</b><span>סימונים</span></div>
    <div><b>${o.runs}</b><span>העלאות בזיכרון</span></div>
    <div><b>${o.snaps}</b><span>תמונות פרמטרים</span></div>
    <div><b>${o.size}KB</b><span>גודל</span></div></div>
-   <p>${brk(o)}</p></div>`;
+   <p>${brk(o)}</p>
+   <p class="stby">לפי מותג: ${split(o.byBrand)}</p>
+   <p class="stby">לפי מעתד ב-SAP: ${split(o.byPlanner)}</p>
+   ${o.legacyKeys?`<p class="stby">${o.legacyKeys.toLocaleString('he-IL')} סימונים במפתח ישן — מותג ומעתד לא ידועים</p>`:''}
+   </div>`;
  document.getElementById('mtitle').textContent='מצב עבודה — גיבוי והעברה';
  document.getElementById('mbody').innerHTML=`<div class="stwrap">
   ${err?`<div class="warn2">⚠ ${esc(err)}</div>`:''}
@@ -9128,10 +9387,27 @@ function syncDataState(){
  if(z){
   if(!ZN){z.hidden=true}
   else{z.hidden=false;
-   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח');
+   /* ============ ROW_AUDIT · המשוואה על המסך ============
+      «הכלי לא יודע לקרוא יותר מ-7,594 פריטים?» הייתה שאלה
+      שהמשוואה הזאת עונה עליה בשנייה, והיא ישבה ב-title בלבד —
+      כלומר נגישה למי שכבר חושד במשהו. עכשיו היא על המסך.
+      המקום הוא שבב קיים ולא רצועה חדשה: כרום נוסף גובה משלם
+      בשורות רשימה, וזה הדבר שהמעתד התלונן עליו קודם. */
+   const rgap=(ROWS.noPn||0)+(ROWS.dup||0);
+   const req=ROWS.read
+     ? ` · ${ROWS.used.toLocaleString('he-IL')} מ-${ROWS.read.toLocaleString('he-IL')} שורות`+(rgap?' ⚠':'')
+     : '';
+   z.classList.toggle('rgap',rgap>0);
+   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח')+req;
    z.title=(ZDATE?`תאריך הדוח עצמו, כפי שהוא מופיע בקובץ: ${ZDATE.toLocaleDateString('he-IL')}.`
      :'בקובץ אין תאריך מעל שורת הכותרות, ולכן תאריך הדוח אינו ידוע.')
-    +`\n${ZN.items.toLocaleString('he-IL')} מק״טים · ${ZN.tasks.toLocaleString('he-IL')} משימות.`
+    +(ROWS.read?`\n\nחשבונאות הקליטה:`
+      +`\nנקראו ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת`
+      +`\nנוצלו ${ROWS.used.toLocaleString('he-IL')} פריטים`
+      +`\nללא מק״ט ${(ROWS.noPn||0).toLocaleString('he-IL')}`
+      +`\nכפילויות מק״ט ${(ROWS.dup||0).toLocaleString('he-IL')}`
+      +`\nמק״טים ייחודיים ${(ROWS.uniq||ROWS.used).toLocaleString('he-IL')}`:'')
+    +`\n\n${ZN.items.toLocaleString('he-IL')} מק״טים · ${ZN.tasks.toLocaleString('he-IL')} משימות.`
     +`\nחודש הבסיס נבחר בנפרד — הוא החודש המלא האחרון שהדוח מכסה.`}}
  /* ============ הסרגל נמדד גם *אחרי* שנטען דוח ============
     fitTop() רץ פעם אחת בעלייה ובשינוי גודל חלון בלבד. השבבים
@@ -9228,7 +9504,12 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
      המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
      כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
      מה שבגיליון למה שבכלי נראה כמו תקרה שאינה קיימת. */
-  ROWS.used=ALL.length;
+  ROWS.used=ALL.length;ROWS.uniq=ALL.length-ROWS.dup;
+  if(ROWS.dup>0)DIAG.warn.push(
+    `בגיליון «${best.nm}» יש ${ROWS.dup.toLocaleString('he-IL')} שורות שחוזרות על מק«ט שכבר הופיע — `+
+    `${ROWS.uniq.toLocaleString('he-IL')} מק«טים ייחודיים ב-${ROWS.used.toLocaleString('he-IL')} פריטים. `+
+    `הכלי אינו מוחק אף שורה — איזו מהן נכונה אינה הכרעה שלו — אבל כל סכום כספי `+
+    `וכל מונה סופרים אותם פעמיים.`);
   if(ROWS.noPn>0)DIAG.warn.push(
     `הגיליון «${best.nm}» מכיל ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת, `+
     `ומתוכן ${ROWS.used.toLocaleString('he-IL')} פריטים — `+

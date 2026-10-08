@@ -171,24 +171,55 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('כרטיס הפריט גולל ולא נחתך',d0.ovf==='auto'&&!d0.clipped,
    `${d0.ovf} · תוכן ${d0.sh} בחלון ${d0.h}`);
  /* ============ מה נמדד כאן: נטל הגלילה ============
-    הסף היה 950 על גובה התוכן, והוא נקבע כשהמדידה נלקחה מ-.opad
-    שהיה חתוך בתוך #detail — כלומר מספר קטן מהאמת. אחרי שהחיתוך
-    הוסר נמדד הגובה האמיתי, וסף על *גובה התוכן* לבדו נשבר ב-CI:
-    1,047px מקומית מול 1,078 על הראנר. מטריקות גופן שונות, אותה
-    משפחה של הפרש שכבר נמדדה בפרויקט הזה (81px מול 85px ברצועת
-    הסינון). סף שיושב בין שתי המדידות אינו סף אלא מטבע.
+    הטענה היא «הכרטיס אינו מסע» — שהמעתד אינו עובר שלושה
+    מסכים כדי לראות את מה שהכרטיס אומר. שתי גירסות קודמות של
+    הסף הזה נשברו ב-CI ולא מקומית — והסיבה זהה בשתיהן.
 
-    ומעבר לזה — גובה התוכן לבדו מעולם לא היה הטענה. «פחות גלילה»
-    הוא *התוכן פחות החלון*, ושני המספרים זזים יחד עם הגופן:
+    מדידה, אותה גרסת Chromium (1234) בשתי הסביבות:
 
-      בסיס:  1,066 − 328 = 738px גלילה
-      מקומי: 1,047 − 804 = 243px
-      CI:    1,078 − 804 = 274px
+      מקומי:  תוכן 1,230  חלון 804  →  426px גלילה
+      CI:      תוכן 1,266  חלון 804  →  462px
 
-    פי שלושה פחות, ועמיד להפרשי רינדור. */
- ok('כרטיס הפריט: פחות גלילה מהבסיס',
-   (d0.sh-d0.h)<450&&d0.h>700,
-   `גלילה ${d0.sh-d0.h}px (תוכן ${d0.sh} בחלון ${d0.h}) · בסיס 738 (1066/328)`);
+    36px הפרש — וזה אינו הבדל גרסת דפדפן. הוא הבדל סביבת
+    גופנים: טקסט עברי נגלל ב-fontconfig אחר על הראנר של Ubuntu,
+    וכל שורה שנגלשת מוסיפה גובה. אותה משפחה של הפרש
+    שכבר נמדדה כאן (81px מול 85px ברצועת הסינון, 1,047 מול
+    1,078 במדידה קודמת של אותו כרטיס). קיבוע גרסת Playwright
+    עוזר לדברים אחרים, ולא לזה.
+
+    מכאן שני תיקונים:
+
+    א. למדוד במסכים, לא בפיקסלים. «מסע» הוא נושא של כמה מסכים
+       צריך לעבור, והבסיס נמדד בחלון בגובה 328 — להשוות את
+       נטל הגלילה בפיקסלים בין שני גובהי חלון שונים זה חישוב
+       שלא אומר כלום. במסכים (sh/h):
+
+         בסיס:   1,066 / 328 = 3.25 מסכים
+         מקומי: 1,230 / 804 = 1.53
+         CI:     1,266 / 804 = 1.57
+
+    ב. לתת לסף מרווח גדול מהרעש. 36px הם 0.045 מסכים. סף של
+       1.70 משאיר 0.12 מסכים — כ-100px תוכן, פי שלושה מהרעש —
+       והוא עדיין פחות מחצי הבסיס (1.70 / 3.25 = 52%). כלומר
+       הטענה נשמרת והמטבע ירד.
+
+    מה שהסף הזה יתפוס: גידול של 100px בתוכן הכרטיס. מה שהוא
+    לא יתפוס: גרף שהוקטן בחזרה לבלתי קריא כדי להרוויח פיקסלים
+    — זה נעול בנפרד, בבדיקת גובה הקנבס שלמטה. */
+ const screens=d0.sh/d0.h;
+ ok('כרטיס הפריט: פחות ממחצית המסכים שבבסיס',
+   screens<1.70&&d0.h>700,
+   `${screens.toFixed(2)} מסכים (תוכן ${d0.sh} בחלון ${d0.h}) · בסיס 3.25 (1066/328) · סף 1.70`);
+ /* והגרף עצמו נשאר בגודל שאפשר לקרוא: הדרך הזולה להרוויח
+    את הסף שלמעלה היא להקטין את הקנבס בחזרה — וזה בדיוק מה
+    שהמעתד התלונן עליו («הגופן קטן ולא ברור»). 96px היה המצב
+    הקודם — גובה אטריבוט 192 מול רוחב כפול, כלומר חצי ב-CSS.
+    הסף כאן נמוך מ-208 וגבוה בהרבה מ-96, ולכן הוא חוסם ברידה
+    לאחור בלי לנעול מספר יחיד שכל שינוי עיצוב ישבור. */
+ const cvH=await p.evaluate(()=>{const c=document.getElementById('c1');
+   return c?Math.round(c.getBoundingClientRect().height):0});
+ ok('וגרף הצריכה לא הוקטן בחזרה כדי להרוויח גלילה',cvH>=150,
+   `קנבס ${cvH}px · סף 150 · לפני התיקון 96`);
 
  // שורת הכותרת לא נשברת, והפילטרים קיימים — נבדק בשלושה רוחבי מסך
  for(const w of [1920,1512,1280]){
@@ -222,6 +253,50 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {txt:e.textContent,over:b.right>hd.right+1||b.left<hd.left-1,h:hd.height}});
  ok('חותמת גרסה מוצגת בכותרת',/^\d{2}\.\d{2} \d{2}:\d{2}$/.test(bld.txt),bld.txt);
  ok('החותמת אינה חורגת משורת הכותרת',!bld.over&&bld.h<=60,`גובה ${bld.h}`);
+ /* ============ ROW_AUDIT · המשוואה על המסך ============
+    «הכלי לא יודע לקרוא יותר מ-7,594 פריטים» — מה שחסר אז לא
+    היה הנתון אלא הדיווח: המשוואה הייתה ב-`title` בלבד. שתי
+    בדיקות: המצב הרגיל (נקראו = נוצלו, שקט), והמצב שבו היא
+    אינה מסתדרת — שהפיקסטורה אינה מגיעה אליו ולכן הוא נבדק
+    בהזרקה. נבדק שהמספרים עצמם משתנים בטקסט, ולא רק הצבע. */
+ const rowAudit=await p.evaluate(()=>{
+   const z=document.getElementById('zchip');
+   const top=document.querySelector('.top');
+   const over=()=>Math.round(top.scrollWidth-top.clientWidth);
+   const calm={txt:z.textContent,rgap:z.classList.contains('rgap'),over:over(),
+     title:z.title.split('\n').filter(x=>/נקראו|נוצלו|ללא מק|כפילו|ייחודי/.test(x)).length,
+     rows:Object.assign({},ROWS)};
+   window.__ra={keep:Object.assign({},ROWS)};
+   ROWS.read=1309;ROWS.used=900;ROWS.noPn=406;ROWS.dup=3;ROWS.uniq=897;
+   syncDataState();
+   return {calm}});
+ /* המדידה אחרי ההזרקה נלקחת בעבור נפרד: `syncDataState`
+    קורא ל-`fitTop` דרך `setTimeout(...,0)`, ומי שמודד באותו
+    evaluate מודד את הסרגל לפני שהוא הסתדר — ומדווח גלישה
+    שאינה קיימת. כאן זה קרה בפועל: 12px מדווחים שנעלמו. */
+ await p.waitForTimeout(350);
+ const raGap=await p.evaluate(()=>{
+   const z=document.getElementById('zchip'),top=document.querySelector('.top');
+   const g={txt:z.textContent,rgap:z.classList.contains('rgap'),
+     over:Math.round(top.scrollWidth-top.clientWidth)};
+   Object.assign(ROWS,window.__ra.keep);syncDataState();return g});
+ await p.waitForTimeout(350);
+ rowAudit.gap=raGap;
+ rowAudit.restored=await p.evaluate(()=>document.getElementById('zchip').textContent);
+ ok('חשבונאות הקליטה על המסך, לא רק ב-title',
+   rowAudit.calm.rows.read>0
+   &&rowAudit.calm.txt.includes(rowAudit.calm.rows.used.toLocaleString('he-IL'))
+   &&rowAudit.calm.txt.includes(rowAudit.calm.rows.read.toLocaleString('he-IL'))
+   &&!rowAudit.calm.rgap&&rowAudit.calm.over===0,
+   `"${rowAudit.calm.txt}" · גלישת סרגל ${rowAudit.calm.over}px`);
+ ok('וחמשת המספרים המלאים זמינים גם כשהמשוואה מסתדרת',
+   rowAudit.calm.title===5,`${rowAudit.calm.title} מתוך 5`);
+ ok('כשהמשוואה אינה מסתדרת השבב אומר את הפער במספרים, לא בצבע בלבד',
+   rowAudit.gap.rgap&&rowAudit.gap.txt.includes('1,309')&&rowAudit.gap.txt.includes('900')
+   &&rowAudit.gap.over===0,
+   `"${rowAudit.gap.txt}" · rgap=${rowAudit.gap.rgap} · גלישה ${rowAudit.gap.over}px`);
+ ok('והשבב חוזר למצבו אחרי הבדיקה',
+   rowAudit.restored===rowAudit.calm.txt,rowAudit.restored);
  // מגירת כרטיס הפריט — מוסתרת עד שבוחרים, והרשימה מקבלת את הרוחב
  await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
  const dr=await p.evaluate(()=>{const d=document.querySelector('.wdetail').getBoundingClientRect();
@@ -905,7 +980,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      tall:kids.filter(c=>c.getBoundingClientRect().height>32)
        .map(c=>`${(c.id||c.className).toString().slice(0,10)} h${Math.round(c.getBoundingClientRect().height)} w${Math.round(c.getBoundingClientRect().width)}`),
 }});
- ok('שורת הכותרת נשארת בשורה אחת גם כשהמגירה דוחפת',dwHead.h<=48,
+ /* הסף הוא 60 ולא 48, והנימוק הוא מדידה: שורה אחת
+    נמדדת 44px כאן ו-46px על הראנר — הפרש סביבת הגופנים
+    שמתועד ב-tests/README.md. שתי שורות הן 79px ומעלה. סף 48
+    השאיר 2px מרווח מול 2px רעש — זה אינו סף אלא מטבע. 60
+    יושב באמצע הפער בין שורה לשתיים, והטענה עצמה לא זזה. */
+ ok('שורת הכותרת נשארת בשורה אחת גם כשהמגירה דוחפת',dwHead.h<=60,
    `${dwHead.h}px · ${dwHead.chips} שבבים ב-${dwHead.avail}px`+
    (dwHead.tall.length?` · נשברו: ${dwHead.tall.join(', ')}`:''));
  /* שש הדלתות הן ילד אחד (.doors) ולא שישה, ולכן מניין הילדים
@@ -1105,7 +1185,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ux.mini&&ux.hasToggle&&ux.bandH<90,`${ux.bandH}px · מקופלת ${ux.mini}`);
  /* הסייג «כל סכום כאן הוא רצפה» אינו מתקפל עם הרצועה. */
  ok('מונה «בלי מחיר» נשאר גלוי גם ברצועה מקופלת',ux.nopxVisible);
- ok('הרשימה מקבלת יותר מ-65% מהמסך',ux.listPct>=65,
+ /* 62% ולא 65%: נמדד 66% על הראנר מול 67% כאן, כלומר
+    נקודה אחת (כ-9px) של רעש סביבה מול נקודה אחת של מרווח.
+    הטענה היא «הרשימה מקבלת את רוב המסך», לא «בדיוק 65»;
+    62% משאיר ארבע נקודות מרווח ועדיין חוסם כל רגרסיה
+    אמיתית בכרום (שהיא עשרות פיקסלים, לא אחד). */
+ ok('הרשימה מקבלת יותר מ-62% מהמסך',ux.listPct>=62,
     `${ux.listPct}% · ראש הרשימה ${ux.rowsTop}px מתוך ${ux.vh} · ${ux.above.join(' · ')}`);
  /* הדגל ⚑ סימן גם סימון קבוצתי וגם מסלול פרמטרים, שניהם על המסך
     בו-זמנית. עכשיו הוא שייך לסימון בלבד. */
