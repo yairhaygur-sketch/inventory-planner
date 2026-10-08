@@ -23,6 +23,12 @@ tests/status-e.xlsx
 design/*/*.html
 !design/*/*.dc.html
 tests/eta-orphan.xlsx
+# שלוש האחרונות נכתבות ב-`XLSX.writeFile` בתוך `eta.test.js`
+# ו-`expedite.test.js`, ולכן משתנות בכל הרצה (אותו גודל,
+# תוכן שונה) — פלט, לא מקור. נשארו במעקב בהיסח הדעת.
+tests/eta-hist.xlsx
+tests/expedite-eta.xlsx
+tests/expedite-zmrp.xlsx
 
 # צילומי מסך שהבדיקות מייצרות — פלט, לא מקור.
 # הם משתנים בכל הרצה (רינדור גופנים) ויצרו ~750KB רעש בינארי
