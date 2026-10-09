@@ -1334,7 +1334,17 @@ tr.sev0>td.rnk,tr.sev0 td.pnc{border-inline-start-color:var(--calm)}
    את ספרת האחדות מרופטת — ההפך ממה שעמודת מספרים צריכה. start מיישר
    את האחדות, כמו בכל גיליון עברי. */
 td.num{text-align:start;font-family:var(--num);font-variant-numeric:tabular-nums}
-td.dsc{color:var(--soft)}td.dim{color:var(--dim)}td.strong{font-weight:700}
+td.dsc{color:var(--soft)}
+/* התיאור האנגלי כשהחיפוש פגע בו: שורה שנייה, קטנה יותר
+   ובדימוי מוותר — הוא הסבר למה השורה כאן, לא הכותרת שלה.
+   `unicode-bidi:isolate` כדי שטקסט לטיני לא ישבור את סדר השורה ה-RTL. */
+.odsce{font-size:var(--f-sm);color:var(--dim);margin-top:2px;
+ unicode-bidi:isolate;direction:ltr;text-align:right}
+.sgi .d.den{color:var(--dim);font-size:var(--f-xs);
+ unicode-bidi:isolate;direction:ltr;text-align:right}
+.dsc .den{display:block;font-size:var(--f-xs);color:var(--dim);
+ unicode-bidi:isolate;direction:ltr;text-align:right;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}td.dim{color:var(--dim)}td.strong{font-weight:700}
 tbody tr.sel{background:#212832}
 body:not(.dark) tbody tr.sel{background:var(--accL)}
 .spark{display:inline-flex;align-items:flex-end;gap:2px;height:26px;width:96px;direction:ltr}
@@ -3142,6 +3152,24 @@ function mapCols(h){const n=h.map(CLEAN),m={};const F=a=>{for(const x of a){cons
   m.curMonth=n.indexOf('צר.החודש');
   const SEC=nm=>{const a=n.indexOf(nm);if(a<0)return -1;const b=n.indexOf(nm,a+1);return b>=0?b:a+1};
   m.model=SEC('היררכייה2');m.hierBrand=SEC('היררכייה1');m.hier3=SEC('היררכייה3');
+  /* ============ DESC_EN — שתי עמודות תיאור, אותה כותרת ============
+     בדוח ZMRP האמיתי עמודות 1 ו-2 **שתיהן** נקראות «תיאור
+     חומר». נמדד על 7,987 פריטים:
+
+       עמודה 1   עברית ב-7,959    ← זו שהכלי קרא
+       עמודה 2   אנגלית ב-7,771   ← נזרקה לגמרי
+
+     `F()` מחזיר את ההתאמה הראשונה, ולכן האנגלית לא נקלטה
+     מעולם. חיפוש `GEAR` או `Steering` החזיר כלום — לא כי החיפוש
+     שבור, אלא כי הנתון לא נכנס לזיכרון.
+
+     החיפוש הוא המופע הבא של **אותה כותרת** שלפיה נבחרה
+     עמודת התיאור, ולא עמודה שלידה: דוח שבו התיאור נקרא
+     «תיאור חומר2» (האפשרות הראשונה ב-NAMES.desc) ימשיך לעבוד,
+     ודוח עם עמודת תיאור אחת בלבד מקבל -1 ולא עמודה שכנה. */
+  const dAll=[];for(const nm of NAMES.desc){let i=n.indexOf(nm);
+    while(i>=0){dAll.push(i);i=n.indexOf(nm,i+1)}}
+  const d2=dAll.filter(i=>i!==m.desc);m.desc2=d2.length?d2[0]:-1;
   const fSales=F(["תאר' מכירה",'מכירות','מכירות אחרונות','תאריך מכירה']);m.sales=fSales>=0?fSales:colToIdx('CF');
   const fEnt=F(["תאר' כניסה",'כניסות','כניסות אחרונות','כניסה למלאי','תאריך כניסה']);m.entries=fEnt>=0?fEnt:colToIdx('CG');
   DIAG={hardStop:null,warn:[],fellBack:[],moves:null};
@@ -3822,7 +3850,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const cov3y=rate3y>0?covStock/rate3y:null;
     const slow3y=!noCons3y&&cov3y!==null&&cov3y>SLOW_MONTHS;
     const ageTier=noCons3y?(dead3y?'dead':'young'):(slow3y?'slow':'active');
-    out.push({pn,desc:CLEAN(r[m.desc]),st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
+    out.push({pn,desc:CLEAN(r[m.desc]),desc2:m.desc2>=0?CLEAN(r[m.desc2]):'',st:CLEAN(r[m.status]),stTxt:CLEAN(r[m.statusTxt]),mrp,
       cons3y,has3y,rate3y,cov3y,entAge,saleAge,entFuture,saleFuture,noCons3y,dead3y,young,slow3y,ageTier,
       abc:CLEAN(r[m.abc]),brand:odBrand,planner:odPlanner,supplier:CLEAN(r[m.supplier])||'ללא ספק',
       unsQty,unsVal,unsGross,
@@ -6505,7 +6533,7 @@ const SFIELDS={};
 /* אינדקס חיפוש לכל פריט. השדות הסטטיים נבנים פעם אחת; "מצב" מתרענן בכל סיווג */
 let SIDXV=0;
 function sidx(r){let f=r._sx;
- if(!f){f={pn:norm(r.pn),pnc:norm(r.pn,true),desc:norm(r.desc),supplier:norm(r.supplier),
+ if(!f){f={pn:norm(r.pn),pnc:norm(r.pn,true),desc:norm(r.desc),desc2:norm(r.desc2),supplier:norm(r.supplier),
    brand:norm(r.brand),model:norm(r.model),planner:norm(r.planner),mkt1:norm(r.mkt1),
    grp:norm(r.grp),abc:norm(r.abc),mrp:norm(r.mrp),age:norm(ageLabel(r.ageTier)),_cv:-1};
   r._sx=f}
@@ -6527,10 +6555,24 @@ function sHit(hay,v,w){if(!hay||!v)return 0;
  if(i===0)return w*2.2;
  if(hay[i-1]===' ')return w*1.6;
  return w}
-const SW={pn:100,desc:34,model:22,supplier:18,brand:16,cat:14,mkt1:10,grp:10,age:9,planner:8,abc:6,mrp:6};
+/* `desc2` באותו משקל של `desc`: זה אותו שדה בשפה אחרת, ולא
+   שדה פחות חשוב. `scoreRow` לוקח את המיטב מבין השדות, ולכן
+   פריט שהטקסט מופיע בשתי השפות אינו מקבל ניקוד כפול. */
+const SW={pn:100,desc:34,desc2:34,model:22,supplier:18,brand:16,cat:14,mkt1:10,grp:10,age:9,planner:8,abc:6,mrp:6};
+/* האם החיפוש פגע בתיאור האנגלי ולא בעברי? זה התנאי להציג
+   אותו — לא «יש אנגלית», שזה כמעט כל פריט. */
+function d2Hit(r){
+ if(!SQ||!r||!r.desc2||r.desc2===r.desc)return false;
+ const f=sidx(r);
+ return SQ.pos.some(t=>(!t.fld||t.fld==='desc')
+   &&sHit(f.desc2,t.v,1)&&!sHit(f.desc,t.v,1))}
 function scoreRow(r,Qy){const f=sidx(r);let total=0;
  for(const t of Qy.toks){let best;
+  /* «תיאור:GEAR» חייב לחפש בשתי השפות, כמו ש-`pn` כבר בודק
+     שתי צורות של המק«ט. בלי זה החיפוש החופשי היה מוצא
+     והממוקד לשדה לא — הפתעה גרועה מהיעדר המלא. */
   if(t.fld){best=t.fld==='pn'?Math.max(sHit(f.pnc,t.vc,SW.pn),sHit(f.pn,t.v,SW.pn))
+            :t.fld==='desc'?Math.max(sHit(f.desc,t.v,SW.desc),sHit(f.desc2,t.v,SW.desc2))
                             :sHit(f[t.fld],t.v,SW[t.fld]||10)}
   else{best=sHit(f.pnc,t.vc,SW.pn);
    for(const k in SW){if(k==='pn')continue;const h=sHit(f[k],t.v,SW[k]);if(h>best)best=h}}
@@ -6597,7 +6639,7 @@ function renderSug(){const p=qEl('qsug');
   p.innerHTML=`<div class="sgh"><span>הפריטים המתאימים ביותר</span><span>${f(res.n)} תוצאות</span></div>`+jump
    +res.rows.map((r,i)=>`<div class="sgi s${r.sev}" data-i="${i}">
      <div class="r1"><span class="p">${hlMark(r.pn,SQ)}</span><span class="m">${r.risk?moneyShort(r.risk,r.currency):''}</span></div>
-     <div class="d">${hlMark(r.desc,SQ)}</div>
+     <div class="d">${hlMark(r.desc,SQ)}</div>${d2Hit(r)?`<div class="d den">${hlMark(r.desc2,SQ)}</div>`:''}
      <div class="c"><i>${esc(r.cat||'—')}</i><i>${esc(ageAxis(r.ageTier))}</i><i>פנוי ${r.free}</i>${r.po>0?`<i>בדרך ${r.po}</i>`:''}<i>${hlMark(r.supplier,SQ)}</i></div>
     </div>`).join('')
    +(res.n>res.rows.length?`<div class="sgf">מוצגות ${res.rows.length} מתוך ${res.n.toLocaleString('he-IL')} — הרשימה בטבלה מסוננת לפי אותו חיפוש</div>`:SUGFOOT);
@@ -7243,9 +7285,20 @@ const SCOL={
  pn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מתור העבודה',
   cell:r=>{const xb=xBadge(r);
    return `<td${xb?' class="xdc"':''}><span class="obj">${hlMark(r.pn,SQ)}</span>${xb}<span class="ract">${copyBtn(r.pn)}${doneBtnHTML(r)}</span></td>`}},
+ /* ============ DESC_EN · להראות למה השורה התאימה ============
+    החיפוש סורק עכשיו גם את התיאור האנגלי. בלי השורה הזאת,
+    חיפוש `Steering` היה מחזיר 189 שורות שבאף אחת מהן לא רואים
+    את המילה — תוצאה שנראית שרירותית. האנגלית מופיעה רק
+    כשהחיפוש פגע בה ולא בעברית — אחרת הייתה מוכפלת כל שורה
+    בטבלה ללא סיבה. 144 מתוך 7,987 נושאים בעמודה האנגלית העתק
+    של העברית, וגם הם מוחרגים. */
  desc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
   cell:(r,x)=>`<td class="dsc">${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
+   +(d2Hit(r)?`<span class="den" title="${esc(r.desc2)}">${hlMark(r.desc2.slice(0,x.dlen||24),SQ)}</span>`:'')
    +((x.maj&&r.cat&&r.cat!==x.maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:'')+'</td>'},
+ desc2:{t:'תיאור נוסף',val:r=>String(r.desc2||''),
+  ttl:'עמודת התיאור השנייה בדוח. ב-ZMRP של 5.10 היא אנגלית ב-7,771 מתוך 7,987 פריטים — אבל הכלי אינו מניח שפה',
+  cell:r=>`<td class="dsc"><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
  sup:{t:'ספק',val:r=>String(r.supplier||''),ttl:'שם הספק כפי שהוא בדוח',
   cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
  spark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי',
@@ -7531,8 +7584,13 @@ const SCOL={
     לגרסאות הכלליות היה משנה את מה שהמסך מציג. */
  cPn:{t:'מק״ט',val:r=>String(r.pn||''),ttl:'מק״ט הפריט. «✓ טופל» מסמן אותו ומוציא אותו מהרשימה',
   cell:r=>`<td class="pnc"><span class="obj">${hlMark(r.pn,SQ)}</span>${copyBtn(r.pn)}${doneBtnHTML(r)}</td>`},
+ /* גם הגרסה הזאת מקבלת את שורת האנגלית — הקטלוג מרנדר
+    מ-`cDesc` ולא מ-`desc`, ובלי זה החיפוש באנגלית היה מחזיר
+    שורות במסך העיקרי בלי להראות למה. נמדד: שתי הגרסות
+    של עמודת התיאור קיימות במקביל, ולכן התיקון בשתיהן. */
  cDesc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
-  cell:r=>`<td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}</td>`},
+  cell:r=>`<td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}`
+   +(d2Hit(r)?`<span class="den" title="${esc(r.desc2)}">${hlMark(r.desc2.slice(0,30),SQ)}</span>`:'')+'</td>'},
  cCat:{t:'מצב',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
  cSpark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש',
@@ -8622,7 +8680,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  const anomHTML=notes.length?`<div class="anoms">${notes.join('')}</div>`:'';
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
- <div class="ohead"><div class="opn"><bdi class="opnt">${esc(r.pn)}</bdi>${copyBtn(r.pn)}${detailNav()}</div><h2>${esc(r.desc)}</h2>
+ <div class="ohead"><div class="opn"><bdi class="opnt">${esc(r.pn)}</bdi>${copyBtn(r.pn)}${detailNav()}</div><h2>${esc(r.desc)}</h2>${(r.desc2&&r.desc2!==r.desc)?`<div class="odsce" title="עמודת התיאור השנייה בדוח — לרוב השם שבו הספק מדבר"><bdi>${esc(r.desc2)}</bdi></div>`:''}
   <!-- ============ תשע תגיות ירדו לשלוש ============
        בראש הכרטיס נשאר מה שנחוץ כדי להבין את ההחלטה *הנוכחית*:
        הספק (מולו מבצעים), סוג ה-MRP (הוא שקובע אם יש המלצת מלאי
