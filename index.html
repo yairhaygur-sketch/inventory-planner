@@ -6090,6 +6090,15 @@ const DSIG_FIELDS=[
 const dsigDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 /* ‎-0‎ ו-0 הם אותו מספר ושתי מחרוזות. NaN/Infinity אינם ערך ונרשמים כחסר. */
 const dsigNum=n=>!isFinite(n)?'~':(Object.is(n,-0)?'0':String(n));
+/* ============ טקסט אינו יכול להתחזות למפריד ============
+   השדות מופרדים ב-\u001f והשורות ב-\u001e. תיאור שמכיל במקרה את אחד
+   מהם היה יכול להזיז את הגבול בין שדות, ושני דוחות שונים היו יוצאים
+   עם אותו ייצוג קנוני. בפועל CLEAN מנקה את זה והסיכוי אפסי — אבל
+   «אפסי» אינו «בלתי אפשרי», והכיוון של כשל כזה הוא הגרוע: «אותו דוח»
+   על דוח שונה. הבריחה הפיכה וחד-חד-ערכית, ולכן אינה יכולה ליצור
+   התנגשות חדשה. */
+const dsigTxt=s=>String(s).replace(/[\u001b-\u001f]/g,
+  c=>'\u001b'+String.fromCharCode(0x40+c.charCodeAt(0)));
 function dsigCell(v){
  if(v==null)return '~';
  if(v===true)return 'T';
@@ -6099,10 +6108,10 @@ function dsigCell(v){
  if(typeof v==='object'){                    /* תא תנועה: {date}|{num}|{text} */
   if(v.date instanceof Date&&!isNaN(v.date))return 'd'+dsigDate(v.date);
   if(typeof v.num==='number')return 'n'+dsigNum(v.num);
-  if(typeof v.text==='string')return 't'+v.text;
+  if(typeof v.text==='string')return 't'+dsigTxt(v.text);
   return '?'}
  if(typeof v==='number')return dsigNum(v);
- return String(v)}
+ return dsigTxt(v)}
 function dsigRow(x){const a=new Array(DSIG_FIELDS.length);
  for(let i=0;i<DSIG_FIELDS.length;i++)a[i]=dsigCell(x[DSIG_FIELDS[i]]);
  return a.join('\u001f')}

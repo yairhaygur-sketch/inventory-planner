@@ -218,8 +218,36 @@ const F=n=>SD+'/sig-'+n+'.xlsx';
    !!r11.applied&&r11.applied.total>0,
    `${r11.applied?r11.applied.total:'—'} המלצות הושוו מהתמונה שנשמרה בפורמט הישן`);
 
- /* ── 12. אין שגיאות JS לאורך כל המסלול ────────────────────────── */
- ok('אף שגיאת JS לאורך 12 הטעינות',errs.length===0,errs.slice(0,2).join(' · ')||'נקי');
+ /* ── 12. חוזה רשימת השדות ─────────────────────────────────────── */
+ /* הבדיקות שלמעלה מפעילות את המסלול; זו שומרת על *הרשימה*. שדה
+    שיימחק מ-DSIG_FIELDS בעריכה עתידית יחזיר בדיוק את הבאג הזה, בלי
+    שאף תרחיש ייפול — כי כל תרחיש בודק שדה אחד. */
+ const req=['rop','ss','ssMin','ltD','srv','srvMissing','mrp','st','stTxt',
+   'stock','free','transfer','transferKnown','cust','custRaw','blockedCust',
+   'custBlockedKnown','po','months','curMonth','price','currency','sales','entries'];
+ const miss=await p.evaluate(r=>r.filter(f=>DSIG_FIELDS.indexOf(f)<0),req);
+ ok('רשימת השדות כוללת את כל מה שהמפרט דורש',miss.length===0,
+   miss.length?'חסרים: '+miss.join(', '):`${req.length} שדות נבדקו · ${await p.evaluate(()=>DSIG_FIELDS.length)} ברשימה`);
+
+ const isolated=await p.evaluate(()=>{
+  const c=ALL.map(x=>Object.assign({},x)),s0=dataSig(c);
+  /* תוצאות חישוב של המנוע — שינוי בהן אינו דוח חדש */
+  c[0].sugROP=(c[0].sugROP||0)+500;c[0].sugSS=(c[0].sugSS||0)+500;
+  c[0].rate=(c[0].rate||0)+77;c[0].cat='משהו אחר';c[0].paramFix=!c[0].paramFix;
+  const sEngine=dataSig(c);
+  /* ומפריד שמסתתר בתוך טקסט אינו יכול להזיז את גבול השדות */
+  const d=ALL.map(x=>Object.assign({},x));
+  d[1].desc='AB';d[2].desc='A';d[2].desc2='B'+(d[2].desc2||'');
+  const e=ALL.map(x=>Object.assign({},x));
+  e[1].desc='A';e[1].desc2='B'+(e[1].desc2||'');e[2].desc='AB';
+  return {same:s0===sEngine,sepDistinct:dataSig(d)!==dataSig(e)}});
+ ok('שינוי בתוצאת חישוב של המנוע אינו דוח חדש',isolated.same,
+   'sugROP · sugSS · rate · cat · paramFix שונו — החתימה זהה');
+ ok('מפריד בתוך טקסט אינו מזיז את גבול השדות',isolated.sepDistinct,
+   'שני סידורים שונים של אותם תווים — חתימות שונות');
+
+ /* ── 13. אין שגיאות JS לאורך כל המסלול ────────────────────────── */
+ ok('אף שגיאת JS לאורך כל המסלול',errs.length===0,errs.slice(0,2).join(' · ')||'נקי');
 
  await b.close();
  for(const l of out)console.log(l);
