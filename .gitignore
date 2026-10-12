@@ -34,3 +34,6 @@ tests/expedite-zmrp.xlsx
 # הם משתנים בכל הרצה (רינדור גופנים) ויצרו ~750KB רעש בינארי
 # בכל commit, בלי שאיש קורא אותם.
 tests/*.png
+
+# דוחות שנבנים בתוך sig.test.js — פלט, לא מקור
+tests/sig-*.xlsx

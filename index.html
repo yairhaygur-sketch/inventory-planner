@@ -6019,33 +6019,180 @@ function ledgerBySupplier(items){
   /* «נחת» = הרכש הפתוח ירד לפחות בכמות שהובטחה */
   if(-o.dPo>=o.q){k.kept++;k.keptUnits+=o.q}}
  return Object.entries(g).sort((a,b)=>b[1].n-a[1].n)}
+/* ============ DSIG — «אותו דוח שוב?» נשאל על הנתונים, לא על הסכומים ============
+   מה שהיה: החתימה הייתה `חודש | מספר פריטים | סך צריכה | סך מלאי פנוי |
+   סך דרישות לקוח | סך רכש`. שישה מספרים על 7,987 פריטים.
+
+   שתי עיוורויות, ושתיהן נראו בשטח:
+
+   1 · נקודת ההזמנה ומלאי הביטחון כלל אינם בחתימה. המעתד עשה בדיוק
+       את מה שהכלי ביקש — עדכן ROP מ-10 ל-20 ו-SS מ-2 ל-4 — העלה את
+       הדוח של מחר, והכלי ענה «אותו קובץ שוב»: לא נשמרה תמונה חדשה,
+       `recordParams` החזירה null, והעדכון לא נספר כיישום. הכלי מדד
+       ציות להמלצותיו שלו דרך חור שבו ההמלצה עצמה אינה מופיעה.
+
+   2 · סכום מתקזז. פריט אחד עולה ב-5, שכנו יורד ב-5, והסך זהה. גם
+       העברת צריכה בין חודשים בתוך אותה שנה אינה נראית, כי רק הסכום
+       נספר. להוסיף «סך ROP» ו«סך SS» לא היה פותר כלום — זה היה מוסיף
+       שני סכומים שמתקזזים בדיוק באותה דרך.
+
+   מה שיש כאן: חתימה של נתוני המקור *ברמת הפריט*. לכל פריט נבנית
+   רשומה קנונית מרשימת שדות קבועה, הרשומות ממוינות (סדר השורות
+   בגיליון אינו דוח חדש), והכול מתומצת ל-128 ביט.
+
+   ============ מה נכלל ומה לא ============
+   נכלל: מה שהגיע מהדוח. פרמטרים, מלאי, לקוח, רכש, מחיר, סטטוס,
+   מדיניות, כל חודש צריכה *בנפרד*, ותאריכי התנועה.
+   לא נכלל: תוצאות חישוב של המנוע (`rate`, `sugROP`, `sugSS`, המגמה),
+   סימונים ידניים, דוח ETA, מצב המסך ושעת הטעינה. פריט שסומן «טופל»
+   אינו הופך את דוח המקור לדוח חדש, ושינוי בנוסחה אצלנו אינו מתחזה
+   לשינוי אצל הלקוח.
+   החתימה מחושבת מיד אחרי `build()` — לפני `etaApply`, לפני הסימונים
+   ולפני `classify` — ולכן היא מתארת את הקובץ ולא את מה שעשינו לו.
+
+   ============ חסר אינו אפס ============
+   `~` מסמן ערך חסר ומובחן מ-0 ומממחרוזת ריקה. הדגלים
+   `transferKnown` · `custBlockedKnown` · `warrantyKnown` · `priceMissing` ·
+   `srvMissing` נכללים בדיוק מהטעם הזה: עמודה שאינה קיימת בדוח ועמודה
+   שערכה 0 הן שני דוחות שונים.
+
+   ============ למה לא SHA-256 ============
+   `crypto.subtle.digest` אסינכרוני. החתימה נחשבת בלב מסלול הטעינה,
+   ושתי העלאות עוקבות היו יכולות להתערבב באמצע. כאן נדרשת רק שאלת
+   *שוויון* בין שני דוחות — לא עמידות בפני יריב — ולכן 128 ביט של
+   MurmurHash3 בארבעה זרעים, בחישוב סינכרוני במעבר אחד. ההשוואה היא
+   תמיד מול רשומה אחת (האחרונה), ולא מול 40 — כלומר אין כאן אפילו
+   פרדוקס יום ההולדת.                                               */
+const DSIG_V=2;
+/* ============ סדר השדות קבוע ============
+   הוספה, הסרה או שינוי סדר כאן משנים את החתימה של *כל* דוח, ולכן
+   מחייבים העלאת DSIG_V — אחרת כל מעתד יקבל «דוח חדש» שקרי אחד.
+   שדה נגזר שהוא פונקציה טהורה של שדה שכבר ברשימה אינו מתווסף
+   (`ltM`=ltD/30, `r3`=c3/3, `isPDItem`=f(mrp), `isAcc`=f(hier3,mkt1,mkt2),
+   `isODStatic`=f(mrp,mkt1)) — הוא לא יכול לזוז בלעדיו. */
+const DSIG_FIELDS=[
+ /* זהות ושיוך */
+ 'pn','desc','desc2','brand','planner','supplier','model','origin','abc',
+ 'site','pGroup','grp','mkt1','mkt2','hier3','matType',
+ /* סטטוס ומדיניות */
+ 'st','stTxt','mrp',
+ /* הפרמטרים — אלה שהיו חסרים */
+ 'rop','ss','ssMin','srv','srvMissing','ltD',
+ /* מלאי, לקוח, רכש */
+ 'stock','free','po','transfer','transferKnown',
+ 'cust','custRaw','blockedCust','custBlockedKnown','warranty','warrantyKnown',
+ /* מחיר */
+ 'price','priceMissing','currency',
+ /* צריכה — כל חודש בנפרד, לא הסכום */
+ 'months','curMonth','d12','d6','c3','cons3y','has3y',
+ /* תאריכי תנועה */
+ 'sales','entries'];
+const dsigDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/* ‎-0‎ ו-0 הם אותו מספר ושתי מחרוזות. NaN/Infinity אינם ערך ונרשמים כחסר. */
+const dsigNum=n=>!isFinite(n)?'~':(Object.is(n,-0)?'0':String(n));
+/* ============ טקסט אינו יכול להתחזות למפריד ============
+   השדות מופרדים ב-\u001f והשורות ב-\u001e. תיאור שמכיל במקרה את אחד
+   מהם היה יכול להזיז את הגבול בין שדות, ושני דוחות שונים היו יוצאים
+   עם אותו ייצוג קנוני. בפועל CLEAN מנקה את זה והסיכוי אפסי — אבל
+   «אפסי» אינו «בלתי אפשרי», והכיוון של כשל כזה הוא הגרוע: «אותו דוח»
+   על דוח שונה. הבריחה הפיכה וחד-חד-ערכית, ולכן אינה יכולה ליצור
+   התנגשות חדשה. */
+const dsigTxt=s=>String(s).replace(/[\u001b-\u001f]/g,
+  c=>'\u001b'+String.fromCharCode(0x40+c.charCodeAt(0)));
+function dsigCell(v){
+ if(v==null)return '~';
+ if(v===true)return 'T';
+ if(v===false)return 'F';
+ if(Array.isArray(v))return v.map(dsigCell).join(',');
+ if(v instanceof Date)return isNaN(v)?'~':'d'+dsigDate(v);
+ if(typeof v==='object'){                    /* תא תנועה: {date}|{num}|{text} */
+  if(v.date instanceof Date&&!isNaN(v.date))return 'd'+dsigDate(v.date);
+  if(typeof v.num==='number')return 'n'+dsigNum(v.num);
+  if(typeof v.text==='string')return 't'+dsigTxt(v.text);
+  return '?'}
+ if(typeof v==='number')return dsigNum(v);
+ return dsigTxt(v)}
+function dsigRow(x){const a=new Array(DSIG_FIELDS.length);
+ for(let i=0;i<DSIG_FIELDS.length;i++)a[i]=dsigCell(x[DSIG_FIELDS[i]]);
+ return a.join('\u001f')}
+/* MurmurHash3 x86-32 בארבעה זרעים במעבר אחד על הבייטים — 128 ביט. */
+const DSIG_SEEDS=[0x9747b28c,0x27d4eb2f,0x165667b1,0x85ebca6b];
+function dsigHash(str){
+ const b=dsigBytes(str),n=b.length,nb=n-(n&3);
+ const C1=0xcc9e2d51,C2=0x1b873593,h=DSIG_SEEDS.map(s=>s>>>0);
+ for(let i=0;i<nb;i+=4){
+  let k=(b[i]|(b[i+1]<<8)|(b[i+2]<<16)|(b[i+3]<<24))>>>0;
+  k=Math.imul(k,C1);k=(k<<15)|(k>>>17);k=Math.imul(k,C2);
+  for(let j=0;j<4;j++){let x=h[j]^k;x=(x<<13)|(x>>>19);h[j]=(Math.imul(x,5)+0xe6546b64)>>>0}}
+ let t=0;
+ if((n&3)===3)t^=b[nb+2]<<16;
+ if((n&3)>=2)t^=b[nb+1]<<8;
+ if((n&3)>=1){t^=b[nb];t=Math.imul(t,C1);t=(t<<15)|(t>>>17);t=Math.imul(t,C2);
+  for(let j=0;j<4;j++)h[j]=(h[j]^t)>>>0}
+ let o='';
+ for(let j=0;j<4;j++){let x=(h[j]^n)>>>0;
+  x^=x>>>16;x=Math.imul(x,0x85ebca6b);x^=x>>>13;x=Math.imul(x,0xc2b2ae35);x^=x>>>16;
+  o+=(x>>>0).toString(16).padStart(8,'0')}
+ return o}
+/* TextEncoder קיים בכל דפדפן שהכלי נתמך בו; הנפילה לאחור קיימת כדי
+   שחתימה לא תהיה הדבר שמפיל טעינה. */
+const DSIG_ENC=(typeof TextEncoder!=='undefined')?new TextEncoder():null;
+function dsigBytes(s){
+ if(DSIG_ENC)return DSIG_ENC.encode(s);
+ const out=[];
+ for(let i=0;i<s.length;i++){let c=s.charCodeAt(i);
+  if(c<0x80)out.push(c);
+  else if(c<0x800){out.push(0xc0|(c>>6),0x80|(c&63))}
+  else if(c>=0xd800&&c<0xdc00&&i+1<s.length){
+   const c2=s.charCodeAt(++i),cp=0x10000+((c-0xd800)<<10)+(c2-0xdc00);
+   out.push(0xf0|(cp>>18),0x80|((cp>>12)&63),0x80|((cp>>6)&63),0x80|(cp&63))}
+  else{out.push(0xe0|(c>>12),0x80|((c>>6)&63),0x80|(c&63))}}
+ return out}
+const dsigYM=()=>`${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}`;
+/* החתימה של דוח שנקלט. `items` הוא פלט `build()` — לפני סימונים וסיווג. */
+function dataSig(items){
+ const rows=new Array(items.length);
+ for(let i=0;i<items.length;i++)rows[i]=dsigRow(items[i]);
+ rows.sort();                      /* סדר השורות בגיליון אינו דוח חדש */
+ return 'v'+DSIG_V+':'+dsigHash(
+   `${DSIG_V}|${dsigYM()}|${items.length}\u001e`+rows.join('\u001e'))}
+/* ============ מעבר מפורמט החתימה הישן ============
+   רשומה שנשמרה לפני השינוי נושאת sig בפורמט «חודש|מספרים» ואין בה v.
+   אי אפשר להשוות אותה לחתימה החדשה, ואסור להכריז «אותו דוח» על סמך
+   הישנה — בדיוק משום שהיא עיוורת למה שבגללו היא מוחלפת. לכן: לא
+   מוחקים דבר, קובעים בסיס חדש, ואומרים את זה במפורש על המסך.
+   התמונות עצמן (`PARAMS.runs[].it`) אינן תלויות בפורמט החתימה, ולכן
+   ההשוואה מול התמונה הקודמת נשמרת ועובדת גם במעבר. */
+function sigState(last,sig){
+ if(!last)return {repeat:false,migrated:false};
+ if(last.v!==DSIG_V||typeof last.sig!=='string')return {repeat:false,migrated:true};
+ return {repeat:last.sig===sig,migrated:false}}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
 try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
  if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
 function saveHist(){storeSet(HIST_KEY,JSON.stringify(HIST),'ההיסטוריה בין ההרצות')}
-/* ============ RUNSIG_BLIND ============
-   «אותו קובץ שוב» נקבע לפי חודש · מספר פריטים · סכום צריכה 12ח׳
-   בלבד — כלומר החתימה עיוורת בדיוק למה שהמעתד עובד עליו: מלאי,
-   הזמנות לקוח ורכש פתוח. שני דוחות שנבדלים רק בהם הוכרזו זהים.
-   זה לא תיאורטי: `repeat` משתיק את ההשוואה בין הימים — `seen` אינו
-   עולה, ולכן *כל* פריט נשאר «חדש» לנצח, «חוזר» ו«תקוע» נשארים אפס,
-   והרצועה «מאז ההעלאה הקודמת» מדווחת שקר.
-   נתפס בבדיקת DAY2: שני דוחות עם 900 פריטים ואותה צריכה, אבל מלאי
-   והזמנות לקוח שונים לגמרי, נספרו כהעלאה אחת.
-   שלושת הסכומים נוספים לחתימה. אין כאן שינוי סף או סיווג — רק
-   שאלת «האם זה אותו קובץ» שנענית נכון. */
-function runSig(items){let c=0,f=0,u=0,o=0;
- for(const x of items){c+=(x.d12||0);f+=(x.free||0);u+=(x.cust||0);o+=(x.po||0)}
- return `${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}|${items.length}|${c}|${f}|${u}|${o}`}
+/* ============ RUNSIG_BLIND — ההיסטוריה של התיקון הזה ============
+   בגרסה הראשונה «אותו קובץ שוב» נקבע לפי חודש · מספר פריטים · סכום
+   צריכה 12ח׳. היא הייתה עיוורת למלאי, ללקוח ולרכש, ונתפסה ב-DAY2:
+   שני דוחות שנבדלו לגמרי בשלושתם נספרו כהעלאה אחת. התיקון דאז הוסיף
+   את שלושת הסכומים — וזו הייתה בדיוק התרופה הלא נכונה: *סכום* מתקזז.
+   הפרמטרים עצמם (ROP ו-SS) מעולם לא נכנסו, ולכן יישום המלצה — המקרה
+   שהמנגנון הזה קיים בשבילו — לא זוהה כדוח חדש. ראה DSIG למעלה. */
 /* התור שהזיכרון עוקב אחריו: מה שדורש פעולה, לא הקטלוג */
 function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs.follow,...Qs.quality]}
-function recordRun(items,Qs){
- const sig=runSig(items),now=Date.now();
+/* `sig` מגיע ממסלול הטעינה, שמחשב אותו מיד אחרי build() — לפני
+   etaApply, הסימונים ו-classify. קריאה בלי חתימה (בדיקות, כלי פנימי)
+   מחשבת אותה כאן; רשימת השדות כוללת רק נתוני מקור שאיש אינו דורס
+   אחרי build, ולכן שתי הדרכים נותנות אותו מספר. */
+function recordRun(items,Qs,sig){
+ if(typeof sig!=='string')sig=dataSig(items);
+ const now=Date.now();
  const last=HIST.runs[HIST.runs.length-1];
- const repeat=!!last&&last.sig===sig;                 /* אותו קובץ שוב */
+ const stt=sigState(last,sig);
+ const repeat=stt.repeat;                             /* אותו קובץ שוב */
  const q=histQueue(Qs), inQ=new Set(q.map(x=>x.pn));
- if(!repeat){HIST.runs.push({sig,ts:now,n:items.length,q:q.length});
+ if(!repeat){HIST.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,n:items.length,q:q.length});
   if(HIST.runs.length>HIST_RUNS)HIST.runs=HIST.runs.slice(-HIST_RUNS)}
  else{last.ts=now;last.q=q.length}
  const prev=HIST.items;const next={};
@@ -6062,7 +6209,8 @@ function recordRun(items,Qs){
   x.hSeen=h.seen;x.hNew=h.seen===1;
   x.hDays=Math.max(0,Math.round((now-h.since)/864e5));
   x.hWorse=h.prevMiss!=null&&(h.miss||0)>h.prevMiss}
- return {runs:HIST.runs.length,repeat,newN:q.filter(x=>x.hNew).length,
+ return {runs:HIST.runs.length,repeat,migrated:stt.migrated,
+   newN:q.filter(x=>x.hNew).length,
    backN:q.filter(x=>x.hSeen>1).length,resolved:HIST.lastResolved||0,
    stuck:q.filter(x=>x.hSeen>=4).length}}
 function histReset(){HIST={runs:[],items:{}};saveHist()}
@@ -6152,19 +6300,27 @@ function parState(then,sug,now){
  if(now===sug)return 'done';                /* יושם בדיוק */
  if(now!==then)return 'other';              /* שונה, אבל לא למספר שהוצע */
  return 'none'}                             /* לא נגעו */
-function recordParams(items,Qs){
+function recordParams(items,Qs,sig){
  const SQ=shortSet(Qs);
- const sig=runSig(items),now=Date.now();
+ if(typeof sig!=='string')sig=dataSig(items);
+ const now=Date.now();
  const last=PARAMS.runs[PARAMS.runs.length-1];
- const repeat=!!last&&last.sig===sig;
+ const stt=sigState(last,sig);
+ const repeat=stt.repeat;
  /* העלאה חוזרת של אותו קובץ לא יוצרת תמונה חדשה — אחרת היינו משווים
-    קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. */
+    קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. וההפך חמור לא פחות:
+    דוח שבו עודכנו ROP ו-SS *חייב* לייצר תמונה, אחרת היישום שבדיוק
+    התבצע נבלע. זה היה הבאג — ראה DSIG. */
  if(repeat)last.ts=now;
- else{PARAMS.runs.push({sig,ts:now,it:paramSnap(items,SQ)});
+ else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
   if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
  saveParams();
  const prev=PARAMS.runs[PARAMS.runs.length-2];
  for(const x of items){x.apStatus=null;x.apPrev=null;x.apDrift=null}
+ /* אין תמונה קודמת — אין מה להשוות, וממשיכים להחזיר null בדיוק כמו
+    קודם: צרכנים בודקים `APPLIED &&`, ואובייקט עם total=0 היה גורם
+    לכותרת המשנה לומר «0 יושמו» במקום לשתוק. מצב המעבר אינו נופל לכאן
+    ממילא — תמונות ישנות נשמרות, ולכן `prev` קיים גם אחריו. */
  if(!prev)return null;
  let done=0,other=0,none=0,gone=0,total=0;
  /* DRIFT — פירוק של דלי «שונה אחרת» לכיוונים */
@@ -6197,6 +6353,7 @@ function recordParams(items,Qs){
    if(cls==='done'){OC.doneN++;OC.doneShort+=isNow}
    else{OC.restN++;OC.restShort+=isNow}}}
  return {total,done,other,none,gone,drift:DR,ts:prev.ts,outcome:OC,
+   migrated:stt.migrated,
    runs:PARAMS.runs.length,days:Math.max(0,Math.round((now-prev.ts)/864e5))}}
 /* ============ OUTCOME_HONEST ============
    שני סייגים, ושניהם נמדדו ולא הונחו:
@@ -9341,6 +9498,16 @@ document.getElementById('gseg').querySelectorAll('button').forEach(b=>
 function syncHistChip(){const c=document.getElementById('histChip');if(!c)return;
  const on=!!HRUN&&HRUN.runs>1&&mode==='today';
  c.hidden=!on;if(!on)return;
+ /* ============ מעבר פורמט — נאמר, לא מוסתר ============
+    החתימה הישנה אינה ניתנת להשוואה לחדשה, ולכן ההעלאה הזאת היא בסיס
+    חדש ולא השוואה. להציג כאן «0 חדשים» היה מצג שווא: לא נמדד שאין
+    שינוי — פשוט אין מול מה למדוד. ההיסטוריה עצמה נשמרה. */
+ if(HRUN.migrated){
+  c.innerHTML='↺ <b>בסיס חדש</b> — שיטת זיהוי הדוחות עודכנה';
+  c.title='ההעלאה הקודמת נשמרה בפורמט חתימה ישן שאינו ניתן להשוואה לחדש. '
+   +'ההיסטוריה והסימונים נשמרו במלואם; ההשוואה «חדשים · חוזרים · נפתרו» '
+   +'תחזור בהעלאה הבאה.';
+  return}
  const p=[];
  if(HRUN.newN)p.push(`<b>${HRUN.newN}</b> חדשים`);
  if(HRUN.backN)p.push(`<b>${HRUN.backN}</b> חוזרים`);
@@ -9611,6 +9778,13 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
   ALL_RAW={rows:best.rows,hdr:best.hdr};
   ALL=build(best.rows,best.hdr);
+  /* ============ החתימה נלקחת כאן, ולא מאוחר יותר ============
+     מיד אחרי build ולפני etaApply, לפני הסימונים ולפני classify —
+     כלומר על הדוח כפי שהוא נקרא, לא על מה שעשינו לו. משתנה מקומי
+     ולא גלובלי: שתי העלאות עוקבות אינן יכולות להחליף חתימות זו עם
+     זו, כי לכל טעינה יש משלה. החישוב סינכרוני, ולכן גם אין חלון
+     שבו טעינה שנייה תספיק להידחף באמצע. */
+  const runSig_=dataSig(ALL);
   /* ============ ROW_AUDIT ============
      המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
      כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
@@ -9644,7 +9818,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
   etaOrphanSync();
-  HRUN=recordRun(ALL,Q);APPLIED=recordParams(ALL,Q);
+  HRUN=recordRun(ALL,Q,runSig_);APPLIED=recordParams(ALL,Q,runSig_);
   /* ============ הכותרת אומרת את מה שהיא סופרת ============
      היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
      6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
@@ -10255,10 +10429,12 @@ function briefHasBase(h){return !!(h&&HIST.runs&&HIST.runs.length>1)}
    מה שמתוקן כאן הוא הניסוח בלבד: מנגנון הזיהוי וזיכרון ההשוואות לא נגעו. */
 function runWhen(r){
  if(!r)return '';
- /* חודש העוגן של הדוח עצמו נשמר בתוך ה-sig, ולכן הוא זמין בלי נתון
-    חדש. השעה נכללת כי שני דוחות שונים נטענים לרוב באותו יום, ואז
-    תאריך בלבד מציג שני מועדים זהים ואינו מבדיל ביניהם. */
- const ym=String(r.sig||'').split('|')[0];
+ /* חודש העוגן נשמר בשדה `ym` מאז DSIG. רשומות שנשמרו לפני כן נושאות
+    אותו כחלק הראשון של ה-sig הישן, ולכן הן ממשיכות להיקרא נכון —
+    היסטוריה קיימת אינה מאבדת את מועדיה בגלל שינוי פורמט. השעה נכללת
+    כי שני דוחות שונים נטענים לרוב באותו יום, ואז תאריך בלבד מציג שני
+    מועדים זהים ואינו מבדיל ביניהם. */
+ const ym=r.ym||String(r.sig||'').split('|')[0];
  const m=/^(\d{4})-(\d{1,2})$/.exec(ym||'');
  const rep=m?`דוח ${+m[2]}/${m[1]}`:'';
  let ld='';
