@@ -405,7 +405,7 @@ const etaShortJS=d=>{if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'
  /* «משובץ» שונה שמו ל«מכוסה» ומציג את מה שנוחת עד סוף החודש
     בלבד — ראה SHORT_ANSWER. הפיצול לשני תאים לא השתנה. */
  ok('עם דוח — "בדרך" מתפצל ל"מכוסה" ו"ללא תאריך"',
-    after.cols.includes('מכוסה')&&after.cols.includes('ללא תאריך')
+    after.cols.includes('מכוסה ברכש')&&after.cols.includes('רכש בלי תאריך')
     &&!after.cols.includes('בדרך')&&after.nSched>0&&after.nOtw===0,
     `sched=${after.nSched} otw=${after.nOtw}`);
  ok('הצ׳יפ מציג את מספר המק״טים בדוח',
