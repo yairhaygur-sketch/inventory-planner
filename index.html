@@ -528,7 +528,7 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --critical:#C93636; --critical-bg:#FDECEC;   /* חומרה 3 — מישהו ממתין עכשיו */
  --high:#9A5806;     --high-bg:#FDF3E3;       /* חומרה 2 — אוזל החודש */
  --steady:#2563EB;   --steady-bg:#E8F0FE;     /* חומרה 1 — פרמטרים, מעקב */
- --capital:#207653;  --capital-bg:#E8F5EE;    /* הון כלוא — הזדמנות, לא סכנה */
+ --capital:#207653;  --capital-bg:#E8F5EE;    /* כסף תקוע — הזדמנות, לא סכנה */
  --calm:#5D6878;     --calm-bg:#EEF1F5;       /* חומרה 0 — רקע, תקין */
  --trend:#63489F;    --trend-bg:#F1ECFA;      /* מסלול מגמה — ציר נפרד מחומרה */
 
@@ -2677,7 +2677,7 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="sapXls" title="קובץ עדכון פרמטרים ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
+    <button class="btn" id="sapXls" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
     <button class="btn" id="sapSlowXls" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
@@ -3010,7 +3010,7 @@ const LOWDEM_MAX=3;
      פריטים שמקבלים רצפה     533 →  640
      מתוכם באפס מדף היום     43
 
-   הסף אינו אחוזון אלא ערך מוחלט, כי ההחלטה היא על **הון כלוא בפועל**:
+   הסף אינו אחוזון אלא ערך מוחלט, כי ההחלטה היא על **כסף תקוע בפועל**:
    ₪200 הם ₪200. הספים מקבילים בשער (כ-3.7) ולא מנורמלים להתפלגות —
    חציון ה-USD כאן הוא 26.47$ וחציון ה-ILS 370₪, כלומר פריטי השקל
    בקבוצה הזו פשוט יקרים יותר, וזו עובדה ולא עיוות שצריך לתקן.
@@ -3089,7 +3089,7 @@ const M1_MIN3=10;
 /* פריט לא פעיל (04) או גמר מלאי (14) אינו "אוזל" — הוא נגמר בכוונה. */
 const m1Active=it=>{const c=stCode(it.st);return c!==4&&c!==14&&!/לא פעיל|גמר המלאי/.test(it.stTxt||'')};
 const isM1=it=>m1Active(it)&&!it.isOD&&it.c3>=M1_MIN3&&it.free<it.r3;
-const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'מלאי איטי':'פעיל';
+const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'חדש — אין עדיין היסטוריה':t==='slow'?'מלאי איטי':'פעיל';
 /* ============ AGE_AXIS — שם הציר, לא רק הערך ============
    `ageLabel` מחזיר בדיוק את אותן מחרוזות של שלושה סיווגים: «מלאי מת»,
    «מלאי איטי» ו«טרם הוכיח את עצמו». גיל המלאי והסיווג הם שני צירים
@@ -3114,7 +3114,7 @@ const ageLabel=t=>t==='dead'?'מלאי מת':t==='young'?'טרם הוכיח את
    ושם שם הציר כבר נאמר («גיל מלאי» ככותרת עמודה). כאן, במקום שבו
    שני הצירים נראים יחד, השבב נושא את שם הציר — והערך מתקצר כדי
    שלא תיאמר המילה «מלאי» פעמיים באותו שבב. */
-const ageAxis=t=>'גיל מלאי: '+(t==='dead'?'מת':t==='young'?'טרם הוכיח את עצמו':t==='slow'?'איטי':'פעיל');
+const ageAxis=t=>'גיל מלאי: '+(t==='dead'?'מת':t==='young'?'חדש — אין עדיין היסטוריה':t==='slow'?'איטי':'פעיל');
 const yrs=d=>d==null?'—':(d>=365?(d/365).toFixed(1)+' שנים':d+' ימים');
 const HEB=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 function colToIdx(letters){let n=0;for(const ch of letters.toUpperCase())n=n*26+(ch.charCodeAt(0)-64);return n-1}
@@ -3802,7 +3802,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
 
        החוק: 04/14 לא מקבלים המלצת רכש, הגדלת מלאי או מעבר לפרופיל
        מנוהל. לכן הם מטופלים כאן בדיוק כמו «לפי דרישה»: אין מספר.
-       המלאי עצמו נשאר גלוי — קטלוג, הון כלוא, וכרטיס הפריט. */
+       המלאי עצמו נשאר גלוי — קטלוג, כסף תקוע, וכרטיס הפריט. */
     const noRec=isODStatic||noStock;
     const ssStat=(rate>0&&!noRec)?Math.ceil(z*sdLT):0;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
@@ -3880,7 +3880,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
-const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'מוחרג ידנית',handled:'טופל',
+const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'הוצא ידנית מהרשימה',handled:'טופל',
  ondemand:'לפי דרישה',checking:'בבדיקה',supplier:'ממתין לספק',ordered:'הוזמן'};
 /* ============ מצב טיפול — סימון שאינו מסתיר ============
    עד כאן כל סימון הוציא את הפריט מתור העבודה ברונג הראשון של
@@ -3954,7 +3954,7 @@ function onDemand(it){if(it.isPDItem||OD_GROUPS.has(it.mkt1))return true;
 function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
  if(OD_GROUPS.has(it.mkt1))return it.mkt1+' — אינם מנוהלים במלאי';
  return 'סומן ידנית'}
-/* ============ PARAM_SPLIT — «עדכון פרמטרים» היה שלושה דברים ============
+/* ============ PARAM_SPLIT — «מספר לתקן ב-SAP» היה שלושה דברים ============
    נמדד על הדוח של 5.10 (7,987 פריטים · 755 המלצות פרמטר):
 
    | קבוצה | פריטים | שווי הפערים | הבסיס |
@@ -3963,7 +3963,7 @@ function odSource(it){if(it.isPDItem)return 'PD — נרכש לפי הזמנה';
    | רצפת מדרגת מחיר | 520 | $17,867 · 12% | מדרגת מחיר |
    | ביקוש מדיד (d12>3) | 103 | $43,795 · 29% | חישוב סטטיסטי |
 
-   שלושתן נקראו «עדכון פרמטרים» וישבו באותה רשימה של 755 — ולכן
+   שלושתן נקראו «מספר לתקן ב-SAP» וישבו באותה רשימה של 755 — ולכן
    ההמלצה החזקה בכלי (118 פריטים, 59% מהכסף, ובלי שום תחזית: ב-SAP
    יושב פרמטר גדול מכל מה שנצרך בשלוש שנים) נקברה תחת 520 שורות של
    ‎$34‎ בממוצע, שהן בכלל *החלטת מדיניות אחת* ולא 520 החלטות.
@@ -4022,7 +4022,7 @@ function ropGapWhy(it){
 /* ============ TWO_CLOCKS — «יש לך יותר מדי» ו«הזמן מוקדם יותר» ============
    נמדד על הדוח של 5.10: 277 פריטי עודף/איטי מחזיקים ROP > 1, והמנוע
    אינו מציע להקטין לא אותו ולא את ה-SS — ב-103 מהם הוא מציע ROP
-   *גבוה* יותר. הקורא רואה «הון כלוא $13,573» ובשורה אחרת
+   *גבוה* יותר. הקורא רואה «כסף תקוע $13,573» ובשורה אחרת
    «להעלות נקודת הזמנה מ-13 ל-17», בלי שאיש אומר לו איך שניהם נכונים.
 
    הם נכונים כי הם נמדדים בשני שעונים:
@@ -4054,8 +4054,8 @@ function twoClocks(it){
   return ['info',`שני שעונים: ROP מוצע ${it.sugROP} = ביקוש בזמן אספקה `
    +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש · זמן אספקה ${it.ltD} ימים) `
    +`ועוד מלאי ביטחון ${it.sugSS} — ועל המדף ${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
-   +(up?`לכן הכלי מציע להעלות ${it.rop}→${it.sugROP} ובאותה נשימה מדווח הון כלוא: `
-      :`לכן אין מה להקטין, והון כלוא נשאר: `)
+   +(up?`לכן הכלי מציע להעלות ${it.rop}→${it.sugROP} ובאותה נשימה מדווח כסף תקוע: `
+      :`לכן אין מה להקטין, וכסף תקוע נשאר: `)
    +`הפרמטר נכון, הכמות אינה. הידית כאן אינה ROP`];
  return ['info',`שני שעונים: אין קצב מדיד, ולכן הביקוש בזמן האספקה הוא 0 `
   +`ו-ROP המוצע ${it.sugROP} הוא רצפת מלאי הביטחון בלבד`
@@ -4091,7 +4091,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     Q.marked.push(it);continue}
   /* ההחרגה פגה — הפריט חוזר לניהול מלאי, אבל לא ישר לתור העבודה:
      קודם מאמתים שההחרגה באמת כבר לא רלוונטית. */
-  if(it.odStale){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+  if(it.odStale){it.sev=1;it.cat='מספר לתקן ב-SAP';it.paramFix=true;
     it.why=[['warn','ההחרגה "לפי דרישה" פגה — עברה חצי שנה מאז הסימון'],
       ['info','הפריט חזר לניהול מלאי. אם ההחרגה עדיין נכונה, לסמן מחדש']];
     it.act=['לאמת שההחרגה עדיין רלוונטית','לסמן מחדש "לפי דרישה" או להשאיר בניהול מלאי'];
@@ -4106,7 +4106,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=['לא נדרשת פעולת מלאי — יוזמן כשתגיע דרישה',
       it.odMarked?'להסיר את הסימון אם הפריט חזר לניהול מלאי':'—'];
     Q.passive.push(it);continue}
-  if(sc===4||/לא פעיל/.test(it.stTxt)){it.cat='רקע';it.expCap=it.price*Math.max(0,it.stock);
+  if(sc===4||/לא פעיל/.test(it.stTxt)){it.cat='ללא פעולה';it.expCap=it.price*Math.max(0,it.stock);
     it.why=[it.stock>0?['warn',`סטטוס 04 (לא פעיל) · יש מלאי ${it.stock} יח׳ · שווי ${money(it.price*it.stock,it.currency)} — מועמד לחיסול`]:['info','סטטוס 04 — פריט לא פעיל, אין מלאי'],
       (it.stock>0&&it.entAge!=null)?['info',`כניסה אחרונה לפני ${yrs(it.entAge)} · צריכה 3 שנים ${it.cons3y} יח׳`]:null,
       /* ההחרגה היא מרכש, לא מראייה: לקוח שממתין על פריט שיוצא מהמלאי
@@ -4115,7 +4115,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.act=[it.cust>0?'לטפל בהזמנת הלקוח — אספקה חלופית או עדכון סטטוס ב-SAP':(it.stock>0?'לבדוק חיסול/העברה של המלאי':'—'),
       (it.cust>0&&it.stock>0)?'לבדוק חיסול/העברה של יתרת המלאי':null].filter(Boolean);
     Q.passive.push(it);continue}
-  if(sc===14||/גמר המלאי/.test(it.stTxt)){it.cat='רקע';it.expCap=(it.noCons3y?it.price*Math.max(0,it.stock):0);
+  if(sc===14||/גמר המלאי/.test(it.stTxt)){it.cat='ללא פעולה';it.expCap=(it.noCons3y?it.price*Math.max(0,it.stock):0);
     it.why=[it.stock>0?['info',`סטטוס 14 — מכירה עד גמר המלאי · מלאי ${it.stock} יח׳`]:['info','סטטוס 14 — גמר מלאי, אין מלאי'],
       it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה על פריט שמיועד להיגמר — ${Math.max(0,it.cust-Math.max(0,it.free))} יח׳ ללא כיסוי מהמדף. אין רכש חוזר על סטטוס 14; ההחלטה היא אספקה חלופית או עדכון הסטטוס`]:null].filter(Boolean);
     it.act=[it.cust>0?'לטפל בהזמנת הלקוח — אספקה חלופית או עדכון סטטוס ב-SAP':(it.stock>0?'ללא רכש נוסף · מעקב חיסול':'—'),
@@ -4123,7 +4123,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     Q.passive.push(it);continue}
   const gap=it.cust-(Math.max(0,it.free)+Math.max(0,it.po));
   if(it.cust>0&&gap>0){it.miss=gap;it.sev=3;
-    const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין – אין רכש':'פער כיסוי להזמנת לקוח';
+    const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין – אין רכש':'ההזמנה גדולה מהמלאי והרכש';
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
       it.blockedCust>0?['info',`${it.blockedCust} יח׳ חסומות למשלוח לא נכללו בחישוב הכיסוי`]:null,it.priceMissing?['warn','מחיר FOB חסר — לא ניתן לכמת את ההון הנדרש לכיסוי']:null].filter(Boolean);
     /* ============ הדלי הבוער מקבל שם על הפריט ============
@@ -4147,7 +4147,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        כשאין מה למכור מחר בבוקר, וחומרה 2 כשיש מלאי שנשחק.
        נמדד: 25 פריטים כאלה בדוח האמיתי, 18 מהם עם לקוח ממתין,
        וכולם דורגו כמו פריט שיש לו מלאי. */
-    it.sev=it.free<=0?3:2;it.cat=d?'חשד אזילה':'אוזל החודש';it.miss=gap;
+    it.sev=it.free<=0?3:2;it.cat=d?'ייתכן שאזל ולא נרשם':'אוזל החודש';it.miss=gap;
     it.why=[['err',`${it.free} יח׳ במלאי מול צריכה ${it.c3} יח׳ ברבעון — ${it.r3.toFixed(1)} לחודש`],
       d?['idea',`זוהתה אזילה ב${d.len>1?`${d.len} חודשים`:LABELS[d.i-1].name} — הקצב האמיתי גבוה מהמדווח, ${it.rate.toFixed(0)} ולא ${it.rawRate.toFixed(0)}`]:null,
       it.cust>0?['err',`${it.cust} יח׳ בהזמנת לקוח פתוחה`]:null,
@@ -4183,7 +4183,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       ?[etaAct(it),'לבדוק Back Order על היתרה אצל היצרן']
       :['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];
     Q.follow.push(it);continue}
-  if(isPD(it.mrp)){it.cat='רקע';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
+  if(isPD(it.mrp)){it.cat='ללא פעולה';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
     /* ============ מה חוסם כשירות, ומה לא ============
        נמדד: פריט PD בלי מחיר ובלי עמודת אחריות עבר שניים משלושת
        התנאים על נתון שאינו קיים — price=0 ⇒ «זול», warranty=0 ⇒
@@ -4206,10 +4206,10 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
         :pdUnknown.length?`להשלים ${pdUnknown.join(' ו')} כדי שניתן יהיה להכריע על ZM-C`
         :'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
       pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C':((it.ssMin>0||it.ss>0)?'לשקול איפוס ssMin/SS ב-SAP אם הם שארית ישנה':'—')];Q.passive.push(it);continue}
-  if(it.srvMissing&&it.rate>0){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;it.serviceMissing=true;
+  if(it.srvMissing&&it.rate>0){it.sev=1;it.cat='מספר לתקן ב-SAP';it.paramFix=true;it.serviceMissing=true;
     it.why=[['err','רמת שירות חסרה או 0 — לא ניתן לאשר המלצת SS/ROP סטטיסטית'],['info','לא נעשה שימוש בברירת מחדל שקטה']];
     it.act=['להזין רמת שירות מאושרת ב-SAP','לאחר העדכון לחשב מחדש SS ו-ROP'];Q.quality.push(it);continue}
-  if(it.rate>0&&it.ltD<=0){it.sev=1;it.cat='עדכון פרמטרים';it.ltMissing=true;it.paramFix=true;
+  if(it.rate>0&&it.ltD<=0){it.sev=1;it.cat='מספר לתקן ב-SAP';it.ltMissing=true;it.paramFix=true;
     it.why=[['err',`זמן אספקה חסר/0 — לא ניתן לחשב ROP/SS · יש ביקוש ${it.rate.toFixed(1)} יח׳/חודש`],
             ['idea','LT=0 מאפס את ביקוש-בזמן-האספקה ואת מרכיב הביטחון — הזן זמן אספקה אמיתי ואז יחושבו נכון']];
     it.act=['להזין זמן אספקה בשדה "אספ.מתוכנ."','לאחר העדכון לבדוק ROP/SS מחדש'];Q.quality.push(it);continue}
@@ -4228,20 +4228,20 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','זה לא ירידה בביקוש. זה סימן מובהק שהמלאי אזל והמכירה הלכה למתחרה'],
             ['warn',`פער משוער: ${gapQ} יח׳ מתחת לחציון${d.len>1?` על פני ${d.len} חודשים`:''}`]];
     if(exposed){it.miss=Math.max(1,Math.round(it.rate*(it.ltM-it.covA)));
-      it.sev=2;it.cat='חשד אזילה';
+      it.sev=2;it.cat='ייתכן שאזל ולא נרשם';
       it.why.push(['err',`הפריט חשוף גם היום — כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`]);
       it.act=[`להשלים ${it.miss} יח׳ כדי לכסות את זמן האספקה`,
         ssGap?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS} כדי למנוע הישנות`:rateNote,verify];
       Q.prevent.push(it);continue}
     it.miss=0;
     it.why.push(['ok',`היום הפריט מכוסה — ${it.covA===null?'ללא ביקוש שוטף':`כיסוי ${it.covA.toFixed(1)} חודשים מול זמן אספקה ${it.ltM.toFixed(1)}`}. האזילה בעבר, ואין חוסר למנוע היום`]);
-    if(ssGap||ropGap){it.sev=1;it.cat='עדכון פרמטרים';it.paramFix=true;
+    if(ssGap||ropGap){it.sev=1;it.cat='מספר לתקן ב-SAP';it.paramFix=true;
       it.why.push(['warn',`הלקח מהאזילה — ${ropGap?`נקודת הזמנה ${it.rop} מול ${it.sugROP} הנדרש`:''}${ropGap&&ssGap?' · ':''}${ssGap?`מלאי ביטחון ${it.ss} מול ${it.sugSS}`:''}`]);
       it.act=[ropGap?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP} כדי למנוע הישנות`
                     :`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS} כדי למנוע הישנות`,
         (ropGap&&ssGap)?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:rateNote,verify];
       Q.quality.push(it);continue}
-    it.sev=0;it.cat='רקע';
+    it.sev=0;it.cat='ללא פעולה';
     it.why.push(['ok',`הפרמטרים כבר תואמים לקצב האמיתי — נקודת הזמנה ${it.rop} · מלאי ביטחון ${it.ss}`]);
     it.act=['אין פעולה — האזילה בעבר והפרמטרים כבר מעודכנים',verify];
     Q.passive.push(it);continue}
@@ -4289,7 +4289,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        1300-03-01134 — מלאי ביטחון 10 ב-SAP, המנוע מציע 20, והשורה
        אמרה «מלאי ביטחון סביר». 9807-00-00094 — ROP 6→9 ו-SS 2→4,
        ושניהם «סבירים». 6608233674C15 — ROP 13→17, «סבירה».
-       ‏$101,822 · ₪3,908 · €30 הון כלוא יושבים על אותן שורות.
+       ‏$101,822 · ₪3,908 · €30 כסף תקוע יושבים על אותן שורות.
 
        להעלות נקודת הזמנה על פריט שיש בו עודף נשמע הפוך, והוא אינו:
        שורת «שני שעונים» (TWO_CLOCKS) מסבירה בדיוק את זה — ההמלצה
@@ -4321,7 +4321,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.why=[deadSure
         ?['err',`אין צריכה ${win} · הכניסה האחרונה לפני ${yrs(it.entAge)} — מלאי מת לפי מדיניות 3 השנים`]
         :['warn',`אין צריכה ב-11 חודשים · הכניסה האחרונה לפני ${yrs(it.entAge)}. עמודות הצריכה השנתית אינן בדוח, ולכן מדיניות 3 השנים לא נבדקה — זה מועמד למלאי מת, לא קביעה`],
-        ['warn',`הון כלוא ${money(val,it.currency)} · ${it.stock} יח׳ במחסן`],
+        ['warn',`כסף תקוע ${money(val,it.currency)} · ${it.stock} יח׳ במחסן`],
         it.saleAge!=null?['info',`מכירה אחרונה לפני ${yrs(it.saleAge)}`]:['info','אין תאריך מכירה אחרונה בדוח'],
         ropRisk?['err',`נקודת הזמנה ${it.rop} עדיין פעילה ומלאי פנוי ${it.free} ≤ ROP — סיכון להזמנה חוזרת של מלאי מת`]:null].filter(Boolean);
       /* ============ מלאי מת מול רצפה מאושרת ============
@@ -4349,7 +4349,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
         :ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
         'לבדוק רכש פתוח לפני החלטה'];
       Q.excess.push(it);continue}
-    it.sev=ropRisk?1:0;it.cat='טרם הוכיח את עצמו';
+    it.sev=ropRisk?1:0;it.cat='חדש — אין עדיין היסטוריה';
     it.why=[['info',`אין צריכה ${win}, אבל הכניסה האחרונה לפני ${yrs(it.entAge)} — טרם עברו 3 שנים, לכן לא נספר כמלאי מת`],
       ['info',`${it.stock} יח׳ · ${money(val,it.currency)} — לא נכלל בהון הכלוא לפי מדיניות 3 השנים`],
       ropRisk?['warn',`נקודת הזמנה ${it.rop} פעילה ללא צריכה — שווה לבדוק`]:null].filter(Boolean);
@@ -4421,7 +4421,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['err',`זמין היום ${it.avail} יח׳${it.po>0?` (כולל ${it.po} בדרך)`:''} — חסרות ${A.spikes[0].q-it.avail} יח׳ אם הפיק חוזר`]];
     it.act=['לבדוק אם הפיק חד-פעמי או תחילת מגמה',`אם מגמה: מלאי ביטחון ל-${it.sugSS}, נקודת הזמנה ל-${it.sugROP}`];
     Q.prevent.push(it);continue}
-  if(it.rate>0&&(it.rop!==it.sugROP||it.ss!==it.sugSS)){it.sev=1;it.cat='עדכון פרמטרים';
+  if(it.rate>0&&(it.rop!==it.sugROP||it.ss!==it.sugSS)){it.sev=1;it.cat='מספר לתקן ב-SAP';
     const dR=it.sugROP-it.rop, dS=it.sugSS-it.ss;
     const fmt=(cur,sug,d)=>`${cur}→${sug}${d>0?` (▲${d})`:d<0?` (▼${-d})`:''}`;
     it.why=[['warn',`פרמטרים בסטייה מהמומלץ · ROP ${fmt(it.rop,it.sugROP,dR)} · SS ${fmt(it.ss,it.sugSS,dS)}`],
@@ -4434,9 +4434,9 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      הסף אינו שרירותי: פרמטר שגדול מכל מה שנמכר בשלוש שנים אינו סביר. */
   {const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
    if(it.rate<=0&&!it.isPDItem&&(it.rop>bar||it.ss>bar)){
-    /* הסיווג נפרד מ«עדכון פרמטרים»: כאן אין תחזית ואין מודל — יש
+    /* הסיווג נפרד מ«מספר לתקן ב-SAP»: כאן אין תחזית ואין מודל — יש
        עובדה מהדוח. זו ההמלצה שאפשר להגן עליה בלי לדון בשיטה. */
-    it.sev=1;it.cat='פרמטר מעל 3 שנים';it.paramFix=true;it.over3y=true;
+    it.sev=1;it.cat='פרמטר מעל מכירות 3 שנים';it.paramFix=true;it.over3y=true;
     const tgt=`נקודת הזמנה ל-${it.sugROP} ומלאי ביטחון ל-${it.sugSS}`;
     it.why=[['warn',`ביקוש ${it.d12} יח׳ ב-11 חודשים${it.has3y?` · ${it.cons3y} יח׳ בשלוש שנים`:''}, אך ב-SAP יושבים נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
             ['idea','פרמטר גבוה על פריט כמעט ללא ביקוש גורם ל-SAP להמשיך להזמין מלאי שלא נמכר'],
@@ -4454,7 +4454,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       כיביתי אותו כאן, והבדיקה תפסה חמישה פריטים עם פער ‎0→3‎ שאיש
       כבר לא דיווח עליהם. ההפרדה מקובץ ה-SAP נעשית לפי הסיווג
       (כמו ‎SAP_CAP_CATS‎) ולא בכיבוי הסמן. */
-   it.sev=1;it.cat='רצפת מדרגה';it.tierFloor=true;it.paramFix=true;
+   it.sev=1;it.cat='מינימום לפי מחיר';it.tierFloor=true;it.paramFix=true;
    it.why=[['warn',`נוכחות רדודה מדי: ב-SAP נקודת הזמנה ${it.rop} ומלאי ביטחון ${it.ss}`],
            ['info',`${it.d12} יח׳ ב-11 חודשים — מעט מדי לחישוב סטטיסטי, אבל לא אפס`],
            ['idea',`${money(it.price,it.currency)} ליחידה · מדרגת «${it.lowBand?it.lowBand.name:''}» · אספקה ${Math.round(it.ltD)} יום — ${it.lowFloor} על המדף עולים ${money(it.lowFloor*it.price,it.currency)} ומכסים את השנה`],
@@ -4566,7 +4566,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   /* פריט שישב ב«תקין» — הפער הוא הבעיה היחידה שלו, ולכן הוא עובר
      לסיווג הפרמטרים במקום להוסיף «אין פעולה נדרשת» לצד המלצה. */
   const iOk=Q.ok.indexOf(it);
-  if(iOk>=0){Q.ok.splice(iOk,1);it.sev=1;it.cat='עדכון פרמטרים';
+  if(iOk>=0){Q.ok.splice(iOk,1);it.sev=1;it.cat='מספר לתקן ב-SAP';
    it.why=(it.why||[]).filter(w=>w[0]!=='ok');
    it.act=(it.act||[]).filter(a=>a!=='אין פעולה נדרשת');
    Q.quality.push(it)}
@@ -4590,19 +4590,19 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     נמדד על 103 הפריטים שבהם הביקוש מדיד: סף 0.5 משאיר 87 · סף 1
     משאיר 72 · סף 1.5 משאיר 50 · סף 2 משאיר 33. נבחר 1.
 
-    הפריט אינו נעלם — הוא מסווג «פער פרמטרים זניח», נספר בקטלוג
+    הפריט אינו נעלם — הוא מסווג «הפרש קטן מכדי לתקן», נספר בקטלוג
     ונשאר בר-סינון. מה שיורד הוא התביעה שלו לזמן של המעתד. */
  for(const it of items){
   /* ‎odStale‎ ברשימה הזאת כי הוא נתפס בבדיקה: פריט שההחרגה «לפי
-     דרישה» שלו פגה מסווג «עדכון פרמטרים» — אבל הפעולה שם היא
+     דרישה» שלו פגה מסווג «מספר לתקן ב-SAP» — אבל הפעולה שם היא
      *לאמת את ההחרגה*, לא לתקן מספר. הסף הוריד אותו ל«זניח» ומחק
      את האימות. ארבעת הדגלים כאן הם כל המקרים שבהם הסיווג הזה אינו
      נובע מפער מספרי: החרגה שפגה, רמת שירות חסרה, זמן אספקה חסר,
      ופרמטר מעל צריכת 3 שנים. */
   if(!it.paramFix||it.over3y||it.serviceMissing||it.ltMissing||it.odStale)continue;
-  if(it.cat!=='עדכון פרמטרים'||!paramThin(it))continue;
+  if(it.cat!=='מספר לתקן ב-SAP'||!paramThin(it))continue;
   const g=paramGapQ(it),m=(g/it.rate);
-  it.cat='פער פרמטרים זניח';it.sev=0;it.paramFix=false;it.thinGap=true;
+  it.cat='הפרש קטן מכדי לתקן';it.sev=0;it.paramFix=false;it.thinGap=true;
   it.why=[['info',`הפער בין הקיים למוצע הוא ${g} יח׳ — ${m.toFixed(2)} חודשי ביקוש`],
     ['idea',`מתחת ל-${PB_MONTHS} חודשי ביקוש ההפרש בין המספר שב-SAP למוצע קטן מרעש הביקוש עצמו`]];
   it.act=['אין פעולה נדרשת — הפער קטן מכדי להצדיק עדכון'];}
@@ -4647,7 +4647,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   it.why.push(['warn','אין זמן אספקה ב-SAP («אספ.מתוכנ.» = 0) — ולכן אם '
     +'תיפתח הזמנה כאן, הכלי אינו יכול לומר מתי הסחורה תיכנס'
     +(managed?'. גם כיסוי מול זמן האספקה ונקודת ההזמנה אינם ברי־חישוב בליו':'')]);}
- /* אין מדד כספי לחוסרים — הון כלוא (כמות × BZ) הוא המדד הכספי היחיד */
+ /* אין מדד כספי לחוסרים — כסף תקוע (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
  buildCurOrder(items);
@@ -4680,7 +4680,7 @@ function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(re
 const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
 const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
-   ב"היום", "עדכון פרמטרים" ו"הון כלוא" מופיעים באריחי המצבים. היא תפסה
+   ב"היום", "מספר לתקן ב-SAP" ו"כסף תקוע" מופיעים באריחי המצבים. היא תפסה
    81px — כארבע שורות רשימה. ניתן להחזיר אותה מתפריט הווידג'טים. */
 /* מסילת הסינון מקופלת בפתיחה. היא 220px רוחב שעומדים ריקים ברוב
    הבקרים, וכפתור «סינון» פותח אותה ברגע שצריך. הסינונים הפעילים
@@ -4840,7 +4840,7 @@ let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev
 let colFilters={};
 FDEF.forEach(([k])=>SEL[k]=new Set());
 const SEVLBL={3:'קריטי',2:'גבוה',1:'בינוני',0:'נמוך'};
-const TRACKS=[['line','אספקות צפויות'],['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','הון כלוא'],['fix','תיקוני פרמטרים']];
+const TRACKS=[['line','אספקות צפויות'],['short','חוסרים לטיפול'],['m1','אוזל החודש'],['cap','כסף תקוע'],['fix','מספר לתקן ב-SAP']];
 /* ============ שלושת המצבים ============
    9 טאבים ו-4 מסלולים היו 13 יעדים לעבודה של 48 פריטים, ושניים מהיעדים
    ריקים לגמרי. המצב הוא שכבה מעל cur ו-track הקיימים: הוא בוחר אותם,
@@ -4864,7 +4864,7 @@ const MODES=[
 
    עכשיו יש שתיים. הציר הוא איפה שעובדים; הקטלוג הוא איפה שמחפשים.
    כל מה שהיה מסלול נגיש משם — רצפת SS, מגמה, לקוח ממתין, יישום,
-   מסומנים — דרך הסינון בקטלוג. «הון כלוא» ירד מהמסך לפי החלטת
+   מסומנים — דרך הסינון בקטלוג. «כסף תקוע» ירד מהמסך לפי החלטת
    המתכנן: הוא לא הדבר שמחליטים עליו בבוקר. */
 /* «לקוח ממתין ללא רכש» ראשון, ולא כי הוא גדול — כי הוא היחיד שבו
    ההבטחה ללקוח כבר ניתנה ואין מולה כלום. הוא מופיע רק כשיש בו משהו. */
@@ -4895,15 +4895,61 @@ const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
  capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
+/* ============ WORDS — שמות שנאמרים בקול ============
+   הכלל שהמעתד נתן: «הון כלוא זה לא מושג רווח בעולם שלי». כל תווית
+   חייבת להיות משפט שאומרים בשיחה עם מנהל הרכש, לא שם של מודל.
+   נסרקו 7 תחומים, 23 דלתות, 18 סיווגי מנוע, 8 סוגי סימון, 85 כותרות
+   עמודה ו-16 תוויות בכרטיס; 24 הוחלפו.
+
+   שלושה דברים שלא היו ניסוח בכלל ותוקנו כאן:
+   · «צריכה 12ח׳» הציגה את `d12`, שהוא סכום של 11 עמודות חודש. אותו
+     מספר בדיוק הופיע בכרטיס כ«צריכה 11 חו׳». מספר עם תווית שקרית.
+   · «הון כלוא» בדלת ובעמודה מול «הון לשחרור» במדד העליון — אותו
+     דבר בשני שמות. שניהם «כסף תקוע».
+   · «תיקוני פרמטרים» (תכנון), «פרמטרים לתיקון» (איכות נתונים)
+     ו«עדכון פרמטרים» (סיווג) — שלוש כותרות שנראות זהות. השתיים
+     הראשונות הן *דברים שונים*: אחת אומרת «המספר שגוי», השנייה
+     אומרת «אי אפשר לחשב כי חסר נתון». לכן הן קיבלו שמות שונים
+     במפורש — «מספר לתקן ב-SAP» מול «נתון שבור ב-SAP» — ולא שם
+     משותף, שהיה מחמיר את הבלבול.
+
+   ההערות לאורך הקובץ עדיין נוקבות בשמות הישנים. הן לא שונו בכוונה:
+   הן הרישום של *מה הוחלט ולמה* ברגע שבו הוחלט, ועריכה שלהן בדיעבד
+   מזייפת אותו. הטבלה הזאת היא הגשר.
+
+     רצפת SS            → מלאי ביטחון ידני
+     רצפה בלי קצב מדיד  → מינימום בלי ביקוש
+     רצפת מדרגה         → מינימום לפי מחיר
+     ROP לא מגשר        → ROP קצר מזמן האספקה
+     ROP מתחת למוצע     → ROP נמוך מהמומלץ
+     מעל צריכת 3 שנים   → מעל מכירות 3 שנים
+     פרמטר מעל 3 שנים   → פרמטר מעל מכירות 3 שנים
+     פער פרמטרים זניח   → הפרש קטן מכדי לתקן
+     פער כיסוי להזמנת לקוח → ההזמנה גדולה מהמלאי והרכש
+     טרם הוכיח את עצמו  → חדש — אין עדיין היסטוריה
+     חשד אזילה          → ייתכן שאזל ולא נרשם
+     רקע (סיווג)        → ללא פעולה
+     ציר האספקות        → מתי מה אמור להגיע
+     מוחרג ידנית        → הוצא ידנית מהרשימה
+     הון כלוא / הון לשחרור → כסף תקוע
+     צריכה 12ח׳         → צריכה 11ח׳
+     Δ כניסה→מכירה      → ימים בין כניסה למכירה
+     % מצטבר            → % מצטבר מהכסף
+     סוג ההחלטה         → מה אפשר לעשות
+     מכוסה / ללא תאריך  → מכוסה ברכש / רכש בלי תאריך
+
+   נשארו בכוונה, כי הם כבר נשמעים כמו דיבור: מלאי מת · אוזל החודש ·
+   בוער עכשיו · לקוח ממתין · מניעת חוסר · מלאי איטי · לפי דרישה ·
+   מצב טיפול · ירידה בביקוש · מעקב אספקה.                          */
 const SUBNAV={
  today:[['burn','אין רכש כלל'],['cust','כיסוי חלקי'],['done','טופלו']],
- line:[['line','ציר האספקות'],['rise','ביקוש עולה'],
-   ['ropGap','ROP לא מגשר'],['ropThin','ROP מתחת למוצע']],
- month:[['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
-   ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],
+ line:[['line','מתי מה אמור להגיע'],['rise','ביקוש עולה'],
+   ['ropGap','ROP קצר מזמן האספקה'],['ropThin','ROP נמוך מהמומלץ']],
+ month:[['month','מספר לתקן ב-SAP'],['over3y','מעל מכירות 3 שנים'],['tier','מינימום לפי מחיר'],
+   ['floor','מלאי ביטחון ידני'],['floorNR','מינימום בלי ביקוש'],
    ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
- qual:[['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר']],
- cap:[['cap','הון כלוא'],['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
+ qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר']],
+ cap:[['cap','כסף תקוע'],['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
    ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
 /* ============ מה כל מסלול הוא ============
@@ -4917,7 +4963,7 @@ const NAV_WHAT={
  line:'רכש פתוח, תאריכי הגעה וזירוז',
  month:'ROP ו-SS — קיים מול מוצע, רצפות ומגמות',
  qual:'פרמטרים שבורים ב-SAP — כל המלצה שנגזרת מהם חשודה',
- cap:'עודף, מלאי איטי, מלאי מת והון כלוא',
+ cap:'עודף, מלאי איטי, מלאי מת וכסף תקוע',
  catalog:'חיפוש ובדיקה של כל הפריטים',
  burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
  cust:'הזמנת לקוח שהמלאי והרכש יחד אינם מכסים',
@@ -5118,11 +5164,11 @@ function colsWire(){
 function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
  if(v==='sup')return 'התצוגה «לפי ספק»';
- if(v==='fix')return 'תיקוני פרמטרים';
+ if(v==='fix')return 'מספר לתקן ב-SAP';
  const N={agenda:'סדר היום',qual:'איכות נתונים',
   catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
-  floor:'רצפת SS',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
-  applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'הון כלוא',
+  floor:'מלאי ביטחון ידני',trend:'ביקוש יורד',rise:'ביקוש עולה',cust:'לקוח ממתין',
+  applied:'יושמו ב-SAP',done:'טופלו',m1:'אוזל החודש',cap:'כסף תקוע',
   mv_sales:'תנועות · מכירות אחרונות',mv_entries:'תנועות · כניסות אחרונות',
   mv_stuck:'תנועות · כניסות ללא מכירה'};
  return N[v]||'התצוגה הזאת'}
@@ -5198,7 +5244,7 @@ const MODESET={
  /* ============ בריאות המלאי ============
     היה cur:'all' — כלומר בדיוק הקטלוג, 900 פריטים, ועמודת «הון
     כלוא» ריקה ברוב השורות הגלויות. עם cur:'today' הטבלה היא
-    decisionList('cap') עצמה: 311 הפריטים שיש להם הון כלוא, בבלוקי
+    decisionList('cap') עצמה: 311 הפריטים שיש להם כסף תקוע, בבלוקי
     מטבע, עם קו ה-80% לכל מטבע — המנגנון היה קיים ולא הגיעו אליו.
     «קטלוג פריטים» נשאר cur:'all' ולא זז. */
  cap:{cur:'today',track:'cap'},
@@ -5350,7 +5396,7 @@ function autoTrack(){}
    לחומרה 1 — סולם עולה. הגלולה הייתה כחולה לחומרה 2 וענבר לחומרה
    1 — סולם יורד. כלומר «חשד אזילה» (2) נצבע כחול ו«עדכון
    פרמטרים» (1) נצבע ענבר, וענבר חם יותר מכחול: הטור נקרא כאילו
-   עדכון פרמטרים דחוף מחשד אזילה.
+   מספר לתקן ב-SAP דחוף מחשד אזילה.
 
    הגלולה מיושרת עכשיו לפס, ושניהם לפלטה הסמנטית שהמסילה והאריחים
    מדברים: 3 critical · 2 high · 1 steady · 0 calm. הערכים זהים
@@ -5858,7 +5904,7 @@ const DEF=[['today','החלטות היום','מדורג בכסף','var(--red)'],
  ['immediate','פער כיסוי','רכש לא מכסה את הביקוש','var(--red)'],
  ['follow','הזמנה בדרך','רכש קיים, מלאי אפס','var(--acc)'],
  ['prevent','מניעת חוסר','כיסוי < LT · פיק · אזילה','var(--acc)'],
- ['excess','הון לשחרור','עודף · מת · איטי','var(--gray)'],
+ ['excess','כסף תקוע','עודף · מת · איטי','var(--gray)'],
  ['marked','מסומנים · טופל','קמפיין · טיפול · טופל','var(--grn)'],
  ['passive','רקע / קטלוג','PD · לא פעיל · מלאי מת','var(--dim)'],
  ['all','כל הפריטים','כל מה שבסינון','var(--gray)'],
@@ -6526,7 +6572,7 @@ function kpis(){
  /* ============ מדד שאפשר ללחוץ עליו, ושסופר את מה שייפתח ============
      היה: «מניעת חוסר 47» — אבל 47 הוא תור ה-prevent, שבתוכו רק 14
      פריטים נושאים את הסיווג «מניעת חוסר» (השאר: אוזל החודש 27,
-     חשד אזילה 6). ו«עדכון פרמטרים 727» לא הוביל לשום מסך שמציג 727.
+     חשד אזילה 6). ו«מספר לתקן ב-SAP 727» לא הוביל לשום מסך שמציג 727.
      כלומר הכותרת, המספר והאוכלוסייה היו שלושה דברים שונים.
      עכשיו כל מדד נושא יעד, והמספר שלו הוא בדיוק מה שהיעד מציג —
      נעול בבדיקה. */
@@ -6534,7 +6580,7 @@ function kpis(){
   {k:'burn',l:'בוער עכשיו · לקוח ממתין ללא רכש',n:navCount('burn').n,m:uTxt(waiting),
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
   {k:'today',l:'חוסרים ולקוחות',n:navCount('today').n,m:uTxt(modeRows('today')),cls:'warn'},
-  {k:'cap',l:'הון לשחרור',n:navCount('cap').n,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
+  {k:'cap',l:'כסף תקוע',n:navCount('cap').n,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
   {k:'month',l:'תכנון ו-MRP',n:navCount('month').n,m:`${fixList.length.toLocaleString('he-IL')} לעדכון ב-SAP`,cls:''}];
  document.getElementById('kpis').innerHTML=K.map(k=>{
   const inner=k.cls==='burn'
@@ -6543,7 +6589,7 @@ function kpis(){
   return `<button type="button" class="kpi${k.cls==='burn'?' burn':''}" data-kpi="${k.k}" title="פתח את ${esc(k.l)}">${inner}</button>`}).join('');
  document.querySelectorAll('#kpis [data-kpi]').forEach(e=>e.onclick=()=>setMode(e.dataset.kpi));
  document.getElementById('qsub').textContent=
-   `${tasks.toLocaleString('he-IL')} דורשים החלטה · ${QF.excess.length.toLocaleString('he-IL')} הון כלוא · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
+   `${tasks.toLocaleString('he-IL')} דורשים החלטה · ${QF.excess.length.toLocaleString('he-IL')} כסף תקוע · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
 function tiles(){
  const t=document.getElementById('tabs');
  const sub=k=>{
@@ -6556,7 +6602,7 @@ function tiles(){
   if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
    return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
   if(k==='catalog'){const cap=decisionList('cap');
-   return cap.length?`הון כלוא ${moneyMix(cap,r=>r.expCap||0,true)}`:''}
+   return cap.length?`כסף תקוע ${moneyMix(cap,r=>r.expCap||0,true)}`:''}
   if(k==='applied'&&APPLIED)return `${APPLIED.done} יושמו`;
   return ''};
  /* ============ המסילה ============
@@ -6643,7 +6689,7 @@ const MINI=[
   ()=>{const r=QF?decisionList('month'):[],f=r.filter(x=>x.paramFix).length;
    return `${f.toLocaleString('he-IL')} לתיקון פרמטרים ב-SAP · ${(r.length-f).toLocaleString('he-IL')} במעקב אספקה`}]];
 const COLS=[['pn','מק״ט','t'],['desc','תיאור','t'],['cat','מצב','t'],['spark','11 חודשים','x'],['miss','חסר','n'],
- ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','הון כלוא','n']];
+ ['free','מלאי','n'],['cust','לקוח','n'],['po','רכש','n'],['cov','כיסוי','n'],['risk','כסף תקוע','n']];
 function sparkline(r){const m=r.months,mx=Math.max(1,...m.map(v=>Math.max(0,v)));
  const drop=new Set(r.A.drops.map(d=>d.i)),spike=new Set(r.A.spikes.map(x=>x.i));
  return '<span class="spark" title="צריכה 11 חודשים — מהישן לחדש">'+m.map((v,i)=>{const idx=i+1;
@@ -6661,7 +6707,7 @@ const COLACC={pn:r=>r.pn,desc:r=>r.desc,model:r=>r.model,pattern:r=>r.A.pattern,
 /* ============ כיוון שבירת השוויון ============
    sortRowsBy מהפך את התוצאה בסוף לפי sortDir, ולכן כל משווה חייב
    להיות כתוב בכיוון *עולה*. שבירת השוויון נכתבה בכיוון יורד ואז
-   התהפכה שוב — ולכן תור "הון לשחרור" נפתח ב-10 פריטים ששווים אפס,
+   התהפכה שוב — ולכן תור "כסף תקוע" נפתח ב-10 פריטים ששווים אפס,
    והגדול שבהם ($34,598) ישב במקום 2,711 מתוך 2,711. */
 function tieAsc(a,b){return (a.sev-b.sev)||cmpMoneyAsc(a,b,'risk')}
 function cmp(a,b,key){const fa=COLACC[key];
@@ -6988,7 +7034,7 @@ function renderAgendaBand(){
  const NEXT=[['line','רכש ואספקות',null,'steady','⇄'],
    ['month','נקודת הזמנה נמוכה מהנדרש',ropLow,'trend','◆'],
    ['qual','איכות נתונים',null,'high','⚒'],
-   ['cap','הון כלוא',null,'capital','❤']];
+   ['cap','כסף תקוע',null,'capital','❤']];
  const chips=NEXT.map(([k,l,fixed,c,ic])=>{let n=fixed;
    if(n==null){try{n=navCount(k).n}catch(_){n=0}}
    return `<button type="button" class="abchip" data-go="${k}"`
@@ -7159,7 +7205,7 @@ function ropRows(){return ropPick(ropAll(),mode)}
    ומה שהפרמטרים של אותם 1,360 אומרים:
    465 «להקטין» מול רצפה מאושרת שמחזיקה למעלה · 392 להעלות בלבד ·
    346 בלי שינוי פרמטר · **149 להקטין פרמטר אחד ולהעלות את השני
-   באותה שורה** · 8 להקטין בלבד. ו-296 מהם נושאים הון כלוא *וגם*
+   באותה שורה** · 8 להקטין בלבד. ו-296 מהם נושאים כסף תקוע *וגם*
    המלצה להעלות — $141,888 · ₪4,754 · €30.
 
    6608154017A15: יושב ב«רצפה בלי קצב מדיד» וב«להפסיק להזמין»,
@@ -7172,10 +7218,10 @@ function ropRows(){return ropPick(ropAll(),mode)}
    המפה נבנית פעם אחת ונשמרת לצד DL_CACHE, כי היא נשענת עליו:
    דלת שמסוננת מסננת גם כאן, ולכן «גם ב» תמיד מסכים עם המונה. */
 const XDOORS=[['today','חוסרים ולקוחות'],['burn','אין רכש כלל'],['cust','כיסוי חלקי'],
- ['line','ציר האספקות'],['rise','ביקוש עולה'],
- ['month','תיקוני פרמטרים'],['over3y','מעל צריכת 3 שנים'],['tier','רצפת מדרגה'],
- ['floor','רצפת SS'],['floorNR','רצפה בלי קצב מדיד'],['trend','ביקוש יורד'],
- ['qual','פרמטרים לתיקון'],['stale','אספקות שתאריכן עבר'],
+ ['line','מתי מה אמור להגיע'],['rise','ביקוש עולה'],
+ ['month','מספר לתקן ב-SAP'],['over3y','מעל מכירות 3 שנים'],['tier','מינימום לפי מחיר'],
+ ['floor','מלאי ביטחון ידני'],['floorNR','מינימום בלי ביקוש'],['trend','ביקוש יורד'],
+ ['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר'],
  ['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
  ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']];
 const XNAME=Object.fromEntries(XDOORS);
@@ -7217,7 +7263,7 @@ function floorMeasured(r){return r.rate>0&&r.ssStat>0}
 function floorPick(list,k){return k==='floorNR'
   ?list.filter(r=>!floorMeasured(r)):list.filter(floorMeasured)}
 function floorRows(){return floorPick(floorAll(),mode)}
-/* ============ CAP_SPLIT — «הון כלוא» עורבב לפי סיווג, לא לפי מי מחזיק בידית ============
+/* ============ CAP_SPLIT — «כסף תקוע» עורבב לפי סיווג, לא לפי מי מחזיק בידית ============
    הדלת הייתה רשימה אחת של 2,700 פריטים, מסודרת לפי שווי ההון הכלוא
    ומחולקת לסיווגים: מלאי מת · מלאי איטי · עודף מלאי · רקע. הסיווג
    אומר *למה* הכסף תקוע. הוא אינו אומר *מה אפשר לעשות*, וזו השאלה
@@ -7249,7 +7295,7 @@ function floorRows(){return floorPick(floorAll(),mode)}
 
    ו-277 פריטים (169,662 USD · 14,648 ILS) שבהם ROP > 1 על מלאי
    עודף/איטי, אבל sugROP ≥ rop *וגם* sugSS ≥ ss — כלומר המנוע מדווח
-   הון כלוא ובאותה נשימה ממליץ לא לגעת בפרמטרים, או להעלות אותם.
+   כסף תקוע ובאותה נשימה ממליץ לא לגעת בפרמטרים, או להעלות אותם.
    זו אינה תקלה: 6608233674C15 מחזיק 61 יח׳ בקצב 2.83 לחודש (21
    חודשי כיסוי, 13,573 USD כלואים) ו-ROP 13, והמנוע מציע 17 — כי
    זמן האספקה 120 יום דורש 11.3 יח׳ ביקוש ועוד רצפת SS של 5. פסק
@@ -7261,13 +7307,13 @@ function floorRows(){return floorPick(floorAll(),mode)}
    אין כאן נוסחה חדשה, סף חדש או סיווג חדש: `po`, `floorClash`,
    `rop`, `sugROP`, `sugSS` ו-`cat` כולם כבר מחושבים במנוע, והמיון
    לפי שווי ההון הכלוא בבלוקי מטבע נשאר כפי שהוא. הדלת הכוללת
-   «הון כלוא» נשארת במקומה — שום פריט אינו יוצא מהישג יד. */
+   «כסף תקוע» נשארת במקומה — שום פריט אינו יוצא מהישג יד. */
 const CAP_DEAD=new Set(['מלאי מת','מלאי מת — לבדיקה']);
 const CAP_DOORS={
  capPO:['רכש בדרך לעודף','רכש פתוח שימשיך להיכנס למלאי שכבר עודף — הידית היחידה שיש לה ספק, כמות ותאריך · ממוין לפי שווי ההון הכלוא בתוך כל מטבע'],
  capStop:['להפסיק להזמין','נקודת ההזמנה חיה והמנוע עצמו מציע מספר נמוך ממנה — זו החלטת פרמטר של המעתד, והיא זו שעוצרת את ההזמנה הבאה'],
  capBiz:['החלטה מסחרית','מלאי מת שה-ROP שלו כבר כבוי, או שיש בו התנגשות מדיניות — אין פרמטר לשנות. מה שנותר הוא חיסול, החזרה לספק, קמפיין או הכרעת מדיניות, ואלה אינם של המעתד'],
- capNone:['אין מה לשנות','הון כלוא שאין מולו שום מספר להציע — ROP כבר כבוי, או שהמנוע ממליץ לא להקטין. מוצג כדי שלא יתחפש לרשימת עבודה בתוך הדלת הכוללת']};
+ capNone:['אין מה לשנות','כסף תקוע שאין מולו שום מספר להציע — ROP כבר כבוי, או שהמנוע ממליץ לא להקטין. מוצג כדי שלא יתחפש לרשימת עבודה בתוך הדלת הכוללת']};
 function capAct(r){
  /* הסדר הוא סדר הדחיפות, ולכן הוא גם מה שהופך את זה לחלוקה ולא
     לארבעה מסננים חופפים: רכש בדרך קודם לכל — הוא הכסף היחיד שעוד
@@ -7490,11 +7536,11 @@ const SCOL={
   cell:r=>`<td class="num">${!r.transferKnown
     ?'<span class="mut" title="אין עמודת «בהעברה» בדוח שנטען — זה אינו 0">לא ידוע</span>'
     :((r.transfer||0)>0?r.transfer.toLocaleString('he-IL'):'<span class="mut">—</span>')}</td>`},
- cov:{t:'מכוסה',val:r=>r.etaMonth||0,eta:1,ttl:'יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין',
+ cov:{t:'מכוסה ברכש',val:r=>r.etaMonth||0,eta:1,ttl:'יחידות עם תאריך אספקה שנוחת עד סוף החודש — ורק הן נחשבות כיסוי. ⊘ = קיימות אך אינן מנוכות, כי הלקוח כבר ממתין',
   cell:r=>shortCovered(r)},
- stuck:{t:'ללא תאריך',val:r=>r.stuck||0,eta:1,ttl:'רכש פתוח שלא שובץ לשום אספקה — עובדה מהדוח, לא תחזית. אינו נספר ככיסוי',
+ stuck:{t:'רכש בלי תאריך',val:r=>r.stuck||0,eta:1,ttl:'רכש פתוח שלא שובץ לשום אספקה — עובדה מהדוח, לא תחזית. אינו נספר ככיסוי',
   cell:r=>stuckCell(r)},
- otw:{t:'בדרך ⌛',val:r=>(r.po||0)+(r.transfer||0),noeta:1,ttl:'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול',
+ otw:{t:'בדרך',val:r=>(r.po||0)+(r.transfer||0),noeta:1,ttl:'רכש פתוח. לא נטען דוח ETA, ולכן אין תאריך הגעה ואינו נספר ככיסוי — מוצג כדי שלא תזמין כפול',
   cell:r=>etaCells(r)},
  eta:{t:'הגעה',val:r=>r.etaFirst||'',ttl:()=>doorEtaHead(),cell:r=>doorEtaCell(r)},
  /* שני מספרי חוסר, ושניהם של המנוע: «חסר» הוא r.miss הגולמי,
@@ -7549,7 +7595,7 @@ const SCOL={
  lt:{t:'זמן אספקה',ttl:'זמן האספקה התכנוני בימים. «חסר» = אין נתון בדוח',
   val:r=>r.ltD||0,xval:r=>r.ltD||0,
   cell:r=>`<td class="num">${r.ltD?r.ltD+' ימ׳':'<span class="stake short">חסר</span>'}</td>`},
- d12:{t:'צריכה 12ח׳',ttl:'צריכה בשנים עשר החודשים האחרונים',
+ d12:{t:'צריכה 11ח׳',ttl:'צריכה באחד עשר החודשים שבחלון — זה מה שהדוח מכיל',
   val:r=>r.d12||0,xval:r=>r.d12||0,
   cell:r=>`<td class="num">${(r.d12||0).toLocaleString('he-IL')}</td>`},
  fgap:{t:'פער',ttl:'הרצפה שהגדרת פחות הדרישה הסטטיסטית',
@@ -7672,17 +7718,17 @@ const SCOL={
  poPlain:{t:'בדרך',ttl:'רכש פתוח. מוצג למידע בלבד ואינו נספר ככיסוי',
   val:r=>r.po||0,xval:r=>r.po||0,
   cell:r=>`<td class="num">${(r.po||0)>0?`<span class="posq">${r.po}</span>`:'<span class="posq">—</span>'}</td>`},
- /* ============ הון כלוא ============
+ /* ============ כסף תקוע ============
     «% מצטבר» תלוי במיקום בתוך בלוק המטבע ולא בשורה לבדה, ולכן הוא
     מקבל את ההקשר דרך x — אותו דפוס של «תיאור» שמקבל את הסיווג
     הראשי של הקבוצה. */
- capType:{t:'סוג ההחלטה',ttl:'הסיווג שהמנוע נתן לפריט',
+ capType:{t:'מה אפשר לעשות',ttl:'הסיווג שהמנוע נתן לפריט',
   val:r=>String(r.cat||''),xval:r=>String(r.cat||''),
   cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat||'')}</span></td>`},
- capVal:{t:'הון כלוא',ttl:'השווי שיושב בפריט לפי מחיר ה-FOB. הדירוג הוא בתוך המטבע בלבד',
+ capVal:{t:'כסף תקוע',ttl:'השווי שיושב בפריט לפי מחיר ה-FOB. הדירוג הוא בתוך המטבע בלבד',
   val:r=>r.expCap||0,xval:r=>Math.round(r.expCap||0),
   cell:r=>`<td class="num val"><span class="stake cap">${money(r.expCap||0,r.currency)}</span></td>`},
- capPct:{t:'% מצטבר',ttl:'האחוז המצטבר בתוך בלוק המטבע — לא חוצה מטבעות',
+ capPct:{t:'% מצטבר מהכסף',ttl:'האחוז המצטבר בתוך בלוק המטבע — לא חוצה מטבעות',
   cell:(r,x)=>`<td class="num"><span class="cum">${x&&x.pct!=null?x.pct:0}%</span></td>`},
  capCov:{t:'כיסוי',ttl:'חודשי כיסוי לפי מלאי, רכש ומלאי בהעברה. + = כולל רכש פתוח',
   val:r=>r.covA==null?-1:r.covA,xval:r=>r.covA==null?'':+r.covA.toFixed(1),
@@ -7734,7 +7780,7 @@ const SCOL={
   cell:r=>`<td>${ageBadge(movDaysSince(r))}</td>`},
  /* Δ שלילי = נמכר לפני הכניסה האחרונה, כלומר המלאי שנכנס עדיין
     על המדף. זו עובדה על שני התאריכים ולא חישוב של המנוע. */
- mdelta:{t:'Δ כניסה→מכירה',val:r=>movDelta(r)==null?-99999:movDelta(r),
+ mdelta:{t:'ימים בין כניסה למכירה',val:r=>movDelta(r)==null?-99999:movDelta(r),
   fval:r=>{const d=movDelta(r);return d==null?'—':(d>=0?'+'+d:String(d))+' ימ׳'},
   xval:r=>{const d=movDelta(r);return d==null?'':d},
   ttl:'ההפרש בימים בין הכניסה האחרונה למכירה האחרונה',
@@ -7784,7 +7830,7 @@ const SCOL={
   fval:r=>r.covA==null?'—':r.covA.toFixed(1)+' ח׳',
   ttl:'בכמה חודשי צריכה המלאי הפנוי מספיק. «—» = אין קצב מדוד',
   cell:r=>`<td class="num dim">${r.covA==null?'—':r.covA.toFixed(1)+' ח׳'}</td>`},
- cRisk:{t:'הון כלוא',val:r=>r.risk||0,ttl:'שווי המלאי שאינו נע. לא מסוכם בין מטבעות',
+ cRisk:{t:'כסף תקוע',val:r=>r.risk||0,ttl:'שווי המלאי שאינו נע. לא מסוכם בין מטבעות',
   xval:r=>r.risk||0,
   cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
@@ -7878,7 +7924,7 @@ function colViewKey(){
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
     ולכן היא מחזיקה עמודה משלה במקום אחוז ההון. שלוש האחרות חולקות
-    את תצוגת «הון כלוא» כפי שהייתה. */
+    את תצוגת «כסף תקוע» כפי שהייתה. */
  if(track==='cap'&&cur==='today'&&mode==='capPO')return 'capPO';
  /* המרנדר הגנרי — «קטלוג פריטים» וכל דליי הסיווג — מציג תמיד את
     אותן עשר עמודות, ולכן הוא תצוגה אחת. «בריאות המלאי» חולק איתו
@@ -7959,7 +8005,7 @@ function decisionHead(){const cols=FIXLIKE()
   :track==='floor'?['מק״ט','תיאור',
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
     '<span title="⌈Z × σ × √LT⌉ — המרכיב הסטטיסטי. «—» = אין קצב מדוד, ולכן הוא לא חושב">הדרישה</span>',
-    'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 12ח׳']
+    'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 11ח׳']
   :track==='applied'?['מק״ט','תיאור',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">מלאי ביטחון</span>',
@@ -7982,7 +8028,7 @@ function decisionHead(){const cols=FIXLIKE()
     '<span title="נקודת ההזמנה כפי שהיא מוצעת היום ← לפי הקצב המרוסן">ROP מוצע</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`]
   :track==='m1'?['מק״ט','תיאור','3ח׳','לחודש','פנוי','חסר',`<span title="מוצג למידע בלבד ואינו נספר ככיסוי. ${otwHead()}">בדרך</span>`]
-  :['מק״ט','תיאור','סוג ההחלטה','הון כלוא','% מצטבר','פעולה מומלצת','כיסוי'];
+  :['מק״ט','תיאור','מה אפשר לעשות','כסף תקוע','% מצטבר מהכסף','פעולה מומלצת','כיסוי'];
  /* ארבע התשובות, משמאל לימין בסדר השאלה: חסר · מכוסה · נשאר · פעולה.
     בטבלת העבודה הכותרות נגזרות מרישום העמודות, ולכן הן תמיד אותן
     עמודות שהשורה מציגה — ראה SCOL. */
@@ -8226,7 +8272,7 @@ function renderDecisions(rows){
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   /* תצוגה שיש לה רישום עמודות מרונדרת ממנו, ולכן הכותרת והתאים
      נגזרים מאותו מקור — ועמודה שנוספה בבורר מופיעה בשניהם.
-     «הון כלוא» אינו נכנס כאן: יש לו מבנה נוסף — כותרת לכל בלוק
+     «כסף תקוע» אינו נכנס כאן: יש לו מבנה נוסף — כותרת לכל בלוק
      מטבע וקו ה-80% — שיושב אחרי הענף הזה. הוא מרונדר מהרישום
      בהמשך, באותה colRowHTML. */
   if(colReg()&&!k){
@@ -8252,7 +8298,7 @@ function renderDecisions(rows){
    body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
    `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
-     ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "הון כלוא" ואת "תיקוני פרמטרים".'
+     ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "כסף תקוע" ואת "תיקוני פרמטרים".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
      :track==='floor'?(mode==='floorNR'
         ?'אין פריט בלי קצב מדיד שיושבת עליו רצפת מלאי ביטחון.'
@@ -8267,10 +8313,10 @@ function renderDecisions(rows){
      :track==='cap'?(mode==='capPO'?'אין פריט עם רכש פתוח שימשיך להיכנס למלאי עודף — שום כסף אינו בדרך לתוך ההון הכלוא.'
         :mode==='capStop'?'אין פריט שבו נקודת ההזמנה חיה והמנוע מציע מספר נמוך ממנה — אין הזמנה חוזרת לעצור בפרמטר.'
         :mode==='capBiz'?'אין מלאי מת שה-ROP שלו כבוי ואין התנגשות מדיניות — כל ההון הכלוא ניתן לטיפול בפרמטר או בביטול רכש.'
-        :mode==='capNone'?'אין הון כלוא שאין מולו מה לשנות — לכל פריט בדלת יש ידית.'
-        :'אין הון כלוא במסלול הזה.')
+        :mode==='capNone'?'אין כסף תקוע שאין מולו מה לשנות — לכל פריט בדלת יש ידית.'
+        :'אין כסף תקוע במסלול הזה.')
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
-     :'אין סטיות פרמטרים לתיקון.'}</td></tr>`;
+     :'אין מספרים לתקן ב-SAP.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
@@ -8296,7 +8342,7 @@ function renderDecisions(rows){
       ?`${rows.filter(r=>r.free<=0).length.toLocaleString('he-IL')} מהם כבר בלי מלאי · ${rows.filter(r=>!(r.po>0)).length.toLocaleString('he-IL')} בלי רכש פתוח · הפער ${rows.reduce((t,r)=>t+Math.max(0,(r.sugROP||0)-(r.rop||0)),0).toLocaleString('he-IL')} יח׳`
       :`הפער ${rows.reduce((t,r)=>t+Math.max(0,(r.sugROP||0)-(r.rop||0)),0).toLocaleString('he-IL')} יח׳ · ${moneyMix(rows,r=>Math.max(0,(r.sugROP||0)-(r.rop||0))*(r.price||0))} — כרית, לא חוסר`)
    :track==='cap'&&mode==='capPO'
-   ?`${rows.reduce((t,r)=>t+(r.po||0),0).toLocaleString('he-IL')} יח׳ רכש פתוח עוד בדרך פנימה · ${moneyMix(rows,r=>r.expCap||0)} הון כלוא כבר על המדף`
+   ?`${rows.reduce((t,r)=>t+(r.po||0),0).toLocaleString('he-IL')} יח׳ רכש פתוח עוד בדרך פנימה · ${moneyMix(rows,r=>r.expCap||0)} כסף תקוע כבר על המדף`
    :track==='floor'
    /* הסייג «מתוכם N בלי קצב מדוד» ירד: אחרי FLOOR_SPLIT שתי
       הקבוצות אינן יושבות יחד, והמשפט היה מדווח תמיד אפס. */
@@ -8801,7 +8847,7 @@ function decisionBlock(r){
  /* «19 יח׳ חסרות» ירד כשרצועת המספרים מציגה «פער 19» — אותו מספר
     בדיוק, שתי שורות זו מתחת לזו. נשאר מה שהרצועה אינה נושאת. */
  const sub=r.miss>0?''
-  :r.expCap>0?`${money(r.expCap,r.currency)} הון כלוא`
+  :r.expCap>0?`${money(r.expCap,r.currency)} כסף תקוע`
   :'ללא חשיפה';
  const done=r.mark&&r.mark.t==='handled';
  const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
@@ -8912,7 +8958,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
     <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
     <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
-    <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>הון כלוא</span></div></div>
+    <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>כסף תקוע</span></div></div>
     <div class="cantknow">${r.entFuture?'<span class="ck">⚠ תאריך כניסה עתידי הוחרג</span>':''}${r.saleFuture?'<span class="ck">⚠ תאריך מכירה עתידי הוחרג</span>':''}${r.priceMissing?'<span class="ck">⚠ מחיר FOB חסר — ללא כימות כספי</span>':''}${r.blockedCust>0?`<span class="ck">ℹ ${r.blockedCust} יח׳ חסומות לא נכללו</span>`:(!r.custBlockedKnown&&r.cust>0?`<span class="ck">⚠ אין בדוח עמודת הזמנות חסומות — ${r.cust} היח׳ הן הגולמי, וייתכן שחלקן חסומות למשלוח</span>`:'')}${(r.cust>0&&r.free<=0&&r.stock>0)?`<span class="ck">⚠ ${r.stock} יח׳ קיימות במלאי אך המלאי הפנוי אפס — לבדוק הקצאה או חסימה לפני שמזמינים</span>`:''}<span class="ck">ℹ אין ETA לרכש בדוח</span><span class="ck">ℹ אין רכב מושבת בדוח</span><span class="ck">ℹ אין MOQ בדוח</span></div></div>
   <div class="col">
    <!-- ============ סדר הקריאה בכרטיס ============
@@ -9196,7 +9242,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['לקוח ממתין ללא כיסוי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
  ['מגמה בחלון הקצב %',r=>trendPct(r)==null?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
- ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['הון כלוא (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['כסף תקוע (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 /* ============ הייצוא מייצג את מה שרואים ============
    סעיף 3 במפרט. השורות תמיד היו של התצוגה (currentRows), אבל
@@ -9226,7 +9272,7 @@ function movExportRows(){const list=movRows();
  if(!keys.length)return [];
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.fval||c.val)(r)}catch(_){return ''}};
  return [keys.map(k=>SCOL[k].t),...list.map(r=>keys.map(k=>val(k,r)))]}
-/* ============ SAP_MASS — קובץ עדכון פרמטרים ל-SAP ============
+/* ============ SAP_MASS — קובץ מספר לתקן ב-SAP ל-SAP ============
    החסם שהמעתד תיאר: «העדכון ב-SAP מסורבל». 802 המלצות פרמטר, ואין
    דרך להזין אותן חוץ מידנית, אחת-אחת. הקובץ הזה הוא בדיוק הפורמט
    שהוא שלח — שמונה עמודות, אותו סדר, אותן כותרות.
@@ -9235,7 +9281,7 @@ function movExportRows(){const list=movRows();
 
    · «פרופיל MRP» — העמודה אינה קיימת בדוח ZMRP בכלל, ובקובץ
      הדוגמה כל 88 השורות ZM-C. מילוי אוטומטי שלה היה ממיר 802
-     פריטים בבת אחת — שינוי מדיניות ולא עדכון פרמטרים. העמודה
+     פריטים בבת אחת — שינוי מדיניות ולא מספר לתקן ב-SAP. העמודה
      יוצאת עם כותרת וריקה, והמעתד ממלא אותה ידנית.
 
    · «מלאי ביטחון מינימלי» — בקובץ הדוגמה הוא תמיד שווה ל-SS.
@@ -9865,7 +9911,7 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   document.getElementById('plannerGreeting').textContent=
     (planner?planner[0]+' · ':'')
     +`${tasks.toLocaleString('he-IL')} דורשים החלטה`
-    +(capN?` · ${capN.toLocaleString('he-IL')} הון כלוא לבדיקה`:'');
+    +(capN?` · ${capN.toLocaleString('he-IL')} כסף תקוע לבדיקה`:'');
   ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
   /* חזרה למסך שבו עבדת; בפתיחה ראשונה — מרכז העבודה.
@@ -9918,7 +9964,7 @@ function demoRows(){
   ['לקוח ממתין ללא מלאי',10,i=>({m:()=>I(4,16),free:0,cust:I(3,14),po:0,lt:120,pr:I(40,900),ss:I(2,8),rop:I(6,20),sale:I(2,25),ent:I(90,300)})],
   ['אוזל החודש',       9,i=>({m:()=>I(6,22),free:I(1,6),cust:I(0,2),po:I(0,8),lt:90,pr:I(30,600),ss:I(2,6),rop:I(8,24),sale:I(1,20),ent:I(60,200)})],
   ['מכוסה ותקין',       9,i=>({m:()=>I(5,18),free:I(60,200),cust:I(0,3),po:0,lt:60,pr:I(20,400),ss:I(4,10),rop:I(10,30),sale:I(1,15),ent:I(20,90)})],
-  ['הון כלוא',          8,i=>({m:()=>I(0,3),free:I(150,600),cust:0,po:0,lt:60,pr:I(80,1400),ss:I(0,3),rop:I(0,6),sale:I(60,260),ent:I(200,500)})],
+  ['כסף תקוע',          8,i=>({m:()=>I(0,3),free:I(150,600),cust:0,po:0,lt:60,pr:I(80,1400),ss:I(0,3),rop:I(0,6),sale:I(60,260),ent:I(200,500)})],
   ['מלאי מת',           6,i=>({m:()=>0,free:I(20,180),cust:0,po:0,lt:60,pr:I(60,900),ss:0,rop:0,sale:1400,ent:1500})],
   ['תיקון פרמטרים',     8,i=>({m:()=>I(3,12),free:I(10,40),cust:I(0,2),po:I(0,6),lt:120,pr:I(25,500),ss:I(0,1),rop:I(0,2),sale:I(5,40),ent:I(40,160)})],
   ['לפי דרישה (PD)',    6,i=>({m:()=>I(0,4),free:I(0,8),cust:I(0,3),po:I(0,4),lt:150,pr:I(100,2000),ss:0,rop:0,pd:true,sale:I(10,90),ent:I(80,320)})]];
@@ -10205,7 +10251,7 @@ const XP={
  'nav-catalog':{t:'קטלוג פריטים',
   see:'כל המק״טים בדוח, בלי סינון. זה לא תור עבודה — זה מקום לחפש ולבדוק.',
   chk:'משמש כשאתה מחפש פריט מסוים, או כשאתה רוצה לראות את ההון הכלוא ואת המלאי המת בתמונה מלאה.'},
- 'nav-floor':{t:'רצפת SS',
+ 'nav-floor':{t:'מלאי ביטחון ידני',
   see:'פריטים שבהם מלאי הביטחון שהגדרת ב-SAP גבוה מהדרישה הסטטיסטית. כלומר: אתה מחזיק יותר ממה שהחישוב אומר שצריך, ביודעין או לא.',
   chk:'לכל פריט יש פער, ולפער יש מחיר. היכנס וראה את הסכום. אם בחרת את הרצפה במכוון — זה בסדר גמור, אבל שווה לדעת כמה זה עולה.'},
  'nav-trend':{t:'מגמה',
@@ -10348,9 +10394,9 @@ function xpSet(on){XPON=on;document.body.classList.toggle('xp',on);
    3. מוצגת ספירת התוצאות *לפני* ההחלה. */
 const NLQ_STATE=[
  {k:'cust', re:/לקוח ממתין|ממתין ללקוח|הזמנת לקוח/, lab:'לקוח ממתין'},
- {k:'floor',re:/רצפ|מעל הדריש|מלאי ביטחון גבוה/,    lab:'רצפת SS'},
+ {k:'floor',re:/רצפ|מעל הדריש|מלאי ביטחון גבוה/,    lab:'מלאי ביטחון ידני'},
  {k:'trend',re:/מגמ|ירידה בביקוש|ביקוש יורד/,        lab:'מגמת ירידה'},
- {k:'catalog',re:/עודף|הון כלוא|מלאי מת/,            lab:'הון כלוא'},
+ {k:'catalog',re:/עודף|כסף תקוע|מלאי מת/,            lab:'כסף תקוע'},
  {k:'today',re:/דחוף|בוער|היום|חוסר/,                lab:'היום'},
  {k:'month',re:/החודש|פרמטר|אוזל/,                   lab:'החודש'},
  {k:'done', re:/טופל/,                               lab:'טופלו'}];
@@ -10565,7 +10611,7 @@ function showMovesPanel(on){showBody(on?'moves':'queue')}
    שני כללים עסקיים שאינם נמתחים כאן:
    · אין סכום בין מטבעות ואין המרה. לכל מטבע סקאלה משלו, ולכן אורך
      העמודה משווה בתוך המטבע בלבד.
-   · «רקע» אינו נעלם. רוב הפריטים בעלי הון כלוא אינם עודף, אינם
+   · «רקע» אינו נעלם. רוב הפריטים בעלי כסף תקוע אינם עודף, אינם
      איטיים ואינם מתים — והרצועה אומרת זאת, כדי ששלושת הדליים לא
      ייראו כמו כל הסיפור. */
 function capBuckets(){
@@ -10612,14 +10658,14 @@ function renderCapTop(){
      <span class="cbt"><i style="width:${Math.max(2,Math.round(restSum/mx*100))}%"></i></span>
      <span class="cbv">${money(restSum,c)}</span></div>`:''}</div>`};
  el.innerHTML=`<div class="ctiles">
-   ${tile('הון כלוא — הכול',list,'capital','כל פריט שיש לו הון כלוא מחושב')}
+   ${tile('כסף תקוע — הכול',list,'capital','כל פריט שיש לו כסף תקוע מחושב')}
    ${tile('עודף מלאי',B.excess,'excess','מלאי מעל מה שהקצב מצדיק')}
    ${tile('מלאי איטי',B.slow,'slow','תנועה איטית לפי גיל המלאי')}
    ${tile('מלאי מת',B.dead,'dead','בלי תנועה בחלון שנמדד')}
   </div>
-  ${B.other.length?`<p class="cnote">${B.other.length.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')} הפריטים עם הון כלוא אינם עודף, אינם איטיים ואינם מתים — הם ברשימה שלמטה תחת הסיווג שלהם.</p>`:''}
+  ${B.other.length?`<p class="cnote">${B.other.length.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')} הפריטים עם כסף תקוע אינם עודף, אינם איטיים ואינם מתים — הם ברשימה שלמטה תחת הסיווג שלהם.</p>`:''}
   <div class="cpanels">${cur.map(panel).join('')}</div>
-  <p class="cnote dim">הון כלוא לפי ספק · כל מטבע בסקאלה משלו — אין המרה ואין השוואה בין מטבעות.</p>`}
+  <p class="cnote dim">כסף תקוע לפי ספק · כל מטבע בסקאלה משלו — אין המרה ואין השוואה בין מטבעות.</p>`}
 
 /* ============ מרכז העבודה ============
    מסך הנחיתה. הוא אינו טבלה שלישית ואינו סיווג חדש: ארבע רשימות
@@ -10663,7 +10709,7 @@ function renderHome(){
   ['burn','לקוח ממתין ללא רכש','⚠','critical','burn','אין פריט שממתין לו לקוח ואין מולו שום רכש'],
   ['line','רכש פתוח בלי תאריך הגעה','⇄','steady','line','אין רכש פתוח שאין לו תאריך הגעה'],
   ['month','נקודת הזמנה נמוכה מהנדרש','◆','trend','month','אין תיקוני נקודת הזמנה'],
-  ['cap','הון כלוא — הגדולים','❤','capital','cap','אין הון כלוא מזוהה']];
+  ['cap','כסף תקוע — הגדולים','❤','capital','cap','אין כסף תקוע מזוהה']];
  const row=(k,r)=>`<button type="button" class="hrow" data-pn="${esc(r.pn)}">
    <span class="hpn"><bdi>${esc(r.pn)}</bdi></span>
    <span class="hds">${esc((r.desc||'').slice(0,34))}</span>

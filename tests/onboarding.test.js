@@ -104,7 +104,7 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
     nav.areaNames.length===7&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
     nav.areaNames.join(' · '));
   ok(`${W} · ופרמטרים, אספקות, טופלו ותנועות יושבים במסילה בשמם`,
-    ['תיקוני פרמטרים','ציר האספקות','טופלו','תנועות אחרונות']
+    ['מספר לתקן ב-SAP','מתי מה אמור להגיע','טופלו','תנועות אחרונות']
       .every(n=>nav.subLbl.includes(n)),nav.subLbl.join(' · '));
   ok(`${W} · «חודש בסיס» קיבל תווית גלויה והסבר`,
     /חודש בסיס/.test(nav.rdLabel)&&/החודש המלא האחרון/.test(nav.rdTitle),

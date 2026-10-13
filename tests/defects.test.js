@@ -75,8 +75,8 @@ const rows=[
  mk('CUR-USD2',{months:[2,2,2,2,2,2,2,2,2,2,2],free:500,cur:'USD',price:250}),
  // SAP ss=1 ו-rop=3 בלי קצב: הרצפות מרימות SS, והכלל SS≤ROP חייב לרוץ אחריהן
  mk('SSROP-GUARD',{months:[0,0,1,0,0,0,0,0,0,0,0],y0:1,y1:0,y2:0,free:3,rop:3,ss:1,price:5000,cur:'USD'}),
- /* ============ רצפת SS — ששת המקרים ============
-    רצפת SS מאושרת היא כרית *מעבר* לצריכה בזמן האספקה, ולא יעד למלאי
+ /* ============ מלאי ביטחון ידני — ששת המקרים ============
+    מלאי ביטחון ידני מאושרת היא כרית *מעבר* לצריכה בזמן האספקה, ולא יעד למלאי
     הכולל. לכן קצב מחושב אפס אינו עילה לאפס אותה. שש השורות האלה הן
     בדיוק ששת המצבים שבהם max(סטטיסטי, ssMin, מדיניות) יכול להיחתך. */
  // 1 · ביקוש זעום בפריט יקר עם ssMin חיובי — המקרה שדווח
@@ -164,7 +164,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
           noThirdSource:ALL.filter(x=>x.sugSS>Math.max(x.ssStat||0,x.ssMin||0,x.lowFloor||0,x.ss||0))
             .map(x=>`${x.pn}: SS=${x.sugSS} מול max(${x.ssStat},${x.ssMin},${x.lowFloor},${x.ss})`),
           guard:g('SSROP-GUARD'),
-          /* ============ רצפת SS ============
+          /* ============ מלאי ביטחון ידני ============
              כל מקרה נאסף פעם אחת ומשרת את שלושת הפלטים: המנוע (sugSS),
              הכרטיס (explain) והייצוא (XCOLS) — כי המפרט דורש שיציגו
              את אותה תוצאה, ולא רק שהמספר בפנים יהיה נכון. */
@@ -286,12 +286,12 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('רצף אזילה אינו מוצג כירידה בביקוש',o.run.trend===0,`מגמה ${o.run.trend}% (לפני: -40%)`);
  // B1 · אזילה בעבר מול חשיפה היום — שני מצבים שונים, שני מסלולים שונים
  ok('אזילה בעבר + מכוסה היום → לא במניעת חוסר',o.run.q!=='prevent',
-    `מסלול ${o.run.q} · ${o.run.cat} (לפני: prevent · חשד אזילה)`);
+    `מסלול ${o.run.q} · ${o.run.cat} (לפני: prevent · ייתכן שאזל ולא נרשם)`);
  ok('ומקבל את הלקח הפרמטרי כהחלטה הראשונה',/נקודת הזמנה|מלאי ביטחון|אין פעולה/.test(o.run.act),o.run.act);
  ok('אימות מול המוסך יורד ממקום ההחלטה',!/סגירת מוסך/.test(o.run.act)&&/סגירת מוסך/.test(o.run.acts),o.run.act);
  ok('אינו מדורג כחומרה 2',o.run.sev<2,`sev=${o.run.sev} (לפני: 2)`);
- ok('אותה אזילה כשהפריט חשוף היום → כן חשד אזילה',
-    o.runOpen.q==='prevent'&&o.runOpen.cat==='חשד אזילה',`${o.runOpen.q} · ${o.runOpen.cat}`);
+ ok('אותה אזילה כשהפריט חשוף היום → כן ייתכן שאזל ולא נרשם',
+    o.runOpen.q==='prevent'&&o.runOpen.cat==='ייתכן שאזל ולא נרשם',`${o.runOpen.q} · ${o.runOpen.cat}`);
  ok('ואז ההחלטה היא השלמת הכמות',/להשלים/.test(o.runOpen.act),o.runOpen.act);
  ok('ההודעה מציינת את אורך הרצף',/3 החודשים/.test(o.runOpen.acts),o.runOpen.acts);
  // B2 · פריט ספורדי אינו אזילה — חודשי אפס הם היעדר ביקוש, לא חוסר מלאי
@@ -324,14 +324,14 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('וההמלצה אומרת את המספר החדש',/ל-3/.test(o.cheap.act),o.cheap.act);
  ok('ההסבר מנמק במחיר וללא המרת מטבע',/\$5/.test(o.cheap.acts+o.cheap.why),o.cheap.why);
  ok('ההסבר נוקב בשם המדרגה',/מדרגת/.test(o.cheap.why+o.cheap.acts),o.cheap.why);
- /* הסיווג השתנה בכוונה (ראה SAP_SPLIT ב-index.html): «רצפת מדרגה»
-    יצאה מ«עדכון פרמטרים» לדלת משלה, ו-paramFix כבוי שם כדי שההחלטה
+ /* הסיווג השתנה בכוונה (ראה SAP_SPLIT ב-index.html): «מינימום לפי מחיר»
+    יצאה מ«מספר לתקן ב-SAP» לדלת משלה, ו-paramFix כבוי שם כדי שההחלטה
     הזאת — שהיא מדיניות אחת לכל המדרגה — לא תיכנס לקובץ הפרמטרים
     ל-SAP. כוונת הבדיקה נשמרת ומתחדדת: הפריט אינו «תקין», יש לו
     שורת עבודה, והיא בדלת הנכונה. */
  ok('פריט זול בלי נוכחות ב-SAP מקבל שורת עבודה',
-    o.cheap0.cat==='רצפת מדרגה'&&o.cheap0.q==='tier',
-    `${o.cheap0.q} · ${o.cheap0.cat} (לפני: quality · עדכון פרמטרים)`);
+    o.cheap0.cat==='מינימום לפי מחיר'&&o.cheap0.q==='tier',
+    `${o.cheap0.q} · ${o.cheap0.cat} (לפני: quality · מספר לתקן ב-SAP)`);
  /* ‎paramFix‎ כן דלוק — הוא הסמן ש«מישהו נושא את ההחלטה», ובדיקת
     «אין פער שאיש אינו מדווח עליו» נשענת עליו. ההפרדה מקובץ ה-SAP
     נעשית לפי הסיווג, ולכן זו הבדיקה הנכונה כאן. */
@@ -385,7 +385,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     o.guard.sugSS<=o.guard.sugROP&&o.guard.sugROP>=1,
     `sugSS=${o.guard.sugSS} sugROP=${o.guard.sugROP} (לפני: 1 / 0)`);
  // תקלה 8 · כותרת ההון הכלוא בלי סימן מטבע
- ok('כותרת "הון כלוא" אינה נוקבת מטבע',!/[₪$€]/.test(o.inv.header||''),o.inv.header);
+ ok('כותרת "כסף תקוע" אינה נוקבת מטבע',!/[₪$€]/.test(o.inv.header||''),o.inv.header);
  // תקלה 2 · דירוג כספי בבלוקים לפי מטבע, בלי המרה
  ok('כל מטבע יושב בבלוק רציף אחד',
     o.rank.blocks.length===new Set(o.rank.blocks.map(b=>b[0])).size,
@@ -427,10 +427,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('«קמפיין» בן 100 יום עדיין מסתיר',mkx.campFresh.q==='marked',mkx.campFresh.q);
  ok('«קמפיין» בן 200 יום פג',mkx.campStale.q!=='marked'&&mkx.campStale.stale,
     `${mkx.campStale.q} · ${mkx.campStale.note}`);
- ok('«מוחרג ידנית» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
+ ok('«הוצא ידנית מהרשימה» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
     `${mkx.ignoreStale.q} · ${mkx.ignoreStale.note}`);
  ok('«לפי דרישה» שפג ממשיך למסלול שלו ולא לסיווג רגיל',
-    mkx.odStale.odStale===true&&mkx.odStale.cat==='עדכון פרמטרים',JSON.stringify(mkx.odStale));
+    mkx.odStale.odStale===true&&mkx.odStale.cat==='מספר לתקן ב-SAP',JSON.stringify(mkx.odStale));
  ok('הסרת הסימון מחזירה את המצב המקורי',
     mkx.after.cat===mkx.base.cat&&!mkx.after.stale,`${mkx.after.cat} (בסיס ${mkx.base.cat})`);
  // המסך הראשי לא נשאר ריק כשאין חוסרים
@@ -440,7 +440,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('כשאין חוסרים — המסך עובר למסלול שיש בו עבודה',
     scr.shortN===0?(scr.track!=='short'&&scr.rows>0):true,
     `מסלול=${scr.track} · חוסרים=${scr.shortN} · שורות=${scr.rows}`);
- // ============ רצפת SS — ששת המקרים של המפרט ============
+ // ============ מלאי ביטחון ידני — ששת המקרים של המפרט ============
  {const F=o.ssf, E=F['SSF-EXPENSIVE'];
   ok('1 · ביקוש זעום בפריט יקר — רצפת ssMin נשמרת',
      E.sugSS===5&&E.sugROP===5&&E.ssSrc==='sap',
@@ -553,7 +553,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('פריט עם סימון תקף אינו מקבל המלצת פרמטר',
     mrk.markedActs.length===0,mrk.markedActs.slice(0,3).join(' · '));
  ok('ואינו נושא paramFix',mrk.markedFix.length===0,mrk.markedFix.join(' · '));
- ok('והסימון עצמו עדיין מוצג',mrk.marked.cat==='מוחרג ידנית'&&mrk.marked.mark==='ignore',
+ ok('והסימון עצמו עדיין מוצג',mrk.marked.cat==='הוצא ידנית מהרשימה'&&mrk.marked.mark==='ignore',
     `${mrk.marked.cat} · ${mrk.marked.acts}`);
  // 3 · ייצוא אחרי סימון «לפי דרישה»
  ok('סימון «לפי דרישה» מאפס את הרצפה שבתוקף ואת מקור ה-SS',

@@ -171,7 +171,7 @@ const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_histo
      pnText:body.every(r=>typeof r[0]==='string')};
  });
  ok('קובץ ה-SAP נושא בדיוק את כותרות הפורמט',sap.hdrOk,JSON.stringify(sap.hdr));
- ok('«פרופיל MRP» ריקה — המרת פרופיל אינה עדכון פרמטרים',sap.profileBlank);
+ ok('«פרופיל MRP» ריקה — המרת פרופיל אינה מספר לתקן ב-SAP',sap.profileBlank);
  ok('«מלאי ביטחון מינימלי» הוא הקיים ב-SAP ולא ה-SS המוצע',sap.ssMinKept);
  ok('מלאי בטחון ונקודת הזמנה הם המספרים שהמנוע מחשב',
     sap.ssIsSug&&sap.ropIsSug,`ss=${sap.ssIsSug} rop=${sap.ropIsSug}`);

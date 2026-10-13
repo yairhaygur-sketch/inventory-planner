@@ -36,7 +36,7 @@ const rows=[
  /* חוסר רגיל עם קצב — בשתיהן */
  mk('PLAIN-SHORT',{months:[20,20,20,20,20,20,20,20,20,20,20],free:2,price:90,lt:60}),
  mk('PLAIN-SHORT-2',{months:[15,15,15,15,15,15,15,15,15,15,15],free:1,price:70,lt:60,sup:'ספק ב'}),
- /* פריטים שדורשים תיקון פרמטרים — כדי שדלת «תיקוני פרמטרים» לא תהיה
+ /* פריטים שדורשים תיקון פרמטרים — כדי שדלת «מספר לתקן ב-SAP» לא תהיה
     ריקה. רמת שירות 0 וזמן אספקה 0 הם שני המסלולים הישירים ל-paramFix. */
  mk('PARAM-SRV',{months:[30,30,30,30,30,30,30,30,30,30,30],free:900,rop:1,ss:0,price:60,lt:120,srv:0}),
  mk('PARAM-LT',{months:[25,25,25,25,25,25,25,25,25,25,25],free:800,rop:1,ss:0,price:55,lt:0}),
@@ -241,7 +241,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
         || e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))},id);
 
   /* היו: shortBtn ו-fixBtn — שתי כניסות משניות (.mini) שנוספו בסוף
-     סרגל אופקי, כי «חוסרים לטיפול» ו«תיקוני פרמטרים ומעקב אספקה»
+     סרגל אופקי, כי «חוסרים לטיפול» ו«מספר לתקן ב-SAP ומעקב אספקה»
      היו מרונדרים בלי שום דלת. במסילה האנכית שניהם *תחומים ראשיים*
      בזכות עצמם — «חוסרים ולקוחות» ו«תכנון ו-MRP» — ולכן הבדיקה
      מכוונת לשם. היכולת לא ירדה; היא עלתה רמה. */
@@ -272,7 +272,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   /* היה: הכותרת של fixBtn פירקה את הרשימה לשני חלקים בריחוף. במסילה
      הפירוק גלוי בעין — דלתות המשנה של התחום — ולא מוסתר בתוך title. */
   ok('והתחום מפרק את עצמו לדלתות משנה גלויות',
-    /תיקוני פרמטרים/.test(f.sub)&&/רצפת SS/.test(f.sub)&&/יושמו ב-SAP/.test(f.sub),f.sub);
+    /מספר לתקן ב-SAP/.test(f.sub)&&/מלאי ביטחון ידני/.test(f.sub)&&/יושמו ב-SAP/.test(f.sub),f.sub);
 
   /* מקלדת — כפתור תקני, בלי preventDefault שחוסם את ה-click */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
@@ -547,7 +547,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
 
  /* ================= 5 · בריאות המלאי =================
     התחום היה קיים במסילה, אבל הגוף שלו היה בדיוק הקטלוג: cur='all',
-    900 פריטים, ועמודת «הון כלוא» ריקה ברוב השורות הגלויות. */
+    900 פריטים, ועמודת «כסף תקוע» ריקה ברוב השורות הגלויות. */
  {const ctx=await mkctx();const p=await ctx.newPage();
   const errs=[];p.on('pageerror',e=>errs.push(e.message));
   await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
@@ -570,14 +570,14 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      curs:[...new Set(list.map(r=>r.currency||'—'))].length,
      note:(el.querySelector('.cnote')||{}).textContent||'',
      capCol:(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
-        .findIndex(t=>/הון כלוא/.test(t.textContent));
+        .findIndex(t=>/כסף תקוע/.test(t.textContent));
        if(i<0)return null;
        const tds=[...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,10)
          .map(tr=>(tr.children[i].textContent||'').trim());
        return tds.filter(x=>x&&x!=='—').length})()}});
   ok('הטבלה היא רשימת ההון הכלוא ולא הקטלוג',
-    c.rows===c.eng&&c.eng<c.catalog,`${c.rows} שורות · ${c.eng} עם הון כלוא · ${c.catalog} בקטלוג`);
-  ok('ולכל שורה גלויה יש באמת הון כלוא',c.capCol===null||c.capCol>=Math.min(10,c.shown),
+    c.rows===c.eng&&c.eng<c.catalog,`${c.rows} שורות · ${c.eng} עם כסף תקוע · ${c.catalog} בקטלוג`);
+  ok('ולכל שורה גלויה יש באמת כסף תקוע',c.capCol===null||c.capCol>=Math.min(10,c.shown),
     `${c.capCol} מתוך ${Math.min(10,c.shown)} הראשונות`);
   ok('ארבעה אריחים, והמספרים הם הפילוח של המנוע',
     c.tiles.length===4&&c.tiles[0].n===c.eng
@@ -598,7 +598,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      (2,700 בדלת): 1,651 מתוך 2,335 פריטי מת/איטי כבר מחזיקים ROP ≤ 1,
      כלומר ההוראה «לאפס ROP/SS» מופנית למי שכבר כבוי; ו-277 פריטים
      מחזיקים ROP > 1 על מלאי עודף אבל sugROP ≥ rop וגם sugSS ≥ ss —
-     הון כלוא בלי שום מספר להציע.
+     כסף תקוע בלי שום מספר להציע.
 
      הבדיקות כאן נועלות שלושה דברים: שכל אחת מארבע הדלתות מכילה אך
      ורק את מי שה-`capAct` שלו הוא היא, שארבעתן יחד הן **בדיוק**
@@ -642,13 +642,13 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     cs.noneHasLever===0,cs.noneHasLever+' פריטים עם ידית');
   ok('ובכל ארבעתן ההון הכלוא חיובי — זו ההגדרה של הדלת',cs.noCap===0,cs.noCap+' עם אפס');
   /* ============ TWO_CLOCKS ============
-     277 פריטים הציגו «הון כלוא» ו«אל תקטין / העלה את ה-ROP» זה לצד
+     277 פריטים הציגו «כסף תקוע» ו«אל תקטין / העלה את ה-ROP» זה לצד
      זה בלי הסבר, כי העודף נמדד בחודשי כיסוי וה-ROP בחודשי אספקה.
      נוספה שורת נימוק בלבד — אף מספר לא השתנה. הבדיקה נועלת שלושה
      דברים: שהיא מופיעה בדיוק על מי שעומד בתנאי, שהיא לעולם אינה
      מופיעה על פריט שיש לו הקטנה להציע (שם היא הייתה שקר), ושהיא
      אומרת את שני השעונים בשתי הצורות הנכונות — ביקוש בזמן אספקה
-     כשיש קצב מדיד, רצפת SS כשאין. */
+     כשיש קצב מדיד, מלאי ביטחון ידני כשאין. */
   const tc=await p.evaluate(()=>{
    const all=QF.all||[];
    const TXT=r=>((r.why||[]).find(w=>w&&/שני שעונים/.test(w[1]||''))||[])[1]||null;
@@ -688,7 +688,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      נמדד על הדוח של 5.10: 84 פריטי עודף — 66 «נקודת הזמנה סבירה»
      בעוד sugROP > rop (פער 165 יח׳), ו-28 «מלאי ביטחון סביר» בעוד
      sugSS > ss (פער 52 יח׳). 1300-03-01134 החזיק SS 10 מול 20 מוצע
-     ואמר «סביר». $101,822 · ₪3,908 · €30 הון כלוא על אותן שורות.
+     ואמר «סביר». $101,822 · ₪3,908 · €30 כסף תקוע על אותן שורות.
 
      הבדיקה אינה מחפשת את המילה «סביר» — היא דורשת שהטקסט יסכים עם
      המספרים של המנוע בשני הכיוונים. ניסוח חדש שישקר ייתפס גם הוא. */
@@ -812,7 +812,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     rb.overlap===0&&rb.missed===0,`${rb.overlap} חפיפות · ${rb.missed} הוחמצו`);
   ok('כל פריט בדלתות נמצא בתחום — מנוהל מלאי, לא PD, ויש לו המלצה',
     rb.outOfScope===0&&rb.noRec===0,`${rb.outOfScope} מחוץ לתחום · ${rb.noRec} בלי המלצה`);
-  ok('«ROP לא מגשר» מכילה אך ורק פריטים שהיובש שלהם חיובי',rb.gapBad===0,rb.gapBad+' חריגות');
+  ok('«ROP קצר מזמן האספקה» מכילה אך ורק פריטים שהיובש שלהם חיובי',rb.gapBad===0,rb.gapBad+' חריגות');
   ok('ו«מתחת למוצע» אך ורק פער בלי יובש',rb.thinBad===0,rb.thinBad+' חריגות');
   ok('וחישוב היובש הוא בדיוק זמן האספקה פחות ROP÷קצב',rb.formula);
   /* המסך: הגרוע ביותר קודם, והעמודה שמכריעה מציגה מספר */
