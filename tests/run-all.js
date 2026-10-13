@@ -13,7 +13,7 @@ const {spawnSync}=require('child_process');const path=require('path');
 const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js',
  'ui.test.js','onboarding.test.js','search.test.js','brief.test.js','routes.test.js',
  'statuses.test.js','nlq.test.js','explain.test.js','eta.test.js','ledger.test.js',
- 'expedite.test.js','day2.test.js','sig.test.js','contrast.js'];
+ 'expedite.test.js','day2.test.js','sig.test.js','ux.test.js','contrast.js'];
 const SD=__dirname;const res=[];
 for(const f of FILES){
  process.stdout.write(`\n========== ${f} ==========\n`);

@@ -1167,10 +1167,20 @@ body.nokpi .lband,body.nokpi .kpis{display:none}
 .wipsec .marks.wipm button.clr{color:var(--ink-3)}
 .wipsec .marks.wipm button:disabled{opacity:.45;cursor:default}
 
-/* ידית שינוי הרוחב: רצועה דקה בקצה הכותרת. היא יושבת בקצה
-   ה-inline-start כי בכיוון RTL שם עובר הגבול לעמודה הבאה. */
+/* ============ ידית שינוי הרוחב — המיקום והכיוון חייבים להסכים ============
+   ההערה הקודמת כאן טענה ש-inline-start הוא המקום שבו עובר הגבול
+   לעמודה הבאה ב-RTL. נמדד, וזה הפוך: עמודה «תיאור» משתרעת מ-685
+   עד 930, העמודה הבאה (i+1) מתחילה ב-575 — כלומר **משמאל**, והקודמת
+   (i-1) ב-930 מימין. inline-start ב-RTL הוא הימין, ולכן הידית ישבה
+   על הגבול עם העמודה ה*קודמת*.
+   התוצאה שהמעתד דיווח עליה: «בשביל להגדיל אני מושך לצד השני». נמדד
+   לפני התיקון — גרירה ימינה ב-60px הקטינה את העמודה מ-245 ל-194.
+   הידית עוברת ל-inline-end (השמאל ב-RTL), שם באמת עובר הגבול לעמודה
+   הבאה. עכשיו גוררים את הקצה החופשי של העמודה החוצה והיא גדלה —
+   אותו חוזה בדיוק כמו גרירת הקצה הימני ימינה ב-LTR. הסימן בקוד
+   (dir=-1) נשאר, והוא זה שמתאים עכשיו למקום. */
 th{position:relative}
-.colrz{position:absolute;inset-block:0;inset-inline-start:-3px;width:7px;
+.colrz{position:absolute;inset-block:0;inset-inline-end:-3px;width:7px;
  cursor:col-resize;z-index:5;touch-action:none}
 .colrz:hover{background:var(--accent);opacity:.35}
 table.rzing{user-select:none}
@@ -1937,7 +1947,15 @@ tr.grp td{padding-inline-end:16px}
 #tbl td{border-bottom:0}
 #tbl tbody tr{border-bottom:1px solid var(--line2)}
 #tbl tbody tr.grp{border-bottom:0}
-#tbl thead th{border-bottom:0;background:transparent}
+/* ============ כותרת דביקה חייבת להיות אטומה ============
+   הריפקטור «פחות קווים» החליף את מסגרת הכותרת ברווח וצבע, והעיף
+   איתה גם את הרקע. אבל `thead th` הוא position:sticky — ועם רקע
+   שקוף השורות נגללות *מתחת* לכותרת ונראות דרכה. המעתד דיווח:
+   «אני יורד למטה ולפעמים היא דורסת את הטקסט». נמדד: הרקע המחושב
+   היה rgba(0,0,0,0), ושתי שורות חפפו את רצועת הכותרת.
+   `border-bottom:0` נשאר — הקו באמת מיותר, הוא יושב על ה-tr.
+   מה שחוזר הוא רק האטימות. */
+#tbl thead th{border-bottom:0;background:var(--panel0)}
 #tbl thead tr{border-bottom:1px solid var(--line2)}
 .cp,.dn{border:0;background:var(--panel2)}
 .cp:hover,.dn:hover{background:var(--accL);color:var(--accD)}
@@ -8904,7 +8922,21 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
         שמבקשים ממך לעשות היה האחרון שראית. -->
    ${anomHTML?`<div class="sec" data-dt="why"><h3>חריגות בהיסטוריה</h3>${anomHTML}</div>`:''}
    ${wipPanel(r)}
-   <div class="sec" data-dt="hist">${movePanel(r)}${marksPanel(r)}</div>
+   <!-- ============ הסימון חוזר אל הלשונית שבה הוא פעולה ============
+        «סימון והחרגה» ישב ב-data-dt="hist" — כלומר תחת «היסטוריה».
+        הכרטיס נפתח על «החלטה», ולכן כדי לסמן פריט כ«טופל» היה צריך
+        ארבע לחיצות: שורה, לשונית «היסטוריה», פתיחת המקטע, ואז
+        הכפתור. המעתד דיווח «אני לוחץ על סימון ושום דבר» — והמנגנון
+        היה תקין לגמרי; הוא פשוט לא היה על המסך.
+        ומעליו, «מצב טיפול» — פקד אח שעושה בדיוק אותו סוג דבר —
+        אינו נושא data-dt כלל ולכן גלוי תמיד. שני אחים, אחד גלוי
+        ואחד חבוי מאחורי לשונית ששמה אינו קשור.
+        הסימון מקבל את אותו דין: בלי data-dt, מתחת ל«מצב טיפול».
+        נשאר מקופל כברירת מחדל — הכרטיס כבר 1,187px בחלון של 804,
+        ושורת הכותרת מספיקה כדי למצוא אותו. «תנועה אחרונה» נשארת
+        תחת «היסטוריה», ששם היא באמת שייכת. -->
+   ${marksPanel(r)}
+   <div class="sec" data-dt="hist">${movePanel(r)}</div>
    <div class="sec" data-dt="data"><h3>מאפייני הפריט</h3><div class="tags attrs">
     <span class="tag b">${esc(r.brand)}</span><span class="tag">קבוצת ${esc(r.abc||'—')}</span>
     <span class="tag p">${A.pattern}</span><span class="tag">${esc(r.model.slice(0,18))}</span>
