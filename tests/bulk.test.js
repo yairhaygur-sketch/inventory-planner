@@ -9,7 +9,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  p.on('dialog',d=>d.accept());
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(2600);
- /* עוברים ל"הון לשחרור" ומסננים.
+ /* עוברים ל"כסף תקוע" ומסננים.
     היה כאן `cur='excess'` בלבד, והבדיקה נשענה על כך ש-mode ברירת
     המחדל הוא מסך טבלה. מאז שהכלי נוחת ב«מרכז עבודה» — שהוא מסך
     נחיתה ולא טבלה — render() חוזר לפני שהוא בונה את סרגל הפעולות,

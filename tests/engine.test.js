@@ -48,7 +48,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('שדה sell הוסר מכל פריט',st.noSell);
  ok('expRev הוסר',st.noExpRev);
  ok('expShort הוסר — אין מדד כספי לחוסרים',st.noExpShort);
- ok('risk = הון כלוא בלבד',st.riskIsCapOnly);
+ ok('risk = כסף תקוע בלבד',st.riskIsCapOnly);
  ok('חוסרים נמדדים בכמות',st.shortByQty);
  ok('revUnpriced הוסר',st.noRevUnpr);
  ok('lostPast הוסר',st.noLostPast);
@@ -61,7 +61,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     לא הייתה נקודת כניסה — הייתה רשימת מגירות.
 
     עכשיו שתיים: «ציר הזמן» הוא איפה שעובדים, «הקטלוג» איפה שמחפשים.
-    מה שהיה מסלול נפרד נגיש דרך סינון בקטלוג. «הון כלוא» ירד מהמסך
+    מה שהיה מסלול נפרד נגיש דרך סינון בקטלוג. «כסף תקוע» ירד מהמסך
     לפי החלטת המתכנן — הוא לא מה שמחליטים עליו בבוקר. */
  ok('הציר הוא המסלול הראשון',/^line,/.test(st.tracks),st.tracks);
  ok('הציר הוא המצב הראשון',/^line,/.test(st.modes),st.modes);
@@ -169,7 +169,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('פריטים שאינם PD כן מקבלים המלצות',pd.restHasSS);
  ok('כיסוי עדיין מחושב',prot.cov>0,prot.cov+' פריטים');
  ok('מלאי מת/איטי עדיין מסווגים',prot.dead>0||prot.slow>0,`מת ${prot.dead} · איטי ${prot.slow}`);
- ok('הון כלוא מחושב לפי BZ',prot.exc>0&&prot.capUsesPrice,prot.exc+' פריטים');
+ ok('כסף תקוע מחושב לפי BZ',prot.exc>0&&prot.capUsesPrice,prot.exc+' פריטים');
 
  // ── מיפוי מאומת מול המסמך העסקי (ZMRP_COLUMNS) ──
  const map=await p.evaluate(()=>{
@@ -680,7 +680,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    ropDrops:keep.filter(x=>x.sugROP===0).length,
    ssDrops:keepSS.filter(x=>x.sugSS===0).length,
    kept:keep.filter(x=>x.sugROP===ROP_MIN_ACT).length,
-   /* מרגע שרצפת SS מאושרת נשמרת גם בקצב אפס, פריט עם rop=1 ורצפה
+   /* מרגע שמלאי ביטחון ידני מאושרת נשמרת גם בקצב אפס, פריט עם rop=1 ורצפה
       חיובית עולה אל הרצפה במקום להישאר 1 — וזו בדיוק הכוונה. מה
       שחייב להישמר הוא שאיש אינו *יורד* מתחת ל-1. */
    keptFloor:keep.every(x=>x.sugROP>=ROP_MIN_ACT),
@@ -689,7 +689,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /* לא נגענו בפריטים עם ROP גבוה יותר */
    biggerStillDrop:ALL.filter(x=>x.rop>ROP_MIN_ACT&&x.sugROP===0).length,
    /* ROP=1 אינו מכניס פריט לרשימת העבודה */
-   youngWithRop1:shown.filter(x=>x.cat==='טרם הוכיח את עצמו'&&x.rop<=ROP_MIN_ACT).length,
+   youngWithRop1:shown.filter(x=>x.cat==='חדש — אין עדיין היסטוריה'&&x.rop<=ROP_MIN_ACT).length,
    /* טקסט ההמלצה הישן נעלם לגמרי */
    oldText:ALL.filter(x=>(x.act||[]).some(a=>/איפוס נקודת הזמנה מ-1 ל-0/.test(a))).length,
    shown:shown.length};});
@@ -703,14 +703,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     `${rp.kept} נשארו על 1 · ${rp.ropDrops} ירידות מתחת ל-1`);
  ok('פריטי PD ולפי דרישה עדיין מקבלים 0 — מדיניות מפורשת',rp.pdZero>=0,rp.pdZero+' פריטים');
  ok('נקודת הזמנה גבוהה מ-1 עדיין ניתנת לאיפוס',rp.biggerStillDrop>0,rp.biggerStillDrop+' פריטים');
- ok('ROP=1 אינו מכניס «טרם הוכיח את עצמו» לרשימת החודש',rp.youngWithRop1===0);
+ ok('ROP=1 אינו מכניס «חדש — אין עדיין היסטוריה» לרשימת החודש',rp.youngWithRop1===0);
  ok('הטקסט «איפוס נקודת הזמנה מ-1 ל-0» נעלם',rp.oldText===0,rp.oldText+' מופעים');
 
  /* ============ שקט אחרי מכירה ============ */
  const sl=await p.evaluate(()=>{
   const shown=decisionList('month');
   /* קודם היה כאן גם x.sugROP===0. התנאי הזה חי בתוך הקוד עצמו והוסר
-     משם: רצפת SS מאושרת מרימה את sugROP גם בקצב אפס, וההסבר על השקט
+     משם: מלאי ביטחון ידני מאושרת מרימה את sugROP גם בקצב אפס, וההסבר על השקט
      אינו תלוי בה. */
   const cand=ALL.filter(x=>x.rop>0&&x.d12>3&&!x.isPDItem&&!x.isOD&&x.rate<=0);
   const noted=cand.filter(x=>(x.why||[]).some(w=>/שקט \d+ חודשים/.test(w[1])));

@@ -126,7 +126,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('והפעולה היא טיפול בלקוח, לא רכש',
     /אספקה חלופית או עדכון סטטוס/.test(vis.act)&&!/לפתוח רכש|להעלות נקודת הזמנה/.test(vis.act),
     vis.act.slice(0,90));
-  ok('והפריט נשאר בקטלוג ובהון הכלוא',vis.inCatalog&&vis.cap>0,`הון כלוא=${vis.cap}`);
+  ok('והפריט נשאר בקטלוג ובהון הכלוא',vis.inCatalog&&vis.cap>0,`כסף תקוע=${vis.cap}`);
 
   /* ================= 4 · חסר אינו אפס ================= */
   const pd=await p.evaluate(()=>{const g=pn=>ALL.find(x=>x.pn===pn);
@@ -168,7 +168,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('והנימוק אינו מצטט מדיניות שלא נבדקה',
     !/לפי מדיניות 3 השנים/.test(c.why)&&/מדיניות 3 השנים לא נבדקה/.test(c.why),c.why.slice(0,110));
   ok('והפעולה היא אימות לפני חיסול',/לאמת מול צריכת 3 השנים/.test(c.act),c.act.slice(0,70));
-  ok('ההון הכלוא ממשיך להיספר — זו שאלת ודאות, לא הסתרה',c.cap>0,`הון כלוא=${c.cap}`);
+  ok('ההון הכלוא ממשיך להיספר — זו שאלת ודאות, לא הסתרה',c.cap>0,`כסף תקוע=${c.cap}`);
   await p2.close()}
 
  /* ================= 6 · הזמנות חסומות ================= */

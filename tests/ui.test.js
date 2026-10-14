@@ -594,7 +594,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const sizes=gr.map(t=>+((t.querySelector('.gn')||{}).textContent||0));
   let desc=true;for(let i=1;i<sizes.length;i++)if(sizes[i]>sizes[i-1])desc=false;
   /* בתוך ספק, דרגת הדחיפות אינה יורדת. נבדק מול urgRank עצמו ולא לפי
-     טקסט הסיווג: "לקוח ממתין – אין רכש" ו"פער כיסוי להזמנת לקוח" הם
+     טקסט הסיווג: "לקוח ממתין – אין רכש" ו"ההזמנה גדולה מהמלאי והרכש" הם
      שני סיווגים שונים באותה דרגה, ובדיקה לפי טקסט הייתה מפילה אותם.
      הסדר מתאפס בכל כותרת ספק. */
   let order=true,prev=-1;
@@ -667,7 +667,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(400);
  /* היה: «נגיש מסרגל הטאבים». הסרגל צומצם לשניים ברפורמה, והמסלול
     נשאר נגיש דרך setMode. מה שחשוב לא השתנה: שהוא קיים ומציג פריטים. */
- ok('מסלול "רצפת SS" עדיין קיים ומציג פריטים',
+ ok('מסלול "מלאי ביטחון ידני" עדיין קיים ומציג פריטים',
     await p.evaluate(()=>floorRows().length>0),
     await p.evaluate(()=>floorRows().length+' פריטים'));
  /* היה: הכפתור נדרש להיות גלוי *מחוץ* למסלול, כדי שלא יהיה דלת מתה
@@ -786,7 +786,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    dashAll:(ix=>ix>0&&tr.length>0&&tr.every(t=>(t.children[ix]||{}).textContent.trim()==='—'))(HX('הדרישה')),
    sub:document.getElementById('phdSub').textContent,
    pgR:document.getElementById('pgR').textContent}});
- ok('«רצפה בלי קצב מדיד» מכילה אך ורק פריטים בלי קצב',
+ ok('«מינימום בלי ביקוש» מכילה אך ורק פריטים בלי קצב',
     fnr.n>0&&fnr.withRate===0,`${fnr.n} בדלת · ${fnr.withRate} מהם עם קצב`);
  ok('ושתי הדלתות יחד הן בדיוק ההגדרה הישנה — אף פריט לא נעלם',
     fw.n+fnr.n===fnr.old,`${fw.n} + ${fnr.n} = ${fw.n+fnr.n} מול ${fnr.old}`);
@@ -872,7 +872,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מלאי אפס בולט',dec.zeroRed);
 
  /* סיווג שחורג מרוב הקבוצה נכתב בשורה. בדוח האמיתי אלה שמונה פריטי
-    «חשד אזילה» בתוך «אוזל החודש» — הבחנה שנמחקה בטעות עם העמודה. */
+    «ייתכן שאזל ולא נרשם» בתוך «אוזל החודש» — הבחנה שנמחקה בטעות עם העמודה. */
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(500);
  const oc=await p.evaluate(()=>{
   const G={};for(const tr of document.querySelectorAll('#tbl tbody tr')){
@@ -1454,7 +1454,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     «בבדיקה / ממתין לספק / הוזמן» משאיר את הפריט בתור. לפני ההכרעה
     העמודה הייתה מציגה «חדש» בכל שורה תמיד.
     עמודת הרכש תלויה בנתונים ולא בהעדפה: עם דוח ETA היא מתפצלת
-    ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך ⌛» אחת. */
+    ל«מכוסה» ו«ללא תאריך», ובלעדיו היא «בדרך» אחת. */
  const hasEta=await p.evaluate(()=>!!ETA);
  ok('ברירת המחדל של «לפי החלטה» לא השתנתה',
    /* MODEL_EVERYWHERE: «דגם» נכנס מיד אחרי המק״ט, ו«ספק» יצא מברירת
@@ -1462,8 +1462,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       (נמדד 1,097px בתוך 1,046). הספק נשאר בבורר, במסלול «לפי ספק»
       ובכרטיס הפריט. */
    cDec.th.join('|')===(hasEta
-     ?'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|מכוסה|ללא תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
-     :'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|בדרך ⌛|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
+     ?'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|מכוסה ברכש|רכש בלי תאריך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'
+     :'#|מק״ט|דגם|תיאור|11 חודשים|מלאי|דרישת לקוח|בדרך|חוסר חזוי|שווי|הפעולה הבאה|מצב טיפול|ותק'),
    `ETA=${hasEta} · ${cDec.th.join('|')}`);
 
  await p.click('#colsBtn');await p.waitForTimeout(350);
@@ -1473,7 +1473,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    await p.evaluate(k=>{const cb=document.querySelector(`#colspick input[data-ck="${k}"]`);
      const lb=cb&&cb.closest('label');
      return !!cb&&cb.disabled&&!!lb&&/דוח ETA/.test(lb.textContent)},hasEta?'otw':'cov'),
-   hasEta?'«בדרך ⌛» כבויה כשיש דוח':'«מכוסה» כבויה כשאין דוח');
+   hasEta?'«בדרך» כבויה כשיש דוח':'«מכוסה» כבויה כשאין דוח');
  await p.click('#colspick input[data-ck="po"]');await p.waitForTimeout(450);
  await p.click('#colspick input[data-ck="tr"]');await p.waitForTimeout(450);
  const cAdd=await cols();
@@ -1653,7 +1653,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    const val=boxes[0].value,n=boxes.length;
    document.getElementById('cpOk').click();
    return {val,n}});
- for(const [tk,nm] of [['today','מרכז עבודה'],['floor','רצפת SS'],['cust','לקוח ממתין']]){
+ for(const [tk,nm] of [['today','מרכז עבודה'],['floor','מלאי ביטחון ידני'],['cust','לקוח ממתין']]){
    await goTrack(tk);
    const b4=await filtSnap();
    const pk=await pickFirstVal();
@@ -1707,8 +1707,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    srt:document.querySelectorAll('#movtbl thead th.wsrt').length}));
  await toMoves();
  /* ברירות המחדל הן בדיוק העמודות שהיו על המסך לפני הרישום. */
- const MVDEF={sales:'|מק״ט|תיאור|דגם|תאריך מכירה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
-   entries:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|Δ כניסה→מכירה|מלאי|ABC|MRP',
+ const MVDEF={sales:'|מק״ט|תיאור|דגם|תאריך מכירה|ימים מאז|ימים בין כניסה למכירה|מלאי|ABC|MRP',
+   entries:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|ימים בין כניסה למכירה|מלאי|ABC|MRP',
    stuck:'|מק״ט|תיאור|דגם|תאריך כניסה|ימים מאז|מכירה אחרונה|מלאי|ABC|MRP'};
  const mvKeys=[];
  for(const t of ['sales','entries','stuck']){
@@ -1812,7 +1812,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* «דגם» נכנס לברירת המחדל של כל טבלה מיד אחרי המק״ט
     (MODEL_EVERYWHERE) — 36 דגמים על 7,599 פריטים, אפס ריקים.
     עשר עמודות הפכו לאחת-עשרה. */
- const CATDEF='מק״ט|דגם|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|הון כלוא';
+ const CATDEF='מק״ט|דגם|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|כסף תקוע';
  const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
    th:[...document.querySelectorAll('#tbl thead th')]
      .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
@@ -1846,11 +1846,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ברירת המחדל בטבלה הכללית היא חומרה יורדת',
    cs0.every((v,i)=>i===0||cs0[i-1]>=v),cs0.join(' '));
  const catRisk=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
-     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='כסף תקוע');
    return [...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
      .map(tr=>+(tr.children[i].textContent.replace(/[^\d]/g,'')||0))});
  await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
-   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='הון כלוא');
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='כסף תקוע');
    th.querySelector('.thc').click()});
  await p.waitForTimeout(500);
  const cr=await catRisk(),cws=await p.evaluate(()=>WSORT.col+'/'+WSORT.dir);
@@ -1979,7 +1979,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   if(gs)ok(`${W}px · מתג הקיבוץ אינו נדחס`,gs.lost===0,`רוחב ${gs.w} · נחתך ${gs.lost}`);
 
   /* 4. המשפט שמסביר את המסלול. היה nowrap בלי title, וב-1400 ומטה
-     display:none — ב«רצפת SS» 958 מתוך 1,182 פיקסלים לא הוצגו
+     display:none — ב«מלאי ביטחון ידני» 958 מתוך 1,182 פיקסלים לא הוצגו
      ב-1440, ומתחת ל-1400 לא הייתה שום דרך לקרוא אותו. */
   for(const trk of ['floor','cust']){
    await p.evaluate(k=>{try{setMode(k)}catch(_){}},trk);await p.waitForTimeout(500);

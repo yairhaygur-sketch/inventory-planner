@@ -366,7 +366,7 @@ const etaShortJS=d=>{if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'
 
  ok('בלי דוח ETA — עמודה אחת "בדרך", בדיוק כמו קודם',
     !before.loaded&&before.chipHidden&&before.nOtw>0&&before.nSched===0
-    &&before.cols.includes('בדרך ⌛')&&!before.cols.includes('משובץ'),
+    &&before.cols.includes('בדרך')&&!before.cols.includes('משובץ'),
     `otw=${before.nOtw} sched=${before.nSched}`);
  ok('בלי דוח ETA — אין שדות ETA על השורות',
     before.P.eta===0&&before.P.stuck===0&&!before.P.has,
@@ -405,8 +405,8 @@ const etaShortJS=d=>{if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'
  /* «משובץ» שונה שמו ל«מכוסה» ומציג את מה שנוחת עד סוף החודש
     בלבד — ראה SHORT_ANSWER. הפיצול לשני תאים לא השתנה. */
  ok('עם דוח — "בדרך" מתפצל ל"מכוסה" ו"ללא תאריך"',
-    after.cols.includes('מכוסה')&&after.cols.includes('ללא תאריך')
-    &&!after.cols.includes('בדרך ⌛')&&after.nSched>0&&after.nOtw===0,
+    after.cols.includes('מכוסה ברכש')&&after.cols.includes('רכש בלי תאריך')
+    &&!after.cols.includes('בדרך')&&after.nSched>0&&after.nOtw===0,
     `sched=${after.nSched} otw=${after.nOtw}`);
  ok('הצ׳יפ מציג את מספר המק״טים בדוח',
     !after.chipHidden&&/\b9\b/.test(after.chip)&&/ETA/.test(after.chip),after.chip.trim());

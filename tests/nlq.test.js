@@ -45,7 +45,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const q2=await parse('לקוח ממתין');
  ok('«לקוח ממתין» ממופה למסלול cust',q2&&q2.state==='cust',q2&&q2.state);
  const q3=await parse('עודף');
- ok('«עודף» ממופה להון כלוא',q3&&q3.state==='catalog',q3&&q3.state);
+ ok('«עודף» ממופה לכסף תקוע',q3&&q3.state==='catalog',q3&&q3.state);
 
  /* 3. שילוב: מותג + מצב */
  const q4=await parse(real.brand[0]+' לקוח ממתין');
