@@ -144,6 +144,61 @@ const alpha=c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');
  ok('הבדיקה אכן גללה שורות אל מתחת לכותרת',cover>0,
    `${cover} שורות חופפות את רצועת הכותרת`);
 
+ /* ── 4. הדגשה מסמנת חריגה, לא עמודה ─────────────────────────── */
+ /* הטענה אינה «פחות מ-X אחוז מודגש» — סף אחוזים הוא מטבע, והוא זז
+    עם כל עמודה שמתווספת. הטענה היא הכלל עצמו.
+    הניסוח הראשון שלי כאן היה «מותר שתהיה רק עמודה אחת מודגשת בכל
+    שורה», והוא נפל על «מרכז עבודה» בגלל «דרישת לקוח». בדקתי, והקוד
+    צודק: `td class="num${r.cust>0?' cust':''}"` — ההדגשה מותנית,
+    ובמסך הזה כמעט לכל שורה יש לקוח ממתין מעצם הגדרתו. הדגשה שנובעת
+    מתנאי אמיתי היא הדגשה, גם כשהתנאי מתקיים לכולם.
+    לכן הכלל הנכון: הרשימה הסגורה של מי *רשאי* להיות מודגש תמיד —
+    המספר שנבחר, ושתי העמודות שהדגשתן נגזרת מתנאי בקוד. כל עמודה
+    אחרת שתופיע כאן היא צביעת-עמודה וחוזרת להיות באג. */
+ for(const [m,lbl] of [['today','חוסרים ולקוחות'],['home','מרכז עבודה']]){
+  await p.evaluate(x=>setMode(x),m);await p.waitForTimeout(900);
+  const o=await p.evaluate(()=>{
+   const vis=e=>{let n=e;while(n&&n!==document.body){const c=getComputedStyle(n);
+     if(c.visibility==='hidden'||c.display==='none'||parseFloat(c.opacity)<0.05)return false;
+     n=n.parentElement}
+    const r=e.getBoundingClientRect();return r.width>0&&r.height>0};
+   const heads=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+   const bold={},tot={};
+   document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>{
+    [...tr.children].forEach((td,i)=>{
+     if(!vis(td))return;const h=heads[i]||('#'+i);tot[h]=(tot[h]||0)+1;
+     let bo=false;
+     const look=e=>{if(!vis(e))return;if((+getComputedStyle(e).fontWeight||400)>=600)bo=true};
+     look(td);td.querySelectorAll('*').forEach(look);
+     if(bo)bold[h]=(bold[h]||0)+1})});
+   const always=Object.keys(tot).filter(h=>tot[h]>=10&&(bold[h]||0)/tot[h]>=0.95);
+   return {always,cols:Object.keys(tot).length,
+     rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
+  /* הרשימה הסגורה: הכותרת שנבחרה, ושתיים שהדגשתן מותנית בקוד */
+  const OK=['חוסר','מלאי','דרישת לקוח'];
+  const rogue=o.always.filter(h=>!OK.some(k=>h.indexOf(k)>=0));
+  ok(`${lbl}: אין עמודה שמודגשת בכל שורה בלי סיבה`,
+    rogue.length===0&&o.always.length>0,
+    `תמיד-מודגשות: ${o.always.join(' · ')||'אין'} · חורגות: ${rogue.join(' · ')||'אין'} (מתוך ${o.cols} עמודות)`);
+ }
+ /* והשחקנים הספציפיים שירדו — כל אחד נבדק בשמו, כדי ששינוי עתידי
+    שמחזיר אחד מהם ייפול כאן ולא יתגלה בעין. */
+ await p.evaluate(()=>setMode('today'));await p.waitForTimeout(900);
+ const w=await p.evaluate(()=>{
+  const heads=[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim());
+  const tr=document.querySelector('#tbl tbody tr[data-i]');
+  const g=(sel,lbl)=>{const e=tr.querySelector(sel);
+    return {lbl,w:e?+getComputedStyle(e).fontWeight:null}};
+  const byCol=(name)=>{const i=heads.findIndex(h=>h.indexOf(name)>=0);
+    const td=i>=0?tr.children[i]:null;
+    return {lbl:name,w:td?+getComputedStyle(td).fontWeight:null}};
+  return [g('.obj','מק״ט'),g('.rank','מונה שורה'),g('.ag','ותק'),
+          byCol('תיאור'),byCol('שווי')]});
+ const heavy=w.filter(x=>x.w!=null&&x.w>=600);
+ ok('מק״ט · מונה השורה · ותק · תיאור · שווי חזרו למשקל רגיל',
+   heavy.length===0, heavy.length?heavy.map(x=>`${x.lbl}=${x.w}`).join(' · ')
+     :w.map(x=>`${x.lbl}=${x.w==null?'אין':x.w}`).join(' · '));
+
  ok('אין שגיאת JS לאורך כל המסלול',errs.length===0,errs.slice(0,2).join(' · ')||'נקי');
  await b.close();
  for(const l of out)console.log(l);
