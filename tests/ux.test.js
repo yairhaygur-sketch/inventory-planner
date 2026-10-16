@@ -25,6 +25,13 @@ const alpha=c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');
  if(!m)return c==='transparent'?0:1;
  const p=m[1].split(',').map(s=>parseFloat(s));return p.length>3?p[3]:1};
 
+/* נוכחות אמיתית, לא רק getBoundingClientRect: אלמנט ב-opacity:0 מחזיר
+   רוחב חיובי. חייבים ללכת על כל שרשרת ההורים — על זה כבר נכווינו
+   במדידת הצבעים, שבה כפתורי hover נספרו כגלויים והמסקנה התהפכה.
+   מועבר ל-page כמחרוזת, ולכן הוא עומד בפני עצמו בלי סגירות. */
+const visFn=e=>{let n=e;while(n&&n!==document.body){const c=getComputedStyle(n);
+ if(c.display==='none'||c.visibility==='hidden'||parseFloat(c.opacity)===0)return false;
+ if(n.hidden)return false;n=n.parentElement}return true};
 (async()=>{
  const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
  const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -198,6 +205,64 @@ const alpha=c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');
  ok('מק״ט · מונה השורה · ותק · תיאור · שווי חזרו למשקל רגיל',
    heavy.length===0, heavy.length?heavy.map(x=>`${x.lbl}=${x.w}`).join(' · ')
      :w.map(x=>`${x.lbl}=${x.w==null?'אין':x.w}`).join(' · '));
+
+ /* ── 4. הזוג קיים←מוצע מול העיניים, בלשונית שהכרטיס נפתח עליה ──
+    מהשטח: «בשביל לראות את ההמלצה לשינוי נקודת הזמנה אני צריך ללחוץ
+    על נתונים». הבלוק «תיקון פרמטרים» נושא data-dt="data" והכרטיס
+    נפתח על «החלטה». הטענות כאן הן על *נוכחות וכיוון*, לא על פיקסלים
+    — גדלים תלויים בסביבת הגופנים, ועל זה כבר נכווינו. */
+ await p.evaluate(()=>setMode('qual'));await p.waitForTimeout(1100);
+ await p.keyboard.press('ArrowDown');await p.waitForTimeout(1000);
+ const ps=await p.evaluate(visSrc=>{
+  const vis=eval('('+visSrc+')');
+  const el=document.querySelector('#detail .pstrip');
+  const r=CURRENT_DETAIL;
+  const tab=([...document.querySelectorAll('#dtabs .dt')].find(x=>x.classList.contains('on'))||{}).textContent.trim();
+  const fx=[...document.querySelectorAll('#detail .sec')]
+    .find(x=>/תיקון פרמטרים/.test(x.querySelector('h3')?.textContent||''));
+  return {tab,found:!!el,visible:!!el&&vis(el),
+    txt:el?el.innerText.replace(/\s+/g,' '):'',
+    cells:el?el.querySelectorAll('.ps').length:0,
+    gap:r?(r.sugROP!==r.rop||r.sugSS!==r.ss):null, pd:r?!!r.isPDItem:null,
+    inFile:r?!!(sapMassUsable(r)||sapSlowUsable(r)||sapTierUsable(r)):null,
+    big:(document.querySelector('#detail .dcq')||{}).innerText||'',
+    deepStillThere:!!fx&&fx.getAttribute('data-dt')==='data'};
+ },visFn.toString());
+ ok('הכרטיס נפתח על «החלטה»',ps.tab==='החלטה',ps.tab);
+ ok('רצועת קיים←מוצע גלויה בלי לעבור לשונית',
+   ps.found&&ps.visible,`${ps.cells} תאים · ${ps.txt.slice(0,70)}`);
+ ok('הרצועה נושאת את החץ ← ולא →',
+   ps.txt.indexOf('←')>=0&&ps.txt.indexOf('→')<0,ps.txt.slice(0,70));
+ /* ב-RTL העין קוראת מימין, ולכן «20 → 95» נקרא «95 ← 20» — הפוך.
+    המוסכמה נקבעה ב-homeVal ובעמודות rop/ss; decisionQty נשאר מאחור. */
+ ok('גם המספר הגדול של הכרטיס נושא ← ולא →',
+   ps.big.indexOf('→')<0,ps.big.replace(/\s+/g,' ').slice(0,50));
+ ok('השבב אומר אם הפריט בקובץ העדכון ל-SAP',
+   ps.txt.indexOf(ps.inFile?'בקובץ':'לא בקובץ')>=0,
+   `inFile=${ps.inFile} · ${ps.txt.slice(-30)}`);
+ ok('הבלוק המפורט נשאר בלשונית «נתונים» ולא הוכפל',
+   ps.deepStillThere,ps.deepStillThere?'data-dt=data':'נעלם');
+ /* פריט בלי פער ופריט PD אינם מקבלים רצועה — אחרת היא רעש על כל שורה */
+ const neg=await p.evaluate(()=>{
+  const pd=ALL.filter(r=>r.isPDItem)[0];
+  const flat=ALL.filter(r=>!r.isPDItem&&r.sugROP===r.rop&&r.sugSS===r.ss)[0];
+  return {pd:pd?paramStrip(pd):'(אין פריט PD)',flat:flat?paramStrip(flat):'(אין פריט ללא פער)',
+    hasPd:!!pd,hasFlat:!!flat};
+ });
+ ok('פריט PD אינו מקבל רצועה',!neg.hasPd||neg.pd==='',neg.pd.slice(0,40)||'ריק');
+ ok('פריט בלי פער פרמטר אינו מקבל רצועה',!neg.hasFlat||neg.flat==='',neg.flat.slice(0,40)||'ריק');
+ /* ── 5. שורה ③ מבדילה בין «אין מחיר» ל«הוחלט שלא» ──────────────
+    lowDemFloor מחזירה 0 בשני המצבים, ולכן השורה הדפיסה «—» לשתיהן.
+    אף מספר לא זז — רק הטקסט מבדיל. */
+ const tier=await p.evaluate(()=>{
+  const inBand=ALL.filter(r=>r.d12>=1&&r.d12<=LOWDEM_MAX);
+  return {inBand:inBand.length,
+    noPrice:inBand.filter(r=>r.priceMissing).length,
+    aboveAll:inBand.filter(r=>!r.priceMissing&&!r.lowFloor).length};
+ });
+ ok('שלושת מצבי רצפת המדרגה קיימים בדוח הבדיקה',
+   tier.inBand>0&&tier.noPrice>0&&tier.aboveAll>0,
+   `בלהקה ${tier.inBand} · בלי מחיר ${tier.noPrice} · מעל כל סף ${tier.aboveAll}`);
 
  ok('אין שגיאת JS לאורך כל המסלול',errs.length===0,errs.slice(0,2).join(' · ')||'נקי');
  await b.close();
