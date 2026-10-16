@@ -18,6 +18,7 @@ tests/status-b.xlsx
 tests/status-c.xlsx
 tests/status-d.xlsx
 tests/status-e.xlsx
+tests/status-f.xlsx
 
 # פלט מחולל קנבס העיצוב — 2.5MB, נבנה מחדש מקבצי המקור שלצידו
 design/*/*.html

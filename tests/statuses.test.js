@@ -18,7 +18,10 @@ const mk=(pn,o={})=>{const m=o.months||Array(11).fill(0),y=m.reduce((a,b)=>a+b,0
   o.po||0,o.transfer||0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן',o.warranty!=null?o.warranty:0,
   'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
   o.y0!=null?o.y0:y,o.y1!=null?o.y1:y,o.y2!=null?o.y2:y,0,...m,
-  D(o.saleAgo!=null?o.saleAgo:10),D(o.entAgo!=null?o.entAgo:60)]};
+  /* null ⇒ תא ריק. «אין תאריך» אינו «תאריך ישן», וזה בדיוק ההבדל
+     שהענף «חדש — אין עדיין היסטוריה» טעה בו. */
+  o.saleAgo===null?'':D(o.saleAgo!=null?o.saleAgo:10),
+  o.entAgo===null?'':D(o.entAgo!=null?o.entAgo:60)]};
 function write(file,rows,opt={}){
  let hdr=HDR.slice(),rr=rows.map(r=>r.slice());
  for(const name of (opt.drop||[])){const i=hdr.indexOf(name);
@@ -53,6 +56,27 @@ const DEAD=[mk('DEAD-OLD',{free:9,stock:9,price:400,months:Array(11).fill(0),ent
 write(SD+'/status-c.xlsx',DEAD);
 write(SD+'/status-d.xlsx',DEAD,{drop:['צר.השנה','צר.שנה-1','צר.שנה-2']});
 /* בלי עמודת הזמנות חסומות */
+/* ============ שעון הגיל: הביקוש, לא הרכש ============
+   `dead3y` דרש `entAge>=1095` כתנאי הכרחי, ו-entAge בא מ«תאר׳ כניסה»
+   — כלומר מהרכש שלנו. פריט שלא נצרך שלוש שנים אבל קיבל מכולה לפני
+   100 יום יצא 'young' → «חדש — אין עדיין היסטוריה» → Q.passive,
+   expCap=0, והכסף שלו יצא מ«כסף תקוע». מכולה שנחתה מחקה מלאי מת.
+   נמדד על וריאנט של הפיקסצ׳ר (117 פריטים חסרי-צריכה עם כניסה טרייה):
+   ageTier dead 117→0, והכרטיס אמר «הכניסה האחרונה לפני 100 ימים —
+   טרם עברו 3 שנים» על פריט שלא נמכר 1,986 יום.
+   ארבעת המקרים כאן מכסים את שלושת מצבי השעון ואת הרגרסיה. */
+const NOCONS={months:Array(11).fill(0),y0:0,y1:0,y2:0,free:5,stock:5,price:1000};
+write(SD+'/status-f.xlsx',[
+ /* מכולה טרייה, מכירה לפני 7 שנים ⇒ מת. זה התיקון. */
+ mk('CLK-FRESH-ENTRY',{...NOCONS,entAgo:100,saleAgo:2575}),
+ /* מכירה לפני 100 יום ⇒ עדיין לא מת, והשעון הוא המכירה ולא הכניסה */
+ mk('CLK-RECENT-SALE',{...NOCONS,entAgo:2575,saleAgo:100}),
+ /* אין מכירה, כניסה טרייה ⇒ השעון הוא הכניסה */
+ mk('CLK-ENTRY-ONLY',{...NOCONS,entAgo:100,saleAgo:null}),
+ /* אין שום תאריך ⇒ אין שעון, ואין להמציא «בעוד 37 חודשים» */
+ mk('CLK-NO-DATES',{...NOCONS,entAgo:null,saleAgo:null}),
+ /* רגרסיה: פריט עם צריכה אינו נוגע בכל זה */
+ mk('CLK-ALIVE',{months:[4,4,4,4,4,4,4,4,4,4,4],free:5,stock:5,price:1000,entAgo:100,saleAgo:2575})]);
 write(SD+'/status-e.xlsx',[
  mk('CUST-RAW',{free:0,cust:20,price:150,months:[4,4,4,4,4,4,4,4,4,4,4]}),
  mk('BG',{free:400,price:50,months:[2,2,2,2,2,2,2,2,2,2,2]})]);
@@ -191,6 +215,37 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     return all});
   ok('אין טקסט שאומר «12 החודשים» על חלון של 11',!/ב-12 החודשים/.test(txt));
   ok('ואין «יח׳/שנה» על אותו חלון',!/יח׳\/שנה/.test(txt));
+  await p.close()}
+
+ /* ================= 8 · שעון המלאי המת ================= */
+ {const p=await load(SD+'/status-f.xlsx');
+  const g=await p.evaluate(()=>{
+   const o={};for(const r of ALL)o[r.pn]={tier:r.ageTier,cat:r.cat,
+     entAge:r.entAge,saleAge:r.saleAge,expCap:r.expCap||0,
+     why:((r.why||[])[0]||[])[1]||'',act:(r.act||[])[1]||''};
+   return o});
+  ok('מכולה טרייה אינה מוחקת מלאי מת — מכירה לפני 7 שנים מכריעה',
+    g['CLK-FRESH-ENTRY'].tier==='dead',
+    `tier=${g['CLK-FRESH-ENTRY'].tier} · entAge=${g['CLK-FRESH-ENTRY'].entAge} · saleAge=${g['CLK-FRESH-ENTRY'].saleAge}`);
+  ok('והכסף שלו נספר — expCap אינו אפס',
+    g['CLK-FRESH-ENTRY'].expCap>0,`expCap=${g['CLK-FRESH-ENTRY'].expCap}`);
+  ok('מכירה לפני 100 יום ⇒ טרם מת',
+    g['CLK-RECENT-SALE'].tier==='young',g['CLK-RECENT-SALE'].tier);
+  ok('והטקסט מצטט את המכירה, לא את הכניסה שלפני 7 שנים',
+    /המכירה האחרונה/.test(g['CLK-RECENT-SALE'].why)&&!/הכניסה האחרונה/.test(g['CLK-RECENT-SALE'].why),
+    g['CLK-RECENT-SALE'].why.slice(0,80));
+  ok('ואינו אומר «בעוד 0 חודשים» על שעון שרק התחיל',
+    !/בעוד 0 חודשים/.test(g['CLK-RECENT-SALE'].act),g['CLK-RECENT-SALE'].act);
+  ok('בלי מכירה — השעון הוא הכניסה',
+    /הכניסה האחרונה/.test(g['CLK-ENTRY-ONLY'].why),g['CLK-ENTRY-ONLY'].why.slice(0,70));
+  ok('בלי שום תאריך — הכלי אומר שאין שעון ואינו ממציא מספר',
+    !/לפני —/.test(g['CLK-NO-DATES'].why)&&!/בעוד 37 חודשים/.test(g['CLK-NO-DATES'].act)
+    &&/אי אפשר לקבוע/.test(g['CLK-NO-DATES'].why),
+    `${g['CLK-NO-DATES'].why.slice(0,60)} // ${g['CLK-NO-DATES'].act.slice(0,50)}`);
+  ok('ומבקש להשלים את התאריך במקום להמתין',
+    /להשלים תאריך/.test(g['CLK-NO-DATES'].act),g['CLK-NO-DATES'].act);
+  ok('רגרסיה: פריט עם צריכה אינו נכנס לשום ענף של השעון',
+    g['CLK-ALIVE'].tier!=='dead'&&g['CLK-ALIVE'].tier!=='young',g['CLK-ALIVE'].tier);
   await p.close()}
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
