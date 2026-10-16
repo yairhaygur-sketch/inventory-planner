@@ -168,12 +168,12 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
       inWaiting:QF.waiting.some(r=>r.pn==='BURN-PARTIAL'),
       inCustDoor:(QF.all||[]).filter(r=>r.cust>0&&r.free<=0).some(r=>r.pn==='BURN-PARTIAL')}});
   ok('לקוח ממתין עם שארית מלאי ובלי רכש מסווג כבוער',
-    f.bCat==='לקוח ממתין – אין רכש'&&f.bBurn&&f.inWaiting,
+    f.bCat==='לקוח ממתין · אין רכש'&&f.bBurn&&f.inWaiting,
     `cat="${f.bCat}" burn=${f.bBurn} לקוח=${f.bCust} מדף=${f.bFree} חסר=${f.bMiss}`);
   ok('והדלת «לקוחות ממתינים» אינה רואה אותו — היא דורשת מדף אפס',
     !f.inCustDoor,`free=${f.bFree}`);
   ok('פריט עם רכש פתוח אינו נחשב «ללא רכש»',
-    !f.cBurn&&f.cCat!=='לקוח ממתין – אין רכש',`cat="${f.cCat}" רכש=${f.cPo}`);
+    !f.cBurn&&f.cCat!=='לקוח ממתין · אין רכש',`cat="${f.cCat}" רכש=${f.cPo}`);
 
   /* --- הכניסה: ראשונה בתחום החוסרים, גלויה, כפתור ---
      היה: «הכניסה הראשונה בסרגל» — סרגל אופקי של יעדים שווים. במסילה
