@@ -594,8 +594,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const sizes=gr.map(t=>+((t.querySelector('.gn')||{}).textContent||0));
   let desc=true;for(let i=1;i<sizes.length;i++)if(sizes[i]>sizes[i-1])desc=false;
   /* בתוך ספק, דרגת הדחיפות אינה יורדת. נבדק מול urgRank עצמו ולא לפי
-     טקסט הסיווג: "לקוח ממתין – אין רכש" ו"ההזמנה גדולה מהמלאי והרכש" הם
-     שני סיווגים שונים באותה דרגה, ובדיקה לפי טקסט הייתה מפילה אותם.
+     טקסט הסיווג: "לקוח ממתין · אין רכש" ו"הזמנת לקוח לא מכוסה" הם שני
+     סיווגים שונים באותה דרגה, ובדיקה לפי טקסט הייתה מפילה אותם.
+     והערה למי שיקרא בעתיד: שתי התוויות האלה *אכן* הוחלפו מאז (היו
+     "לקוח ממתין – אין רכש" ו"ההזמנה גדולה מהמלאי והרכש"), והבדיקה
+     הזאת לא נגעה — בדיוק מה שההחלטה הזאת נועדה לה.
      הסדר מתאפס בכל כותרת ספק. */
   let order=true,prev=-1;
   for(const tr of document.querySelectorAll('#tbl tbody tr')){
@@ -1812,7 +1815,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* «דגם» נכנס לברירת המחדל של כל טבלה מיד אחרי המק״ט
     (MODEL_EVERYWHERE) — 36 דגמים על 7,599 פריטים, אפס ריקים.
     עשר עמודות הפכו לאחת-עשרה. */
- const CATDEF='מק״ט|דגם|תיאור|מצב|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|כסף תקוע';
+ const CATDEF='מק״ט|דגם|תיאור|סיווג|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|כסף תקוע';
  const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
    th:[...document.querySelectorAll('#tbl thead th')]
      .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
@@ -1859,8 +1862,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await p.waitForTimeout(500);
  const catB4=await catScan();
  const catF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
-     .find(t=>t.querySelector('.thc').textContent.trim()==='מצב');
-   if(!th)return {err:'אין כותרת מצב'};
+     /* «מצב» הפך ל«סיווג»: אותו שדה r.cat הוצג תחת שלוש כותרות שונות
+        בשלוש דלתות, ו«סיווג» היא זו שכבר נבחרה במסך הנחיתה. הטענה כאן
+        לא נגעה — הבורר עדיין נפתח, מסנן, ומסמן את העמודה. */
+     .find(t=>t.querySelector('.thc').textContent.trim()==='סיווג');
+   if(!th)return {err:'אין כותרת סיווג'};
    th.querySelector('.wfil').click();
    const pop=document.getElementById('colpop');
    if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
@@ -1877,7 +1883,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    catF.err||`${catF.n} ערכים · «${catF.v}»`);
  ok('טבלה כללית · הסינון חותך שורות, מסמן את הכותרת ומציג שבב',
    catAf.rows<catB4.rows&&catAf.marked===1&&catAf.keys.includes('c:cCat')
-   &&catAf.chips.some(c=>/מצב/.test(c)),
+   /* השבב נגזר מ-COLLABEL, שעבר מ«מצב» ל«סיווג» יחד עם כותרת העמודה */
+   &&catAf.chips.some(c=>/סיווג/.test(c)),
    `${catB4.rows} → ${catAf.rows} · ${catAf.chips.join(' | ')}`);
  await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
  await p.waitForTimeout(500);

@@ -689,7 +689,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /* לא נגענו בפריטים עם ROP גבוה יותר */
    biggerStillDrop:ALL.filter(x=>x.rop>ROP_MIN_ACT&&x.sugROP===0).length,
    /* ROP=1 אינו מכניס פריט לרשימת העבודה */
-   youngWithRop1:shown.filter(x=>x.cat==='חדש — אין עדיין היסטוריה'&&x.rop<=ROP_MIN_ACT).length,
+   youngWithRop1:shown.filter(x=>x.ageTier==='young'&&x.rop<=ROP_MIN_ACT).length,
    /* טקסט ההמלצה הישן נעלם לגמרי */
    oldText:ALL.filter(x=>(x.act||[]).some(a=>/איפוס נקודת הזמנה מ-1 ל-0/.test(a))).length,
    shown:shown.length};});
@@ -703,7 +703,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     `${rp.kept} נשארו על 1 · ${rp.ropDrops} ירידות מתחת ל-1`);
  ok('פריטי PD ולפי דרישה עדיין מקבלים 0 — מדיניות מפורשת',rp.pdZero>=0,rp.pdZero+' פריטים');
  ok('נקודת הזמנה גבוהה מ-1 עדיין ניתנת לאיפוס',rp.biggerStillDrop>0,rp.biggerStillDrop+' פריטים');
- ok('ROP=1 אינו מכניס «חדש — אין עדיין היסטוריה» לרשימת החודש',rp.youngWithRop1===0);
+ ok('ROP=1 אינו מכניס פריט משכבת «טרם נמכר» לרשימת החודש',rp.youngWithRop1===0);
  ok('הטקסט «איפוס נקודת הזמנה מ-1 ל-0» נעלם',rp.oldText===0,rp.oldText+' מופעים');
 
  /* ============ שקט אחרי מכירה ============ */
