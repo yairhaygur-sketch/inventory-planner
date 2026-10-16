@@ -1497,6 +1497,16 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
 .cstrip .cs.g b{color:var(--critical)}
 .cstrip .cs.z b{color:var(--ink-3)}
 .cstrip .cs.u b{font-size:12px;color:var(--ink-3);font-weight:700}
+.pstrip{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-top:7px}
+.pstrip .ps{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
+.pstrip .ps i{font-style:normal;font-size:11px;color:var(--ink-3)}
+.pstrip .ps em{font-style:normal;font-family:var(--num);
+ font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;
+ color:var(--ink-3);line-height:1.15}
+.pstrip .ps em b{font-weight:800;color:var(--ink)}
+.pstrip .ps.pf{font-size:11px;font-weight:700;color:var(--ink-3);
+ padding:1px 7px;border-radius:999px;border:1px solid var(--line2)}
+.pstrip .ps.pf.in{color:var(--ink);border-color:var(--accent)}
 .dcb{display:flex;gap:8px;margin-top:14px}
 /* ============ אזור ההחלטה המאוחד ============ */
 .dcql{font-family:inherit;font-size:13px;font-weight:600;color:var(--dim);
@@ -8847,8 +8857,14 @@ function decisionQty(r){
  if(r.orderQty>0)return r.orderQty+' יח׳';
  if(r.miss>0)return r.miss+' יח׳';
  if(r.excessQty>0)return r.excessQty+' יח׳';
- if(!r.isOD&&r.sugROP!==r.rop)return 'ROP '+r.rop+' → '+r.sugROP;
- if(!r.isOD&&r.sugSS!==r.ss)return 'SS '+r.ss+' → '+r.sugSS;
+ /* ← ולא →. ראה ההערה ב-homeVal: ב-RTL העין קוראת מימין, ולכן
+    «ROP 20 → 95» נקרא «95 ← 20» — הפוך מהאמת. המוסכמה הזאת כבר
+    נקבעה והוסברה שם, וכבר מיושמת ב-homeVal ובעמודות rop/ss
+    (כולל ה-tooltip «נקודת ההזמנה ב-SAP ← המוצעת»). decisionQty
+    נשאר מאחור. נמדד: 383 מתוך 900 פריטים בפיקסצ׳ר מקבלים את הזוג
+    הזה כמספר הגדול של הכרטיס, ובדלת «המלצות MRP» זה 36 מתוך 36. */
+ if(!r.isOD&&r.sugROP!==r.rop)return 'ROP '+r.rop+' ← '+r.sugROP;
+ if(!r.isOD&&r.sugSS!==r.ss)return 'SS '+r.ss+' ← '+r.sugSS;
  return '—'}
 /* ============ אזור החלטה אחד ============
    אותה המלצה הופיעה בשלושה מקומות בכרטיס: «הפעולה» בראש, «ההחלטה»
@@ -8896,10 +8912,70 @@ function coverStrip(r){
   ['פער',n(r.miss),(r.miss||0)>0?'g':'']];
  return `<div class="cstrip">${cells.map(([l,v,c])=>
   `<span class="cs ${c}"><b>${v}</b><i>${l}</i></span>`).join('')}</div>`}
+/* ============ הזוג קיים←מוצע, בבלוק ההחלטה ============
+   מהשטח: «בשביל לראות את ההמלצה לשינוי נקודת הזמנה אני צריך ללחוץ
+   על נתונים, במקום שזה יהיה מול העיניים». הבלוק «תיקון פרמטרים»
+   (data-dt="data") חי בלשונית השנייה, והכרטיס נפתח על «החלטה».
+   נמדד על הפיקסצ׳ר: בתור העבודה 168 פריטים, **לכל 168** יש פער ROP
+   או SS, וב-165 מהם התווית של המספר הגדול אינה «נקודת הזמנה» ואינה
+   «מלאי ביטחון» — כלומר הזוג אינו נראה בלשונית שהכרטיס נפתח עליה.
+
+   למה רצועה ולא העברת הבלוק: בלוק ההחלטה הוא 512px מתוך 844 באזור
+   הגלילה, והגרף כבר נחתך 95px מתחת לקיפול ב-1366/1440/1920 (נמדד
+   בשלושתם, זהה). בלוק של ~150px מעליו היה דוחף את הגרף למטה — אותה
+   תקלה שההערה בשורה «הגרף בתצוגת ברירת המחדל» מתעדת, בכיוון ההפוך.
+   הרצועה בנויה כמו cstrip ועולה פחות.
+
+   מה *לא* נעשה כאן: לא קיפלנו את שורת .dcnote כדי לשלם על הגובה.
+   «אינו מעדכן SAP» הוא סייג שההערה ליד הכפתור דורשת במפורש שיישב
+   גלוי. הבלוק המפורט ב«נתונים», עם delta() וההסבר הסטטיסטי, נשאר.
+
+   השבב «בקובץ העדכון»: הכרטיס מרנדר את זוג הפרמטרים לכל פריט, אבל
+   הקובץ ל-SAP לוקח רק את מי שעובר sapUsableBase (שדורש paramFix וגם
+   ltD>0). נמדד על הפיקסצ׳ר: 694 פריטים נושאים פער פרמטר, paramFix
+   דלוק ב-44, בקובץ 43 — 31 בשוטף ו-12 במלאי איטי. מי שמקליד ל-SAP
+   מהקובץ צריך לדעת מהכרטיס אם המספר יגיע לשם. רוב 651 הנותרים
+   מוחרגים *בצדק* (מת, PD, איטי — יש להם קובץ נפרד או שאין להם
+   עדכון), ולכן השבב אומר «אינו בקובץ» ואינו צועק «באג».
+   שלושת הפרדיקטים נקראים כמות שהם: paramFix אינו מורחב, classify
+   אינו נוגע, ובוררי הקובץ אינם זזים. */
+function paramStrip(r){
+ if(!r||r.isPDItem)return '';
+ const N=v=>(v||0).toLocaleString('he-IL');
+ const cells=[];
+ if(r.sugROP!==r.rop)cells.push(['נק׳ הזמנה',`${N(r.rop)} ← <b>${N(r.sugROP)}</b>`]);
+ if(r.sugSS!==r.ss)cells.push(['מלאי ביטחון',`${N(r.ss)} ← <b>${N(r.sugSS)}</b>`]);
+ if(!cells.length)return '';
+ const inFile=sapMassUsable(r)||sapSlowUsable(r)||sapTierUsable(r);
+ /* שורה אחת ולא שלוש קוביות. הקוביות (בסגנון cstrip) עלו 44px, והן
+    צרכו את כל המרווח שבדיקת «מסע הכרטיס» ב-ui.test.js משאירה — על
+    פריט שה-act שלו אינו נושא את זוג המספרים אין כפילות לקצץ, ושם
+    הקוביות דחפו את התוכן מ-1.640 ל-1.704 מסכים מול סף 1.70.
+    שורה אחת עולה כמחצית, והמספרים נשארים גדולים וקריאים להקלדה —
+    שזה כל מה שהם צריכים להיות. */
+ return `<div class="pstrip">`
+  +cells.map(([l,v])=>`<span class="ps"><i>${l}</i><em>${v}</em></span>`).join('')
+  +`<span class="ps pf ${inFile?'in':'out'}" title="${inFile
+     ?'הפריט נכנס לקובץ «עדכון ל-SAP» בתצוגה הנוכחית'
+     :'הפריט אינו נכנס לקובץ העדכון — ההחלטה עליו היא אחרת'}">`
+  +`${inFile?'⇪ בקובץ העדכון':'אינו בקובץ העדכון'}</span></div>`}
 function decisionBlock(r){
  const acts=(r.act||[]).filter(Boolean);
  const act=acts[0]||'אין פעולה נדרשת';
- const more=acts.slice(1);
+ /* ============ מה שהרצועה אומרת, «פעולות נוספות» לא חוזרת עליו ============
+    paramStrip מציגה «מלאי ביטחון ב-SAP 0 ← 20», ו-act מחזיק «לעדכן
+    מלאי ביטחון מ-0 ל-20» — אותו זוג מספרים, שתי שורות זו מתחת לזו.
+    ההערה «אזור החלטה אחד» כבר קבעה את הכלל: אותה המלצה פעמיים אינה
+    מוסיפה מילה. בלעדי הסינון הרצועה עולה 52px ודוחפת את הגרף; איתו
+    היא עולה כ-11px נטו, וכלום לא נעלם מהמסך.
+    הסינון נשען על **המספרים של הפריט עצמו**, לא על נוסח: שורה נופלת
+    רק אם היא נושאת בדיוק את הזוג שהרצועה כבר הציגה. שינוי מילים
+    בעתיד פשוט ישאיר את השורה במקום — נכשל לכיוון הבטוח, בלי לשבור
+    השוואת מחרוזות (היה כאן באג כזה בדיוק בעבר). */
+ const dup=[];
+ if(!r.isPDItem&&r.sugROP!==r.rop)dup.push(new RegExp('נקודת הזמנה\\s*מ-'+r.rop+'\\s*ל-'+r.sugROP+'(?!\\d)'));
+ if(!r.isPDItem&&r.sugSS!==r.ss)dup.push(new RegExp('מלאי ביטחון\\s*מ-'+r.ss+'\\s*ל-'+r.sugSS+'(?!\\d)'));
+ const more=acts.slice(1).filter(a=>!dup.some(re=>re.test(a)));
  /* «19 יח׳ חסרות» ירד כשרצועת המספרים מציגה «פער 19» — אותו מספר
     בדיוק, שתי שורות זו מתחת לזו. נשאר מה שהרצועה אינה נושאת. */
  const sub=r.miss>0?''
@@ -8915,6 +8991,7 @@ function decisionBlock(r){
   <div class="dcq">${esc(decisionQty(r))}${qlbl?`<span class="dcql">${esc(qlbl)}</span>`:''}</div>
   ${sub?`<div class="dcs2">${sub}</div>`:''}
   ${coverStrip(r)}
+  ${paramStrip(r)}
   ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
   ${xOther(r).length?`<div class="dcx"><span class="dcmk">הפריט הזה נמצא גם ב</span>
    <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
@@ -9123,6 +9200,26 @@ function explain(r){const A=r.A;
  const noSS=!!r.isOD||!!r.noStock;
  const ssStatV=r.ssStat||0,ssMinEffV=r.ssMinEff||0,lowFloorV=r.lowFloor||0;
  const ssMax=Math.max(ssStatV,ssMinEffV,lowFloorV);
+ /* ============ שורה ③ אומרת איזה משלושת המצבים זה ============
+    lowDemBand מחזירה null בשני מצבים שונים לחלוטין — «אין מחיר FOB»
+    ו«המחיר מעל כל המדרגות» — ו-lowDemFloor הופכת את שתיהן ל-0.
+    השורה הדפיסה «—» לשתיהן, ולכן פריט שעליו *הוחלט* לא להחזיק רצפה
+    נראה כמו פריט שאי אפשר היה להחליט עליו. זו אותה תקלה שאושרה על
+    ROP/SS/ssMin — «חסר נקרא כאפס מאומת» — והדגל priceMissing כבר
+    קיים ב-build ולא נקרא כאן.
+    נמדד על הפיקסצ׳ר: 35 פריטים בלהקת «צריכה 1–3 יח׳», 12 מנוהלים
+    וחיים, כל 12 יצאו רצפה 0 — 3 בלי מחיר FOB ו-9 שמחירם מעל כל סף.
+    97Z428086 (בלי מחיר) ו-66B641547 (2,768$) הציגו את אותו תו.
+    **אף מספר אינו זז** — lowDemFloor מחזירה 0 בשני המצבים כמקודם,
+    וההמלצה זהה. רק הטקסט מבדיל, ובמצב השלישי הוא גם אומר שהכלל
+    בכלל אינו חל, במקום להציג «—» כאילו הייתה כאן הכרעה. */
+ const tierNote=lowFloorV>0
+  ?`${lowFloorV} · ביקוש זעום${r.lowBand?` — מדרגה ${r.lowBand.name}`:''}`
+  :!(r.d12>=1&&r.d12<=LOWDEM_MAX)
+   ?`— · הכלל חל רק על צריכה 1–${LOWDEM_MAX} יח׳ ב-11 חודשים (כאן ${r.d12})`
+   :r.priceMissing
+    ?'לא ניתן להחליט — חסר מחיר FOB'
+    :'ללא רצפה · המחיר מעל כל המדרגות';
  const floorTop=Math.max(ssMinEffV,lowFloorV);
  /* שני הדגלים מדברים על אותה רצפה. כשהקצב אפס, דגל הקצב הוא
     הניסוח המדויק — ולכן floorDecided נשאר לשורה שבה *יש* מרכיב
@@ -9150,7 +9247,7 @@ function explain(r){const A=r.A;
     <tr><td>σ_LT = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
     <tr class="step"><td>① SS סטטיסטי = ⌈ Z × σ_LT ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdLT}⌉ = ${ssStatV}`}</td></tr>
     <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
-    <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${lowFloorV>0?`${lowFloorV} · ביקוש זעום${r.lowBand?` — מדרגה ${r.lowBand.name}`:''}`:'—'}</td></tr>
+    <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${tierNote}</td></tr>
     <tr class="total"><td>SS סופי = max( ① , ② , ③ )</td><td>max(${ssStatV}, ${ssMinEffV}, ${lowFloorV}) = ${ssMax}${r.ssSrc!=='none'?` · קבע: ${SS_SRC[r.ssSrc]}`:''}</td></tr>
     ${r.sugSS!==ssMax?`<tr class="total"><td>נוכחות מינימלית — SS ב-SAP = ${ROP_MIN_ACT}, לא מורידים</td><td>SS מוצע = ${r.sugSS}</td></tr>`:''}`;
  /* ROP נגזר מה-SS הסופי, ולכן הטבלה מראה את אותו מספר שהשורה מעל
