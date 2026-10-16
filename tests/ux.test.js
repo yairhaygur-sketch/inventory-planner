@@ -264,6 +264,39 @@ const visFn=e=>{let n=e;while(n&&n!==document.body){const c=getComputedStyle(n);
    tier.inBand>0&&tier.noPrice>0&&tier.aboveAll>0,
    `בלהקה ${tier.inBand} · בלי מחיר ${tier.noPrice} · מעל כל סף ${tier.aboveAll}`);
 
+ /* ── 6. המונח שנפסל אינו חוזר לטקסט מוצג ──────────────────────
+    «הון כלוא זה לא מושג רווח בעולם שלי» — כלל של המתכנן, והרישום
+    יושב בקוד. אבל ההחלפה הראשונה טיפלה בדלת ובעמודה והשאירה שמונה
+    מחרוזות מוצגות: תיאורי דלתות, מצבי ריק, אזהרת DIAG, ושני פאנלי
+    הסבר. הן נמצאו רק בסריקת innerText של כל המודים.
+    השומר הזה סורק את מה שמוצג בפועל, לא את הקוד — הערות בקוד הן
+    הרישום ההיסטורי ומותר להן להישאר. */
+ const BANNED=['הון כלוא','ההון הכלוא','הון לשחרור'];
+ const seen=[];
+ for(const m of ['today','cap','capPO','capBiz','qual','month','sup','catalog','home']){
+  const t=await p.evaluate(mm=>{try{setMode(mm)}catch(e){return ''}
+    return document.body.innerText},m).catch(()=>'');
+  await p.waitForTimeout(260);
+  const t2=await p.evaluate(()=>document.body.innerText);
+  for(const b of BANNED)if((t+t2).indexOf(b)>=0&&!seen.some(x=>x.b===b&&x.m===m))seen.push({m,b});
+ }
+ ok('המונח «הון כלוא» אינו מופיע בשום מסך',
+   seen.length===0,seen.length?seen.map(x=>`${x.m}: ${x.b}`).join(' · ')
+     :'נסרקו 9 מודים · נקי');
+ /* ואותו שדה אינו מוצג תחת שתי כותרות שונות בשתי דלתות */
+ const heads=await p.evaluate(()=>{
+  const o={};
+  for(const m of ['home','catalog','cap','applied']){
+   try{setMode(m)}catch(e){continue}
+   o[m]=[...document.querySelectorAll('#tbl thead th')]
+     .map(t=>(t.querySelector('.thc')||t).textContent.replace(/[▲▼]/g,'').trim());
+  }
+  return o});
+ const catCol=Object.entries(heads).map(([m,hs])=>
+   [m,hs.find(h=>h==='סיווג'||h==='מצב'||h==='למה הכסף תקוע'||h==='סיווג בדוח הזה')||'—']);
+ ok('עמודת הסיווג אינה נקראת «מצב» באף דלת',
+   catCol.every(([,h])=>h!=='מצב'),catCol.map(([m,h])=>`${m}:${h}`).join(' · '));
+
  ok('אין שגיאת JS לאורך כל המסלול',errs.length===0,errs.slice(0,2).join(' · ')||'נקי');
  await b.close();
  for(const l of out)console.log(l);

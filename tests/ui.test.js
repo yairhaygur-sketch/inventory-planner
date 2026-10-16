@@ -1859,8 +1859,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await p.waitForTimeout(500);
  const catB4=await catScan();
  const catF=await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
-     .find(t=>t.querySelector('.thc').textContent.trim()==='מצב');
-   if(!th)return {err:'אין כותרת מצב'};
+     /* «מצב» הפך ל«סיווג»: אותו שדה r.cat הוצג תחת שלוש כותרות שונות
+        בשלוש דלתות, ו«סיווג» היא זו שכבר נבחרה במסך הנחיתה. הטענה כאן
+        לא נגעה — הבורר עדיין נפתח, מסנן, ומסמן את העמודה. */
+     .find(t=>t.querySelector('.thc').textContent.trim()==='סיווג');
+   if(!th)return {err:'אין כותרת סיווג'};
    th.querySelector('.wfil').click();
    const pop=document.getElementById('colpop');
    if(!pop.classList.contains('open'))return {err:'הבורר לא נפתח'};
