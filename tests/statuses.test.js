@@ -109,6 +109,11 @@ write(SD+'/status-g.xlsx',[
  /* הבקרה לשער: אותו מדף ריק בדיוק, אבל הביקוש בחלון הקצר אמיתי —
     כאן «חוסר החודש» חייב להישאר חי, אחרת השער חוסם יותר ממה שצריך */
  mk('R3-ACTDRY',{y0:36,y1:36,y2:36,months:Array(11).fill(3),free:0,stock:5,rop:2,ss:1,lt:60,price:100}),
+ /* מגמה על חלון כמעט ריק: שתי יחידות בחודש אחד ואפס מאז.
+    tRec=0 מול tPre=2 נותן tRatio=0 — «הביקוש התמוטט» על רעש */
+ mk('R3-TREND',{...Y(21),months:[0,0,0,2,0,0,0,0,0,0,0],free:30,stock:30,rop:6,ss:4,lt:120,price:100}),
+ /* הבקרה: ירידה אמיתית בחלון אמיתי חייבת להמשיך להתרסן */
+ mk('R3-FALL', {y0:60,y1:60,y2:60,months:[3,3,3,9,9,9,0,0,0,0,0],free:30,stock:30,rop:6,ss:4,lt:120,price:100}),
  /* הבקרה: ביקוש אמיתי בחלון הקצר — ענף העודף בסרגל 12 חייב להמשיך לירות */
  mk('R3-ACTIVE',{y0:36,y1:36,y2:36,months:Array(11).fill(3),free:60,stock:60,rop:1,ss:0,lt:60,price:100}),
  mk('BG',{free:400,price:50,months:[2,2,2,2,2,2,2,2,2,2,2]})]);
@@ -289,6 +294,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     cat:r.cat,rate:+(r.rate||0).toFixed(3),from3y:!!r.rateFrom3y,
     uns:+(r.unsQty||0).toFixed(3),gross:+(r.unsGross||0).toFixed(3),
     inToday:inToday(r),dry:lineDry(r),
+    tRatio:r.tRatio,trendF:+(r.trendF||0).toFixed(2),tgap:trendGap(r),
     cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
     excess:r.excessQty||0,pf:!!r.paramFix,
     why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
@@ -326,6 +332,16 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('רגרסיה: ביקוש אמיתי על אותו מדף ריק כן מייצר חוסר לחודש',
     g['R3-ACTDRY'].uns>0&&!g['R3-ACTDRY'].from3y&&g['R3-ACTDRY'].dry,
     `uns=${g['R3-ACTDRY'].uns} from3y=${g['R3-ACTDRY'].from3y} lineDry=${g['R3-ACTDRY'].dry}`);
+  /* ============ המגמה נמדדת על החלון שהקצב בא ממנו ============
+     הרביעית מבין הרגרסיות. הדלת «ביקוש יורד» כותרתה «הביקוש ירד בתוך
+     ששת החודשים שמהם נגזר הקצב», והקצב התלת-שנתי לא נגזר מהם. 14
+     פריטים נכנסו לדלת על הדוח האמיתי. */
+  ok('מגמה אינה מרסנת קצב שלא בא מחלון המגמה',
+    g['R3-TREND'].trendF===1&&g['R3-TREND'].tgap===0,
+    `tRatio=${g['R3-TREND'].tRatio} trendF=${g['R3-TREND'].trendF} פער=${g['R3-TREND'].tgap}`);
+  ok('רגרסיה: ירידה אמיתית בחלון אמיתי כן מתרסנת',
+    g['R3-FALL'].trendF<1&&!g['R3-FALL'].from3y,
+    `trendF=${g['R3-FALL'].trendF} tRatio=${g['R3-FALL'].tRatio} from3y=${g['R3-FALL'].from3y}`);
   /* הבקרה: פריט עם ביקוש אמיתי לא נגע */
   ok('רגרסיה: ביקוש בחלון הקצר עדיין נשפט בסרגל 12 ⇒ עודף מלאי',
     g['R3-ACTIVE'].cat==='עודף מלאי'&&!g['R3-ACTIVE'].from3y,
