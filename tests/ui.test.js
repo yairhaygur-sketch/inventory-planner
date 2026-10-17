@@ -745,7 +745,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      נכנס אחרי המק״ט (MODEL_EVERYWHERE); כך הם לא יישברו שוב. */
   const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
   return {n:rows.length,
-   narrow:all.filter(r=>r.rate>0&&!r.isOD&&!r.noStock&&(r.ssMinEff||0)>(r.ssStat||0)).length,
+   /* ============ הפרדיקט, לא הפרוקסי ============
+      כאן עמד `r.rate>0`. עד RATE_3Y הוא התלכד עם floorMeasured, כי
+      קצב מדיד הפיק תמיד ssStat חיובי. קצב מהחלון התלת-שנתי שובר
+      את ההתלכדות: 0.30 יח׳/חודש הם קצב אמיתי שבעיגול נותן ssStat=0,
+      ושני פריטים בפיקסצ׳ר (28S702816, 29A807453) נפלו בין השניים.
+      הבדיקה נועלת את מה שהדלת באמת מבטיחה — «יש דרישה להשוות
+      אליה» — ולא קיצור דרך שהקוד מעולם לא התחייב לו. */
+   narrow:all.filter(r=>floorMeasured(r)&&!r.isOD&&!r.noStock&&(r.ssMinEff||0)>(r.ssStat||0)).length,
    noRate:rows.filter(ssNoRate).length,
    /* אף החרגה עסקית אינה נכנסת */
    leaks:rows.filter(r=>r.isOD||r.noStock||(r.ssMinEff||0)<=(r.ssStat||0)).length,
@@ -762,8 +769,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
        match:(ix=>tr.every((t,i)=>((t.children[ix]||{}).textContent.trim()==='—')===ssNoRate(shown[i])))(HX('הדרישה'))}})(),
    pgR:document.getElementById('pgR').textContent,
    sub:document.getElementById('phdSub').textContent}});
- ok('הדלת מכילה אך ורק פריטים עם קצב מדיד',fw.n===fw.narrow&&fw.noRate===0,
-    `${fw.n} בדלת · ${fw.narrow} עם קצב · ${fw.noRate} בלי`);
+ ok('הדלת מכילה אך ורק פריטים עם דרישה סטטיסטית',fw.n===fw.narrow&&fw.noRate===0,
+    `${fw.n} בדלת · ${fw.narrow} עם דרישה · ${fw.noRate} בלי קצב`);
  ok('ואף החרגה עסקית לא נכנסה איתם',fw.leaks===0,fw.leaks+' דליפות');
  ok('הפער נמדד מול הרצפה שבתוקף ולא מול ssMin הגולמי',fw.rawFloor===0,fw.rawFloor+' חריגות');
  ok('בעמודת הדרישה «—» מופיעה בדיוק בשורות שאין בהן קצב מדוד',
@@ -780,22 +787,36 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
   const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
   return {n:rows.length,
-   withRate:rows.filter(r=>r.rate>0).length,
+   measured:rows.filter(floorMeasured).length,
+   /* הקבוצה שנולדה ב-RATE_3Y: קצב כן, דרישה לא. מקומה כאן דווקא. */
+   rateNoNeed:rows.filter(r=>r.rate>0&&!(r.ssStat>0)).length,
+   dashRows:(ix=>({n:tr.length,
+     got:tr.filter(t=>(t.children[ix]||{}).textContent.trim()==='—').length,
+     want:rows.length?null:null,
+     match:tr.every((t,i)=>((t.children[ix]||{}).textContent.trim()==='—')
+       ===ssNoRate(currentRows()[+t.dataset.i]))}))(HX('הדרישה')),
    /* ההגדרה הישנה במלואה — שתי הדלתות יחד חייבות לכסות אותה */
    old:all.filter(r=>ssFloorGap(r)>0).length,
    leaks:rows.filter(r=>r.isOD||r.noStock||(r.ssMinEff||0)<=(r.ssStat||0)).length,
    rawFloor:rows.filter(r=>ssFloorGap(r)!==(r.ssMinEff||0)-(r.ssStat||0)).length,
    /* כאן «—» אמורה להופיע בכל שורה, כי לאף שורה אין קצב */
-   dashAll:(ix=>ix>0&&tr.length>0&&tr.every(t=>(t.children[ix]||{}).textContent.trim()==='—'))(HX('הדרישה')),
    sub:document.getElementById('phdSub').textContent,
    pgR:document.getElementById('pgR').textContent}});
- ok('«מינימום בלי ביקוש» מכילה אך ורק פריטים בלי קצב',
-    fnr.n>0&&fnr.withRate===0,`${fnr.n} בדלת · ${fnr.withRate} מהם עם קצב`);
+ ok('«מינימום בלי דרישה» מכילה אך ורק פריטים בלי דרישה סטטיסטית',
+    fnr.n>0&&fnr.measured===0,`${fnr.n} בדלת · ${fnr.measured} מהם עם דרישה`);
+ /* הרגרסיה של RATE_3Y: קצב קטן שאינו מפיק דרישה אינו מעביר דלת */
+ ok('וקצב שקטן מכדי לייצר דרישה נשאר כאן, לא עובר לדלת ההשוואה',
+    fnr.rateNoNeed>0,`${fnr.rateNoNeed} פריטים עם קצב וללא דרישה`);
  ok('ושתי הדלתות יחד הן בדיוק ההגדרה הישנה — אף פריט לא נעלם',
     fw.n+fnr.n===fnr.old,`${fw.n} + ${fnr.n} = ${fw.n+fnr.n} מול ${fnr.old}`);
  ok('גם כאן אף החרגה עסקית לא נכנסה',fnr.leaks===0,fnr.leaks+' דליפות');
  ok('והפער נמדד מול הרצפה שבתוקף',fnr.rawFloor===0,fnr.rawFloor+' חריגות');
- ok('«—» בעמודת הדרישה בכל שורה — אין קצב להשוות אליו',fnr.dashAll,fnr.sub.slice(0,80));
+/* «—» היא «לא חושב», ו-0 הוא «חושב ויצא אפס». אחרי RATE_3Y שני
+    המצבים חיים באותה דלת, ולכן הנעילה היא התאמה שורה-לשורה ולא
+    אחידות: לקצב שקטן מכדי לייצר דרישה מגיע 0, לא «—». */
+ ok('«—» מופיעה בדיוק בשורות שאין בהן קצב — ולא בשורות שיש בהן קצב ודרישה 0',
+    fnr.dashRows.match&&fnr.dashRows.got<fnr.dashRows.n,
+    `${fnr.dashRows.got}/${fnr.dashRows.n} שורות עם «—»`);
  ok('והתת-כותרת אומרת שאי אפשר לקבוע שהרצפה גבוהה מדי',
     /לא שהיא גבוהה מדי/.test(fnr.sub),fnr.sub.slice(0,140));
  await p.evaluate(()=>setMode('floor'));await p.waitForTimeout(500);
