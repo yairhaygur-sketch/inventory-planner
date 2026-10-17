@@ -4222,14 +4222,27 @@ function ropGapWhy(it){
    האמיתי יצא ‎4.066666666666666‎ — ומכפלה שהקורא יבדוק ולא תסתדר
    גרועה מלא לכתוב אותה בכלל. הימים הם המספר שבדוח. */
 const mon=n=>n===1?'חודש':'חודשי';
+/* ============ RATE_3Y — הענף המדורג שתק על החלון ============
+   לפני התיקון, 28 הפריטים האלה נפלו דווקא לענף השני — וזה נקב במפורש
+   ב«כיסוי בקצב 3 השנים». מרגע שיש להם `rate` ו-`cov` הם עברו לענף
+   הראשון, שאינו מזכיר את החלון בכלל. כלומר התיקון *החליף* נוסח מדויק
+   בנוסח שותק, וזה ההיפך מהכוונה.
+   ושורה אחת גרועה מזה: `cov` הוא `free/rate` בעוד הרונג האיטי שלוש
+   שורות מעל מדווח `cov3y` שנגזר מ-`covStock` (מלאי כולל). בפריט אחד
+   על הדוח — 2935-86-00152, מלאי 11 וכולן חסומות — הכרטיס אמר «כיסוי
+   28 חודשים» ומיד «על המדף 0 חודשי כיסוי». שני מספרים נכונים על שתי
+   כמויות שונות, ואף אחד מהם לא אמר על איזו.
+   כאן נוקבים בחלון ומסמנים את הבסיס. אף מספר אינו מחושב מחדש. */
 function twoClocks(it){
  if(!(it.rop>ROP_MIN_ACT))return null;
  if(!((it.sugROP||0)>=(it.rop||0)&&(it.sugSS||0)>=(it.ss||0)))return null;
  const up=(it.sugROP||0)>(it.rop||0);
  if(it.rate>0&&it.cov!=null)
   return ['info',`שני שעונים: ROP מוצע ${it.sugROP} = ביקוש בזמן אספקה `
-   +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש · זמן אספקה ${it.ltD} ימים) `
-   +`ועוד מלאי ביטחון ${it.sugSS} — ועל המדף ${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
+   +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש`
+   +`${it.rateFrom3y?' מחלון 3 השנים':''} · זמן אספקה ${it.ltD} ימים) `
+   +`ועוד מלאי ביטחון ${it.sugSS} — ועל ${it.rateFrom3y?'המלאי הפנוי':'המדף'} `
+   +`${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
    +(up?`לכן הכלי מציע להעלות ${it.rop}→${it.sugROP} ובאותה נשימה מדווח כסף תקוע: `
       :`לכן אין מה להקטין, וכסף תקוע נשאר: `)
    +`הפרמטר נכון, הכמות אינה. הידית כאן אינה ROP`];
@@ -9294,7 +9307,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
     <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
-    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
+    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</span></div>
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
     <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
@@ -9608,6 +9621,13 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
+ /* ============ RATE_3Y — הגיליון חייב לומר מאיזה חלון ============
+    ההגנה שכתבתי בקומיט הקודם («הצריכה התלת-שנתית יושבת בעמודה צריכה
+    3 שנים») אינה מחזיקה: אותה עמודה מאוכלסת בכל שורה שיש לה has3y,
+    ולכן אין שום צמד תאים שמבדיל 0.42 שבא מששה חודשים מ-0.42 שבא
+    משלושים וארבעה. הגיליון הוא מה שיוצא מהכלי ומה שלפיו מעדכנים
+    SAP ביד, ולכן המקור נאמר בעמודה משלו ולא נותר להסקה. */
+ ['מקור הקצב',r=>r.rate>0?(r.rateFrom3y?'3 שנים':'6 חודשים'):''],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
  ['לקוח ממתין ללא כיסוי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
  /* RATE_3Y — הכותרת היא הגדרה, והמספר הזה אינו עומד בה לפריט שהקצב

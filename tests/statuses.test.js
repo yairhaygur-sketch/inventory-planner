@@ -112,6 +112,10 @@ write(SD+'/status-g.xlsx',[
  /* מגמה על חלון כמעט ריק: שתי יחידות בחודש אחד ואפס מאז.
     tRec=0 מול tPre=2 נותן tRatio=0 — «הביקוש התמוטט» על רעש */
  mk('R3-TREND',{...Y(21),months:[0,0,0,2,0,0,0,0,0,0,0],free:30,stock:30,rop:6,ss:4,lt:120,price:100}),
+ /* «שני שעונים» על מלאי חסום: 30 יח׳ על המדף, אפס פנויות. הרונג
+    האיטי מדווח כיסוי מהמלאי הכולל (34 ח׳), twoClocks מהפנוי (0 ח׳) —
+    שני מספרים נכונים על שתי כמויות, ועד התיקון אף אחד לא אמר על איזו */
+ mk('R3-TWOCLK',{...Y(30),months:Z11,free:0,stock:30,rop:2,ss:0,lt:120,price:100}),
  /* הבקרה: ירידה אמיתית בחלון אמיתי חייבת להמשיך להתרסן */
  mk('R3-FALL', {y0:60,y1:60,y2:60,months:[3,3,3,9,9,9,0,0,0,0,0],free:30,stock:30,rop:6,ss:4,lt:120,price:100}),
  /* הבקרה: ביקוש אמיתי בחלון הקצר — ענף העודף בסרגל 12 חייב להמשיך לירות */
@@ -295,6 +299,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     uns:+(r.unsQty||0).toFixed(3),gross:+(r.unsGross||0).toFixed(3),
     inToday:inToday(r),dry:lineDry(r),
     tRatio:r.tRatio,trendF:+(r.trendF||0).toFixed(2),tgap:trendGap(r),
+    why2:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
     cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
     excess:r.excessQty||0,pf:!!r.paramFix,
     why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
@@ -342,6 +347,22 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('רגרסיה: ירידה אמיתית בחלון אמיתי כן מתרסנת',
     g['R3-FALL'].trendF<1&&!g['R3-FALL'].from3y,
     `trendF=${g['R3-FALL'].trendF} tRatio=${g['R3-FALL'].tRatio} from3y=${g['R3-FALL'].from3y}`);
+  /* ============ «שני שעונים» נוקב בחלון ובבסיס הכיסוי ============
+     החמישית. לפני ג5 נפלו 28 הפריטים האלה לענף השטוח, שנקב במפורש
+     ב«כיסוי בקצב 3 השנים». מרגע שיש להם rate ו-cov הם עברו לענף
+     המדורג, ששתק על החלון — כלומר התיקון החליף נוסח מדויק בשותק. */
+  ok('«שני שעונים» על קצב תלת-שנתי נוקב בחלון',
+    /שני שעונים: ROP מוצע/.test(g['R3-TWOCLK'].why2)
+    &&/קצב [\d.]+ לחודש מחלון 3 השנים/.test(g['R3-TWOCLK'].why2),
+    g['R3-TWOCLK'].why2.slice(0,150));
+  /* בלי לקבע את המספר: win3y נגזר מחודש העוגן ולכן נע. מה שנעול הוא
+     ההבחנה — שני כיסויים באותו כרטיס, כל אחד מסומן על הכמות שלו. */
+  ok('ומסמן שהכיסוי הוא של המלאי הפנוי — לא מול מספר אחר באותו כרטיס',
+    (()=>{const t=g['R3-TWOCLK'].why2;
+      const slow=t.match(/כיסוי (\d+) חודשים בקצב הזה/);
+      const freeCov=/על המלאי הפנוי 0 חודשי כיסוי/.test(t);
+      return !!slow&&+slow[1]>0&&freeCov})(),
+    g['R3-TWOCLK'].why2.slice(0,300));
   /* הבקרה: פריט עם ביקוש אמיתי לא נגע */
   ok('רגרסיה: ביקוש בחלון הקצר עדיין נשפט בסרגל 12 ⇒ עודף מלאי',
     g['R3-ACTIVE'].cat==='עודף מלאי'&&!g['R3-ACTIVE'].from3y,
