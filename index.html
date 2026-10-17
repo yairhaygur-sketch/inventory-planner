@@ -9610,7 +9610,12 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
  ['לקוח ממתין ללא כיסוי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
- ['מגמה בחלון הקצב %',r=>trendPct(r)==null?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
+ /* RATE_3Y — הכותרת היא הגדרה, והמספר הזה אינו עומד בה לפריט שהקצב
+    שלו בא מחלון 34 החודשים: tRatio הוא חודשים 1-3 מול 4-6. נמדד:
+    21 מתוך 89 הפריטים הפליטו כאן אחוז, רובם -100% על יחידה אחת מול
+    אפס. «קצב מרוסן» שלידה כבר יוצאת ריקה אחרי תיקון trendF, וזו
+    מיושרת אליה. הצריכה התלת-שנתית שלהם יושבת בעמודה «צריכה 3 שנים». */
+ ['מגמה בחלון הקצב %',r=>(r.rateFrom3y||trendPct(r)==null)?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
  ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['כסף תקוע (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
