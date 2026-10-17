@@ -103,6 +103,12 @@ write(SD+'/status-g.xlsx',[
  mk('R3-BACK', {...Y(30),months:Z11,free:60,stock:60,rop:200,ss:50,lt:60,price:100}),
  /* הצד ההפוך: רצפת ssMin קיימת וה-ROP ב-SAP נמוך ממנה ⇒ SAP לא יחזיר */
  mk('R3-FLOOR',{...Y(30),months:Z11,free:60,stock:60,rop:1,ss:0,ssMin:5,lt:60,price:100}),
+ /* מדף ריק: בלי השער, 0.88 יח׳/חודש פחות 0 נותנות «חוסר החודש» של
+    0.88 יח׳ — ומכניסות את הפריט לדלת הבוערת */
+ mk('R3-DRY',  {...Y(30),months:Z11,free:0, stock:9, rop:2,ss:1,lt:60,price:100}),
+ /* הבקרה לשער: אותו מדף ריק בדיוק, אבל הביקוש בחלון הקצר אמיתי —
+    כאן «חוסר החודש» חייב להישאר חי, אחרת השער חוסם יותר ממה שצריך */
+ mk('R3-ACTDRY',{y0:36,y1:36,y2:36,months:Array(11).fill(3),free:0,stock:5,rop:2,ss:1,lt:60,price:100}),
  /* הבקרה: ביקוש אמיתי בחלון הקצר — ענף העודף בסרגל 12 חייב להמשיך לירות */
  mk('R3-ACTIVE',{y0:36,y1:36,y2:36,months:Array(11).fill(3),free:60,stock:60,rop:1,ss:0,lt:60,price:100}),
  mk('BG',{free:400,price:50,months:[2,2,2,2,2,2,2,2,2,2,2]})]);
@@ -281,6 +287,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  {const p=await load(SD+'/status-g.xlsx');
   const g=await p.evaluate(()=>{const o={};for(const r of ALL)o[r.pn]={
     cat:r.cat,rate:+(r.rate||0).toFixed(3),from3y:!!r.rateFrom3y,
+    uns:+(r.unsQty||0).toFixed(3),gross:+(r.unsGross||0).toFixed(3),
+    inToday:inToday(r),dry:lineDry(r),
     cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
     excess:r.excessQty||0,pf:!!r.paramFix,
     why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
@@ -304,6 +312,20 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     `paramFix=${g['R3-BACK'].pf}`);
   ok('וגם הצד ההפוך — פרמטר מתחת לרצפה אינו מאבד את הדגל',
     g['R3-FLOOR'].pf,`paramFix=${g['R3-FLOOR'].pf} ROP ${g['R3-FLOOR'].rop}→${g['R3-FLOOR'].sugROP}`);
+  /* ============ קצב תלת-שנתי אינו תחזית לחודש ============
+     השלישית מבין הרגרסיות שהמדידה תפסה: `unsQty = קצב − מלאי פנוי`
+     הוא משפט על החודש הקרוב, ועם קצב של 0.30 הוא טוען «חוסר» של
+     שליש יחידה ומכניס את הפריט לדלת הבוערת. שני השערים נדרשים —
+     `unsQty` לבדו מתקן את «היום» ומשאיר את הציר. */
+  ok('קצב תלת-שנתי אינו מייצר חוסר לחודש הקרוב, גם על מדף ריק',
+    g['R3-DRY'].uns===0&&g['R3-DRY'].gross===0,
+    `unsQty=${g['R3-DRY'].uns} unsGross=${g['R3-DRY'].gross} קצב=${g['R3-DRY'].rate}`);
+  ok('ולכן אינו נכנס לדלת הבוערת ולא לציר האספקות',
+    !g['R3-DRY'].inToday&&!g['R3-DRY'].dry,
+    `inToday=${g['R3-DRY'].inToday} lineDry=${g['R3-DRY'].dry}`);
+  ok('רגרסיה: ביקוש אמיתי על אותו מדף ריק כן מייצר חוסר לחודש',
+    g['R3-ACTDRY'].uns>0&&!g['R3-ACTDRY'].from3y&&g['R3-ACTDRY'].dry,
+    `uns=${g['R3-ACTDRY'].uns} from3y=${g['R3-ACTDRY'].from3y} lineDry=${g['R3-ACTDRY'].dry}`);
   /* הבקרה: פריט עם ביקוש אמיתי לא נגע */
   ok('רגרסיה: ביקוש בחלון הקצר עדיין נשפט בסרגל 12 ⇒ עודף מלאי',
     g['R3-ACTIVE'].cat==='עודף מלאי'&&!g['R3-ACTIVE'].from3y,
