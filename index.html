@@ -3937,13 +3937,53 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     let silent=0;while(silent<months.length&&Math.max(0,months[silent])===0)silent++;
     const tRec=clean.slice(0,3).reduce((a,b)=>a+b,0),tPre=clean.slice(3,6).reduce((a,b)=>a+b,0);
     const tRatio=tPre>0?tRec/tPre:null;
-    const trendF=(rate>0&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
+    /* ============ RATE_3Y — המגמה נמדדת על החלון שהקצב בא ממנו ============
+       `rate>0` כאן אינו תנאי על הקצב אלא פרוקסי לכך שהקצב בא מ-`clean`,
+       ולכן יחס שנמדד על `clean` מדבר על אותו חלון. הקצב התלת-שנתי שובר
+       את הפרוקסי: הוא ממוצע של 34 חודשים, ו-tRatio הוא חודשים 1-3 מול
+       4-6. ריסון של האחד ביחס של השני הוא כפל ברעש.
+
+       נמדד על הדוח האמיתי — 14 פריטים נכנסו לדלת «ביקוש יורד» שכותרתה
+       «הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב», והקצב שלהם לא נגזר
+       מהם. 2300-86-00132 הוא המקרה החד: חודשים 0,0,0,2,0,0,0,0,0,0,0 —
+       שתי יחידות בחודש אחד ואפס מאז. tRec=0 מול tPre=2 נותן tRatio=0,
+       כלומר «הביקוש התמוטט», על פריט שצורך 21 יחידות בשלוש שנים. באותה
+       נשימה `A.trend.pct` שלו הוא 999, כלומר «עלה» — אותו פריט, שתי
+       מסקנות הפוכות, ושתיהן על שתי יחידות.
+
+       הצד העולה כבר מוגן בדיוק מזה: `tPre>=TREND_BASE`, ובהערה שלו
+       כתוב «המכנה חייב לשאת משהו. פי 2 על 2 יחידות מול 1 אינו מגמה,
+       הוא רעש». לצד היורד אין את השער הזה, והאסימטריה הייתה בלתי נראית
+       כל עוד `rate>0` סינן ממילא כל פריט דליל. איחוד שני הצדדים הוא
+       שינוי מדיניות על אוכלוסייה רחבה, ולכן הוא מוצע בנפרד; כאן נסגר
+       רק מה שהתיקון הזה פתח.
+       trendF אינו נוגע ב-sugROP — רק ב-rateT ו-sugROPT, המספרים
+       המייעצים של הדלת. */
+    const trendF=(rate>0&&!rateFrom3y&&!isODStatic&&tRatio!=null&&tRatio<TREND_TRIG)
       ?Math.max(TREND_FLOOR,1+(tRatio-1)*TREND_DAMP):1;
     /* ============ מסך הבוקר — מה לא יסופק החודש ============
        זמינות = מה שעל המדף בלבד. רכש פתוח אינו נספר: בלי ETA אין לו
        תאריך, ומשלוח בלי תאריך אינו כיסוי. נמדד על הדוח האמיתי — 823
        הזמנות רכש פתוחות, אפס תאריכי הגעה. ראה TODAY_RULE. */
-    const unsQty=Math.max(0,rate-Math.max(0,free));
+    /* ============ RATE_3Y — קצב תלת-שנתי אינו תחזית לחודש ============
+       השורה הזאת היא משפט על החודש הקרוב: ההערה שמעליה אומרת «מה לא
+       יסופק החודש», הקבוצה שהיא מזינה היא t2 («הקצב החודשי גדול ממה
+       שיהיה זמין החודש»), והתא מעגל כלפי מעלה. קצב מהחלון התלת-שנתי
+       הוא ממוצע של 34 חודשים, ולכן כאן הוא טוען טענה שהכלי עצמו אומר
+       שאינו יכול לטעון.
+
+       נמדד על הדוח האמיתי: שלושה פריטים נכנסו לדלת הבוערת עם «חוסר»
+       של 0.303 · 0.394 · 0.303 יחידות — ושניים מהם מחזיקים 14 ו-11
+       יחידות פיזיות (unsQty קורא `free`, לא `stock`, ולכן מלאי חסום
+       נראה כמדף ריק). אי אפשר להיות בחוסר של שליש חלק, ולאף אחד
+       מהשלושה אין לקוח ממתין.
+       «לטיפול היום» 69→66 · «היום» 87→84 · «החודש» נשאר 182.
+
+       `isT1` אינו נוגע בזה בכוונה: לקוח שממתין על מדף ריק הוא כשל
+       שירות שכבר קרה, ולא משנה מאיפה בא הקצב.
+       שלושת האופקים הארוכים — dLT, cov, cov3y, sdLT — אינם נוגעים
+       בדגל: שם ממוצע ארוך הוא דווקא הקלט הנכון. */
+    const unsQty=rateFrom3y?0:Math.max(0,rate-Math.max(0,free));
     const unsVal=unsQty*(price||0);
     /* הערך ברוטו — מדף בלבד. etaApply דורס את unsQty/unsVal כשיש דוח
        ETA, ומשחזר מכאן כשמסירים אותו. ראה ETA_COVER. */
@@ -4182,14 +4222,27 @@ function ropGapWhy(it){
    האמיתי יצא ‎4.066666666666666‎ — ומכפלה שהקורא יבדוק ולא תסתדר
    גרועה מלא לכתוב אותה בכלל. הימים הם המספר שבדוח. */
 const mon=n=>n===1?'חודש':'חודשי';
+/* ============ RATE_3Y — הענף המדורג שתק על החלון ============
+   לפני התיקון, 28 הפריטים האלה נפלו דווקא לענף השני — וזה נקב במפורש
+   ב«כיסוי בקצב 3 השנים». מרגע שיש להם `rate` ו-`cov` הם עברו לענף
+   הראשון, שאינו מזכיר את החלון בכלל. כלומר התיקון *החליף* נוסח מדויק
+   בנוסח שותק, וזה ההיפך מהכוונה.
+   ושורה אחת גרועה מזה: `cov` הוא `free/rate` בעוד הרונג האיטי שלוש
+   שורות מעל מדווח `cov3y` שנגזר מ-`covStock` (מלאי כולל). בפריט אחד
+   על הדוח — 2935-86-00152, מלאי 11 וכולן חסומות — הכרטיס אמר «כיסוי
+   28 חודשים» ומיד «על המדף 0 חודשי כיסוי». שני מספרים נכונים על שתי
+   כמויות שונות, ואף אחד מהם לא אמר על איזו.
+   כאן נוקבים בחלון ומסמנים את הבסיס. אף מספר אינו מחושב מחדש. */
 function twoClocks(it){
  if(!(it.rop>ROP_MIN_ACT))return null;
  if(!((it.sugROP||0)>=(it.rop||0)&&(it.sugSS||0)>=(it.ss||0)))return null;
  const up=(it.sugROP||0)>(it.rop||0);
  if(it.rate>0&&it.cov!=null)
   return ['info',`שני שעונים: ROP מוצע ${it.sugROP} = ביקוש בזמן אספקה `
-   +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש · זמן אספקה ${it.ltD} ימים) `
-   +`ועוד מלאי ביטחון ${it.sugSS} — ועל המדף ${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
+   +`${(it.rate*it.ltM).toFixed(1)} יח׳ (קצב ${it.rate.toFixed(2)} לחודש`
+   +`${it.rateFrom3y?' מחלון 3 השנים':''} · זמן אספקה ${it.ltD} ימים) `
+   +`ועוד מלאי ביטחון ${it.sugSS} — ועל ${it.rateFrom3y?'המלאי הפנוי':'המדף'} `
+   +`${it.cov.toFixed(0)} ${mon(+it.cov.toFixed(0))} כיסוי. `
    +(up?`לכן הכלי מציע להעלות ${it.rop}→${it.sugROP} ובאותה נשימה מדווח כסף תקוע: `
       :`לכן אין מה להקטין, וכסף תקוע נשאר: `)
    +`הפרמטר נכון, הכמות אינה. הידית כאן אינה ROP`];
@@ -5653,7 +5706,11 @@ function sCatStyle(r){const c=sevTone(r);
 
 /* אוזל = המדף לא מחזיק חודש. הסף שהמתכנן בחר.
    סימון «טופל», פריטי OD ופריטי PD אינם על הציר — כמו בכל מסלול אחר. */
-function lineDry(r){return !r.mark&&!r.isOD&&!r.isPDItem&&!r.noStock&&(r.rate||0)>0
+/* RATE_3Y — הציר מחזיק עותק עצמאי של אותה השוואה, ולכן אותו דגל.
+   נמדד: איפוס unsQty לבדו החזיר את «היום» מ-87 ל-84 אבל השאיר את
+   «לטיפול היום» על 69 — שלושת הפריטים נשארו על הציר כשורות בשווי 0.
+   שני השערים נדרשים, וזה נמדד ולא הוסק. */
+function lineDry(r){return !r.mark&&!r.isOD&&!r.isPDItem&&!r.noStock&&!r.rateFrom3y&&(r.rate||0)>0
   &&Math.max(0,r.free||0)<(r.rate||0)}
 /* הכמות שחסרה כדי להחזיק את החודש — מהמדף בלבד.
    ============ LINE_GROSS ============
@@ -9250,7 +9307,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
     <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
-    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>קצב חודשי מתוקן</span></div>
+    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</span></div>
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
     <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
@@ -9293,7 +9350,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="fixbox"><div class="cur">SS ב-SAP: ${r.ss}</div><div class="new">${r.sugSS}</div>${delta(r.ss,r.sugSS)}</div>
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
-    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
+    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">${r.rateFrom3y?`קצב מחלון 3 השנים ${fmt1(r.rate)} — החלון הקצר לא תפס אותו`:`קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}`}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
     <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח${ETA?', כולל הכמות שכבר שובצה לאספקה':', משום שלא נטען דוח ETA'}. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
@@ -9421,7 +9478,14 @@ function explain(r){const A=r.A;
     וכלל SS ≤ ROP — מקבלות שורה משלהן במקום להיעלם בתוצאה. */
  const ropCalc=Math.ceil(r.dLT+r.sugSS);
  const ropRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא נקודת הזמנה':isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
-  :`<tr><td>קצב חודשי מתוקן</td><td>${r.rate.toFixed(2)}${r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:''}</td></tr>
+  /* ============ RATE_3Y — «מתוקן מול גולמי» אינו מה שקרה כאן ============
+     «מתוקן» בכלי הזה פירושו תיקון אזילה: המדף היה ריק, הצריכה
+     המדווחת נמוכה מהאמיתית, והכלי מתקן אותה כלפי מעלה (ראה rateNote).
+     ל-77 מתוך 89 פריטי RATE_3Y מתקיים `rate!==rawRate`, אבל ה-0.00
+     הזה אינו מדידה שתוקנה — `rawRate=d12<=3?0:d6/6` מחזיר אותו
+     בהגדרה. השורה הייתה מזכה את מכונת תיקון האזילה בקצב שלא היא
+     ייצרה, ומסתירה את המקור האמיתי. */
+  :`<tr><td>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</td><td>${r.rate.toFixed(2)}${r.rateFrom3y?` <span style="color:#7c3aed">(${r.cons3y} יח׳ ב-3 שנים · החלון הקצר ${r.d12} יח׳ ב-11 חודשים)</span>`:(r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:'')}</td></tr>
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
     <tr class="step"><td>ביקוש צפוי בזמן האספקה = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
     <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
@@ -9557,9 +9621,21 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>r.sugROP],['SS בSAP',r=>r.ss],['SS מוצע',r=>r.sugSS],
  ['ביקוש בזמן האספקה',r=>+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>r.ssStat||0],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
+ /* ============ RATE_3Y — הגיליון חייב לומר מאיזה חלון ============
+    ההגנה שכתבתי בקומיט הקודם («הצריכה התלת-שנתית יושבת בעמודה צריכה
+    3 שנים») אינה מחזיקה: אותה עמודה מאוכלסת בכל שורה שיש לה has3y,
+    ולכן אין שום צמד תאים שמבדיל 0.42 שבא מששה חודשים מ-0.42 שבא
+    משלושים וארבעה. הגיליון הוא מה שיוצא מהכלי ומה שלפיו מעדכנים
+    SAP ביד, ולכן המקור נאמר בעמודה משלו ולא נותר להסקה. */
+ ['מקור הקצב',r=>r.rate>0?(r.rateFrom3y?'3 שנים':'6 חודשים'):''],
  ['חודשי כיסוי',r=>r.cov==null?'':+r.cov.toFixed(1)],['מגמה %',r=>r.A.trend.pct>=900?'':r.A.trend.pct],
  ['לקוח ממתין ללא כיסוי',r=>custWaiting(r)?'כן':''],['שווי הזמנת הלקוח',r=>custWaiting(r)?Math.round(custVal(r)):''],
- ['מגמה בחלון הקצב %',r=>trendPct(r)==null?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
+ /* RATE_3Y — הכותרת היא הגדרה, והמספר הזה אינו עומד בה לפריט שהקצב
+    שלו בא מחלון 34 החודשים: tRatio הוא חודשים 1-3 מול 4-6. נמדד:
+    21 מתוך 89 הפריטים הפליטו כאן אחוז, רובם -100% על יחידה אחת מול
+    אפס. «קצב מרוסן» שלידה כבר יוצאת ריקה אחרי תיקון trendF, וזו
+    מיושרת אליה. הצריכה התלת-שנתית שלהם יושבת בעמודה «צריכה 3 שנים». */
+ ['מגמה בחלון הקצב %',r=>(r.rateFrom3y||trendPct(r)==null)?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
  ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['כסף תקוע (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];

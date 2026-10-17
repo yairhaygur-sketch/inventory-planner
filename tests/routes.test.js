@@ -662,8 +662,19 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     /* הצורה חייבת להתאים לסיבה שמחזיקה את ה-ROP */
     /* הנוסח נוקב בזמן האספקה בימים, לא בחודשים: ltM הוא ltD/30 ויצא
        4.066666666666666 על הדוח האמיתי — מכפלה שהקורא יבדוק ולא תסתדר. */
-    badRated:has.filter(r=>r.rate>0&&r.cov!=null
+    /* ============ RATE_3Y — הענף המדורג חייב לנקוב בחלון ============
+       28 פריטים עברו מהענף השטוח (שנקב ב«כיסוי בקצב 3 השנים») לענף
+       המדורג, ששתק על החלון. הבדיקה הזו נעלה את השתיקה: היא עברה
+       בדיוק מפני שהיא לא דרשה שהחלון יאמר. עכשיו הנוסח נבדק לשני
+       המקרים בנפרד. */
+    badRated:has.filter(r=>r.rate>0&&r.cov!=null&&!r.rateFrom3y
       &&!/ביקוש בזמן אספקה [\d.]+ יח׳ \(קצב [\d.]+ לחודש · זמן אספקה \d+ ימים\)/.test(TXT(r))).length,
+    bad3y:has.filter(r=>r.rateFrom3y
+      &&!/ביקוש בזמן אספקה [\d.]+ יח׳ \(קצב [\d.]+ לחודש מחלון 3 השנים · זמן אספקה \d+ ימים\)/.test(TXT(r))).length,
+    /* ושהכיסוי מסומן על איזה מלאי — «כיסוי 28 חודשים» של הרונג האיטי
+       נגזר מהמלאי הכולל, וזה מהפנוי. בפריט חסום הם 28 מול 0. */
+    badBasis:has.filter(r=>r.rateFrom3y&&!/על המלאי הפנוי \d+ חוד/.test(TXT(r))).length,
+    n3y:has.filter(r=>r.rateFrom3y).length,
     badFlat:has.filter(r=>!(r.rate>0&&r.cov!=null)&&!/אין קצב מדיד/.test(TXT(r))).length,
     /* «1 חודשי אספקה» אינו עברית */
     plural:has.filter(r=>/\b1 חודשי/.test(TXT(r))).length,
@@ -678,6 +689,11 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     tc.wrong===0,tc.wrong+' חריגות');
   ok('הנוסח תואם לסיבה שמחזיקה את ה-ROP — ביקוש בזמן אספקה או רצפה',
     tc.badRated===0&&tc.badFlat===0,`${tc.badRated} עם קצב · ${tc.badFlat} בלי`);
+ /* RATE_3Y — שתי הנעילות שהבדיקה לא דרשה, ולכן עברה בשקט */
+ ok('ובקצב מחלון 3 השנים הנוסח נוקב בחלון במפורש',
+    tc.n3y===0||tc.bad3y===0,`${tc.n3y} פריטי חלון · ${tc.bad3y} בלי אזכור החלון`);
+ ok('והכיסוי מסומן על המלאי הפנוי, לא «על המדף» מול מספר אחר באותו כרטיס',
+    tc.n3y===0||tc.badBasis===0,`${tc.badBasis} בלי סימון הבסיס`);
   ok('והמספרים בשורה הם של המנוע עצמו',tc.numOk,tc.sample.slice(0,150));
   ok('ואין «1 חודשי»',tc.plural===0,tc.plural+' מופעים');
   /* ============ SEVIR — «סביר» הייתה אמירה, לא היעדר אמירה ============
