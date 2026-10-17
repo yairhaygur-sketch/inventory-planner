@@ -9337,7 +9337,7 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="fixbox"><div class="cur">SS ב-SAP: ${r.ss}</div><div class="new">${r.sugSS}</div>${delta(r.ss,r.sugSS)}</div>
     <div class="fixbox"><div class="cur">כמות להזמנה</div><div class="new">${r.orderQty!=null?r.orderQty:'—'}</div>
      <div class="dlt same">${r.excessQty?'עודף '+r.excessQty:''}</div></div></div>
-    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
+    <div class="legend">${r.isPDItem?'פריט PD — לפי הזמנה בלבד, ללא המלצת מלאי ביטחון/נקודת הזמנה':`ביקוש בזמן אספקה ${r.dLT.toFixed(1)} · סטיית תקן ${A.sd.toFixed(1)} · Z(${r.srv}) · רצפת SS ${r.ssMin} · כלל SS≤ROP`}${(!r.isPDItem&&r.rate!==r.rawRate)?` · <span style="color:var(--purple)">${r.rateFrom3y?`קצב מחלון 3 השנים ${fmt1(r.rate)} — החלון הקצר לא תפס אותו`:`קצב מתוקן ${r.rate.toFixed(1)} במקום ${r.rawRate.toFixed(1)}`}</span>`:''}${trendGap(r)>0?`<br><span style="color:var(--purple)">↘ הביקוש ירד ${Math.abs(trendPct(r))}% בתוך חלון הקצב — קצב מרוסן ${fmt1(r.rateT)} היה נותן ROP ${r.sugROPT} במקום ${r.sugROP}. לא הוחל אוטומטית.</span>`:''}</div></div>
    <details class="dsec" data-dt="data" data-chart="c2"><summary>תחזית מלאי — 12 שבועות</summary><canvas id="c2"></canvas>
     <div class="legend">תחזית שמרנית ללא קליטת רכש פתוח${ETA?', כולל הכמות שכבר שובצה לאספקה':', משום שלא נטען דוח ETA'}. זמן האספקה התכנוני הוא ${r.ltD} יום.</div></details>
   </div>
@@ -9465,7 +9465,14 @@ function explain(r){const A=r.A;
     וכלל SS ≤ ROP — מקבלות שורה משלהן במקום להיעלם בתוצאה. */
  const ropCalc=Math.ceil(r.dLT+r.sugSS);
  const ropRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא נקודת הזמנה':isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
-  :`<tr><td>קצב חודשי מתוקן</td><td>${r.rate.toFixed(2)}${r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:''}</td></tr>
+  /* ============ RATE_3Y — «מתוקן מול גולמי» אינו מה שקרה כאן ============
+     «מתוקן» בכלי הזה פירושו תיקון אזילה: המדף היה ריק, הצריכה
+     המדווחת נמוכה מהאמיתית, והכלי מתקן אותה כלפי מעלה (ראה rateNote).
+     ל-77 מתוך 89 פריטי RATE_3Y מתקיים `rate!==rawRate`, אבל ה-0.00
+     הזה אינו מדידה שתוקנה — `rawRate=d12<=3?0:d6/6` מחזיר אותו
+     בהגדרה. השורה הייתה מזכה את מכונת תיקון האזילה בקצב שלא היא
+     ייצרה, ומסתירה את המקור האמיתי. */
+  :`<tr><td>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</td><td>${r.rate.toFixed(2)}${r.rateFrom3y?` <span style="color:#7c3aed">(${r.cons3y} יח׳ ב-3 שנים · החלון הקצר ${r.d12} יח׳ ב-11 חודשים)</span>`:(r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:'')}</td></tr>
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
     <tr class="step"><td>ביקוש צפוי בזמן האספקה = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
     <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
