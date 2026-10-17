@@ -77,6 +77,35 @@ write(SD+'/status-f.xlsx',[
  mk('CLK-NO-DATES',{...NOCONS,entAgo:null,saleAgo:null}),
  /* רגרסיה: פריט עם צריכה אינו נוגע בכל זה */
  mk('CLK-ALIVE',{months:[4,4,4,4,4,4,4,4,4,4,4],free:5,stock:5,price:1000,entAgo:100,saleAgo:2575})]);
+/* ============ RATE_3Y — קצב מהחלון התלת-שנתי ============
+   השער `d12<=3` מחזיר קצב 0 לתשעה מכל עשרה פריטים בדוח האמיתי, גם
+   כשעמודות הצריכה השנתיות מראות מאות יחידות. חמש הטענות כאן נמדדו
+   על הדוח האמיתי לפני שנכתבו, ושלוש מהן הן *רגרסיות* — דברים שהתיקון
+   שבר בגרסה הראשונה שלו והמדידה תפסה:
+     · הסרגל: ענף העודף מחזיק 12 חודשים, הענף האיטי 24. ברגע שהקצב
+       חדל להיות 0, `cov` חדל להיות null וענף 12 ירה ראשון — 45
+       פריטים עברו מ«מלאי איטי» ל«עודף מלאי» בלי שום נתון חדש.
+     · שני המעברים המשלימים («SAP יזמין בחזרה» ו«הפרמטר לא יחזיר את
+       המלאי») חסומים ב-`rate>0` כפרוקסי ל«רונג הפרמטרים כבר טיפל בו».
+       הקצב התלת-שנתי שבר את הפרוקסי ו-10 פריטים נשרו מקובץ העדכון.
+   הסף נגזר מ-LOWDEM_MAX ואינו מספר חדש: 3 יח׳ ב-11 חודשים. */
+const Y=n=>({y0:n,y1:0,y2:0}), Z11=Array(11).fill(0);
+write(SD+'/status-g.xlsx',[
+ /* עובר את הסף בגדול — 60 יח׳ בשלוש שנים, אפס בחלון הקצר */
+ mk('R3-FAT',  {...Y(60),months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* יחידה אחת בשלוש שנים אינה קצב — היא רעש מחולק ב-34 */
+ mk('R3-THIN', {...Y(1), months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* כיסוי 68 חודשים ⇒ הענף האיטי, בסרגל 24 — לא ענף העודף בסרגל 12 */
+ mk('R3-SLOW', {...Y(30),months:Z11,free:60,stock:60,rop:1,ss:0,lt:60,price:100}),
+ /* כיסוי בין 12 ל-24: לא איטי ולא עודף — נשאר בדיוק איפה שהיה */
+ mk('R3-MID',  {...Y(30),months:Z11,free:15,stock:15,rop:1,ss:0,lt:60,price:100}),
+ /* ROP ב-SAP מעל כל מה שנמכר בשלוש שנים ⇒ «SAP יזמין בחזרה» */
+ mk('R3-BACK', {...Y(30),months:Z11,free:60,stock:60,rop:200,ss:50,lt:60,price:100}),
+ /* הצד ההפוך: רצפת ssMin קיימת וה-ROP ב-SAP נמוך ממנה ⇒ SAP לא יחזיר */
+ mk('R3-FLOOR',{...Y(30),months:Z11,free:60,stock:60,rop:1,ss:0,ssMin:5,lt:60,price:100}),
+ /* הבקרה: ביקוש אמיתי בחלון הקצר — ענף העודף בסרגל 12 חייב להמשיך לירות */
+ mk('R3-ACTIVE',{y0:36,y1:36,y2:36,months:Array(11).fill(3),free:60,stock:60,rop:1,ss:0,lt:60,price:100}),
+ mk('BG',{free:400,price:50,months:[2,2,2,2,2,2,2,2,2,2,2]})]);
 write(SD+'/status-e.xlsx',[
  mk('CUST-RAW',{free:0,cust:20,price:150,months:[4,4,4,4,4,4,4,4,4,4,4]}),
  mk('BG',{free:400,price:50,months:[2,2,2,2,2,2,2,2,2,2,2]})]);
@@ -246,6 +275,39 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     /להשלים תאריך/.test(g['CLK-NO-DATES'].act),g['CLK-NO-DATES'].act);
   ok('רגרסיה: פריט עם צריכה אינו נכנס לשום ענף של השעון',
     g['CLK-ALIVE'].tier!=='dead'&&g['CLK-ALIVE'].tier!=='young',g['CLK-ALIVE'].tier);
+  await p.close()}
+
+ /* ================= 7 · קצב מהחלון התלת-שנתי ================= */
+ {const p=await load(SD+'/status-g.xlsx');
+  const g=await p.evaluate(()=>{const o={};for(const r of ALL)o[r.pn]={
+    cat:r.cat,rate:+(r.rate||0).toFixed(3),from3y:!!r.rateFrom3y,
+    cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
+    excess:r.excessQty||0,pf:!!r.paramFix,
+    why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
+    act:(r.act||[]).filter(Boolean).join(' ¦ ')};return o});
+  ok('צריכה תלת-שנתית מעל הסף נותנת קצב, גם כשהחלון הקצר אפס',
+    g['R3-FAT'].rate>0&&g['R3-FAT'].from3y,`rate=${g['R3-FAT'].rate} from3y=${g['R3-FAT'].from3y}`);
+  ok('ונקודת ההזמנה המוצעת כבר אינה נשענת על רצפות בלבד',
+    g['R3-FAT'].sugROP>g['R3-THIN'].sugROP,
+    `FAT=${g['R3-FAT'].sugROP} THIN=${g['R3-THIN'].sugROP}`);
+  ok('יחידה אחת בשלוש שנים אינה קצב — הסף חוסם',
+    g['R3-THIN'].rate===0&&!g['R3-THIN'].from3y,`rate=${g['R3-THIN'].rate}`);
+  /* הרגרסיה שהמדידה תפסה: 45 פריטים עברו איטי→עודף בגלל הסרגל */
+  ok('קצב תלת-שנתי נשפט בסרגל 24 של הענף האיטי, לא בסרגל 12 של העודף',
+    g['R3-SLOW'].cat==='מלאי איטי',`cat=${g['R3-SLOW'].cat} cov=${g['R3-SLOW'].cov}`);
+  ok('וכיסוי בין 12 ל-24 אינו מייצר סיווג חדש',
+    g['R3-MID'].cat!=='עודף מלאי'&&g['R3-MID'].excess===0,
+    `cat=${g['R3-MID'].cat} cov=${g['R3-MID'].cov} עודף=${g['R3-MID'].excess}`);
+  /* הרגרסיה השנייה: הפרוקסי rate>0 בשני המעברים המשלימים */
+  ok('האזהרה «SAP יזמין בחזרה» שורדת את הקצב החדש',
+    g['R3-BACK'].pf&&/יזמין בחזרה|אחרת המלאי יחזור/.test(g['R3-BACK'].why+g['R3-BACK'].act),
+    `paramFix=${g['R3-BACK'].pf}`);
+  ok('וגם הצד ההפוך — פרמטר מתחת לרצפה אינו מאבד את הדגל',
+    g['R3-FLOOR'].pf,`paramFix=${g['R3-FLOOR'].pf} ROP ${g['R3-FLOOR'].rop}→${g['R3-FLOOR'].sugROP}`);
+  /* הבקרה: פריט עם ביקוש אמיתי לא נגע */
+  ok('רגרסיה: ביקוש בחלון הקצר עדיין נשפט בסרגל 12 ⇒ עודף מלאי',
+    g['R3-ACTIVE'].cat==='עודף מלאי'&&!g['R3-ACTIVE'].from3y,
+    `cat=${g['R3-ACTIVE'].cat} from3y=${g['R3-ACTIVE'].from3y} cov=${g['R3-ACTIVE'].cov}`);
   await p.close()}
 
  ok('אין שגיאות JS',errs.length===0,errs.join(' | '));
