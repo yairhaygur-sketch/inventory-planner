@@ -3793,7 +3793,69 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       if(dropIdx.has(idx))return A.med;
       if(spikeIdx.has(idx)&&A.med>0)return Math.min(Math.max(0,v),A.med*2);
       return Math.max(0,v)});
-    const rate=d12<=3?0:clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
+    /* ============ RATE_3Y — כשהחלון החודשי ריק, לשאול את השנתי ============
+       `d12<=3 ? 0` מאפס את הקצב לחלוטין כשסך 11 החודשים הוא 3 יחידות
+       או פחות. הרציונל סביר — על 2 יחידות בשנה אין ממוצע חודשי שאומר
+       משהו. אבל נמדד על הדוח האמיתי: **7,273 מתוך 7,990 פריטים (91%)
+       נמצאים שם.** לתשעה מכל עשרה פריטים הכלי אומר «אין קצב», ולכן
+       אין להם ביקוש בזמן אספקה, אין כיסוי, וה-ROP המוצע שלהם נשען על
+       רצפות בלבד.
+
+       והנה המקרה שהכריע, פריט אמיתי מהדוח — 12892507:
+         11 חודשים:      [0,0,0,0,0,0,0,0,0,0,0]
+         צריכה 3 שנים:   326 יחידות        ≈ 10 יח׳/חודש
+         מלאי פנוי 94 · ROP ב-SAP 66 · ROP מוצע 61 (מרצפות בלבד)
+       אפס בחלון אחד ו-326 בחלון השני אינם סתירה — הם שתי רזולוציות
+       של אותה צריכה. החלון הקצר פשוט לא תפס אותה.
+
+       `rate3y` כבר מחושב שלוש שורות מעל (`cons3y/win3y`), ומשמש היום
+       רק לכיסוי של «מלאי איטי» ולכמות שמשאירים שם. כאן הוא נשאל גם
+       כשהחלון החודשי דל. אחד-עשר החודשים יושבים **בתוך** חלון 33
+       החודשים, ולכן אין סכימה כפולה — זו אותה צריכה ברזולוציה גסה.
+
+       `has3y` מבטיח שזה לא יורה כשעמודה שנתית חסרה מהדוח (ואז ממילא
+       נאמרת האזהרה על מדיניות 3 השנים). השער `d12<=3` עצמו לא זז —
+       רק התשובה «0» הוחלפה ב«הקצב של שלוש השנים, **אם הוא עומד באותו
+       רף**».
+
+       ============ ולמה יש כאן רף ============
+       הגרסה הראשונה של התיקון הזה לא בדקה גודל, והמדידה הרגה אותה.
+       על הדוח האמיתי, 1,724 פריטים דלילים נושאים צריכה תלת-שנתית
+       כלשהי, וההתפלגות שלה היא:
+
+         חציון 2 יחידות · p75 = 3 · p90 = 6 · מקסימום 326
+         1,332 מתוך 1,724 (77%) — בין יחידה אחת לשלוש, בשלוש שנים
+
+       כלומר בלי רף, התיקון היה מעניק «קצב» של 0.03 יח׳/חודש לפריט
+       שנמכר פעם אחת בשלוש שנים, ומעביר 1,127 פריטים מ«מלאי איטי»
+       ל«עודף מלאי» עם כיסוי חציוני של 99 חודשים. יחידה אחת בשלוש
+       שנים אינה קצב — היא רעש מחולק ב-33.
+
+       הרף נגזר מהשער עצמו ואינו מספר חדש: `d12<=3` פוסל צריכה של עד
+       3 יחידות ב-11 חודשים, כלומר קצב של 3/11 ≈ 0.27 יח׳/חודש.
+       החלון השנתי נדרש לעבור בדיוק את אותו רף. פריט שעובר אותו הוא
+       פריט שהחלון הקצר פספס; פריט שאינו עובר אותו הוא פריט שגם
+       החלון הארוך אומר עליו «אין מספיק». LOWDEM_MAX נשאר המקור
+       היחיד למספר. */
+    const rate=d12<=3?((has3y&&rate3y>LOWDEM_MAX/11)?rate3y:0):clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
+    /* ============ RATE_3Y — איזה סרגל שופט קצב תלת-שנתי ============
+       המדידה השנייה חשפה שהתיקון מגריל עוד משהו, ולא במתכוון.
+       `cov` נגזר מ-`rate`, וענף «עודף מלאי» מחזיק 12 חודשי כיסוי.
+       הענף האיטי — שכבר היום עובד על `rate3y` — מחזיק SLOW_MONTHS=24.
+       ברגע ש-`rate` קיבל ערך, `cov` חדל להיות null, וענף 12 החודשים
+       יורה **לפני** הענף האיטי בשרשרת. נמדד על הדוח: 45 פריטים עברו
+       מ«מלאי איטי» ל«עודף מלאי», ולא בגלל נתון חדש — בגלל שהסרגל
+       התחלף מ-24 ל-12. FLX5515-28*10M: 20 יח׳, 0.61 יח׳/חודש;
+       הענף האיטי משאיר 15 ואומר «עודף 5», ענף העודף משאיר 7 ואומר
+       «עודף 13». זה שינוי מדיניות החזקה, לא תוצאה של מדידה טובה
+       יותר, ולכן אסור שייכנס בדלת האחורית של תיקון נתונים.
+       הדגל מסמן «הקצב הזה בא מהחלון התלת-שנתי», ושני ענפי העודף
+       מדלגים עליו: פריט כזה נשפט בסרגל שהכלי כבר אישר עבור קצב
+       תלת-שנתי — 24 חודשים, בענף האיטי. פריט עם כיסוי בין 12 ל-24
+       נשאר בדיוק איפה שהיה.
+       (הפער בין שני הסרגלים הוא ממצא אמיתי בכלי, והוא מוצג כהצעה
+        נפרדת עם דוגמה מספרית — לא נסגר כאן.) */
+    const rateFrom3y=d12<=3&&rate>0;
     const rawRate=d12<=3?0:d6/6;
     const cov=rate>0?Math.max(0,free)/rate:null;
     /* מלאי בהעברה כבר בבעלותנו ובדרך למחסן — קרוב יותר לזמין מהזמנת רכש פתוחה */
@@ -3949,7 +4011,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',
       site:CLEAN(r[m.site]),pGroup:CLEAN(r[m.pGroup]),isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -4319,7 +4381,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     it.why.push(['ok',`הפרמטרים כבר תואמים לקצב האמיתי — נקודת הזמנה ${it.rop} · מלאי ביטחון ${it.ss}`]);
     it.act=['אין פעולה — האזילה בעבר והפרמטרים כבר מעודכנים',verify];
     Q.passive.push(it);continue}
-  if(it.isAcc&&it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
+  if(it.isAcc&&it.cov!==null&&it.cov>12&&!it.rateFrom3y){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`אביזר עם כיסוי ${it.cov.toFixed(1)} חודשים`],['info',`עודף כ-${it.excessQty} יח׳ · ${money(it.expCap,it.currency)}`]];
     it.act=['קידום מכירות מול השיווק','לא לשנות ROP/SS לפני החלטה שיווקית'];Q.excess.push(it);continue}
   if(it.cov!==null&&it.rate>0&&it.cov<it.ltM&&A.active>=3){
@@ -4343,7 +4405,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.ss<it.sugSS?`להעלות מלאי ביטחון מ-${it.ss} ל-${it.sugSS}`:'מלאי ביטחון תקין',
       it.rop<it.sugROP?`להעלות נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`:'נקודת הזמנה תקינה'];
     it.miss=Math.round(Math.max(0,it.rate*(it.ltM-it.covA)));it.sev=2;Q.prevent.push(it);continue}
-  if(it.cov!==null&&it.cov>12){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
+  if(it.cov!==null&&it.cov>12&&!it.rateFrom3y){it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;it.sev=1;it.cat='עודף מלאי';
     it.why=[['warn',`כיסוי ${it.cov.toFixed(1)} חודשים — עודף של כ-${it.excessQty} יח׳ מעל 12 חודשי כיסוי`],['info',`שווי העודף ${money(it.expCap,it.currency)}`]];
     if(it.po>0)it.why.push(['err',`רכש פתוח של ${it.po} יח׳ ימשיך להגדיל את העודף`]);
     if(A.trend.pct<=-40&&A.trend.pct>-900)it.why.push(['idea',`הביקוש בירידה של ${Math.abs(A.trend.pct)}% — העודף צפוי להחמיר, לא להיפתר מעצמו`]);
@@ -4626,7 +4688,14 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     השנייה על אותה שורה, ו-paramFix כדי שלולאת היישום (סעיף 5ו) תדע
     לעקוב אחריה. הסף הוא אותו LOW_PARAM_FLOOR של רונג הפרמטרים. */
  for(const it of items){
-  if(it.rate>0||it.isPDItem||it.isOD||it.paramFix)continue;
+  /* `rate>0` כאן אינו תנאי על הקצב אלא פרוקסי ל«רונג הפרמטרים כבר
+     טיפל בו». RATE_3Y שובר את הפרוקסי: פריט «מלאי איטי» שקיבל קצב
+     תלת-שנתי אינו מגיע לרונג הפרמטרים כלל (הרונג האיטי רץ לפניו
+     ועושה continue), ובלי החרגה כאן הוא נופל בין שני החצאים ומאבד
+     את האזהרה «SAP יזמין בחזרה». נמדד: 10 פריטים נשרו מקובץ עדכון
+     המלאי האיטי בדיוק כך. `paramFix` הוא המבחן האמיתי, והוא כבר
+     בשורה. */
+  if((it.rate>0&&!it.rateFrom3y)||it.isPDItem||it.isOD||it.paramFix)continue;
   const hist=it.has3y?it.cons3y:it.d12, bar=Math.max(LOW_PARAM_FLOOR,hist);
   if(!(it.rop>bar||it.ss>bar))continue;
   if(!Q.excess.includes(it))continue;
@@ -4656,7 +4725,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     ב-311 מהם המלאי ממילא מעל הרצפה, ולכן ההערה אינה המלצת רכש —
     היא יישור פרמטר. שבעה חשופים היום, ולהם זו כן חשיפה. */
  for(const it of items){
-  if(it.rate>0||it.isPDItem||it.isOD||it.noStock||it.paramFix)continue;
+  /* אותו פרוקסי כמו ברונג שמעל, ואותה החרגה: ראה RATE_3Y. ההערה
+     שבראש הרונג אומרת זאת בעצמה — «רונג הפרמטרים הראשי חסום
+     ב-rate>0» — ולכן קצב שבא מהחלון התלת-שנתי, שאינו מגיע לרונג
+     הזה ממילא, אינו אמור לכבות את החצי המשלים. */
+  if((it.rate>0&&!it.rateFrom3y)||it.isPDItem||it.isOD||it.noStock||it.paramFix)continue;
   /* סימון ידני תקף הוא החרגה מוצהרת — «מוחרג ידנית» או «טופל» מוציאים
      את הפריט מהתרעות עד להסרת הסימון, וההמלצה הזו אינה יוצאת דופן.
      סימון שפג אינו חוסם: it.mark מתאפס בתחילת המעבר. */
@@ -4710,6 +4783,33 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   it.why=[['info',`הפער בין הקיים למוצע הוא ${g} יח׳ — ${m.toFixed(2)} חודשי ביקוש`],
     ['idea',`מתחת ל-${PB_MONTHS} חודשי ביקוש ההפרש בין המספר שב-SAP למוצע קטן מרעש הביקוש עצמו`]];
   it.act=['אין פעולה נדרשת — הפער קטן מכדי להצדיק עדכון'];}
+ /* ============ RATE_3Y — החלון שממנו בא המספר נאמר בשורה ============
+    89 פריטים בדוח האמיתי מקבלים נקודת הזמנה שנגזרת מחלון שאינו
+    מוצג באף עמודה בטבלה. המקרה החד הוא 6608079913: 209 יח׳ בשלוש
+    שנים מול יחידה אחת ב-11 החודשים — כלומר כ-9 יח׳/חודש אז מול
+    0.09 היום. ההמלצה שם היא להעלות את נקודת ההזמנה מ-18 שב-SAP ל-37.
+
+    הכלי **אינו יכול** להכריע בין «ביקוש גושי שהחלון הקצר פספס»
+    לבין «הדגם ירד מהכביש»: הדוח נותן סכום תלת-שנתי אחד ולא פירוט
+    חודשי, ושני המצבים נראים בו זהים לחלוטין. אין כאן מה להמציא.
+    מה שכן חובה — לומר מאיפה בא המספר ולהציג את שתי הספירות זו לצד
+    זו, כדי שההכרעה תהיה של המעתד ולא של ממוצע שקוף.
+    הפסיקה הזאת אינה נוגעת בסיווג, בחומרה, בתור או בהמלצה. */
+ for(const it of items){
+  if(!it.rateFrom3y)continue;
+  it.why=[...(it.why||[]),
+   ['info',`הקצב ${it.rate.toFixed(2)} יח׳/חודש נלקח מהחלון התלת-שנתי — `+
+     `${it.cons3y} יח׳ ב-3 שנים מול ${it.d12} ב-11 החודשים האחרונים. `+
+     `החלון הקצר לבדו היה נותן קצב 0`],
+   /* הכיוון הפוך בשתי הדלתות: בדלת ההקטנה קצב מנופח *מקטין* את
+      ההקטנה המוצעת, ולכן טעות שם היא שמרנות ולא חשיפה. אותה שורה
+      בשני הנוסחים הייתה אומרת למעתד את ההפך מהנכון באחד מהם. */
+   ['idea',(it.excessQty>0
+     ?'הצריכה הזו ישנה והחלון הקצר שקט: אם הביקוש גושי וחוזר — ההקטנה המוצעת נכונה; '+
+      'אם הדגם ירד מהכביש — היא שמרנית מדי ואפשר לשחרר יותר'
+     :'הצריכה הזו ישנה והחלון הקצר שקט: אם הביקוש גושי וחוזר — ההמלצה נכונה; '+
+      'אם הדגם ירד מהכביש — היא גבוהה מדי')
+     +'. הדוח אינו מפרט את החודשים 12–34, ולכן ההכרעה שלך']];}
  /* ============ LT_ZERO — אין זמן אספקה, וזה נאמר ============
     לכלי יש ממזורים ל«זמן אספקה חסר» — הרונג של `ltMissing`,
     כמה שורות מעלה. אבל הוא מותנה ב-`it.rate>0`, ונמדד על הדוח

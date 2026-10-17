@@ -38,3 +38,4 @@ tests/*.png
 
 # דוחות שנבנים בתוך sig.test.js — פלט, לא מקור
 tests/sig-*.xlsx
+tests/status-g.xlsx
