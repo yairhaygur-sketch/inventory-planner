@@ -206,7 +206,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
                מכבה `paramFix` *במתכוון* ואומר «הפער קטן מכדי להצדיק
                עדכון», כלומר הוא כן מדווח. לפני ג5 אף פריט rate<=0 לא
                יכול היה להגיע ל-thinGap (paramThin דורש rate>0), ולכן
-               לא היה צורך להחריג אותו. נמדד: פריט אחד, 12892507. */
+               לא היה צורך להחריג אותו. נמדד: פריט אחד, PN-03. */
             o.unreported=ALL.filter(x=>!x.isOD&&!x.noStock&&(x.rate<=0||x.rateFrom3y)&&x.sugSS>0
               &&(x.ss<x.sugSS||x.rop<x.sugROP)&&!x.mark&&!x.paramFix
               /* מלאי מת מדווח דרך שורת ההתנגשות, לא דרך paramFix:
