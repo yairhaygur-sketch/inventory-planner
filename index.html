@@ -1950,6 +1950,18 @@ td .mut{color:var(--dimmer)}
    מבדיל בין שורה לשורה. אפס במלאי נשאר מודגש — הוא עובדה שמכריעה —
    אבל בדיו משני. האדום נשאר רק לכמות שלא תסופק (.stake, .neg). */
 #tbl td.zero{color:var(--dim);font-weight:700}
+/* פס הכיסוי: אותו רוחב כמו הגרף שהוא מחליף (110px), כדי שתקציב
+   הרוחב של הטבלה לא יזוז. */
+#tbl td.covc{width:88px;white-space:nowrap}
+#tbl .covb{display:inline-flex;vertical-align:middle;width:54px;height:9px;border-radius:2px;
+ overflow:hidden;background:var(--line2);direction:rtl}
+#tbl .covb i{display:block;height:100%}
+#tbl .covb .s{background:var(--bar)}
+#tbl .covb .o{background:repeating-linear-gradient(135deg,var(--acc) 0 2px,transparent 2px 4px)}
+#tbl .covb .g{background:var(--red)}
+#tbl .covb .u{background:repeating-linear-gradient(135deg,var(--red) 0 2px,var(--redL) 2px 4px)}
+#tbl .covp{display:inline-block;min-width:28px;margin-inline-start:5px;font-size:var(--f-xs);
+ color:var(--ink-2);text-align:end}
 #tbl td.cust{color:var(--ink);font-weight:700}
 #tbl td.otw{color:var(--dimmer);font-weight:400}
 #tbl td.otw i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.7}
@@ -7938,6 +7950,29 @@ function custGroups(rows){
    כאן לכל עמודה יש הגדרה אחת — שם, הסבר ותא — והכותרת והשורה
    נגזרות ממנה. אי-התאמה אינה אפשרית יותר.
    העמודות עצמן לא השתנו: ברירת המחדל בכל תצוגה היא בדיוק מה שהיה. */
+/* החלק הלא מכוסה מתפצל לשניים, כי הפעולה שונה: על «לא הוזמן» פותחים
+   הזמנה, על «הוזמן בלי תאריך» רודפים אחרי הספק. המנוע אינו סופר רכש
+   בלי תאריך ככיסוי, וגם כאן הוא אינו נכנס לאחוז — רק מסומן אחרת.
+   נמדד על הדוח האמיתי, בלי דוח ETA: מתוך 66 שורות עם חוסר, ב-58 כל
+   החוסר מכוסה ברכש בלי תאריך, וב-8 לא הוזמן דבר. בלי הפיצול כל 66
+   נראו אותו פס אדום. */
+function covParts(r){
+ const g=Math.max(0,r.unsGross!=null?r.unsGross:(r.unsQty||0)),u=Math.max(0,r.unsQty||0);
+ if(!(g>0))return null;
+ const shelf=Math.max(0,r.free||0),dated=Math.max(0,g-u),tot=shelf+g;
+ const und=Math.min(u,Math.max(0,(r.po||0)+(r.transfer||0)-dated));
+ return {shelf,dated,gap:u,und,open:u-und,tot,pct:Math.round((shelf+dated)/tot*100)}}
+function covBarCell(r){const c=covParts(r);
+ if(!c)return '<td class="covc"><span class="mut">—</span></td>';
+ const w=x=>(x/c.tot*100).toFixed(1)+'%',f=x=>Math.round(x).toLocaleString('he-IL');
+ const t=`קצב חודשי ${f(c.tot)} · מדף ${f(c.shelf)} · אספקה מתוארכת החודש ${f(c.dated)} · לא מכוסה ${f(c.gap)}`
+  +(c.gap?` — מתוכם הוזמנו בלי תאריך ${f(c.und)}, לא הוזמנו ${f(c.open)}`:'');
+ return `<td class="covc" title="${t}"><span class="covb" role="img" aria-label="${t}">`
+  +(c.shelf?`<i class="s" style="width:${w(c.shelf)}"></i>`:'')
+  +(c.dated?`<i class="o" style="width:${w(c.dated)}"></i>`:'')
+  +(c.und?`<i class="u" style="width:${w(c.und)}"></i>`:'')
+  +(c.open?`<i class="g" style="width:${w(c.open)}"></i>`:'')
+  +`</span><span class="covp">${c.pct}%</span></td>`}
 function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
 /* ============ «✓ טופל» מחובר בכל טבלה ============
    החיבור ישב בשתיים מחמש פונקציות הרינדור. במרכז העבודה (renderAgenda)
@@ -7977,6 +8012,20 @@ const SCOL={
   cell:r=>`<td class="dsc"><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
  sup:{t:'ספק',val:r=>String(r.supplier||''),ttl:'שם הספק כפי שהוא בדוח',
   cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
+ /* ============ פס הכיסוי — עיצוב שלב 5 ============
+    השאלה בכל שורה של החוסרים: האם מה שיש יספיק החודש. התשובה נכתבה
+    בארבע עמודות שצריך לחבר בראש. הפס מצייר אותה משדות שהמנוע כבר
+    חישב, ולא מחשב כלום בעצמו:
+      מדף       = max(0, free)
+      מתוארך    = unsGross − unsQty  — אספקה עם תאריך עד סוף החודש שנוכתה
+      לא מכוסה  = unsQty             — «חוסר חזוי»
+    הסכום הוא הקצב החודשי (unsGross = rate − free). רכש בלי תאריך אינו
+    בפס, כי המנוע אינו סופר אותו ככיסוי — הוא בעמודת «בדרך» עם ⌛.
+    ללקוח ממתין (isT1) המנוע אינו מנכה אספקה מתוארכת, ולכן גם הפס לא. */
+ covbar:{t:'כיסוי החודש',val:r=>{const c=covParts(r);return c?c.pct:-1},
+  xval:r=>{const c=covParts(r);return c?c.pct:''},
+  ttl:'כמה מהקצב החודשי מכוסה: מדף (אפור), אספקה עם תאריך עד סוף החודש (כחול מקווקו). הלא מכוסה באדום: מקווקו = הוזמן בלי תאריך, מלא = לא הוזמן. רכש בלי תאריך אינו נספר באחוז',
+  cell:r=>covBarCell(r)},
  spark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש. סגול = חודש שזוהה בו חוסר מלאי',
   cell:r=>`<td class="cg">${sparkline(r)}</td>`},
  free:{t:'מלאי',val:r=>Math.max(0,r.free||0),ttl:'מלאי פנוי על המדף עכשיו — עובדה',
@@ -8301,7 +8350,7 @@ const SCOL={
   xval:r=>r.risk||0,
   cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
+const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
@@ -8314,7 +8363,9 @@ const SCOL_DEF={
     (נמדד: 1,097px בתוך 1,046). הספק לא נמחק — הוא בבורר העמודות,
     הוא מסלול קיבוץ שלם («לפי ספק»), והוא בכרטיס הפריט. הדגם, לעומתו,
     לא היה בשום מקום בטבלאות העבודה. */
- dec:['pn','model','desc','spark','free','cust','cov','stuck','otw','miss','val','act','state','age'],
+ /* שלב 5: «כיסוי החודש» במקום «11 חודשים» — באותו רוחב. הגרף נשאר
+    בכרטיס הפריט ובבורר העמודות. */
+ dec:['pn','model','desc','covbar','free','cust','cov','stuck','otw','miss','val','act','state','age'],
  sup:['pn','model','desc','free','otw','cust','missq','buy','cova','age','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
@@ -8365,7 +8416,7 @@ function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
    הוא עובר לבריכה הכללית ונכנס לברירת המחדל של כל טבלה, מיד אחרי
    המק״ט. כעמודה אמיתית הוא גם ממוין, מסונן, מקובץ ומיוצא — מה
    שקישוט ליד המק״ט לא היה נותן. */
-const SCOL_POOL=['model','sup','spark','free','cust','po','tr','eta','cova','val','act',
+const SCOL_POOL=['model','sup','covbar','spark','free','cust','po','tr','eta','cova','val','act',
  'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq'];
 /* עמודות התנועות מוצעות רק בטבלת התנועות: מחוץ לה «Δ כניסה→מכירה»
    הוא עמודה שרירותית, ובתוכה שלושת הטאבים חולקים את כולן — טאב
