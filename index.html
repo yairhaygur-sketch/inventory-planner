@@ -152,43 +152,29 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
    כלומר הגוון שבניתי מעולם לא הופיע על המסך, וגם ה-hover נחטף
    לכחול המבטא. אותו כלל ישן חי אחרי המדיה, ולכן גם הכיווץ ב-1300
    מסומן ‎.abnext‎. */
-.aband{display:flex;flex-direction:column;gap:7px;padding:8px 14px 9px;
+/* ============ הרצועה חוזרת להיות שורה — עיצוב שלב 4 ============
+   האריחים הצבעוניים תפסו 102px מעל הטבלה במרכז העבודה, וארבעה
+   מתוכם חוזרים על מונים שהמסילה כבר מציגה, באותם צבעי תחום שהמסילה
+   ויתרה עליהם בשלב 1. כאן הם שורת קישורים אחת: שם, מספר, לחיצה. פער
+   הנתונים הוא שורת טקסט עם ⚠, בלי קופסה.
+   ה-DOM לא השתנה — .abchip, data-go ו-<b> המספר — הבדיקות קוראות אותם.
+   הבורר נשאר ‎.abnext .abchip‎, מאותה סיבה שמתועדת למעלה (‎.seg button‎). */
+.aband{display:flex;flex-direction:column;gap:3px;padding:6px 14px 7px;
  border-block-end:1px solid var(--line2)}
-.abgap{display:flex;gap:8px;align-items:center;font-size:var(--f-xs);
- /* --high-bg ולא צבע קשיח: לטוקן הזה יש ערך גם בנושא הכהה
-    (‎#3A2C15‎). נמדד עם רקע קשיח בהיר — 1.11 ניגודיות בכהה. */
- color:var(--ink-2);background:var(--high-bg);border:1px solid var(--line2);
- border-radius:var(--r-md);padding:5px 10px}
-.abgap .abi{flex:0 0 auto;width:19px;height:19px;border-radius:var(--r-pill);
- background:var(--high);color:var(--on-fill);display:grid;place-items:center;font-size:12px}
+.abgap{display:flex;gap:7px;align-items:baseline;font-size:var(--f-xs);color:var(--ink-2)}
+.abgap .abi{flex:0 0 auto;color:var(--high);font-size:13px}
 .abgap b{color:var(--ink);font-weight:700}
-.abnext{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
- align-items:stretch;gap:8px}
-/* הכותרת «מה עוד ממתין» ירדה: מסובבת היא נקראת לרעה, ואופקית היא
-   עולה שורה. ארבעת האריחים נושאים אייקון ותווית ומסבירים את עצמם. */
-.abnext .abl{display:none}
-.abnext .abchip{display:flex;align-items:center;gap:10px;font-family:inherit;text-align:start;
- font-size:var(--f-sm);border:1px solid color-mix(in srgb,var(--tfg) 34%,var(--panel));
- background:color-mix(in srgb,var(--tfg) 16%,var(--panel));color:var(--ink-2);
- border-radius:var(--r-lg);padding:7px 12px;cursor:pointer;min-width:0;
- box-shadow:var(--e-1);transition:box-shadow .15s,transform .15s}
-.abchip .ic{flex:0 0 auto;width:28px;height:28px;border-radius:var(--r-pill);
- /* --on-fill ולא #fff: בכהה --high הוא ענבר *בהיר*, ולבן עליו נותן
-    2.01. הטוקן מתהפך עם הנושא ונותן 5.17–7.10 בבהיר ו-6.54–9.29
-    בכהה. נתפס על ידי בודק הניגודיות, לא בעין. */
- background:var(--tfg,var(--calm));color:var(--on-fill);
- display:grid;place-items:center;font-size:14px;line-height:1}
-.abchip .lb{flex:1;min-width:0;display:block;line-height:1.25;
- overflow:hidden;text-overflow:ellipsis;font-weight:600}
-.abchip b{font-family:var(--num);font-variant-numeric:tabular-nums;
- font-weight:800;font-size:19px;color:var(--ink);flex:0 0 auto}
-.abnext .abchip:hover{box-shadow:var(--e-2);transform:translateY(-1px);
- background:color-mix(in srgb,var(--tfg) 24%,var(--panel))}
+.abnext{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px}
+.abnext .abl{display:inline;font-size:var(--f-xs);color:var(--ink-2);font-weight:600}
+.abnext .abchip{display:inline-flex;align-items:baseline;gap:6px;font-family:inherit;
+ font-size:var(--f-sm);border:0;background:none;color:var(--ink-2);padding:2px 0;
+ cursor:pointer;min-width:0;box-shadow:none;border-radius:0}
+.abnext .abchip .ic{display:none}
+.abnext .abchip .lb{font-weight:500}
+.abnext .abchip b{font-family:var(--num);font-variant-numeric:tabular-nums;
+ font-weight:700;font-size:var(--f-md);color:var(--ink)}
+.abnext .abchip:hover .lb{color:var(--acc);text-decoration:underline;text-underline-offset:3px}
 .abnext .abchip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media(max-width:1300px){
- .abnext .abchip{padding:6px 9px;gap:8px;border-radius:var(--r-md)}
- .abchip .ic{width:24px;height:24px;font-size:12px}
- .abchip b{font-size:16px}}
 .kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;flex-direction:row-reverse;justify-content:flex-end;background:#fff}
 /* המדד הוא כפתור: לחיצה פותחת את הרשימה שהוא סופר. הוא נבנה כ-button
    ולכן צריך לאפס את ברירות המחדל של הדפדפן ולשמור יישור RTL. */
@@ -7024,13 +7010,14 @@ function kpis(){
  document.querySelectorAll('#kpis [data-kpi]').forEach(e=>e.onclick=()=>setMode(e.dataset.kpi));
  document.getElementById('qsub').textContent=
    `${tasks.toLocaleString('he-IL')} דורשים החלטה · ${QF.excess.length.toLocaleString('he-IL')} כסף תקוע · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
-function tiles(){
- const t=document.getElementById('tabs');
- const sub=k=>{
+/* שורת המצב של תחום — מופיעה ב-title של המסילה ובכותרת המסך. מקור
+   אחד, כדי ששני המקומות לא יוכלו לומר דברים שונים. */
+function navSub(k){
   if(k==='today'){const l=modeRows('today');
    const c=l.reduce((x,r)=>x+(isT1(r)?(r.cust||0):0),0);
    const u=l.reduce((x,r)=>x+Math.ceil(r.unsQty||0),0);
-   return u||c?`${c?c.toLocaleString('he-IL')+' לקוח · ':''}${u.toLocaleString('he-IL')} לא יסופקו`:''}
+   /* «156 לקוח» נקרא כמו 156 לקוחות — והמספר הוא יחידות בהזמנות לקוח. */
+   return u||c?`${c?c.toLocaleString('he-IL')+' יח׳ בהזמנות לקוח · ':''}${u.toLocaleString('he-IL')} יח׳ לא יסופקו`:''}
   if(k==='burn'){const r=burnRows();if(!r.length)return '';
    return `${burnTotals(r).units.toLocaleString('he-IL')} יח׳ ללא כיסוי · ${moneyMix(r,burnVal,true)}`}
   if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
@@ -7038,7 +7025,10 @@ function tiles(){
   if(k==='catalog'){const cap=decisionList('cap');
    return cap.length?`כסף תקוע ${moneyMix(cap,r=>r.expCap||0,true)}`:''}
   if(k==='applied'&&APPLIED)return `${APPLIED.done} יושמו`;
-  return ''};
+  return ''}
+function tiles(){
+ const t=document.getElementById('tabs');
+ const sub=navSub;
  /* ============ המסילה ============
     יעד אינו נעלם כשהמונה אפס — הוא מוצג עם מונה «כבוי». זה בדיוק
     ההפך מהכלל הקודם (`if(!n…)return ''`), שהעלים יעדים ריקים וכך
@@ -8909,7 +8899,13 @@ function render(){if(!QF)return;
     שני שמות לאותו מקום, ושניהם נקראים כחלון זמן. הכותרת נגזרת
     עכשיו מאותו מקור שהמסילה מציגה. */
  document.getElementById('lt').textContent=screenName();
- document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')';
+ /* ============ משפט המצב ============
+    המונה לבדו — «(84)» — אמר כמה שורות יש, לא מה המצב. לידו עכשיו
+    שורת המצב של אותו תחום, זו שכבר כתובה ב-title של המסילה. אותה
+    פונקציה, אותם מספרים. רק בחוסרים ובתכנון: בקטלוג שורת המצב היא
+    «כסף תקוע», וזה לא מה שהמסך הזה עוסק בו. */
+ {let st='';try{if(mode==='today'||mode==='month')st=navSub(mode)}catch(_){}
+  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')'+(st?' · '+st:'')}
  colsSync();renderCapTop();setTimeout(()=>{colsBoot();freezeCols()},0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
