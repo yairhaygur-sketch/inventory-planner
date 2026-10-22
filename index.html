@@ -1056,6 +1056,15 @@ body.xp #tbl,body.xp .rows{cursor:default}
  border-radius:50%;background:var(--shell-crit);
  box-shadow:0 0 0 2px var(--shell)}
 .rail .tab.navtab .nico{position:relative}
+/* ============ המסילה בלי צבעי תחום ============
+   שבעה צבעים לשבעה תחומים — ואחד מהם האדום של «קריטי», על התחום
+   «חוסרים». צבע שמסמן ניווט אינו יכול לסמן גם מצב, ולכן השבבים
+   חוזרים לגוון אחד של הרצועה. מה שנשאר צבעוני הוא מה שאומר משהו על
+   המצב: המונה האדום והנקודה של תחום שיש בו פריט קריטי.
+   ‏.rail .tabs בבורר: כלל ישן בהמשך הקובץ (.rail .tab.navtab .nico{color:var(--shell)})
+   צובע את הסמל בצבע הרצועה, ובלי משקל נוסף הסמל נעלם על השבב. */
+.rail .tabs .tab.navtab .nico{background:var(--shell-track);color:var(--shell-ink);box-shadow:none}
+.rail .tabs .tab.navtab.sel .nico{background:var(--shell-ink);color:var(--shell);box-shadow:none}
 /* אזור העבודה — עמודה אחת: מדדים · סינון · טבלה. בלי גרירה. */
 .dash{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;min-height:0}
 /* הווידג'טים מאבדים את המסגרת שלהם — הרקע שייך לאזור העבודה. היוצא
@@ -1949,7 +1958,12 @@ td .mut{color:var(--dimmer)}
    "בדרך" מעומעם בכוונה: בדוח האמיתי הוא גדול או שווה לחוסר ב-37 מתוך
    48 השורות, ואין בדוח תאריך הגעה. מספר מלא היה נקרא ככיסוי ומבטל
    בשקט את מסלול "אוזל החודש". הוא מודיע, הוא לא מרגיע.            */
-#tbl td.zero{color:var(--red);font-weight:700}
+/* ============ אדום שמור לחוסר ============
+   נמדד בחוסרים ולקוחות: «מלאי 0» היה אדום ב-71 מתוך 84 שורות, צמוד
+   ל«חוסר» שגם הוא אדום. כשכל שורה אדומה בשני מקומות, האדום כבר לא
+   מבדיל בין שורה לשורה. אפס במלאי נשאר מודגש — הוא עובדה שמכריעה —
+   אבל בדיו משני. האדום נשאר רק לכמות שלא תסופק (.stake, .neg). */
+#tbl td.zero{color:var(--dim);font-weight:700}
 #tbl td.cust{color:var(--ink);font-weight:700}
 #tbl td.otw{color:var(--dimmer);font-weight:400}
 #tbl td.otw i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.7}
@@ -2816,6 +2830,11 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl[data-track="line"] td.dsc,
 #tbl[data-track="short"] td.val,
 #tbl[data-track="line"] td.val{font-weight:400}
+/* המק״ט בדיו ולא בכחול: הוא אינו קישור — הלחיצה היא על כל השורה —
+   והכחול בכל שורה היה הצבע הדומיננטי בטבלה, בלי לומר דבר על הפריט.
+   כחול נשאר לפעולות ולהדגשת תוצאת חיפוש. המשקל לא משתנה, ולכן גם
+   הרוחב לא. */
+#tbl td .obj{color:var(--ink)}
 </style>
 </head>
 <body>
