@@ -1625,6 +1625,14 @@ button:focus-visible,input:focus-visible,label.btn:focus-visible,.tab:focus-visi
  display:flex;flex-direction:column;pointer-events:none}
 body.dopen .wdetail{transform:none;pointer-events:auto}
 @media(max-width:1180px){.wdetail{width:min(486px,72vw)}}
+/* ============ המגירה מתחת לרצועת הסינון ============
+   המגירה נעגנת ל-.dash, ורצועת הסינון היא השורה הראשונה שלו — ולכן
+   המגירה כיסתה את קצה הרצועה. נמדד ב-1366: «נקה פילטרים», «דגם» ו-ABC
+   מתחת למגירה, ולחיצה על «נקה פילטרים» פגעה במגירה. כשהמגירה מתחילה
+   מתחת לרצועה, הסינון כולו נשאר נגיש, והטבלה לא זזה כשפותחים פריט.
+   --fh נמדד ב-ResizeObserver ומתאפס כשהרצועה מקופלת. רק ברוחב מחשב:
+   מתחת ל-1100px הסינון הוא לוח גבוה, ומגירה מתחתיו לא הייתה נשארת. */
+@media(min-width:1101px){.dash .wdetail{inset-block-start:var(--fh,0px)}}
 /* ============ המגירה דוחפת, לא מכסה — כשיש רוחב ============
    המגירה נפתחת מעל הצד הפנימי של הטבלה ומסתירה את העמודות שם. הפתרון
    הוא לצמצם את הרשימה ברוחב המגירה — אבל רק כשיש מקום, אחרת חוזרת
@@ -2075,6 +2083,20 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
   border-radius:var(--r-ctl)}
  .railsub2.sel{border-inline-start-color:transparent;background:var(--shell-btn)}
  .rail .railfoot{display:none}
+ /* ============ הרצועה נגללת, ועכשיו רואים את זה ============
+    נמדד ב-390px: הרצועה 1,068px, ושניים משבעת היעדים נראים במלואם.
+    היעדים לא נעלמים — הם מחוץ למסך, והרמז היחיד היה קצה חתוך.
+    בקצה שיש מעבר לו יושב חץ על רקע דוהה; לחיצה גוללת כ-70% מסך.
+    החצים דביקים ובשוליים שליליים, ולכן אינם תופסים מקום ברצועה.
+    tabindex=-1: במקלדת Tab כבר עובר על כל היעדים, והחץ מיותר שם. */
+ .rail.more-s .railnav.s,.rail.more-e .railnav.e{display:flex}
+ .railnav{position:sticky;z-index:2;flex:0 0 auto;align-self:stretch;width:36px;
+  margin-block:-4px;align-items:center;justify-content:center;border:0;padding:0;
+  font:700 28px/1 inherit;color:var(--shell-ink);cursor:pointer}
+ .railnav.s{inset-inline-start:-6px;margin-inline-end:-36px;
+  background:linear-gradient(to left,var(--shell) 60%,transparent)}
+ .railnav.e{inset-inline-end:-6px;margin-inline-start:-36px;
+  background:linear-gradient(to right,var(--shell) 60%,transparent)}
  /* הסרגל העליון: שורות במקום גלישה שקטה */
  .top .sp{flex-wrap:wrap;gap:6px}
  .top .lc{flex-wrap:wrap}
@@ -2098,6 +2120,52 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  .top .lc .menuwrap .btn .lbs{display:none}
  .dstate{flex-direction:row;gap:6px;align-items:baseline}}
 .lbs{display:none}
+.railnav{display:none}
+/* ============ מגע: אזור הלחיצה גדל, הפריסה לא ============
+   נמדד ב-390px עם מגע: 27 מתוך 45 פקדים גלויים קטנים מ-32px — «העתק»
+   ו«✓ טופל» בכל שורה הם 34×15, הסינון בכותרת עמודה 15×16, ו-✕ של
+   החיפוש 27×13. הגדלת הכפתורים עצמם הייתה מגביהה כל שורה בטבלה
+   ומחזירה את בעיית הגובה מהסבב הזה. במקום זה ::after שקוף מרחיב את
+   אזור הלחיצה לכ-32px בגובה, והמראה והשורה נשארים כפי שהיו. לרוחב
+   ההרחבה קטנה בכוונה: «העתק» ו«✓ טופל» צמודים, ואסור שלחיצה על אחד
+   תיפול על השני. רק ב-pointer:coarse — לעכבר אין בזה צורך.
+   ‏.wfil כבר absolute, ולכן אינו מקבל position:relative. */
+@media(pointer:coarse){
+ .cp,.dn,.qclr,.dchip,.bulkbtn,.briefsum,#shortlinkGo,#phdInfo,#kpiTog,#denTog,#colsBtn{position:relative}
+ .cp::after,.dn::after,.wfil::after,.qclr::after,.dchip::after,.bulkbtn::after,.briefsum::after,
+ #shortlinkGo::after,#phdInfo::after,#kpiTog::after,#denTog::after,#colsBtn::after{
+  content:'';position:absolute;inset:-9px -2px}
+ .wfil::after,.qclr::after,#phdInfo::after{inset:-9px -6px}
+ /* 10px בטבלה הוא מתחת לסף הקריאה בטלפון; 11px לא מוסיף שורה */
+ .cp,.dn,.rank,#tbl thead .thc{font-size:11px}}
+/* ============ טלפון: ארבע שורות במקום שש ============
+   נמדד ב-390px: הסרגל העליון היה 251px בשש שורות. העברת הפעולות
+   ל«עוד» (fitTop) הורידה אותו ל-210px, ועדיין נשארו חמש — מותג וחיפוש,
+   חודש בסיס עם תווית מעליו, מצב הדוח, שני כפתורי ההעלאה, ושורת
+   פעולות משלה. כאן הוא יורד ל-155px בארבע. .sp הוא קופסה עוטפת, ולכן שום דבר מחוצה לה לא יכול
+   היה להצטרף לשורה האחרונה שלה. display:contents מפרק אותה, וכך
+   הסינון, העזרה ו«עוד» יושבים באותה שורה עם כפתורי ההעלאה.
+   העזרה ו«עוד» נשארים סמל בלבד: «?» ו-«⋯» הם מוסכמה, השם נשמר
+   ב-aria-label, והפריטים שבתוך התפריט נושאים את שמם המלא. */
+@media(max-width:760px){
+ .top .sp{display:contents}
+ .top .brand{order:0}
+ .top .fgroup.qwrap{order:1}
+ .top .rdwrap,.top .dchip{order:2}
+ .top .dstate{order:3;flex:1 1 100%}
+ .top .etachip,.top #storechip,.top .sp>label.btn{order:4}
+ .top .lc{order:5;width:auto;margin-inline-start:auto;overflow:visible}
+ .top .lc .menuwrap .btn .lbl,.top .lc .menuwrap .btn>span[aria-hidden]:last-child{display:none}
+ .top .rdwrap{flex-direction:row;align-items:center;gap:6px}
+ /* «⭱ ZMRP»: בלי זה שורת ההעלאה והפעולות לא נכנסות יחד ב-390px.
+    הטקסט עטוף ב-span אחד כי .btn הוא flex עם gap: שלושה צמתים נפרדים
+    היו שלושה פריטי flex, והכפתור התרחב ב-7px גם במחשב — מספיק כדי
+    שב-1440 «דוח זירוז» ירד ל«עוד». */
+ .top .lbp{display:none}
+ /* התפריטים נפתחים מהכפתור פנימה. ברירת המחדל נעגנת לצד ההתחלה
+    ומתפשטת לסוף, וכאן הכפתורים יושבים בקצה השמאלי — נמדד: כל ששת
+    הפריטים של «עוד» מחוץ למסך. */
+ .top .lc .menu{inset-inline-start:auto;inset-inline-end:0}}
 /* ============ תוויות הפעולות ============
    קודם עמד כאן `@media(max-width:1400px){.lbl{display:none}}` — כלומר
    בכל מסך של 1366 כל הפעולות הפכו לסמל בלבד, בלי שם. במקום להסתיר
@@ -2751,14 +2819,14 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
-    <div class="menuwrap"><button class="btn" id="helpBtn" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
+    <div class="menuwrap"><button class="btn" id="helpBtn" aria-label="עזרה" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
       <!-- כפתורים ולא div: פריט תפריט שאי אפשר להגיע אליו ב-Tab
            ולהפעיל ב-Enter אינו נגיש, וטבעת מיקוד אינה מתקנת את זה. -->
       <div class="menu wide" id="helpMenu" role="menu">
         <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
         <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
       </div></div>
-    <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
+    <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-label="עוד" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
       <div class="menu wide" id="moreMenu"></div></div>
     <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
     <input type="file" id="stFile" accept="application/json,.json" hidden>
@@ -2783,7 +2851,7 @@ tr.grp.sup b{font-size:var(--f-md)}
     <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
     <button class="etachip stale" id="storechip" type="button" hidden></button>
     <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
-    <label class="btn pri" for="f">⭱ העלאת קובץ ZMRP<input type="file" id="f" accept=".xlsx,.xls"></label>
+    <label class="btn pri" for="f"><span>⭱ <span class="lbp">העלאת קובץ </span>ZMRP</span><input type="file" id="f" accept=".xlsx,.xls"></label>
   </div>
 </div>
 <div class="tour" id="tour" hidden role="dialog" aria-labelledby="tourTtl">
@@ -2807,11 +2875,13 @@ tr.grp.sup b{font-size:var(--f-md)}
      שהבדיקות ימשיכו לשאול את אותה שאלה. -->
 <div class="shell" id="shell">
 <nav class="rail" id="rail" aria-label="תחומי עבודה">
+  <button type="button" class="railnav s" data-d="-1" aria-label="תחומים קודמים" tabindex="-1">›</button>
   <div class="railsect">תחומי עבודה</div>
   <div class="tabs" id="tabs"></div>
   <div class="railsub" id="railsub"></div>
   <div class="railsp"></div>
   <div class="railfoot" id="railfoot"></div>
+  <button type="button" class="railnav e" data-d="1" aria-label="תחומים נוספים" tabindex="-1">‹</button>
 </nav>
 <div class="dash" id="dash">
   <section class="widget wkpi" id="w_kpis" data-w="kpis">
@@ -5078,6 +5148,10 @@ function descCellW(){const t=document.getElementById('tbl');if(!t)return null;
  const row=t.querySelector('tbody tr[data-i]');
  if(i<0||!row||!row.children[i])return null;
  return row.children[i].getBoundingClientRect().width}
+(()=>{const f=document.getElementById('w_filters'),d=document.getElementById('dash');
+ if(!f||!d||!window.ResizeObserver)return;
+ const ro=new ResizeObserver(()=>d.style.setProperty('--fh',(f.offsetHeight?f.offsetTop+f.offsetHeight:0)+'px'));
+ ro.observe(f);const k=document.getElementById('w_kpis');if(k)ro.observe(k)})();
 function updatePush(){const b=document.body;
  if(!b.classList.contains('dopen')){b.classList.remove('push');return}
  const d=document.querySelector('.wdetail');if(!d)return;
@@ -6226,14 +6300,29 @@ function buildSideFilters(){document.getElementById('sidefilters').innerHTML=FDE
  document.querySelectorAll('.ddbtn').forEach(b=>b.onclick=e=>{e.stopPropagation();
   const k=b.dataset.k,p=document.getElementById('dp_'+k),was=p.classList.contains('open');
   document.querySelectorAll('.ddpanel').forEach(x=>x.classList.remove('open'));if(was)return;
-  const o=optionsFor(k);
-  p.innerHTML=`<input class="s" placeholder="חיפוש בין ${o.length} ערכים">`+o.map(([v,c])=>
-    `<label><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}" ${SEL[k].has(v)?'checked':''}><span>${v}</span><span class="c">${c}</span></label>`).join('');
-  p.classList.add('open');
-  ddClamp(p);
-  p.querySelector('.s').oninput=ev=>{const q=ev.target.value;p.querySelectorAll('label').forEach(l=>l.style.display=l.textContent.includes(q)?'':'none')};
-  p.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{cb.checked?SEL[k].add(cb.value):SEL[k].delete(cb.value);apply()});
-  p.onclick=ev=>ev.stopPropagation()});}
+  ddOpen(k)});}
+/* ============ המגירה נשארת פתוחה בין בחירות ============
+   כל סימון מריץ apply(), ו-apply() בונה מחדש את כל פאנל הסינון — כולל
+   המגירה הפתוחה. נמדד: בחירת חמישה ספקים דרשה לפתוח את המגירה חמש
+   פעמים, ואיתה נמחקו גם החיפוש בתוכה ומיקום הגלילה.
+   המגירה נפתחת מחדש אחרי הבנייה עם אותו חיפוש, אותה גלילה ואותו מיקוד.
+   רשימת הערכים לא זזה מתחת לאצבע: optionsFor(k) מתעלם מהבחירה במסנן
+   k עצמו, ולכן הערכים והמונים שלו זהים לפני הסימון ואחריו. */
+function ddOpen(k,q,st,fv){const p=document.getElementById('dp_'+k);if(!p)return;
+ const o=optionsFor(k);
+ p.innerHTML=`<input class="s" placeholder="חיפוש בין ${o.length} ערכים">`+o.map(([v,c])=>
+   `<label><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}" ${SEL[k].has(v)?'checked':''}><span>${v}</span><span class="c">${c}</span></label>`).join('');
+ p.classList.add('open');
+ ddClamp(p);
+ const s=p.querySelector('.s');
+ s.oninput=()=>{const v=s.value;p.querySelectorAll('label').forEach(l=>l.style.display=l.textContent.includes(v)?'':'none')};
+ if(q){s.value=q;s.oninput()}
+ if(st)p.scrollTop=st;
+ const cbs=[...p.querySelectorAll('input[type=checkbox]')];
+ cbs.forEach(cb=>cb.onchange=()=>{const q=s.value,st=p.scrollTop;
+   cb.checked?SEL[k].add(cb.value):SEL[k].delete(cb.value);apply();ddOpen(k,q,st,cb.value)});
+ if(fv!=null){const c=cbs.find(c=>c.value===fv);if(c)c.focus({preventScroll:true})}
+ p.onclick=ev=>ev.stopPropagation()}
 document.addEventListener('click',()=>{document.querySelectorAll('.ddpanel,.menu,.bulkmenu').forEach(p=>p.classList.remove('open'));closeColPop()});
 function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
   `<div class="chip"><b>${l}:</b>${v}<span data-k="${k}" data-v="${String(v).replace(/"/g,'&quot;')}">✕</span></div>`)));
@@ -6956,6 +7045,18 @@ function tiles(){
    setMode(e.dataset.m)};
  t.querySelectorAll('.tab').forEach(wireNav);
  document.querySelectorAll('#railsub .railsub2').forEach(wireNav)}
+/* החצים של הרצועה האופקית — ראה .railnav. מצב הקצוות נמדד מהגלילה
+   עצמה; ב-RTL ‏scrollLeft הוא 0 בהתחלה ושלילי לכיוון הסוף. */
+function railEdges(){const r=document.getElementById('rail');if(!r)return;
+ const max=r.scrollWidth-r.clientWidth,x=Math.abs(r.scrollLeft);
+ r.classList.toggle('more-s',max>2&&x>2);r.classList.toggle('more-e',max>2&&x<max-2)}
+(()=>{const r=document.getElementById('rail');if(!r)return;
+ r.addEventListener('scroll',railEdges,{passive:true});
+ r.querySelectorAll('.railnav').forEach(b=>b.onclick=()=>
+   r.scrollBy({left:-b.dataset.d*r.clientWidth*.7,behavior:'smooth'}));
+ if(window.ResizeObserver){const ro=new ResizeObserver(railEdges);ro.observe(r);
+  ['tabs','railsub'].forEach(id=>{const e=document.getElementById(id);if(e)ro.observe(e)})}
+ railEdges()})();
 /* ============ שורת הניווט נשארת שורה אחת ============
    נמדד: מתחת ל-1280px שתי הכניסות המשניות שברו את השורה לשתיים —
    25px (‎3% מהרשימה) שנלקחו בדיוק מהמקום שהסבב הזה בא לפנות.
@@ -9799,7 +9900,11 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
    const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
    XLSX.utils.book_append_sheet(wb,mws,mName.slice(0,28))}
  const dstr=new Date().toISOString().slice(0,10);
- XLSX.writeFile(wb,`Inventory_${cur}_${dstr}.xlsx`);
+ /* קובץ מסונן נקרא «מסונן». עד כאן תצוגה של ZT בלבד ירדה בשם
+    Inventory_all_… — אותו שם כמו הקטלוג המלא, וקובץ שנשלח הלאה
+    נקרא כאילו הוא הכול. «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
+ const filt=FDEF.some(([k])=>SEL[k].size)||Object.keys(colFilters).length>0||!!SQ;
+ XLSX.writeFile(wb,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`);
  toast(`יוצאו ${currentRows().length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
 /* ============ EXPEDITE — דוח הזירוז מול הספקים ============
    הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
@@ -10359,6 +10464,9 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
 function welToggle(){const w=document.getElementById('welcome');if(!w)return;
  const has=(typeof ALL!=='undefined'&&ALL&&ALL.length>0);
  w.hidden=has;document.body.classList.toggle('welcoming',!has);
+ /* צעד 1 של ההיכרות הוא «העלה את הדוח». מי שהעלה — עשה אותו, וההיכרות
+    עוברת לצעד 2 במקום להמשיך לבקש דוח שכבר נטען ולכסות את הטבלה. */
+ if(has&&TOURI===0){TOURI=1;tourShow()}
  if(!has){const t=document.querySelector('.top');
   if(t)w.style.insetBlockStart=Math.round(t.getBoundingClientRect().height)+'px'}}
 /* ============ נתוני הדגמה ============
@@ -10555,13 +10663,21 @@ function fitTop(){
  /* סדר הוויתור מתחיל בקישוט ולא בפעולה: תת-הכותרת של המותג ורמז
     חודש הבסיס אינם פעולות, והם יורדים לפני שכפתור כלשהו נעלם
     מהעין. רק אם גם זה לא הספיק — פעולות עוברות אל «עוד». */
+ /* ============ בטלפון הסרגל עוטף, לא גולש ============
+    ולכן over() לעולם אינו נדלק שם, ואף פעולה לא ירדה ל«עוד». נמדד
+    ב-390px: הסרגל גדל לשש שורות (251px), והטבלה בקטלוג התחילה ב-461
+    מתוך 844 — כעשר שורות גלויות, וארבע כשלוח הסינון פתוח. בטלפון כל הפעולות
+    המשניות יורדות ל«עוד» בלי לחכות לגלישה, ושם הן מקבלות את שמן המלא.
+    הסינון נשאר בחוץ: הוא הפעולה היחידה כאן שחוזרת כל כמה שניות. */
+ const phone=matchMedia('(max-width:760px)').matches;
  document.body.classList.remove('topnarrow');
- if(!over())return;
- document.body.classList.add('topnarrow');
- if(!over())return;
+ if(!phone){
+  if(!over())return;
+  document.body.classList.add('topnarrow');
+  if(!over())return}
  wrap.hidden=false;
  for(const id of TOP_DROP){
-  if(!over())break;
+  if(phone?id==='filtBtn':!over())continue;
   const b=document.getElementById(id);
   if(!b||b.hidden||!lc.contains(b))continue;
   const mi=document.createElement('div');mi.className='mi act';
