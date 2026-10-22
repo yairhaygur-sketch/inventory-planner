@@ -2163,6 +2163,30 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
  .wfil::after,.qclr::after,#phdInfo::after{inset:-9px -6px}
  /* 10px בטבלה הוא מתחת לסף הקריאה בטלפון; 11px לא מוסיף שורה */
  .cp,.dn,.rank,#tbl thead .thc{font-size:11px}}
+/* ============ מגירת סינון בטלפון — עיצוב שלב 7א ============
+   נמדד ב-390 לפני: לוח הסינון נפתח בתוך הזרימה, דחף את הטבלה ל-588
+   מתוך 844 (6 שורות גלויות), ולא היה לו כפתור סגירה — רק ✕ זעיר
+   בכותרת הווידג׳ט. כאן הוא מגירה קבועה בתחתית, מעל הטבלה ולא במקומה. */
+.fshead,.fsfoot{display:none}
+.fscrim[hidden]{display:none}
+@media(max-width:760px){
+ /* ‎.dash‎ בבורר: ‎.dash .widget:not(.wdetail){background:transparent}‎ ספציפי יותר
+    מ-‎body:not(.nofilters) .wfilters‎, והמגירה יצאה שקופה — הטבלה נראתה דרכה. */
+ body:not(.nofilters) .fscrim{display:block;position:fixed;inset:0;z-index:88;background:rgba(15,26,41,.45)}
+ body:not(.nofilters) .dash .wfilters{position:fixed;inset-inline:0;bottom:0;z-index:89;max-height:78vh;
+  height:auto!important;display:flex;flex-direction:column;align-items:stretch;background:var(--panel);
+  border-radius:16px 16px 0 0;box-shadow:0 -8px 24px rgba(15,26,41,.18)}
+ .dash .wfilters>.whead{display:none}
+ body:not(.nofilters) .dash .wfilters .fshead{display:flex;align-items:center;padding:10px 14px;
+  border-block-end:1px solid var(--line2);flex:0 0 auto}
+ .dash .wfilters .fshead b{font-size:17px}
+ .dash .wfilters .fsx{margin-inline-start:auto;width:40px;height:40px;border:0;background:none;
+  font-size:20px;color:var(--ink);cursor:pointer;border-radius:10px}
+ body:not(.nofilters) .dash .wfilters .wbody{flex:1 1 auto;min-height:0;overflow:auto;padding:0 14px}
+ body:not(.nofilters) .dash .wfilters .fsfoot{display:flex;flex:0 0 auto;padding:10px 14px 14px;
+  border-block-start:1px solid var(--line)}
+ body:not(.nofilters) .dash .wfilters .fsfoot .btn{flex:1 1 auto;width:100%;justify-content:center;height:44px;font-size:15px}
+ body:not(.nofilters) .dash .wfilters .fbody{border-block-end:0}}
 /* ============ טלפון: ארבע שורות במקום שש ============
    נמדד ב-390px: הסרגל העליון היה 251px בשש שורות. העברת הפעולות
    ל«עוד» (fitTop) הורידה אותו ל-210px, ועדיין נשארו חמש — מותג וחיפוש,
@@ -2936,6 +2960,7 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="railfoot" id="railfoot"></div>
   <button type="button" class="railnav e" data-d="1" aria-label="תחומים נוספים" tabindex="-1">‹</button>
 </nav>
+<div class="fscrim" id="fscrim" hidden></div>
 <div class="dash" id="dash">
   <section class="widget wkpi" id="w_kpis" data-w="kpis">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">מדדים</span><span class="wsp"><span class="wx" data-hide="kpis" title="הסתר">✕</span></span></div>
@@ -2943,6 +2968,11 @@ tr.grp.sup b{font-size:var(--f-md)}
     <div class="rz" data-rz="kpis" title="שינוי גודל"></div>
   </section>
   <section class="widget wfilters" id="w_filters" data-w="filters">
+    <!-- ============ מגירת סינון בטלפון — עיצוב שלב 7א ============
+         בטלפון לוח הסינון נפתח מלמטה מעל רקע מוחשך, ונסגר בשלוש דרכים:
+         ✕, הקשה על הרקע, או «הצג N פריטים». הכותרת והתחתית האלה מוצגות
+         בטלפון בלבד; במחשב הלוח נשאר רצועה כמו שהוא. -->
+    <div class="fshead"><b>סינון</b><button type="button" class="fsx" id="fsClose" aria-label="סגור סינון">✕</button></div>
     <div class="whead"><span class="hnd">⠿</span><span class="wt">סינון ומיקוד</span><span class="wsp"><span class="wx" data-hide="filters" title="הסתר">✕</span></span></div>
     <div class="wbody"><div class="fbody">
       <!-- ============ שאילתה בשפה חופשית ============
@@ -2958,6 +2988,7 @@ tr.grp.sup b{font-size:var(--f-md)}
       <div class="chips" id="chips"></div>
       <button class="fclear" id="fclr">▽ נקה פילטרים</button>
     </div></div>
+    <div class="fsfoot"><button type="button" class="btn pri" id="fsShow">הצג <span id="fsN">0</span> פריטים</button></div>
     <div class="rz" data-rz="filters" title="שינוי גודל"></div>
   </section>
   <section class="widget wqueue" id="w_queue" data-w="queue">
@@ -9023,6 +9054,7 @@ function render(){if(!QF)return;
     «כסף תקוע», וזה לא מה שהמסך הזה עוסק בו. */
  {let st='';try{if(mode==='today'||mode==='month')st=navSub(mode)}catch(_){}
   document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')'+(st?' · '+st:'')}
+ {const n=document.getElementById('fsN');if(n)n.textContent=rows.length.toLocaleString('he-IL')}
  colsSync();renderCapTop();setTimeout(()=>{colsBoot();freezeCols()},0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
@@ -10289,6 +10321,12 @@ function syncGseg(){const g=document.getElementById('gseg');if(!g)return;
  g.hidden=!(mode==='today'&&QF);
  g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.gb===groupBy))}
 document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
+/* שלוש דרכים לסגור את מגירת הסינון בטלפון, ושלושתן אותה פעולה בדיוק
+   כמו הכפתור «סינון» — hideWidget — כך שהמצב נשמר כמו קודם. */
+{const shut=()=>{if(!LAYOUT.hidden.includes('filters')){hideWidget('filters');syncFiltBtn()}};
+ ['fsClose','fsShow','fscrim'].forEach(id=>{const e=document.getElementById(id);if(e)e.onclick=shut});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&matchMedia('(max-width:760px)').matches
+   &&!document.querySelector('.ddpanel.open'))shut()})}
 /* הדלת לפריטים המסומנים. מופיעה רק כשיש מה למצוא, ומחזירה ל"היום"
    בלחיצה שנייה כדי שלא ייווצר מסך ללא יציאה. */
 document.getElementById('riseBtn').onclick=()=>jumpTo('rise','month');
