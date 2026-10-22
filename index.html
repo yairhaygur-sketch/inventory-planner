@@ -2315,6 +2315,13 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
   background:var(--panel);box-shadow:0 0 5px 3px var(--panel)}
  #tbl tbody tr[data-i]:hover .ract>*{background:var(--surface-2);
   box-shadow:0 0 5px 3px var(--surface-2)}
+ /* ============ הכפתורים יוצאים מהתא, אז התא לא חותך ============
+    .ract ברוחב 0, והכפתורים נשפכים ממנו אל העמודה הסמוכה — אבל התא
+    עצמו overflow:hidden, ולכן חתך אותם. נמדד ב-1024/1180/1240: במרכז
+    העבודה 1 מתוך 16 כפתורים היה לחיץ, בחוסרים וב-MRP 8 מתוך 16 —
+    «✓ טופל» נחתך תמיד. רק בזמן שהכפתורים גלויים התא מפסיק לחתוך; בכל
+    מצב אחר החיתוך נשאר, והמק״ט עדיין נגמר בשלוש נקודות. */
+ #tbl tbody tr[data-i]:is(:hover,.sel,:focus-within) td:has(>.ract){overflow:visible}
  /* ============ הסימן חוזר לזרימה ============
     הסימן «נמצא גם ב-» יושב במיקום מוחלט מעל השטח ש-.ract שומר. כאן
     .ract כבר לא שומר שטח (width:0), והסימן נחת על המק״ט עצמו. נמדד
@@ -7909,6 +7916,17 @@ function custGroups(rows){
    נגזרות ממנה. אי-התאמה אינה אפשרית יותר.
    העמודות עצמן לא השתנו: ברירת המחדל בכל תצוגה היא בדיוק מה שהיה. */
 function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
+/* ============ «✓ טופל» מחובר בכל טבלה ============
+   החיבור ישב בשתיים מחמש פונקציות הרינדור. במרכז העבודה (renderAgenda)
+   הכפתור הוצג ולא עשה דבר — הלחיצה עברה לשורה ופתחה את הכרטיס.
+   ובהודעה הופיע data-done כפי שהוא: מפתח הסימון, «מעתד|ספק|מק״ט»,
+   במקום המק״ט. עכשיו כל רינדור קורא לאותה פונקציה. */
+function wireMarkBtns(){
+ const pnOf=k=>{const it=markItem(k);return it?it.pn:k};
+ document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+   const k=b.dataset.done;setMark(k,'handled','');toast('✓ '+pnOf(k)+' — סומן כטופל')});
+ document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
+   const k=b.dataset.undo;setMark(k,'','');toast('↺ '+pnOf(k)+' — הסימון בוטל, הפריט חזר לרשימה')})}
 const SCOL={
  /* שתי גרסאות למק״ט: עם כפתור «✓ טופל» ובלעדיו. מסלולי הפרמטרים,
     «לקוח ממתין», «מעקב יישום» ו«טופלו» לא נשאו אותו לפני המעבר
@@ -8540,7 +8558,7 @@ function renderAgenda(rows){
  setPhdSub('שלושת הרונגים שהמנוע הכריע, בסדר הזה: הבטחה ללא רכש · '
   +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.');
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+ wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
   tr.classList.add('sel');detail(view[+tr.dataset.i])});
  wireCopy()}
@@ -8587,7 +8605,7 @@ function renderCust(rows){
  const view=[];{const G2=custGroups(rows);
   if(!GCOLL.has('cst:none'))view.push(...G2.none);
   for(const [sup,list] of G2.sup)if(!GCOLL.has('cst:sup:'+sup))view.push(...list)}
- document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+ wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
   tr.classList.add('sel');detail(view[+tr.dataset.i])});
  wireCopy()}
@@ -8627,7 +8645,7 @@ function renderApplied(rows){
   :'השוואה בין שתי העלאות')+(dr?' · '+dr:'')+(oc?' · '+oc:''));
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
- document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+ wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
   tr.classList.add('sel');detail(view[+tr.dataset.i])});
  wireCopy()}
@@ -8744,11 +8762,7 @@ function renderDecisions(rows){
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין מספרים לתקן ב-SAP.'}</td></tr>`;
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
-   const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
- document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
-   const pn=b.dataset.undo;setMark(pn,'','');toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה')});
- document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+ wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
@@ -8908,11 +8922,7 @@ function render(){if(!QF)return;
  document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>
   `<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>').join('')
   ||`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
- document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
-   const pn=b.dataset.done;setMark(pn,'handled','');toast('✓ '+pn+' — סומן כטופל')});
- document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
-   const pn=b.dataset.undo;setMark(pn,'','');toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה')});
- document.querySelectorAll('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{
+ wireMarkBtns();document.querySelectorAll('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
  document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length}`;
  document.getElementById('pgR').textContent=`${QF.all.length} מק״טים בקובץ`;
