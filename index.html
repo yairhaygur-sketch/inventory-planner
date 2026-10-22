@@ -2088,7 +2088,16 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  .top{gap:6px}
  .top .btn .lbl{display:none}
  .top .lc .menuwrap .btn .lbl{display:inline}
+ /* ============ שני קובצי SAP אינם סמל אחד ============
+    מתחת ל-1100px כל הפעולות בסרגל הן סמל בלבד, ושני קובצי העדכון
+    ל-SAP — הראשי ושל המלאי האיטי — חולקים את אותו ⇪. בעכבר ה-title
+    מבדיל ביניהם; במסך מגע אין ריחוף ואין title, ולכן אין שום דרך
+    לדעת איזה קובץ יורד. ומהקובץ הזה המעתד מעדכן את SAP ביד.
+    תווית קצרה ולא המלאה: המלאה מוסיפה שורה לסרגל שכבר גבוה. */
+ .top .btn .lbs{display:inline}
+ .top .lc .menuwrap .btn .lbs{display:none}
  .dstate{flex-direction:row;gap:6px;align-items:baseline}}
+.lbs{display:none}
 /* ============ תוויות הפעולות ============
    קודם עמד כאן `@media(max-width:1400px){.lbl{display:none}}` — כלומר
    בכל מסך של 1366 כל הפעולות הפכו לסמל בלבד, בלי שם. במקום להסתיר
@@ -2191,7 +2200,10 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
    width קבוע כאן היה הופך את האוטומטי לקבוע ושובר את התכונה. */
 #tbl td.mdl,#tbl th[data-ck="model"]{min-width:70px;max-width:108px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#tbl td.mdl{color:var(--dim)}
+/* text-align:right — תא לטיני הוא עכשיו ltr, ובלי זה היה נצמד לשמאל
+   ושובר את קו העמודה. תוכן שגולש מיושר להתחלה גם כך (CSS Text 3),
+   ולכן ה-«…» נשאר בסוף הטקסט. */
+#tbl td.mdl{color:var(--dim);text-align:right}
 /* ברוחב צר הדגם מתכווץ יחד עם שאר הטקסט החופשי — והתיאור מוותר
    קצת יותר, כי הדגם נושא עכשיו חלק מהזיהוי שהיה רק בו. */
 @media(max-width:1560px){#tbl td.mdl,#tbl th[data-ck="model"]{min-width:64px;max-width:92px}}
@@ -2734,8 +2746,8 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
     <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="sapXls" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span></button>
-    <button class="btn" id="sapSlowXls" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span></button>
+    <button class="btn" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button>
+    <button class="btn" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button>
     <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
     <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
     <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
@@ -8057,7 +8069,19 @@ const SCOL={
     הארוך ביותר בדוח האמיתי הוא 22; הטקסט המלא תמיד ב-title. */
  model:{t:'דגם',val:r=>String(r.model||''),ttl:'הדגם שאליו משויך החלק — כפי שהוא בדוח',
   cell:r=>{const m=String(r.model||'');
-   return `<td class="mdl" title="${esc(m)}"><bdi>${esc(m.length>22?m.slice(0,21)+'…':m)||'—'}</bdi></td>`}},
+   /* ============ כיוון התא בא מהדגם ============
+      הטבלה RTL, ו-text-overflow שם את ה-«…» בקצה השמאלי של התא. בשם
+      לטיני זה חותך את *ההתחלה*: «Lynk&co 02 2025» נראה כ-«…co 02 2025»,
+      ובנייד כ-«…025» — נשארת השנה והולך הדגם. נמדד על הדוח האמיתי:
+      196 מ-254 התאים הלטיניים ב-1440, וכל 254 ב-1024 ובנייד.
+      15 מ-35 הדגמים לטיניים ו-20 עבריים («בין עירוני 2022»), ולכן כיוון
+      גורף (ltr) היה מתקן את הלטיניים ושובר את העבריים. הכיוון נקבע לכל
+      תא מהתו החזק הראשון בדגם.
+      ולמה לא dir="auto": האלגוריתם של HTML מדלג על טקסט שבתוך <bdi>, וכל
+      הטקסט כאן בתוך <bdi>. התא לא מצא תו חזק, נפל ל-ltr — וזה נמדד: 140
+      תאים עבריים בנייד איבדו את ההתחלה. החישוב המפורש אינו תלוי בזה. */
+   const mdir=/^[^A-Za-z\u0590-\u05FF]*[A-Za-z]/.test(m)?'ltr':'rtl';
+   return `<td class="mdl" dir="${mdir}" title="${esc(m)}"><bdi>${esc(m.length>22?m.slice(0,21)+'…':m)||'—'}</bdi></td>`}},
  sdate:{t:'תאריך מכירה',val:r=>(r.sales&&r.sales.date)?+r.sales.date:0,
   fval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'—',
   xval:r=>(r.sales&&r.sales.date)?fmtDate(r.sales.date):'',
