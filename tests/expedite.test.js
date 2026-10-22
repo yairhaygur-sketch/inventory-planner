@@ -13,11 +13,13 @@ const XLSX=require('xlsx'),{chromium}=require('playwright'),fs=require('fs'),pat
    פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
    האמיתית, לא עקיפה שלה. */
 const topAct=async(p,id)=>{
- const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
-   return !!b&&!!b.closest('#moreMenu')},id);
- if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ /* הכפתור יכול לשבת בכל תפריט בסרגל — «קבצים», «עוד» — ולא רק ב«עוד» */
+ const opener=await p.evaluate(i=>{const b=document.getElementById(i);
+   const m=b&&b.closest('.top .menu');
+   const o=m&&document.querySelector(`[aria-controls="${m.id}"]`);return o?o.id:null},id);
+ if(opener){await p.click('#'+opener);await p.waitForTimeout(200)}
  await p.click('#'+id);
- if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
+ if(opener){await p.evaluate(()=>document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open')))}};
 const SD=__dirname, MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
 const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','שם ספק','סטטוס חומר','תיאור','סוג MRP','ABC','רמת שרות',
  'מלאי בטחון','נק.הז.מחדש','אספ.מתוכנ.','זמ.עב.קבלת','מל.בט.מינ.','מחיר FOB','מטבע FOB','סה"כ מלאי','מלאי פנוי',
@@ -115,7 +117,7 @@ const snap=()=>{const {rows,landed}=expediteRows();
     שואלת «אפשר להגיע אליו», לא «הוא בשורה». */
  const btnSeen=await p.evaluate(()=>{const e=document.getElementById('expXls');
   if(!e)return false;
-  return e.offsetParent!==null||!!e.closest('#moreMenu')});
+  return e.offsetParent!==null||!!e.closest('.top .menu')});
 
  // ── שלב 2: דוח ה-ETA ──
  await p.setInputFiles('#fe',SD+'/expedite-eta.xlsx');await p.waitForTimeout(1500);

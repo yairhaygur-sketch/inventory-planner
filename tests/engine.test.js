@@ -4,11 +4,13 @@ const {chromium}=require('playwright');const fs=require('fs'),path=require('path
    פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
    האמיתית, לא עקיפה שלה. */
 const topAct=async(p,id)=>{
- const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
-   return !!b&&!!b.closest('#moreMenu')},id);
- if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ /* הכפתור יכול לשבת בכל תפריט בסרגל — «קבצים», «עוד» — ולא רק ב«עוד» */
+ const opener=await p.evaluate(i=>{const b=document.getElementById(i);
+   const m=b&&b.closest('.top .menu');
+   const o=m&&document.querySelector(`[aria-controls="${m.id}"]`);return o?o.id:null},id);
+ if(opener){await p.click('#'+opener);await p.waitForTimeout(200)}
  await p.click('#'+id);
- if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
+ if(opener){await p.evaluate(()=>document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open')))}};
 const SD=__dirname;const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
 const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined});
@@ -560,10 +562,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const acts=['filtBtn','exportXls','expXls','stBtn','darkToggle'];
   const st=acts.map(id=>{const e=document.getElementById(id);
    if(!e)return {id,ok:false,why:'חסר'};
-   const inMenu=!!e.closest('#moreMenu');
+   const inMenu=!!e.closest('.top .menu');
    /* «שם» = טקסט קריא, לא סמל בלבד */
    const named=((e.querySelector('.lbl')||{}).textContent||'').trim().length>1;
-   if(inMenu)return {id,ok:named,why:'בתפריט «עוד»'};
+   if(inMenu)return {id,ok:named,why:'בתפריט'};
    const r=e.getBoundingClientRect();
    return {id,ok:named&&r.width>0&&r.left>=cb.left-1&&r.right<=cb.right+1,why:'בשורה'}});
   return {topClipped:top.scrollWidth>top.clientWidth+2,

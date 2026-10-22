@@ -65,8 +65,8 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
    const st=Object.entries(want).map(([id,nm])=>{const e=document.getElementById(id);
     if(!e)return {id,ok:false,why:'חסר'};
     const lbl=((e.querySelector('.lbl')||{}).textContent||'').trim();
-    const inMenu=!!e.closest('#moreMenu');
-    return {id,ok:lbl===nm,lbl,why:inMenu?'בתפריט «עוד»':'בשורה'}});
+    const inMenu=!!e.closest('.top .menu');
+    return {id,ok:lbl===nm,lbl,why:inMenu?'בתפריט':'בשורה'}});
    return {st,clipped:top.scrollWidth>top.clientWidth+2,
     help:((document.getElementById('helpBtn')||{}).textContent||'').replace(/\s+/g,' ').trim(),
     helpItems:[...document.querySelectorAll('#helpMenu .mi')].map(e=>e.dataset.help)}});
