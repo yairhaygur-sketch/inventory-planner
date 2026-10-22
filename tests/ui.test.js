@@ -4,11 +4,13 @@ const {chromium}=require('playwright');const fs=require('fs'),path=require('path
    פותחת את התפריט כשצריך, במקום להניח שהכפתור תמיד בשורה — זו ההתנהגות
    האמיתית, לא עקיפה שלה. */
 const topAct=async(p,id)=>{
- const inMenu=await p.evaluate(i=>{const b=document.getElementById(i);
-   return !!b&&!!b.closest('#moreMenu')},id);
- if(inMenu){await p.click('#moreBtn');await p.waitForTimeout(200)}
+ /* הכפתור יכול לשבת בכל תפריט בסרגל — «קבצים», «עוד» — ולא רק ב«עוד» */
+ const opener=await p.evaluate(i=>{const b=document.getElementById(i);
+   const m=b&&b.closest('.top .menu');
+   const o=m&&document.querySelector(`[aria-controls="${m.id}"]`);return o?o.id:null},id);
+ if(opener){await p.click('#'+opener);await p.waitForTimeout(200)}
  await p.click('#'+id);
- if(inMenu){await p.evaluate(()=>document.getElementById('moreMenu').classList.remove('open'))}};
+ if(opener){await p.evaluate(()=>document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open')))}};
 /* ============ ניווט במסילה ============
    אחרי המעבר למסילה אנכית, מסלול ותיק שאינו אחד משישה התחומים
    (moves, burn, cust, done, rise, floor, trend, applied) נמצא כדלת

@@ -2135,6 +2135,9 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  .dstate{flex-direction:row;gap:6px;align-items:baseline}}
 .lbs{display:none}
 .railnav{display:none}
+/* «⚠ 2 אזהרות» ולא «▲ 2»: משולש ומספר לבדם לא אמרו על מה מדובר.
+   מתחת ל-1100px המילה יורדת, כמו תוויות הפעולות. */
+@media(max-width:1100px){.dchip .dlbl{display:none}}
 /* ============ מגע: אזור הלחיצה גדל, הפריסה לא ============
    נמדד ב-390px עם מגע: 27 מתוך 45 פקדים גלויים קטנים מ-32px — «העתק»
    ו«✓ טופל» בכל שורה הם 34×15, הסינון בכותרת עמודה 15×16, ו-✕ של
@@ -2847,12 +2850,17 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
   <div class="lc">
     <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
-    <button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button>
-    <button class="btn" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button>
-    <button class="btn" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button>
-    <button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button>
-    <button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button>
-    <button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button>
+    <!-- ============ «קבצים» ============
+         ארבעה קבצים שונים לגמרי — ייצוא התצוגה, שני קובצי העדכון ל-SAP
+         ודוח הזירוז — ישבו בשורה אחת עם «מצב כהה» ו«גיבוי», באותו משקל.
+         כאן הם תפריט אחד עם השם המלא של כל קובץ. -->
+    <div class="menuwrap" id="filesWrap"><button class="btn" id="filesBtn" aria-label="קבצים" aria-expanded="false" aria-controls="filesMenu"><span aria-hidden="true">⭳</span><span class="lbl"> קבצים</span> <span aria-hidden="true">▾</span></button>
+      <div class="menu wide" id="filesMenu">
+        <div class="mi act"><button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button></div>
+        <div class="mi act"><button class="btn" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button></div>
+        <div class="mi act"><button class="btn" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button></div>
+        <div class="mi act"><button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button></div>
+      </div></div>
     <div class="menuwrap"><button class="btn" id="helpBtn" aria-label="עזרה" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
       <!-- כפתורים ולא div: פריט תפריט שאי אפשר להגיע אליו ב-Tab
            ולהפעיל ב-Enter אינו נגיש, וטבעת מיקוד אינה מתקנת את זה. -->
@@ -2860,8 +2868,11 @@ tr.grp.sup b{font-size:var(--f-md)}
         <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
         <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
       </div></div>
-    <div class="menuwrap" id="moreWrap" hidden><button class="btn" id="moreBtn" aria-label="עוד" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
-      <div class="menu wide" id="moreMenu"></div></div>
+    <div class="menuwrap" id="moreWrap"><button class="btn" id="moreBtn" aria-label="עוד" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
+      <div class="menu wide" id="moreMenu">
+        <div class="mi act"><button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button></div>
+        <div class="mi act"><button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button></div>
+      </div></div>
     <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
     <input type="file" id="stFile" accept="application/json,.json" hidden>
   </div>
@@ -2877,7 +2888,7 @@ tr.grp.sup b{font-size:var(--f-md)}
   <div class="sp">
     <div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
       <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div>
-    <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">▲ <span id="dchipN">0</span></button>
+    <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">⚠ <span id="dchipN">0</span><span class="dlbl"> אזהרות</span></button>
     <!-- ============ שלושה תאריכים, שלושה דברים שונים ============
          תאריך הדוח אינו מועד ההעלאה, ודוח ה-ETA אינו הדוח הזה. עד
          כאן שלושתם הופיעו כמחרוזת אחת מופרדת בנקודות, בלי תוויות. -->
@@ -10683,7 +10694,9 @@ function tourWire(){
 /* «עדכון ל-SAP» יורד ל«עוד» מיד אחרי מצב כהה והגיבוי: הוא פעולה
    של סוף תהליך, לא של כל רגע. בלעדיו הסרגל גלש ב-10px ב-1366 —
    הכפתור החדש נכנס לסרגל בלי להירשם בסדר הוויתור. */
-const TOP_DROP=['darkToggle','stBtn','sapSlowXls','sapXls','expXls','exportXls','filtBtn'];
+/* הקבצים, מצב כהה והגיבוי יושבים בתפריטים קבועים (ראה «קבצים»), ולכן
+   בשורה נשאר רק הסינון כמועמד לירידה. */
+const TOP_DROP=['filtBtn'];
 function fitTop(){
  const lc=document.querySelector('.top .lc'),wrap=document.getElementById('moreWrap'),
        menu=document.getElementById('moreMenu');
@@ -10694,9 +10707,8 @@ function fitTop(){
  const top=document.querySelector('.top');
  const over=()=>!!top&&top.scrollWidth>top.clientWidth+1;
  /* קודם מחזירים הכול, כדי שהרחבה תתאושש ולא רק ההצרה */
- [...menu.querySelectorAll('.mi.act')].reverse().forEach(mi=>{
+ [...menu.querySelectorAll('.mi.act.dyn')].reverse().forEach(mi=>{
   const b=mi.firstElementChild;if(b)wrap.before(b);mi.remove()});
- wrap.hidden=true;
  /* סדר הוויתור מתחיל בקישוט ולא בפעולה: תת-הכותרת של המותג ורמז
     חודש הבסיס אינם פעולות, והם יורדים לפני שכפתור כלשהו נעלם
     מהעין. רק אם גם זה לא הספיק — פעולות עוברות אל «עוד». */
@@ -10712,14 +10724,12 @@ function fitTop(){
   if(!over())return;
   document.body.classList.add('topnarrow');
   if(!over())return}
- wrap.hidden=false;
  for(const id of TOP_DROP){
   if(phone?id==='filtBtn':!over())continue;
   const b=document.getElementById(id);
   if(!b||b.hidden||!lc.contains(b))continue;
-  const mi=document.createElement('div');mi.className='mi act';
-  menu.appendChild(mi);mi.appendChild(b)}
- if(!menu.children.length)wrap.hidden=true}
+  const mi=document.createElement('div');mi.className='mi act dyn';
+  menu.appendChild(mi);mi.appendChild(b)}}
 /* ============ תפריט העזרה ============
    מאגד את שלוש נקודות הכניסה שהיו פזורות: מצב ההסבר הקיים, ההיכרות,
    והסבר פורמט הדוח שנכתב למסך הפתיחה — אותו טקסט, לא עותק. */
@@ -10731,10 +10741,18 @@ function fitTop(){
    רכש ואספקות · תכנון ו-MRP · בריאות המלאי · קטלוג פריטים), והדלתות
    שהרמז הצביע עליהן יושבות בה בשמן. תיקון שאין מה לתקן הוא רק גובה
    שנלקח מהרשימה. */
-function moreWire(){
- const mb=document.getElementById('moreBtn'),mm=document.getElementById('moreMenu');
+function moreWire(){menuWire('moreBtn','moreMenu');menuWire('filesBtn','filesMenu')}
+/* כפתור תפריט עוצר את ה-click כדי שלא ייסגר מיד, ולכן הוא גם לא סגר
+   את התפריט השכן: «עזרה» ו«עוד» נשארו פתוחים יחד, אחד על השני. פתיחה
+   של תפריט סוגרת את כל השאר בסרגל. */
+function closeTopMenus(except){document.querySelectorAll('.top .menu.open').forEach(m=>{
+ if(m===except)return;m.classList.remove('open');
+ const b=document.querySelector(`[aria-controls="${m.id}"]`);if(b)b.setAttribute('aria-expanded','false')})}
+function menuWire(bid,mid){
+ const mb=document.getElementById(bid),mm=document.getElementById(mid);
  if(!mb||!mm)return;
  mb.onclick=e=>{e.stopPropagation();const open=!mm.classList.contains('open');
+  if(open)closeTopMenus(mm);
   mm.classList.toggle('open',open);mb.setAttribute('aria-expanded',open?'true':'false')};
  mm.addEventListener('click',e=>{if(e.target.closest('.btn')){
   mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
@@ -10745,6 +10763,7 @@ function helpWire(){
  const hb=document.getElementById('helpBtn'),hm=document.getElementById('helpMenu');
  if(!hb||!hm)return;
  hb.onclick=e=>{e.stopPropagation();const open=!hm.classList.contains('open');
+  if(open)closeTopMenus(hm);
   hm.classList.toggle('open',open);hb.setAttribute('aria-expanded',open?'true':'false');
   const x=document.getElementById('helpXp');
   if(x)x.setAttribute('aria-pressed',XPON?'true':'false');
