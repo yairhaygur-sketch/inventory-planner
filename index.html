@@ -2138,6 +2138,9 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
 /* «⚠ 2 אזהרות» ולא «▲ 2»: משולש ומספר לבדם לא אמרו על מה מדובר.
    מתחת ל-1100px המילה יורדת, כמו תוויות הפעולות. */
 @media(max-width:1100px){.dchip .dlbl{display:none}}
+body.topnarrow .dchip .dlbl{display:none}
+body.toptight .top .lc .menuwrap>.btn .lbl,
+body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
 /* ============ מגע: אזור הלחיצה גדל, הפריסה לא ============
    נמדד ב-390px עם מגע: 27 מתוך 45 פקדים גלויים קטנים מ-32px — «העתק»
    ו«✓ טופל» בכל שורה הם 34×15, הסינון בכותרת עמודה 15×16, ו-✕ של
@@ -10719,10 +10722,16 @@ function fitTop(){
     המשניות יורדות ל«עוד» בלי לחכות לגלישה, ושם הן מקבלות את שמן המלא.
     הסינון נשאר בחוץ: הוא הפעולה היחידה כאן שחוזרת כל כמה שניות. */
  const phone=matchMedia('(max-width:760px)').matches;
- document.body.classList.remove('topnarrow');
+ /* שלב ביניים לפני שפעולה זזה: כפתורי התפריטים («קבצים», «עזרה»,
+    «עוד») הופכים לסמל בלבד. השם נשאר ב-aria-label ובתוך התפריט, וכל
+    פריט בתפריט נושא את שמו המלא. נמדד על הפיקסצ׳ר ב-1366: בלי השלב
+    הזה הסרגל גלש ב-31px, וב-main הוא כבר גלש ב-1180 ב-81px. */
+ document.body.classList.remove('topnarrow','toptight');
  if(!phone){
   if(!over())return;
   document.body.classList.add('topnarrow');
+  if(!over())return;
+  document.body.classList.add('toptight');
   if(!over())return}
  for(const id of TOP_DROP){
   if(phone?id==='filtBtn':!over())continue;
