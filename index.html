@@ -1950,6 +1950,13 @@ td .mut{color:var(--dimmer)}
    מבדיל בין שורה לשורה. אפס במלאי נשאר מודגש — הוא עובדה שמכריעה —
    אבל בדיו משני. האדום נשאר רק לכמות שלא תסופק (.stake, .neg). */
 #tbl td.zero{color:var(--dim);font-weight:700}
+#tbl td.selc,#tbl th[data-ck="sel"]{width:30px;text-align:center;padding-inline:4px}
+#tbl .sapsel,#tbl .sapall{width:16px;height:16px;cursor:pointer;accent-color:var(--acc);margin:0;vertical-align:middle}
+.sapbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;
+ background:var(--shell);color:var(--shell-ink);border-radius:var(--r-sm);margin:6px 0 0}
+.sapbar[hidden]{display:none}
+.sapbar .btn{height:30px}
+.sapbar .sapbarN{color:var(--shell-dim);font-size:var(--f-sm);margin-inline-start:auto}
 /* פס הכיסוי: אותו רוחב כמו הגרף שהוא מחליף (110px), כדי שתקציב
    הרוחב של הטבלה לא יזוז. */
 #tbl td.covc{width:88px;white-space:nowrap}
@@ -3013,6 +3020,13 @@ tr.grp.sup b{font-size:var(--f-md)}
           <button type="button" id="shortlinkGo">לרשימת החוסרים</button></p>
         <div class="seg" id="track"></div>
         <div class="rows"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+        <!-- ============ קובץ SAP מתוך בחירה — עיצוב שלב 6ב ============
+             הכפתור בתפריט «קבצים» מוריד את כל מה שבתצוגה. כאן — רק מה
+             שסימנת, באותו פורמט ובאותם כללים בדיוק (doSapMass). -->
+        <div class="sapbar" id="sapbar" hidden><b><span id="sapbarN">0</span> נבחרו</b>
+          <button type="button" class="btn pri" id="sapbarGo">⇪ קובץ SAP לנבחרים</button>
+          <button type="button" class="btn" id="sapbarClr">נקה בחירה</button>
+          <span class="sapbarN">רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»</span></div>
         <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
       </div>
     </div></div>
@@ -3604,6 +3618,28 @@ function shortLeft(r){
    «להשלים 5 יח׳ כדי לכסות את החודש הקרוב» הוא 38 תווים, והחלק
    שמניע פעולה הוא ששת הראשונים. הנימוק אינו נמחק — הוא עובר
    ל-tooltip, שם הוא נקרא כשצריך אותו ולא גוזל 180 פיקסלים תמיד. */
+/* ============ הפעולה הבאה — פועל וכמות (עיצוב שלב 6) ============
+   העמודה צרה (66-100px מתחת ל-1560), והמשפט המלא של המנוע נחתך באמצע:
+   «…ck Order לבדוק». כאן הוא מתקצר לפועל ולמספר, לפי התבניות שהמנוע
+   באמת מייצר — נמדד על הדוח האמיתי, 13 תבניות ב-3 המסכים. המשפט המלא
+   נשאר ב-title, בכרטיס ובייצוא; זו תצוגה בלבד, והמנוע לא משתנה.
+   תבנית שלא מוכרת כאן נופלת ל-shortAct כמו קודם. */
+const ACT_SHORT=[
+ [/^להשלים ([\d,]+) יח׳ כדי לכסות/,m=>`להשלים ${m[1]} יח׳`],
+ [/^לפתוח רכש יזום ל-([\d,]+) יח׳/,m=>`רכש יזום ${m[1]} יח׳`],
+ [/^לפתוח הזמנת רכש ל-([\d,]+) יח׳/,m=>`להזמין ${m[1]} יח׳`],
+ [/^להשלים רכש ב-([\d,]+) יח׳/,m=>`להשלים ${m[1]} יח׳`],
+ [/^לבדוק Back Order/,()=>'לבדוק Back Order'],
+ [/^לוודא מול הספק/,()=>'לוודא מול הספק'],
+ [/^לעדכן נקודת הזמנה מ-([\d,]+) ל-([\d,]+)/,m=>`ROP ${m[1]}→${m[2]}`],
+ [/^לשנות נקודת הזמנה ל-([\d,]+) ומלאי ביטחון ל-([\d,]+)/,m=>`ROP ${m[1]} · SS ${m[2]}`],
+ [/^לשקול איפוס נקודת הזמנה/,()=>'לשקול איפוס ROP'],
+ [/^לבדוק אם הפיק חד-פעמי/,()=>'לבדוק את הפיק'],
+ [/^להחליט ידנית/,()=>'החלטה ידנית'],
+ [/^אין פעולה נדרשת/,()=>'אין פעולה']];
+function actShort(r){const full=((r.act||[])[0]||'').trim();if(!full)return '';
+ for(const [re,f] of ACT_SHORT){const m=full.match(re);if(m)return f(m)}
+ return shortAct(r)}
 function shortAct(r){
  const full=((r.act||[])[0]||'').trim();
  if(!full)return '';
@@ -7979,7 +8015,29 @@ function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(ma
    הכפתור הוצג ולא עשה דבר — הלחיצה עברה לשורה ופתחה את הכרטיס.
    ובהודעה הופיע data-done כפי שהוא: מפתח הסימון, «מעתד|ספק|מק״ט»,
    במקום המק״ט. עכשיו כל רינדור קורא לאותה פונקציה. */
+const SAPSEL=new Set();
+function sapSelRows(){const all=(QF&&QF.all)||[];return all.filter(r=>SAPSEL.has(r.pn)&&sapUsableBase(r))}
+/* הפס מופיע רק במסך התכנון וכשיש בחירה. בחירה של פריט שכבר לא קיים
+   (העלאת דוח חדש) נופלת כאן, ולכן הספירה תמיד של מה שבאמת ייכנס. */
+function sapBarSync(){const bar=document.getElementById('sapbar');if(!bar)return;
+ const on=colViewKey()==='fix';
+ if(on){const live=new Set(((QF&&QF.all)||[]).map(r=>r.pn));for(const k of [...SAPSEL])if(!live.has(k))SAPSEL.delete(k)}
+ const n=on?sapSelRows().length:0;
+ bar.hidden=!n;if(!n)return;
+ document.getElementById('sapbarN').textContent=n.toLocaleString('he-IL');
+ const all=document.querySelector('#tbl thead .sapall'),boxes=[...document.querySelectorAll('#tbl tbody .sapsel')];
+ if(all){const c=boxes.filter(b=>b.checked).length;all.checked=c>0&&c===boxes.length;all.indeterminate=c>0&&c<boxes.length}}
+function wireSapSel(){
+ document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{
+  b.onclick=e=>e.stopPropagation();
+  b.onchange=()=>{b.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn);sapBarSync()}});
+ const all=document.querySelector('#tbl thead .sapall');
+ if(all){all.onclick=e=>e.stopPropagation();
+  all.onchange=()=>{document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{b.checked=all.checked;
+   all.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn)});sapBarSync()}}
+ sapBarSync()}
 function wireMarkBtns(){
+ wireSapSel();
  const pnOf=k=>{const it=markItem(k);return it?it.pn:k};
  document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const k=b.dataset.done;setMark(k,'handled','');toast('✓ '+pnOf(k)+' — סומן כטופל')});
@@ -8012,6 +8070,14 @@ const SCOL={
   cell:r=>`<td class="dsc"><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
  sup:{t:'ספק',val:r=>String(r.supplier||''),ttl:'שם הספק כפי שהוא בדוח',
   cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
+ /* ============ בחירה לקובץ SAP — עיצוב שלב 6ב ============
+    במסך התכנון בלבד. תיבה רק בשורה שיש לה שינוי פרמטר שנכנס לקובץ
+    (sapUsableBase) — בשורה אחרת סימון לא היה מוסיף לקובץ כלום. אין val,
+    ולכן העמודה אינה ממוינת, אינה מסוננת ואינה מיוצאת. */
+ sel:{t:'',ttl:'בחירה לקובץ SAP',head:()=>`<input type="checkbox" class="sapall" aria-label="בחר את כל השורות שיש להן שינוי פרמטר">`,
+  cell:r=>sapUsableBase(r)
+   ?`<td class="selc"><input type="checkbox" class="sapsel" data-pn="${esc(r.pn)}"${SAPSEL.has(r.pn)?' checked':''} aria-label="בחר ${esc(r.pn)} לקובץ SAP"></td>`
+   :'<td class="selc"></td>'},
  /* ============ פס הכיסוי — עיצוב שלב 5 ============
     השאלה בכל שורה של החוסרים: האם מה שיש יספיק החודש. התשובה נכתבה
     בארבע עמודות שצריך לחבר בראש. הפס מצייר אותה משדות שהמנוע כבר
@@ -8062,7 +8128,7 @@ const SCOL={
  val:{t:'שווי',val:r=>r.unsVal||0,xval:r=>Math.round(r.unsVal||0),ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
   cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
  act:{t:'הפעולה הבאה',val:r=>String((r.act||[])[0]||''),ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
-  cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(shortAct(r)||'—')}</td>`},
+  cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(actShort(r)||'—')}</td>`},
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
  /* ============ משפחת הפרמטרים ============
@@ -8350,7 +8416,7 @@ const SCOL={
   xval:r=>r.risk||0,
   cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
+const SCOL_ORDER=['sel','mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
@@ -8369,7 +8435,7 @@ const SCOL_DEF={
  sup:['pn','model','desc','free','otw','cust','missq','buy','cova','age','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
- fix:['pn','model','desc','rop','ss','need','lt','fix'],
+ fix:['sel','pn','model','desc','rop','ss','need','lt','fix'],
  floor:['pnPlain','model','desc','ssMin','need','fgap','fval','eta','d12'],
  trend:['pnPlain','model','desc','tpct','trate','trop','tgap','tval','eta'],
  rise:['pnPlain','model','desc','upct','urate','urop','ugap','eta','freeRop'],
@@ -8510,7 +8576,7 @@ function colHeadHTML(vk){
   const filt=!!colFilters['c:'+k];
   const tip=(ttl||'')+(srt?`${ttl?' · ':''}לחיצה — מיון · ▾ — סינון`:'');
   return `<th data-ck="${k}" class="${srt?'wsrt':''}${on?' act':''}${filt?' filt':''}">`
-   +`<div class="thc"${tip?` title="${esc(tip)}"`:''}>${esc(c.t)}`
+   +`<div class="thc"${tip?` title="${esc(tip)}"`:''}>${c.head?c.head():esc(c.t)}`
    +(arr?`<span class="warr">${arr}</span>`:'')
    +'</div>'+(srt?`<button type="button" class="wfil" title="סינון העמודה" aria-label="סינון ${esc(c.t)}"></button>`:'')+'</th>'}).join('')}
 function colRowHTML(r,x,vk){return visCols(vk).map(k=>SCOL[k].cell(r,x||{})).join('')}
@@ -9954,14 +10020,14 @@ function sapRowsBy(list,pred){
  return out}
 function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
 function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
-function doSapMass(kind){
+function doSapMass(kind,onlyRows){
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
     הרינדור. נמדד על הדוח האמיתי: בקטלוג המסונן יש 785 פריטים עם
     המלצה, והקובץ יצא עם 178 — 607 שורות נעלמו בשקט, בקובץ שנכתב
     ל-SAP. סדר השורות בקובץ העלאה אינו משנה; שלמותו כן. */
- const view=currentRows();
+ const view=onlyRows||currentRows();
  /* עומדים על דלת «רצפת מדרגה» → הקובץ הוא שלה. בכל דלת אחרת זהו
     קובץ הפרמטרים השוטף, בלי רצפות ובלי מלאי איטי. */
  const aoa=kind==='slow'?sapSlowRows(view)
@@ -10327,6 +10393,9 @@ document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
 {const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>doSapMass();}
 {const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>doSapMass('slow');}
+{const g=document.getElementById('sapbarGo');if(g)g.onclick=()=>doSapMass(undefined,sapSelRows());
+ const c=document.getElementById('sapbarClr');if(c)c.onclick=()=>{SAPSEL.clear();
+  document.querySelectorAll('#tbl .sapsel,#tbl .sapall').forEach(b=>{b.checked=false;b.indeterminate=false});sapBarSync()}}
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
  const parts=[];
