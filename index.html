@@ -2314,7 +2314,15 @@ body.topnarrow #updated{max-width:150px;overflow:hidden;text-overflow:ellipsis;w
  #tbl tbody tr[data-i] .ract>*{position:relative;z-index:3;
   background:var(--panel);box-shadow:0 0 5px 3px var(--panel)}
  #tbl tbody tr[data-i]:hover .ract>*{background:var(--surface-2);
-  box-shadow:0 0 5px 3px var(--surface-2)}}
+  box-shadow:0 0 5px 3px var(--surface-2)}
+ /* ============ הסימן חוזר לזרימה ============
+    הסימן «נמצא גם ב-» יושב במיקום מוחלט מעל השטח ש-.ract שומר. כאן
+    .ract כבר לא שומר שטח (width:0), והסימן נחת על המק״ט עצמו. נמדד
+    במרכז העבודה ב-390 וב-1024: 25 מתוך 38 מק״טים כוסו עד 20px — שתי
+    הספרות הראשונות, כך ש-3406-… נקרא 406-…. מק״ט שנקרא לא נכון גרוע
+    מעמודה צרה, ולכן הסימן חוזר לשורה, צמוד אחרי המק״ט. */
+ #tbl td.xdc .xd{position:static;transform:none;display:inline-block;
+  margin-inline-start:6px;vertical-align:middle}}
 /* ============ תחת דחיפת המגירה ============
    updatePush דוחף רק אם הטבלה עדיין *נכנסת* אחרי הדחיפה. עמודת
    הפעולה הוסיפה רוחב, הטבלה הפסיקה להיכנס, והמגירה חזרה לכסות
