@@ -21,7 +21,14 @@ const files=cp.execSync('git ls-files',{cwd:root}).toString().trim().split('\n')
 let blob='';for(const f of files){try{blob+='\n'+fs.readFileSync(path.join(root,f),'utf8')}catch(e){}}
 const hitPn=[...new Set(pns.filter(p=>{const b=p.replace(/^M/,'');return b.length>=6&&(blob.includes(p)||blob.includes(b))}))];
 const hitDesc=[...desc].filter(d=>blob.includes(d));
-const hitSup=[...sup].filter(s=>blob.includes(s));
+/* קוד ספק שכולו ספרות נחשב דליפה רק כשהוא עומד לבדו — לא בתוך רצף של
+   אותיות וספרות. נמדד: שני קודים בני 6 ספרות נמצאו בתוך מחרוזת מקודדת
+   של אינדקס גופנים (‎…p100500a01…‎) בסקיל חיצוני — צירוף מקרי, לא שם ספק.
+   שם ספק עם אותיות נבדק כמו קודם, כמחרוזת. */
+const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const hitSup=[...sup].filter(s=>/^\d+$/.test(s)
+  ?new RegExp(`(?<![A-Za-z0-9])${esc(s)}(?![A-Za-z0-9])`).test(blob)
+  :blob.includes(s));
 console.log(`נסרקו ${files.length} קבצים · ${(blob.length/1e6).toFixed(2)}MB · מול ${pns.length} מק״טים בדוח`);
 console.log(`מק״טים אמיתיים בריפו:  ${hitPn.length}`+(hitPn.length?'  → '+hitPn.slice(0,25).join(' · '):'  ✓'));
 console.log(`תיאורים אמיתיים:        ${hitDesc.length}`+(hitDesc.length?'  → '+hitDesc.slice(0,10).map(d=>'«'+d+'»').join(' '):'  ✓'));
