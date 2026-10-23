@@ -439,6 +439,7 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 .sapprev .sapnote{padding:9px 12px;font-size:12.5px;color:var(--ink-2)}
 .sapprev table{table-layout:fixed}.sapprev td{white-space:normal}
 .sapprev td.sapn{width:5.5em;text-align:end;font-family:var(--num);font-weight:700;white-space:nowrap}
+.mi.act .btn.na{opacity:.5;cursor:not-allowed}
 .sapprev .row{display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap}
 .calc td{padding:6px 12px;border-bottom:1px solid var(--line2)}
 .calc td:first-child{color:var(--dim)}.calc td:last-child{text-align:left;font-weight:700;font-family:"Courier New",monospace}
@@ -8887,7 +8888,7 @@ function renderAgenda(rows){
  /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
     הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
  const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
- LAST_VIEW=view;
+ LAST_VIEW=AGROUP.flatMap(([g])=>G[g]);       /* VIEW_SHEET — גם קבוצה מקופלת */
  document.getElementById('pgL').textContent=
   pgTxt(idx,rows.length);
  /* התווית הקצרה היא שדה משלה ב-AGROUP ולא חיתוך מהכותרת:
@@ -8925,6 +8926,7 @@ function renderCust(rows){
   if(head('cst:sup:'+sup,'var(--acc)',sup,list.length,
       `${lt}הוזמן במלואו — ${sub}`,t.units,list))continue;
   for(const r of list)body.push(custRow(r,idx++))}
+ LAST_VIEW=G.none.concat(...G.sup.map(([,l])=>l));   /* VIEW_SHEET — סדר המסך, כל הקבוצות */
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
   `<tr><td colspan="${NCOL()}" class="empty">אין פריט עם הזמנת לקוח פתוחה שהמלאי הפנוי שלו אפס.</td></tr>`;
  const t=custTotals(rows);
@@ -8985,6 +8987,7 @@ function renderApplied(rows){
   :'השוואה בין שתי העלאות')+(dr?' · '+dr:'')+(oc?' · '+oc:''));
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
+ LAST_VIEW=AP_G.flatMap(([k])=>rows.filter(r=>r.apStatus===k));   /* VIEW_SHEET */
  wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
   tr.classList.add('sel');detail(view[+tr.dataset.i])});
@@ -9012,7 +9015,9 @@ function renderDecisions(rows){
  /* הסדר שעל המסך אינו הסדר של currentRows(): הקיבוץ, המיון בתוך
     הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
     לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
- LAST_VIEW=view;
+ /* VIEW_SHEET — אותו סדר, בלי החיתוך (lim/capView) ובלי דילוג על קבוצה מקופלת */
+ LAST_VIEW=bySup?SG.flatMap(([,l])=>l):grouped?TGROUP.flatMap(([g])=>GB[g])
+   :k?rows:(colReg()?wsortApply(rows):rows);
  /* ============ RENDER_CAP ============
     במסלול בלי מפתח כספי cut80 מחזיר n = כל הרשימה, ולכן lim לא חתך
     כלום: «שינוי פרופיל MRP» בנה 5,046 שורות (כ-115 אלף רכיבים) ונפתח
@@ -9210,7 +9215,18 @@ function renderDecisions(rows){
    apply() קורא ל-render מיד אחרי שהוא בונה את QF, ולכן אין פה
    ציור שנדחה — יש ציור אחד במקום שניים, שהראשון בהם היה שגוי
    ממילא. מסך הפתיחה (בלי שום קובץ) מצויר על ידי welToggle. */
-function render(){if(!QF)return;
+/* ============ VIEW_SHEET — «התצוגה» היא כל הרשימה, בסדר שעל המסך ============
+   גיליון «התצוגה» נבנה מ-LAST_VIEW, ורק שני מרנדרים עדכנו אותו. «אין רכש
+   כלל», «כיסוי חלקי», «יושמו ב-SAP» והקטלוג השאירו את מה שהמסך הקודם כתב
+   — על הדוח האמיתי, «כיסוי חלקי» (5 פריטים) יצא עם 164 שורות של «ביקוש
+   יורד». ובמסכי הכסף התקוע הגיליון קיבל רק את השורות שצוירו (417 מתוך
+   2,777), ובמסכים מקובצים — בלי קבוצה מקופלת.
+
+   הכלל, בכל המסכים: כל מה שעומד בסינון הנוכחי, בסדר שעל המסך, בלי קשר
+   לכמה שורות צוירו או אילו קבוצות פתוחות. המסך עצמו לא משתנה — כל
+   מרנדר שומר את הרשימה המלאה לצד מה שהוא מצייר. האיפוס כאן מבטיח שמסך
+   ששכח לשמור לא יירש את קודמו: viewExportRows נופל אז ל-currentRows(). */
+function render(){LAST_VIEW=null;sapBtnSync();if(!QF)return;
  DL_CACHE={};XMAP=null;LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
@@ -9291,6 +9307,7 @@ function render(){if(!QF)return;
     בכלי» כולל גם את זאת. העמודות והתאים זהים לתו. */
  document.querySelector('#tbl thead').innerHTML='<tr>'+colHeadHTML()+'</tr>';
  const view=rows.slice(0,500);
+ LAST_VIEW=rows;                               /* VIEW_SHEET — 7,990 ולא 500 */
  document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>
   `<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>').join('')
   ||`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
@@ -10249,7 +10266,20 @@ function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
 /* איזה מסנן בונה את הקובץ. doSapMass והתצוגה המקדימה קוראים שניהם לכאן,
    ולכן המספר שמוצג לפני ההורדה הוא מספר השורות בקובץ — לא הערכה. */
 function sapPred(kind){return kind==='slow'?sapSlowUsable:(track==='tier'?sapTierUsable:sapMassUsable)}
+/* ============ SAP_NO_LIST — אין קובץ SAP ממסך שאינו רשימת פריטים ============
+   ב«תנועות אחרונות» currentRows() נופל (QF['moves'] אינו קיים), ושני כפתורי
+   ה-SAP זרקו שגיאת JS בלי שום הודעה. הכפתורים מסומנים כלא זמינים — מראה
+   ו-aria-disabled — ולחיצה אומרת למה ומאיפה כן. לא `disabled` קשיח: אז
+   הדפדפן לא מראה את ההסבר במעבר עכבר ולא מגיב בלחיצה. */
+const SAP_NO_LIST='«תנועות אחרונות» אינו רשימת פריטים — קובץ SAP יוצא ממסך של פריטים, למשל «תכנון ו-MRP» או «קטלוג פריטים»';
+function sapNoList(){return cur==='moves'}
+function sapBtnSync(){const off=sapNoList();
+ for(const id of ['sapXls','sapSlowXls']){const b=document.getElementById(id);if(!b)continue;
+  if(b.dataset.t0==null)b.dataset.t0=b.title;
+  b.classList.toggle('na',off);b.setAttribute('aria-disabled',off?'true':'false');
+  b.title=off?SAP_NO_LIST:b.dataset.t0}}
 function doSapMass(kind,onlyRows){
+ if(sapNoList()){toast(SAP_NO_LIST);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
@@ -10312,6 +10342,7 @@ function sapPlan(kind,view,pool){
   const k=sapWhyOut(r,kind)||'other';why[k]=(why[k]||0)+1}
  return {rows:aoa.length-1,total:(pool||view||[]).length,out,why}}
 function sapPreview(kind,sel){
+ if(sapNoList()&&!sel){toast(SAP_NO_LIST);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const view=sel?sapSelRows():currentRows();
  const pool=sel?((QF&&QF.all)||[]).filter(r=>SAPSEL.has(r.pn)):view;
@@ -10340,19 +10371,24 @@ function sapPreview(kind,sel){
  else document.getElementById('sapCancel').focus()}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
- const aoa=exportRows(currentRows());
+ /* «תנועות אחרונות» אינו רשימת פריטים: currentRows() קורא שם QF['moves'],
+    שאינו קיים, והייצוא נפל על שגיאה בלי קובץ. «כל הנתונים» הוא הקטלוג —
+    המסך הזה יושב בתוכו — ו«התצוגה» היא טבלת התנועות כפי שהיא. */
+ const onMoves=cur==='moves';
+ const rowsAll=onMoves?(()=>{cur='all';try{return currentRows()}finally{cur='moves'}})():currentRows();
+ const aoa=exportRows(rowsAll);
  const ws=XLSX.utils.aoa_to_sheet(aoa);
  ws['!cols']=XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)}));
  const wb=XLSX.utils.book_new();
- const tabName=(DEF.find(d=>d[0]===cur)||[,'רשימה'])[1];
- const vx=viewExportRows();
+ const tabName=(DEF.find(d=>d[0]===(onMoves?'all':cur))||[,'רשימה'])[1];   /* בתנועות — «כל הפריטים», כי זה התוכן */
+ const mAoa=movExportRows();
+ const vx=onMoves?(mAoa.length?{aoa:mAoa,keys:mAoa[0]}:null):viewExportRows();
  if(vx){const vws=XLSX.utils.aoa_to_sheet(vx.aoa);
   vws['!cols']=vx.keys.map((k,i)=>({wch:i<2?24:13}));
   XLSX.utils.book_append_sheet(wb,vws,'התצוגה')}
  XLSX.utils.book_append_sheet(wb,ws,(vx?'כל הנתונים · ':'')+tabName.slice(0,16));
- /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל) */
- const mAoa=movExportRows();
- if(mAoa.length>1){const mws=XLSX.utils.aoa_to_sheet(mAoa);
+ /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל). בתנועות הוא כבר «התצוגה». */
+ if(!onMoves&&mAoa.length>1){const mws=XLSX.utils.aoa_to_sheet(mAoa);
    mws['!cols']=mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)}));
    const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
    XLSX.utils.book_append_sheet(wb,mws,mName.slice(0,28))}
@@ -10362,7 +10398,7 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
     נקרא כאילו הוא הכול. «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
  const filt=FDEF.some(([k])=>SEL[k].size)||Object.keys(colFilters).length>0||!!SQ;
  XLSX.writeFile(wb,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`);
- toast(`יוצאו ${currentRows().length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
+ toast(`יוצאו ${rowsAll.length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
 /* ============ EXPEDITE — דוח הזירוז מול הספקים ============
    הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
    דחיפות ומיון לפי ימי פיגור. נמדד על הדוח האמיתי (7,569 פריטים,

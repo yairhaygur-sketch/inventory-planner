@@ -63,7 +63,10 @@ function add(s,line){s.n++;total++;if(s.lines.length<MAX*6)s.lines.push(line)}
     if(J(P[0])!==J(Q[0]))add(s,`${where} · «${sn}»: כותרות העמודות השתנו`);
     let k=0;for(let r=1;r<Math.min(P.length,Q.length)&&k<2;r++)if(J(P[r])!==J(Q[r])){k++;
      const c=P[r].findIndex((v,j)=>J(v)!==J(Q[r][j]));
-     add(s,`${where} · «${sn}» שורה ${r+1}, עמודה «${P[0][c]??c+1}»: ${short(P[r][c])} → ${short(Q[r][c])}`)}}})};
+     /* תא בעמודת מק״ט הוא מק״ט אמיתי — מוסתר כמו מפתחות הפריטים */
+     const isPn=/מק״ט|^חומר/.test(String(P[0][c]??''));
+     const cell=v=>isPn&&!SHOW&&v!==''&&v!=null?pn(String(v)):short(v);
+     add(s,`${where} · «${sn}» שורה ${r+1}, עמודה «${P[0][c]??c+1}»: ${cell(P[r][c])} → ${cell(Q[r][c])}`)}}})};
  for(const m of new Set([...Object.keys(A.exports),...Object.keys(B.exports)])){if(m.startsWith('__'))continue;
   const x=A.exports[m]||{},y=B.exports[m]||{};
   cmp(`${m} · אקסל`,x.excel,y.excel);cmp(`${m} · SAP`,x.sap,y.sap);cmp(`${m} · מלאי איטי`,x.slow,y.slow)}

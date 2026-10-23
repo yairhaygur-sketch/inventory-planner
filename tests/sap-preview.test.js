@@ -36,10 +36,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const R=await p.evaluate(()=>{const res=[];
   for(const m of Object.keys(MODESET)){try{setMode(m)}catch(_){continue}
    for(const kind of [undefined,'slow']){
-    /* «תנועות» אינו רשימת פריטים — currentRows זורק שם, וכך גם
-       doSapMass לפני S2. נבדק שהתצוגה המקדימה לא מוסיפה מסלול חדש. */
-    let view;try{view=currentRows()}catch(e){let t=false;try{doSapMass(kind)}catch(_){t=true}
-     res.push({m,kind:kind||'params',throws:true,both:t});continue}
+    /* «תנועות» אינו רשימת פריטים — currentRows זורק שם. עד SAP_NO_LIST
+       גם doSapMass זרק; עכשיו הוא אומר למה ולא כותב קובץ. */
+    let view;try{view=currentRows()}catch(e){window.__cap.length=0;let t=false;try{doSapMass(kind)}catch(_){t=true}
+     res.push({m,kind:kind||'params',throws:true,both:!t&&window.__cap.length===0});continue}
     const P=sapPlan(kind,view,view);
     window.__cap.length=0;doSapMass(kind);
     const file=window.__cap.length?window.__cap[0].rows:0;
@@ -49,7 +49,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const screens=new Set(R.map(r=>r.m)).size;
  ok('נבדקו כל 26 המסכים, שני הקבצים בכל אחד',screens===26&&R.length===52,`${screens} מסכים · ${R.length} מקרים`);
  const thr=R.filter(r=>r.throws);
- ok('מסך שאינו רשימת פריטים: הייצוא נכשל שם כמו קודם, לא מוצג מספר שקרי',thr.every(r=>r.both),thr.map(r=>r.m+'/'+r.kind).join(', ')||'אין');
+ ok('מסך שאינו רשימת פריטים: אין קובץ SAP, ואין שגיאה',thr.every(r=>r.both),thr.map(r=>r.m+'/'+r.kind).join(', ')||'אין');
  const RR=R.filter(r=>!r.throws);
  const gap=RR.filter(r=>r.shown!==r.file);
  ok('«ייכללו» = מספר השורות בקובץ שיוצא, בכל מקרה',!gap.length,
