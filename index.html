@@ -3914,7 +3914,13 @@ function staleDocs(r){const seen=[];for(const l of etaPastLines(r)){
    הכלל נקבע עם המעתד:
      H = מספר החודשים מתוך 11 שהייתה בהם צריכה
      H ≥ 9 → A · 5–8 → B · 2–4 → C · 0–1 → D
-   העלאה — מיד, בלי חסמים (גם לא מחיר או תביעות אחריות).
+   העלאה — רק מ-PD ל-ZM-C, מיד, בלי חסמים (גם לא מחיר או תביעות
+   אחריות). C→B ו-C→A הוצאו מהדוח בהחלטת המעתד: תדירות אומרת שהפריט
+   נע הרבה, לא שהוא קריטי. נמדד על הדוח האמיתי: 353 העלאות כאלה היו
+   מוסיפות כ-1,370 יח׳ מלאי ביטחון (כ-$124K ועוד כ-₪33K), ו-134 מהן
+   פריטים שמחירם מתחת ל-20 — ההחלטה על 95%/99% שירות היא עסקית, ואין
+   בדוח את המידע שמכריע אותה. מאותה סיבה PD עם תדירות גבוהה מומלץ
+   ל-ZM-C בלבד.
    הורדה — רק אחרי שני חודשים רצופים מתחת לסף. בחודש הראשון היא
    «בהמתנה», והכלי זוכר אותה (PROF_KEY) עד הדוח של החודש הבא.
    הורדה ל-D, בנוסף:
@@ -3940,9 +3946,13 @@ function profPrevBelow(r,cur){const h=PROFH[r.pn];const t=h&&h[profPrevYM()];
 const PROF_ST={up:['להעלות',0],down:['להוריד',1],check:['לבדוק — רכש פתוח',2],
  wait:['בהמתנה לחודש הבא',3],keep:['לא להוריד',4]};
 function profInfo(r){const cur=profCur(r);if(!cur)return null;
- const h=profH(r),tgt=profTgt(h);if(tgt===cur)return null;
+ const h=profH(r);let tgt=profTgt(h);
+ if(PROF_RANK[tgt]>PROF_RANK[cur]){
+  if(cur!=='D')return null;          /* C→B, C→A, B→A — לא בדוח */
+  tgt='C'}                            /* PD עולה ל-ZM-C בלבד */
+ if(tgt===cur)return null;
  const o={cur,tgt,h};
- if(PROF_RANK[tgt]>PROF_RANK[cur])return {...o,state:'up',why:`צריכה ב-${h} מתוך 11 חודשים`};
+ if(PROF_RANK[tgt]>PROF_RANK[cur])return {...o,state:'up',why:`צריכה ב-${h} מתוך 11 חודשים — להתחיל להחזיק מלאי`};
  if(tgt==='D'){
   if((r.cust||0)>0)return {...o,state:'keep',why:`הזמנת לקוח פתוחה (${r.cust} יח׳)`};
   if(!r.noCons3y)return {...o,state:'keep',why:'הייתה צריכה ב-3 השנים האחרונות'};
@@ -4675,7 +4685,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        עד כאן פריט PD הומלץ ל-ZM-C לפי צריכה מעל 3, מחיר עד 2,000 ובלי
        תביעות אחריות. המעתד החליף אותו בכלל תדירות אחד לכל הפרופילים —
        ראה PROFILE. כאן נשאר רק המשפט שמפנה לשם, כשיש המלצה. */
-    const pt=profTgt(profH(it)),pUp=PROF_RANK[pt]>0;
+    const pUp=PROF_RANK[profTgt(profH(it))]>0,pt='C';
     it.why=[['info','סוג MRP = PD — פריט לפי הזמנה בלבד, ללא ניהול מלאי אוטומטי'],
       pUp?['idea',`צריכה ב-${profH(it)} מתוך 11 חודשים — מומלץ פרופיל ${PROF_NAME[pt]} (רמת שירות ${PROF_SRV[pt]})`]:
         (it.d12>0?['info',`צריכה ${it.d12} יח׳ ב-11 חודשים — מתחת לסף לשינוי פרופיל`]:['info','אין צריכה']),
@@ -5547,7 +5557,7 @@ const NAV_WHAT={
  done:'פריטים שסימנת כטופלו',
  moves:'מכירה וכניסה אחרונות לכל פריט',
  stale:'שורות בדוח ה-ETA שתאריך ההגעה שלהן חלף — לבדוק מול SAP אם הסחורה נכנסה',
- prof:'פרופיל MRP לפי תדירות הצריכה — מה להעלות, מה להוריד ומה לבדוק'};
+ prof:'פרופיל MRP לפי תדירות הצריכה — PD שכדאי להחזיק במלאי, ופרופיל שכבר אינו מוצדק'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 /* ============ העדפות התצוגה נקראות בעלייה ============
@@ -8961,6 +8971,12 @@ function renderDecisions(rows){
     הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
     לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
  LAST_VIEW=view;
+ /* ============ RENDER_CAP ============
+    במסלול בלי מפתח כספי cut80 מחזיר n = כל הרשימה, ולכן lim לא חתך
+    כלום: «שינוי פרופיל MRP» בנה 5,046 שורות (כ-115 אלף רכיבים) ונפתח
+    ב-4.3 שניות על הדוח האמיתי. הרינדור נחתך כאן ב-500, כמו הקטלוג.
+    LAST_VIEW נשאר הרשימה המלאה — גיליון «התצוגה» בייצוא לא משתנה. */
+ const RCAP=(!k&&!grouped&&!bySup)?500:Infinity;
  const body=[];
  let acc=0,curBlk=null,blkI=0;
  if(bySup){let idx=0;
@@ -9001,6 +9017,7 @@ function renderDecisions(rows){
      +colRowHTML(r,{dlen:24,maj})+'</tr>')}}
  }
  else view.forEach((r,i)=>{
+  if(i>=RCAP)return;
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   /* תצוגה שיש לה רישום עמודות מרונדרת ממנו, ולכן הכותרת והתאים
      נגזרים מאותו מקור — ועמודה שנוספה בבורר מופיעה בשניהם.
@@ -9053,7 +9070,7 @@ function renderDecisions(rows){
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,RCAP)} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
  /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
     ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
@@ -9115,7 +9132,7 @@ function renderDecisions(rows){
   :track==='rise'
   ?'הביקוש עלה בתוך חלון הקצב ונקודת ההזמנה מפגרת אחריו · מספר מייעץ, ההמלצה לא שונתה · ✓ = משלוח בדרך סוגר את הפער למחזור הזה, והפריט נשאר ברשימה'
   :track==='prof'
-  ?'H = חודשי צריכה מתוך 11 · 9+ ZM-A · 5–8 ZM-B · 2–4 ZM-C · 0–1 PD · העלאה מיד · הורדה אחרי שני חודשים · ל-PD לא מורידים עם לקוח ממתין או צריכה ב-3 שנים'
+  ?'H = חודשי צריכה מתוך 11 · 9+ ZM-A · 5–8 ZM-B · 2–4 ZM-C · 0–1 PD · העלאה רק מ-PD ל-ZM-C, מיד · הורדה אחרי שני חודשים · ל-PD לא מורידים עם לקוח ממתין או צריכה ב-3 שנים'
   :track==='stale'
   ?'הדוח מבטיח תאריך שכבר עבר · הכלי אינו יודע אם הסחורה נכנסה למלאי — זו בדיקה מול SAP לפי מסמך הרכש · בינתיים הכמות אינה נספרת ככיסוי בשום מקום'
   :track==='done'

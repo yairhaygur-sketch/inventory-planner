@@ -214,7 +214,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     const base={mrp:'ZM',abc:'C',cust:0,po:0,noCons3y:true,pn:'T-PROF'};
     return {no:t('PD-NOPRICE'),yes:t('PD-PRICED'),
       th:[11,9,8,5,4,2,1,0].map(profTgt).join(''),
-      up:profInfo({...base,months:m(10)}).state,
+      up:profInfo({...base,mrp:'PD',abc:'D',months:m(10)}),
+      cUp:profInfo({...base,months:m(10)}),
       cust:profInfo({...base,months:m(0),cust:2}).state,
       c3y:profInfo({...base,months:m(0),noCons3y:false}).state,
       po:profInfo({...base,months:m(0),po:4}).state,
@@ -223,7 +224,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('מחיר חסר אינו חוסם ואינו מכריע את הפרופיל',pr.no.got===pr.no.exp,JSON.stringify(pr.no));
   ok('ופריט עם מחיר מקבל את אותו כלל בדיוק',pr.yes.got===pr.yes.exp,JSON.stringify(pr.yes));
   ok('ספי התדירות: 11/9→A · 8/5→B · 4/2→C · 1/0→D',pr.th==='AABBCCDD',pr.th);
-  ok('העלאה — מיד',pr.up==='up',pr.up);
+  ok('העלאה — מיד, ומ-PD רק ל-ZM-C גם בתדירות של A',pr.up&&pr.up.state==='up'&&pr.up.tgt==='C',JSON.stringify(pr.up));
+  ok('C→A / C→B אינם בדוח',pr.cUp===null,String(pr.cUp));
   ok('הורדה ל-D עם הזמנת לקוח פתוחה — לא',pr.cust==='keep',pr.cust);
   ok('הורדה ל-D כשהייתה צריכה ב-3 שנים — לא',pr.c3y==='keep',pr.c3y);
   ok('הורדה ל-D עם רכש פתוח — «לבדוק»',pr.po==='check',pr.po);
