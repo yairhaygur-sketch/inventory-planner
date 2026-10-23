@@ -435,6 +435,11 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 .calc .ch .res{font-size:16px;color:var(--acc);font-weight:800}
 .calc .formula{font-family:"Courier New",monospace;font-size:12.5px;background:var(--accL);color:var(--accD);padding:8px 12px;border-bottom:1px dashed var(--accBorder)}
 .calc table{width:100%;font-size:12.5px}
+.sapprev{padding:14px 16px}.sapprev .sapsrc{font-size:12.5px;color:var(--ink-2);margin-bottom:10px}
+.sapprev .sapnote{padding:9px 12px;font-size:12.5px;color:var(--ink-2)}
+.sapprev table{table-layout:fixed}.sapprev td{white-space:normal}
+.sapprev td.sapn{width:5.5em;text-align:end;font-family:var(--num);font-weight:700;white-space:nowrap}
+.sapprev .row{display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap}
 .calc td{padding:6px 12px;border-bottom:1px solid var(--line2)}
 .calc td:first-child{color:var(--dim)}.calc td:last-child{text-align:left;font-weight:700;font-family:"Courier New",monospace}
 .calc tr.step td{background:#fbfcfe}.calc tr.total td{background:var(--grnL);font-weight:800}.calc tr.total td:last-child{color:var(--grn)}
@@ -10206,6 +10211,9 @@ function sapRowsBy(list,pred){
  return out}
 function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
 function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
+/* איזה מסנן בונה את הקובץ. doSapMass והתצוגה המקדימה קוראים שניהם לכאן,
+   ולכן המספר שמוצג לפני ההורדה הוא מספר השורות בקובץ — לא הערכה. */
+function sapPred(kind){return kind==='slow'?sapSlowUsable:(track==='tier'?sapTierUsable:sapMassUsable)}
 function doSapMass(kind,onlyRows){
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
@@ -10216,8 +10224,7 @@ function doSapMass(kind,onlyRows){
  const view=onlyRows||currentRows();
  /* עומדים על דלת «רצפת מדרגה» → הקובץ הוא שלה. בכל דלת אחרת זהו
     קובץ הפרמטרים השוטף, בלי רצפות ובלי מלאי איטי. */
- const aoa=kind==='slow'?sapSlowRows(view)
-   :(track==='tier'?sapRowsBy(view,sapTierUsable):sapMassRows(view));
+ const aoa=sapRowsBy(view,sapPred(kind));
  if(aoa.length<2){toast(kind==='slow'
    ?'אין בתצוגה הזאת פריט מלאי איטי/מת עם המלצה שונה מהקיים'
    :'אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים');return}
@@ -10231,6 +10238,71 @@ function doSapMass(kind,onlyRows){
  const nm=kind==='slow'?'SAP_SlowStock':'SAP_Params';
  XLSX.writeFile(wb,`${nm}_${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}.xlsx`);
  toast(`⭳ ${(aoa.length-1).toLocaleString('he-IL')} שורות${kind==='slow'?' · מלאי איטי/מת':''} · «פרופיל MRP» ריקה למילוי ידני`)}
+/* ============ S2 · לפני קובץ SAP — מה ייכנס, מה לא, ולמה ============
+   הקובץ נכתב ל-SAP, ועד עכשיו ההודעה היחידה הייתה מספר השורות *אחרי*
+   ההורדה. כאן הוא מוצג לפני, יחד עם מה שבתצוגה ולא ייכנס ולמה.
+
+   אין כאן חוק ייצוא שני. «ייכללו» הוא sapRowsBy(view,sapPred(kind)) —
+   הקריאה ש-doSapMass עושה — ו«הורד» קורא ל-doSapMass עצמו. הסיבות
+   הן רק תיאור של מה שהמסנן פסל, באותו סדר בדיקות שלו
+   (sapUsableBase ואז מסנן הקובץ). פריט שנפסל בלי שאף סיבה מתאימה
+   נספר כ«לא מזוהה» — וזה סימן שהתיאור והמסנן נפרדו (הבדיקה דורשת 0). */
+const SAP_WHY={
+ nofix:  'אין המלצת פרמטר',
+ nolt:   'אין זמן אספקה בדוח — אין על מה לבנות',
+ zero:   'ההמלצה היא אפס (גם SS וגם ROP)',
+ same:   'כבר במספר המוצע — אין מה לעדכן',
+ slow:   'מלאי איטי/מת/עודף/ירידה בביקוש — בקובץ «מלאי איטי ל-SAP»',
+ tier:   'רצפת מדרגה — בקובץ של דלת «רצפת מדרגה»',
+ notslow:'אינו מלאי איטי/מת — שייך לקובץ «עדכון ל-SAP»',
+ notier: 'אין רצפת מדרגה',
+ other:  'סיבה לא מזוהה'};
+function sapWhyOut(r,kind){
+ if(!r||!r.paramFix)return 'nofix';
+ if(!(r.ltD>0))return 'nolt';
+ if(!(r.sugSS>0)&&!(r.sugROP>0))return 'zero';
+ if(r.sugSS===r.ss&&r.sugROP===r.rop)return 'same';
+ if(kind==='slow')return SAP_CAP_CATS.has(r.cat)?null:'notslow';
+ if(track==='tier')return r.tierFloor?null:'notier';
+ if(SAP_CAP_CATS.has(r.cat))return 'slow';
+ if(r.tierFloor)return 'tier';
+ return null}
+/* view — מה ש-doSapMass יקבל. pool — מה שמסבירים: בתצוגה זה אותו דבר;
+   בבחירה ידנית זה כל מה שנבחר, כי sapSelRows כבר מוריד חלק לפני הקובץ. */
+function sapPlan(kind,view,pool){
+ const aoa=sapRowsBy(view,sapPred(kind));
+ const inSet=new Set((view||[]).filter(sapPred(kind)));
+ const why={};let out=0;
+ for(const r of (pool||view||[])){if(inSet.has(r))continue;out++;
+  const k=sapWhyOut(r,kind)||'other';why[k]=(why[k]||0)+1}
+ return {rows:aoa.length-1,total:(pool||view||[]).length,out,why}}
+function sapPreview(kind,sel){
+ if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
+ const view=sel?sapSelRows():currentRows();
+ const pool=sel?((QF&&QF.all)||[]).filter(r=>SAPSEL.has(r.pn)):view;
+ const P=sapPlan(kind,view,pool);
+ const N=n=>n.toLocaleString('he-IL');
+ const src=sel?`נבחרו ידנית: ${N(P.total)} פריטים`
+  :`בתצוגה הנוכחית («${esc((DEF.find(d=>d[0]===cur)||[,'רשימה'])[1])}»${track==='tier'?' · רצפת מדרגה':''}): ${N(P.total)} פריטים`;
+ const why=Object.entries(P.why).sort((a,b)=>b[1]-a[1])
+  .map(([k,n])=>`<tr><td>${esc(SAP_WHY[k]||k)}</td><td class="sapn">${N(n)}</td></tr>`).join('');
+ document.getElementById('mtitle').textContent=kind==='slow'?'מלאי איטי ל-SAP — לפני הייצוא':'עדכון ל-SAP — לפני הייצוא';
+ document.getElementById('mbody').innerHTML=`<div class="sapprev">
+  <div class="sapsrc">${src}</div>
+  <div class="calc"><div class="ch">ייכללו בקובץ<span class="res" id="sapIn">${N(P.rows)}</span></div>
+   <div class="sapnote">${P.rows?`שורה לכל פריט · SS ו-ROP המוצעים · «פרופיל MRP» ריקה למילוי ידני`
+     :(kind==='slow'?'אין בתצוגה הזאת פריט מלאי איטי/מת עם המלצה שונה מהקיים'
+       :'אין בתצוגה הזאת פריט עם המלצת פרמטר שונה מהקיים')}</div></div>
+  <div class="calc"><div class="ch">לא ייכללו<span class="res" id="sapOut">${N(P.out)}</span></div>
+   ${why?`<table id="sapWhy">${why}</table>`:'<div class="sapnote">כל הפריטים ייכללו</div>'}</div>
+  <div class="row">${P.rows?`<button class="btn pri" id="sapGo">⭳ הורד קובץ · ${N(P.rows)} שורות</button>`:''}
+   <button class="btn" id="sapCancel">${P.rows?'ביטול':'סגור'}</button></div></div>`;
+ document.getElementById('modalwrap').classList.add('open');
+ const close=()=>document.getElementById('modalwrap').classList.remove('open');
+ document.getElementById('sapCancel').onclick=close;
+ const go=document.getElementById('sapGo');
+ if(go){go.onclick=()=>{close();doSapMass(kind,sel?sapSelRows():undefined)};go.focus()}
+ else document.getElementById('sapCancel').focus()}
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  const aoa=exportRows(currentRows());
@@ -10583,9 +10655,9 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
   +(n?` <span class="fn">${n}</span>`:'')}
 document.getElementById('expXls').onclick=()=>doExpedite();
 document.getElementById('exportXls').onclick=()=>doExport();
-{const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>doSapMass();}
-{const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>doSapMass('slow');}
-{const g=document.getElementById('sapbarGo');if(g)g.onclick=()=>doSapMass(undefined,sapSelRows());
+{const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>sapPreview();}
+{const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>sapPreview('slow');}
+{const g=document.getElementById('sapbarGo');if(g)g.onclick=()=>sapPreview(undefined,true);
  const c=document.getElementById('sapbarClr');if(c)c.onclick=()=>{SAPSEL.clear();
   document.querySelectorAll('#tbl .sapsel,#tbl .sapall').forEach(b=>{b.checked=false;b.indeterminate=false});sapBarSync()}}
 function showDiag(){const el=document.getElementById('diag');
