@@ -201,14 +201,34 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     const f=pn=>{const r=g(pn);return {why:(r.why||[]).map(w=>w[1]).join(' | '),
       act:(r.act||[]).join(' | '),priceMissing:!!r.priceMissing,warrantyKnown:!!r.warrantyKnown}};
     return {no:f('PD-NOPRICE'),yes:f('PD-PRICED')}});
-  ok('PD בלי מחיר אינו מוצג ככשיר ל-ZM-C',!/עומד בתנאי המלצה ל-ZM-C/.test(pd.no.why),
-    pd.no.why.slice(0,80));
-  ok('ונאמר במפורש מה חסר',/חסר מחיר FOB/.test(pd.no.why),
-    (pd.no.why.match(/לא ניתן להכריע[^|]*/)||[''])[0].slice(0,100));
-  ok('וגם אינו נפסל — ההכרעה נחסמה, לא הוכרעה',
-    !/נשאר PD עד שיתקיימו/.test(pd.no.why)&&/להשלים מחיר FOB/.test(pd.no.act),pd.no.act.slice(0,70));
-  ok('PD עם מחיר ממשיך לעבוד כרגיל',/עומד בתנאי המלצה ל-ZM-C/.test(pd.yes.why),
-    pd.yes.why.slice(0,70));
+  /* החוק PD→ZM-C (צריכה מעל 3, מחיר עד 2,000, בלי תביעות אחריות) הוחלף
+     בהחלטת המעתד בכלל תדירות אחד לכל הפרופילים — ראה PROFILE. מה שנבדק
+     כאן הוא הכלל החדש, ומה שנשאר מעיקרון «חסר אינו אפס»: הכלל החדש אינו
+     נשען על מחיר או על אחריות, ולכן הם אינם חוסמים ואינם מכריעים. */
+  ok('המשפט של החוק הישן אינו מופיע עוד',
+    !/עומד בתנאי המלצה ל-ZM-C/.test(pd.no.why+pd.yes.why)&&!/PD ל-ZM-C/.test(pd.no.act+pd.yes.act),
+    pd.no.why.slice(0,60));
+  const pr=await p.evaluate(()=>{const g=pn=>ALL.find(x=>x.pn===pn);
+    const t=pn=>{const r=g(pn),i=profInfo(r);return {exp:profTgt(profH(r)),got:i?i.tgt:'D',h:profH(r)}};
+    const m=n=>Array.from({length:11},(_,i)=>i<n?3:0);
+    const base={mrp:'ZM',abc:'C',cust:0,po:0,noCons3y:true,pn:'T-PROF'};
+    return {no:t('PD-NOPRICE'),yes:t('PD-PRICED'),
+      th:[11,9,8,5,4,2,1,0].map(profTgt).join(''),
+      up:profInfo({...base,months:m(10)}).state,
+      cust:profInfo({...base,months:m(0),cust:2}).state,
+      c3y:profInfo({...base,months:m(0),noCons3y:false}).state,
+      po:profInfo({...base,months:m(0),po:4}).state,
+      wait:profInfo({...base,months:m(0)}).state,
+      same:profInfo({...base,months:m(3)})}});
+  ok('מחיר חסר אינו חוסם ואינו מכריע את הפרופיל',pr.no.got===pr.no.exp,JSON.stringify(pr.no));
+  ok('ופריט עם מחיר מקבל את אותו כלל בדיוק',pr.yes.got===pr.yes.exp,JSON.stringify(pr.yes));
+  ok('ספי התדירות: 11/9→A · 8/5→B · 4/2→C · 1/0→D',pr.th==='AABBCCDD',pr.th);
+  ok('העלאה — מיד',pr.up==='up',pr.up);
+  ok('הורדה ל-D עם הזמנת לקוח פתוחה — לא',pr.cust==='keep',pr.cust);
+  ok('הורדה ל-D כשהייתה צריכה ב-3 שנים — לא',pr.c3y==='keep',pr.c3y);
+  ok('הורדה ל-D עם רכש פתוח — «לבדוק»',pr.po==='check',pr.po);
+  ok('הורדה בלי חודש קודם מתחת לסף — «בהמתנה»',pr.wait==='wait',pr.wait);
+  ok('פרופיל שתואם את התדירות אינו ברשימה',pr.same===null,String(pr.same));
   await p.close()}
 
  /* עמודת אחריות חסרה — ברמת הדוח */
@@ -216,9 +236,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   const r=await p.evaluate(()=>{const x=ALL.find(y=>y.pn==='PD-PRICED');
     return {known:!!x.warrantyKnown,why:(x.why||[]).map(w=>w[1]).join(' | ')}});
   ok('עמודת אחריות שאינה בדוח מסומנת כלא-ידועה',!r.known,`warrantyKnown=${r.known}`);
-  ok('וחוסמת את ההכרעה על ZM-C',
-    /חסר עמודת תביעות אחריות/.test(r.why)&&!/עומד בתנאי המלצה/.test(r.why),
-    (r.why.match(/לא ניתן להכריע[^|]*/)||[''])[0].slice(0,100));
+  /* בכלל הפרופיל החדש אחריות אינה תנאי, ולכן עמודה חסרה אינה חוסמת דבר */
+  const pw=await p.evaluate(()=>{const x=ALL.find(y=>y.pn==='PD-PRICED'),i=profInfo(x);
+    return {exp:profTgt(profH(x)),got:i?i.tgt:'D'}});
+  ok('ואינה משנה את המלצת הפרופיל',pw.got===pw.exp&&!/עומד בתנאי המלצה/.test(r.why),JSON.stringify(pw));
   await p.close()}
 
  /* ================= 5 · מלאי מת ודאי מול מועמד ================= */

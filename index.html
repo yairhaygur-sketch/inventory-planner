@@ -1950,6 +1950,10 @@ td .mut{color:var(--dimmer)}
    מבדיל בין שורה לשורה. אפס במלאי נשאר מודגש — הוא עובדה שמכריעה —
    אבל בדיו משני. האדום נשאר רק לכמות שלא תסופק (.stake, .neg). */
 #tbl td.zero{color:var(--dim);font-weight:700}
+#tbl td.prst{font-weight:600}
+#tbl td.prst.up{color:var(--acc)}
+#tbl td.prst.down,#tbl td.prst.check{color:var(--org)}
+#tbl td.prst.wait,#tbl td.prst.keep{color:var(--ink-2);font-weight:500}
 #tbl td.selc,#tbl th[data-ck="sel"]{width:30px;text-align:center;padding-inline:4px}
 #tbl .sapsel,#tbl .sapall{width:16px;height:16px;cursor:pointer;accent-color:var(--acc);margin:0;vertical-align:middle}
 .sapbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;
@@ -3901,6 +3905,67 @@ function staleDays(r){const d=stalePastFirst(r);if(!d)return 0;
  return Math.max(0,Math.round((new Date(etaToday()+'T00:00:00')-new Date(d+'T00:00:00'))/864e5))}
 function staleDocs(r){const seen=[];for(const l of etaPastLines(r)){
   const k=l[3]||l[2]||'';if(k&&seen.indexOf(k)<0)seen.push(k)}return seen}
+/* ============ PROFILE — המלצות שינוי פרופיל MRP ============
+   הפרופיל בדוח הוא סוג MRP ועמודת ABC יחד, ולכל פרופיל רמת שירות קבועה.
+   נמדד על הדוח האמיתי: PD/D = 50 (2,048 פריטים) · ZM-C = 80 (5,935) ·
+   ZM-B = 95 (6) · ZM-A = 99 (1). שינוי פרופיל הוא לכן החלטה על רמת
+   שירות — כמה מלאי ביטחון הפריט מקבל — ולא תיוג.
+
+   הכלל נקבע עם המעתד:
+     H = מספר החודשים מתוך 11 שהייתה בהם צריכה
+     H ≥ 9 → A · 5–8 → B · 2–4 → C · 0–1 → D
+   העלאה — מיד, בלי חסמים (גם לא מחיר או תביעות אחריות).
+   הורדה — רק אחרי שני חודשים רצופים מתחת לסף. בחודש הראשון היא
+   «בהמתנה», והכלי זוכר אותה (PROF_KEY) עד הדוח של החודש הבא.
+   הורדה ל-D, בנוסף:
+     הזמנת לקוח פתוחה          → לא מורידים
+     צריכה ב-3 השנים האחרונות  → לא מורידים
+     רכש פתוח                  → «לבדוק», לא «להוריד»
+   הכלל הזה מחליף את החוק הקודם PD→ZM-C (צריכה מעל 3, מחיר עד 2,000,
+   בלי תביעות אחריות). המנוע, הסיווגים וחישובי SS/ROP לא נוגעים כאן:
+   הדוח ממליץ על פרופיל, הוא אינו מחשב מחדש לפי הפרופיל המוצע. */
+const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
+ PROF_NAME={D:'PD',C:'ZM-C',B:'ZM-B',A:'ZM-A'};
+function profCur(r){if(isPD(r.mrp))return 'D';
+ const a=String(r.abc||'').trim().toUpperCase();return /^[ABC]$/.test(a)?a:null}
+function profH(r){return (r.months||[]).filter(x=>(+x||0)>0).length}
+function profTgt(h){return h>=9?'A':h>=5?'B':h>=2?'C':'D'}
+const PROF_KEY='planner_profile_v1';
+let PROFH={};try{const v=JSON.parse(localStorage.getItem(PROF_KEY));if(v&&typeof v==='object')PROFH=v}catch(_){}
+function profYM(d){return `${d.getFullYear()}-${d.getMonth()+1}`}
+function profPrevYM(){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getMonth()-1);return profYM(d)}
+/* האם גם בדוח של החודש הקודם הפריט היה מתחת לפרופיל הנוכחי שלו */
+function profPrevBelow(r,cur){const h=PROFH[r.pn];const t=h&&h[profPrevYM()];
+ return !!t&&PROF_RANK[t]<PROF_RANK[cur]}
+const PROF_ST={up:['להעלות',0],down:['להוריד',1],check:['לבדוק — רכש פתוח',2],
+ wait:['בהמתנה לחודש הבא',3],keep:['לא להוריד',4]};
+function profInfo(r){const cur=profCur(r);if(!cur)return null;
+ const h=profH(r),tgt=profTgt(h);if(tgt===cur)return null;
+ const o={cur,tgt,h};
+ if(PROF_RANK[tgt]>PROF_RANK[cur])return {...o,state:'up',why:`צריכה ב-${h} מתוך 11 חודשים`};
+ if(tgt==='D'){
+  if((r.cust||0)>0)return {...o,state:'keep',why:`הזמנת לקוח פתוחה (${r.cust} יח׳)`};
+  if(!r.noCons3y)return {...o,state:'keep',why:'הייתה צריכה ב-3 השנים האחרונות'};
+  if((r.po||0)>0)return {...o,state:'check',why:`רכש פתוח ${r.po} יח׳ — להוריד אחרי שינחת, או לבטל`}}
+ return profPrevBelow(r,cur)
+  ?{...o,state:'down',why:`צריכה ב-${h} מתוך 11 חודשים — חודש שני מתחת לסף`}
+  :{...o,state:'wait',why:`צריכה ב-${h} מתוך 11 חודשים — יומלץ אם גם בחודש הבא יהיה מתחת לסף`}}
+function profRows(){if(!QF||!QF.all)return [];
+ return QF.all.filter(r=>passColFilters(r)&&profInfo(r))
+  .sort((a,b)=>{const x=profInfo(a),y=profInfo(b);
+   return PROF_ST[x.state][1]-PROF_ST[y.state][1]||PROF_RANK[y.tgt]-PROF_RANK[x.tgt]||y.h-x.h})}
+/* המונה במסילה סופר רק את מה שדורש פעולה עכשיו — לא «בהמתנה» ולא «לא להוריד» */
+function profActive(r){const i=profInfo(r);return !!i&&(i.state==='up'||i.state==='down'||i.state==='check')}
+/* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
+   לפי חודש הבסיס של הדוח. העלאה חוזרת של אותו חודש דורסת את אותו
+   מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
+function profRecord(items){const ym=dsigYM(),next={};
+ for(const r of items){const cur=profCur(r);if(!cur)continue;const t=profTgt(profH(r));
+  if(PROF_RANK[t]>=PROF_RANK[cur])continue;
+  const h=Object.assign({},PROFH[r.pn]||{});h[ym]=t;
+  const ks=Object.keys(h).sort((a,b)=>{const p=k=>k.split('-').map(Number);const[x1,x2]=p(a),[y1,y2]=p(b);return x1-y1||x2-y2});
+  for(const k of ks.slice(0,-3))delete h[k];next[r.pn]=h}
+ PROFH=next;storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם')}
 function staleRows(){if(!QF||!QF.all)return [];
  return QF.all.filter(r=>(r.etaPast||0)>0&&passColFilters(r))
   .sort((a,b)=>staleDays(b)-staleDays(a)||(b.etaPast||0)-(a.etaPast||0))}
@@ -4606,28 +4671,18 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       :['לבדוק Back Order אצל היצרן','לבקש ETA','לזרז ספק'];
     Q.follow.push(it);continue}
   if(isPD(it.mrp)){it.cat='ללא פעולה';it.sev=0;if(it.noCons3y&&it.stock>0)it.expCap=it.price*it.stock;
-    /* ============ מה חוסם כשירות, ומה לא ============
-       נמדד: פריט PD בלי מחיר ובלי עמודת אחריות עבר שניים משלושת
-       התנאים על נתון שאינו קיים — price=0 ⇒ «זול», warranty=0 ⇒
-       «נקי». רק d12 היה אמיתי.
-
-       החוק: חסר אינו אפס, וחוסם *רק* את ההכרעה שתלויה בו. לכן מחיר
-       חסר או עמודת אחריות חסרה מונעים כשירות ונאמרים בשמם — ואינם
-       מסתירים דבר אחר על הפריט. הספים עצמם (2000, d12>3) לא נגעו:
-       הם החלטה עסקית פתוחה ולא תקלת מימוש. */
-    const pdUnknown=[it.priceMissing?'מחיר FOB':null,
-      !it.warrantyKnown?'עמודת תביעות אחריות':null].filter(Boolean);
-    const pdEligible=pdUnknown.length===0&&it.d12>3&&it.price<=2000&&it.warranty<=0;
+    /* ============ החוק PD→ZM-C הוחלף ============
+       עד כאן פריט PD הומלץ ל-ZM-C לפי צריכה מעל 3, מחיר עד 2,000 ובלי
+       תביעות אחריות. המעתד החליף אותו בכלל תדירות אחד לכל הפרופילים —
+       ראה PROFILE. כאן נשאר רק המשפט שמפנה לשם, כשיש המלצה. */
+    const pt=profTgt(profH(it)),pUp=PROF_RANK[pt]>0;
     it.why=[['info','סוג MRP = PD — פריט לפי הזמנה בלבד, ללא ניהול מלאי אוטומטי'],
-      pdEligible?['idea',`עומד בתנאי המלצה ל-ZM-C: צריכה ${it.d12} יח׳ · מחיר ${money(it.price,it.currency)} · ללא תביעות אחריות`]:
-        pdUnknown.length?['warn',`לא ניתן להכריע על מעבר ל-ZM-C — חסר ${pdUnknown.join(' ו')}. הכלי אינו קורא נתון חסר כאפס, ולכן אינו מציג את הפריט ככשיר ואינו פוסל אותו`]:
-        (it.d12>0?['info',`צריכה ${it.d12} יח׳ ב-11 חודשים — נשאר PD עד שיתקיימו תנאי ההמרה`]:['info','אין צריכה']),
+      pUp?['idea',`צריכה ב-${profH(it)} מתוך 11 חודשים — מומלץ פרופיל ${PROF_NAME[pt]} (רמת שירות ${PROF_SRV[pt]})`]:
+        (it.d12>0?['info',`צריכה ${it.d12} יח׳ ב-11 חודשים — מתחת לסף לשינוי פרופיל`]:['info','אין צריכה']),
       (it.ss>0&&it.d12<=Math.max(6,it.ss))?['warn',`ב-SAP יושב מלאי ביטחון ${it.ss} על פריט PD בעל צריכה נמוכה (${it.d12} יח׳ ב-11 חודשים) — סביר שזו שארית שגויה, שקול לאפס`]:null].filter(Boolean);
     it.act=[it.expCap>0?`מלאי PD ללא צריכה — ${money(it.expCap,it.currency)} מוקפאים, לבחון חיסול`
-        :(pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C'
-        :pdUnknown.length?`להשלים ${pdUnknown.join(' ו')} כדי שניתן יהיה להכריע על ZM-C`
-        :'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
-      pdEligible?'להמליץ על שינוי סוג MRP מ-PD ל-ZM-C':((it.ssMin>0||it.ss>0)?'לשקול איפוס ssMin/SS ב-SAP אם הם שארית ישנה':'—')];Q.passive.push(it);continue}
+        :(pUp?`להעלות פרופיל ל-${PROF_NAME[pt]} — ראה «שינוי פרופיל MRP»`:'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
+      (it.ssMin>0||it.ss>0)?'לשקול איפוס ssMin/SS ב-SAP אם הם שארית ישנה':'—'];Q.passive.push(it);continue}
   if(it.srvMissing&&it.rate>0){it.sev=1;it.cat='נתון חסר ב-SAP';it.paramFix=true;it.serviceMissing=true;
     it.why=[['err','רמת שירות חסרה או 0 — לא ניתן לאשר המלצת SS/ROP סטטיסטית'],['info','לא נעשה שימוש בברירת מחדל שקטה']];
     it.act=['להזין רמת שירות מאושרת ב-SAP','לאחר העדכון לחשב מחדש SS ו-ROP'];Q.quality.push(it);continue}
@@ -5386,7 +5441,7 @@ const NAV=[
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',ropGap:'line',ropThin:'line',month:'month',floor:'month',trend:'month',applied:'month',
  over3y:'month',tier:'month',floorNR:'month',
- qual:'qual',stale:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
+ qual:'qual',stale:'qual',prof:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
  capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
 /* ============ WORDS — שמות שנאמרים בקול ============
@@ -5462,7 +5517,7 @@ const SUBNAV={
  month:[['month','מספר לתקן ב-SAP'],['over3y','מעל מכירות 3 שנים'],['tier','מינימום לפי מחיר'],
    ['floor','מלאי ביטחון ידני'],['floorNR','מינימום בלי דרישה'],
    ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
- qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר']],
+ qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר'],['prof','שינוי פרופיל MRP']],
  cap:[['cap','כסף תקוע'],['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
    ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
@@ -5491,7 +5546,8 @@ const NAV_WHAT={
  applied:'מה מההמלצות הקודמות יושם ב-SAP',
  done:'פריטים שסימנת כטופלו',
  moves:'מכירה וכניסה אחרונות לכל פריט',
- stale:'שורות בדוח ה-ETA שתאריך ההגעה שלהן חלף — לבדוק מול SAP אם הסחורה נכנסה'};
+ stale:'שורות בדוח ה-ETA שתאריך ההגעה שלהן חלף — לבדוק מול SAP אם הסחורה נכנסה',
+ prof:'פרופיל MRP לפי תדירות הצריכה — מה להעלות, מה להוריד ומה לבדוק'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 /* ============ העדפות התצוגה נקראות בעלייה ============
@@ -5731,6 +5787,7 @@ function navCount(k){
  if(k==='burn'){const r=burnRows();return {n:r.length,hot:r.length}}
  if(k==='cust'){const r=custRows();return {n:r.length,hot:hot(r)}}
  if(k==='stale'){const r=staleRows();return {n:r.length,hot:0}}
+ if(k==='prof'){const r=profRows().filter(profActive);return {n:r.length,hot:0}}
  if(k==='applied'){return {n:APPLIED?APPLIED.total:0,hot:0}}
  /* done ו-rise נשענים על cur='marked'/'all' ולא על decisionList, ולכן
     modeRows מחזיר להם את *כל* הפריטים. נמדד: שתי הדלתות הציגו 900
@@ -5795,7 +5852,8 @@ const MODESET={
  moves:{cur:'moves',track:'cap'},
  qual:{cur:'today',track:'qual'},
  /* ממצא איכות נתונים, ולכן כל הפריטים ולא תור עבודה */
- stale:{cur:'all',track:'stale'}};
+ stale:{cur:'all',track:'stale'},
+ prof:{cur:'all',track:'prof'}};
 /* הכלי נוחת במרכז העבודה. היה 'line' — כלומר «רכש ואספקות»,
    בזמן שכותרת המסך אמרה «מה דורש טיפול היום». שני שמות שונים
    לאותו רגע פתיחה. */
@@ -7023,7 +7081,7 @@ function paramsReset(){PARAMS={runs:[]};saveParams()}
    נשא עד כה «מה שהוחלט»; הפנקס הוא «מה שנמדד». הוא נכנס כי מדידה על
    אמינות ספק אינה העדפה אישית — היא עובדה שעמית צריך לרשת, וכי ניקוי
    עוגיות אחד מוחק חודשי תצפיות שאי אפשר לשחזר משום דוח. */
-const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1'];
+const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1','planner_profile_v1'];
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
@@ -7498,6 +7556,8 @@ function currentRows(){
  if(track==='cust'){const by=custRows().sort((a,b)=>custVal(b)-custVal(a));
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='stale'){const by=staleRows();
+   return sortCol==='sev'?by:sortRowsBy(by)}
+ if(track==='prof'){const by=profRows();
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='applied'){const R={done:0,other:1,none:2};
    const by=appliedRows().sort((a,b)=>R[a.apStatus]-R[b.apStatus]||a.pn.localeCompare(b.pn));
@@ -8135,6 +8195,22 @@ const SCOL={
   cell:r=>`<td class="dsc"><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
  sup:{t:'ספק',val:r=>String(r.supplier||''),ttl:'שם הספק כפי שהוא בדוח',
   cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
+ /* ============ דלת «שינוי פרופיל MRP» ============ */
+ profCur:{t:'פרופיל היום',val:r=>{const i=profInfo(r);return i?PROF_RANK[i.cur]:-1},
+  xval:r=>{const i=profInfo(r);return i?PROF_NAME[i.cur]:''},ttl:'סוג MRP ו-ABC כפי שהם בדוח, ורמת השירות שהם נושאים',
+  cell:r=>{const i=profInfo(r);return `<td>${i?`${PROF_NAME[i.cur]} <span class="mut">(${PROF_SRV[i.cur]})</span>`:'—'}</td>`}},
+ profTgt:{t:'פרופיל מוצע',val:r=>{const i=profInfo(r);return i?PROF_RANK[i.tgt]:-1},
+  xval:r=>{const i=profInfo(r);return i?PROF_NAME[i.tgt]:''},ttl:'הפרופיל שתדירות הצריכה מצדיקה, ורמת השירות שלו',
+  cell:r=>{const i=profInfo(r);if(!i)return '<td>—</td>';const up=PROF_RANK[i.tgt]>PROF_RANK[i.cur];
+   return `<td><b>${up?'↑':'↓'} ${PROF_NAME[i.tgt]}</b> <span class="mut">(${PROF_SRV[i.tgt]})</span></td>`}},
+ profH:{t:'חודשי צריכה',val:r=>profH(r),xval:r=>profH(r),ttl:'בכמה מתוך 11 החודשים בדוח הייתה צריכה',
+  cell:r=>`<td class="num">${profH(r)}<span class="mut">/11</span></td>`},
+ profSt:{t:'המלצה',val:r=>{const i=profInfo(r);return i?PROF_ST[i.state][0]:''},
+  ttl:'להעלות — מיד · להוריד — חודש שני מתחת לסף · לבדוק — יש רכש פתוח · בהמתנה — חודש ראשון מתחת לסף · לא להוריד — לקוח ממתין או צריכה ב-3 שנים',
+  cell:r=>{const i=profInfo(r);if(!i)return '<td>—</td>';
+   return `<td class="prst ${i.state}" title="${esc(i.why)}">${esc(PROF_ST[i.state][0])}</td>`}},
+ profWhy:{t:'למה',val:r=>{const i=profInfo(r);return i?i.why:''},ttl:'הסיבה להמלצה',
+  cell:r=>{const i=profInfo(r);return `<td class="dsc" title="${esc(i?i.why:'')}">${esc(i?i.why:'')}</td>`}},
  /* ============ בחירה לקובץ SAP — עיצוב שלב 6ב ============
     במסך התכנון בלבד. תיבה רק בשורה שיש לה שינוי פרמטר שנכנס לקובץ
     (sapUsableBase) — בשורה אחרת סימון לא היה מוסיף לקובץ כלום. אין val,
@@ -8481,7 +8557,7 @@ const SCOL={
   xval:r=>r.risk||0,
   cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['sel','mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
+const SCOL_ORDER=['sel','profCur','profTgt','profH','profSt','profWhy','mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
@@ -8532,7 +8608,9 @@ const SCOL_DEF={
  /* מה שבור בנתון, ומה מציעים במקומו */
  qual:['pnPlain','model','desc','cat','rop','ss','need','lt','fix'],
  /* מה צריך כדי לבדוק מול SAP: מי, כמה, ממתי, ולפי איזה מסמך */
- stale:['pnPlain','model','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck']};
+ stale:['pnPlain','model','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck'],
+ /* «שינוי פרופיל MRP»: מה היום, מה מוצע, למה, ומה בדרך */
+ prof:['pnPlain','model','desc','profCur','profTgt','profH','profSt','profWhy','free','poPlain']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -8559,7 +8637,7 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
-const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale','ropb']);
+const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale','ropb','prof']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
@@ -8569,6 +8647,7 @@ function colViewKey(){
  if(track==='ropb')return 'ropb';
  if(track==='qual')return 'qual';
  if(track==='stale')return 'stale';
+ if(track==='prof')return 'prof';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
@@ -8962,6 +9041,7 @@ function renderDecisions(rows){
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
+     :track==='prof'?'אין פריט שהפרופיל שלו שונה ממה שתדירות הצריכה מצדיקה.'
      :track==='stale'?(ETA?'אף שורה בדוח ה-ETA אינה נושאת תאריך שכבר עבר — הדוח נקי.':'לא נטען דוח ETA, ולכן אין תאריכי הגעה לבדוק.')
      :track==='cap'?(mode==='capPO'?'אין פריט עם רכש פתוח שימשיך להיכנס למלאי עודף — שום כסף אינו בדרך פנימה למלאי העודף.'
         :mode==='capStop'?'אין פריט שבו נקודת ההזמנה חיה והמנוע מציע מספר נמוך ממנה — אין הזמנה חוזרת לעצור בפרמטר.'
@@ -9006,6 +9086,9 @@ function renderDecisions(rows){
    ?(()=>{const inc=trendIncoming(rows);
       return `${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
        +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
+   :track==='prof'
+   ?(()=>{const c={};for(const r of rows){const st=profInfo(r).state;c[st]=(c[st]||0)+1}
+      return ['up','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${PROF_ST[k][0]} ${c[k].toLocaleString('he-IL')}`).join(' · ')})()
    :track==='stale'
    ?(()=>{const u=rows.reduce((a,r)=>a+(r.etaPast||0),0);
       return u?`${u.toLocaleString('he-IL')} יח׳ בשורות שתאריכן חלף · אינן נספרות ככיסוי בשום מקום`
@@ -9031,6 +9114,8 @@ function renderDecisions(rows){
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'
   ?'הביקוש עלה בתוך חלון הקצב ונקודת ההזמנה מפגרת אחריו · מספר מייעץ, ההמלצה לא שונתה · ✓ = משלוח בדרך סוגר את הפער למחזור הזה, והפריט נשאר ברשימה'
+  :track==='prof'
+  ?'H = חודשי צריכה מתוך 11 · 9+ ZM-A · 5–8 ZM-B · 2–4 ZM-C · 0–1 PD · העלאה מיד · הורדה אחרי שני חודשים · ל-PD לא מורידים עם לקוח ממתין או צריכה ב-3 שנים'
   :track==='stale'
   ?'הדוח מבטיח תאריך שכבר עבר · הכלי אינו יודע אם הסחורה נכנסה למלאי — זו בדיקה מול SAP לפי מסמך הרכש · בינתיים הכמות אינה נספרת ככיסוי בשום מקום'
   :track==='done'
@@ -9117,6 +9202,9 @@ function render(){if(!QF)return;
    renderDecisions(rows);return}
  if(track==='stale'){const tkS=document.getElementById('track');
    if(tkS){tkS.innerHTML='';tkS.style.display='none'}
+   renderDecisions(rows);return}
+ if(track==='prof'){const tkP=document.getElementById('track');
+   if(tkP){tkP.innerHTML='';tkP.style.display='none'}
    renderDecisions(rows);return}
  if(track==='cust'){const tk3=document.getElementById('track');
    if(tk3){tk3.innerHTML='';tk3.style.display='none'}
@@ -10668,6 +10756,10 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   Q=classify(ALL);
   etaOrphanSync();
   HRUN=recordRun(ALL,Q,runSig_);APPLIED=recordParams(ALL,Q,runSig_);
+  /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
+     כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
+     התוצאה של הטעינה הזאת. */
+  profRecord(ALL);
   /* ============ הכותרת אומרת את מה שהיא סופרת ============
      היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
      6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
