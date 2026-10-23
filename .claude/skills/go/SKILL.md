@@ -15,7 +15,7 @@ description: תהליך הסיום המלא של משימת פיתוח ב-ZMRP �
 ```
 index.html          קובץ יחיד — CSS + HTML + JavaScript + SheetJS מוטמע
                     אין build · אין שרת · אין dev server · פותחים בדפדפן
-npm test            npm run fixture && node tests/run-all.js   (22 קבצים)
+npm test            npm run fixture && node tests/run-all.js   (23 קבצים)
 ```
 
 **אין בפרויקט eslint, אין prettier ואין tsconfig.** אל תדווח «Lint עבר» ואל תמציא
@@ -91,7 +91,7 @@ node $V/syntax-check.js .             # תחליף ל-lint/tsc שאינם קיי
 node $V/data-leak-check.js $S/incoming/zt.xlsx .
 ```
 
-- [ ] **22/22 קבצים, אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
+- [ ] **23/23 קבצים, אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
       קרא את הסיכום בסוף, לא רק את הקובץ הראשון.
 - [ ] `syntax-check` נקי.
 - [ ] **`data-leak-check` מחזיר 0 מק״טים ו-0 ספקים.** הריפו ציבורי ומגיש
@@ -177,7 +177,7 @@ git diff --stat
 
 לא דילוג. פישוט שובר דברים.
 
-- [ ] `npm test` — שוב, 22/22.
+- [ ] `npm test` — שוב, 23/23.
 - [ ] `syntax-check` · `data-leak-check` — שוב.
 - [ ] `engine-snapshot` + `engine-diff` — **שוב, מול אותו בסיס.** הפישוט חייב
       להיות 0 זזו מול המצב שלפניו.
@@ -191,7 +191,7 @@ git diff --stat
 
 **הראיות** — מספרים, לא הבטחות:
 ```
-22/22 קבצים · 0 FAIL
+23/23 קבצים · 0 FAIL
 business-guard: 7,990 פריטים · 26 מסכים · 0 הבדלים
 7,990 פריטים · 0 זזו · 0 תורים · 0 דלתות · 0 כסף בכל מטבע
 data-leak: 0 מק״טים · 0 ספקים
