@@ -3036,7 +3036,7 @@ tr.grp.sup b{font-size:var(--f-md)}
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="chips inline" id="chipsTop"></span>
           <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
-          <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> טופל <b>/</b> חיפוש</span>
+          <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> פתח <b>D</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
@@ -3125,7 +3125,7 @@ tr.grp.sup b{font-size:var(--f-md)}
 <div class="colspick" id="colspick" role="dialog" aria-label="בחירת עמודות"></div>
 <div class="qsug" id="qsug"></div>
 <div class="modalwrap" id="modalwrap"><div class="modal"><div class="mhd"><b id="mtitle">מאחורי החישוב</b><span class="x" id="mclose">✕</span></div><div class="mbody" id="mbody"></div></div></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 const CLEAN=s=>String(s==null?'':s).replace(/[\u200e\u200f\u202a-\u202e]/g,'').trim();
 const NUM=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
@@ -5332,7 +5332,7 @@ function toast(msg,act){const t=document.getElementById('toast');
  if(act){const b=t.querySelector('.tundo');b.onclick=()=>{t.classList.remove('show');act.run()}}
  t.classList.toggle('hasact',!!act);
  t.classList.add('show');clearTimeout(t._t);
- t._t=setTimeout(()=>t.classList.remove('show'),act?9000:1600)}
+ t._t=setTimeout(()=>t.classList.remove('show'),act?(act.ms||9000):1600)}
 const DARK_KEY='planner_dark_v1';
 let DARKON=false;try{const v=localStorage.getItem(DARK_KEY);if(v!=null)DARKON=v==='1'}catch(_){}
 function applyDark(on){document.body.classList.toggle('dark',on);
@@ -8171,11 +8171,22 @@ function wireSapSel(){
   all.onchange=()=>{document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{b.checked=all.checked;
    all.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn)});sapBarSync()}}
  sapBarSync()}
+/* «טופל» לפריט אחד — מכפתור השורה או מ-D — עם «בטל» בהודעה למשך 6 שניות.
+   הביטול מחזיר את MARKS[key] בדיוק למה שהיה לפני הלחיצה (בדרך כלל: כלום),
+   ולא דרך setMark(k,'') שמוחק גם מפתח ישן לפי מק״ט שלא נגענו בו. */
+const UNDO_MS=6000;
+function markHandled(k,after){const it=markItem(k),key=it?markKey(it):String(k||'');if(!key)return;
+ const pn=it?it.pn:key,prev=MARKS[key]?{...MARKS[key]}:null;
+ setMark(k,'handled','');
+ toast('✓ '+pn+' — סומן כטופל',{label:'בטל',ms:UNDO_MS,run:()=>{
+  if(prev)MARKS[key]=prev;else delete MARKS[key];
+  saveMarks();apply();toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה');
+  if(after)after()}})}
 function wireMarkBtns(){
  wireSapSel();
  const pnOf=k=>{const it=markItem(k);return it?it.pn:k};
  document.querySelectorAll('#tbl tbody .dn[data-done]').forEach(b=>b.onclick=e=>{e.stopPropagation();
-   const k=b.dataset.done;setMark(k,'handled','');toast('✓ '+pnOf(k)+' — סומן כטופל')});
+   markHandled(b.dataset.done)});
  document.querySelectorAll('#tbl tbody .dn[data-undo]').forEach(b=>b.onclick=e=>{e.stopPropagation();
    const k=b.dataset.undo;setMark(k,'','');toast('↺ '+pnOf(k)+' — הסימון בוטל, הפריט חזר לרשימה')})}
 const SCOL={
@@ -11685,10 +11696,17 @@ function pageSel(d){const rows=navRows();if(!rows.length)return;
  pickRow(rows[Math.min(rows.length-1,Math.max(0,(i<0?0:i)+d*step))])}
 function markSelHandled(){const rows=navRows();const i=selIndex(rows);if(i<0)return false;
  const b=rows[i].querySelector('[data-done]');if(!b)return false;
- b.click();                                  /* setMark → apply → render */
+ /* אחרי «בטל» הפריט חוזר למקומו בסדר, ולכן לאותו אינדקס */
+ markHandled(b.dataset.done,()=>pickRow(navRows()[i]));   /* setMark → apply → render */
  const after=navRows();                      /* הרשימה התכווצה — הבא תפס את המקום */
  if(after.length)pickRow(after[Math.min(i,after.length-1)]);
  return true}
+/* Enter פותח את הפריט שעומדים עליו. סגירת הכרטיס (Escape) מורידה את הבחירה,
+   ולכן זוכרים את השורה האחרונה — Enter פותח אותה שוב ולא קופץ לראשונה. */
+let LAST_SEL=-1;
+function openSel(){const rows=navRows();if(!rows.length)return;
+ const i=selIndex(rows);
+ pickRow(rows[i>=0?i:(LAST_SEL>=0&&LAST_SEL<rows.length?LAST_SEL:0)])}
 function tabStep(d){const tabs=[...document.querySelectorAll('#tabs .tab')];if(!tabs.length)return;
  const i=tabs.findIndex(t=>t.classList.contains('sel'));if(i<0)return;
  const n=tabs[Math.min(tabs.length-1,Math.max(0,i+d))];
@@ -11702,6 +11720,7 @@ document.addEventListener('keydown',e=>{
   if(typing){t.blur();return}
   document.querySelectorAll('.ddpanel,.menu').forEach(x=>x.classList.remove('open'));
   closeSug();closeColPop();
+  {const i=selIndex(navRows());if(i>=0)LAST_SEL=i}
   const mw=document.getElementById('modalwrap');
   if(mw.classList.contains('open')){mw.classList.remove('open');return}
   closeDetail();return}
@@ -11720,8 +11739,13 @@ document.addEventListener('keydown',e=>{
  if(K==='ArrowUp'||K==='k'){e.preventDefault();moveSel(-1);return}
  if(K==='PageDown'){e.preventDefault();pageSel(1);return}
  if(K==='PageUp'){e.preventDefault();pageSel(-1);return}
- if(K==='Enter'||K===' '){e.preventDefault();
-  if(!markSelHandled()&&!navRows().some(r=>r.classList.contains('sel')))pickRow(navRows()[0]);return}
+ /* ============ Enter פותח, D מסמן טופל, רווח לא עושה כלום ============
+    Enter ורווח סימנו «טופל» — פעולה שמוציאה פריט מהתור, על המקש הכי
+    קל ללחוץ בטעות, בלי ביטול. עכשיו הסימון הוא D בלבד, עם «בטל» ל-6
+    שניות. e.code ולא e.key: במקלדת עברית אותו מקש נותן «ג». */
+ if(K==='Enter'){e.preventDefault();openSel();return}
+ if(K===' '){e.preventDefault();return}    /* לא מסמן, וגם לא מגלגל את העמוד מתחת לתור */
+ if(e.code==='KeyD'&&!e.shiftKey){e.preventDefault();markSelHandled();return}
  /* RTL: חץ שמאל = הטאב הבא ברצועה */
  if(K==='ArrowLeft'){e.preventDefault();tabStep(1);return}
  if(K==='ArrowRight'){e.preventDefault();tabStep(-1);return}});

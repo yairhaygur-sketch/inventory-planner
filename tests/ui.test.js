@@ -53,12 +53,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('חץ למעלה חוזר אחורה',
    (await p.evaluate(()=>document.querySelector('#detail .opn .opnt')?.textContent.trim()))===pn1);
 
- // 2. Enter מסמן כטופל וממשיך
+ // 2. D מסמן כטופל וממשיך
+ /* היה Enter. ב-S1 הסימון עבר ל-D (עם «בטל» ל-6 שניות), ו-Enter רק
+    פותח את הפריט — החלטת המעתד. המקרים המלאים: tests/keys.test.js. */
  const before=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  await p.keyboard.press('Enter');await p.waitForTimeout(400);
+ ok('Enter אינו מסמן כטופל',
+   await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length)===before);
+ await p.keyboard.press('KeyD');await p.waitForTimeout(400);
  const after=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  const stillSel=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr.sel').length);
- ok('Enter מסמן כטופל ומסיר מהתור',after<before,before+' → '+after);
+ ok('D מסמן כטופל ומסיר מהתור',after<before,before+' → '+after);
  ok('הבחירה עוברת אוטומטית לפריט הבא',stillSel===1);
 
  // 3. / ממקד חיפוש
