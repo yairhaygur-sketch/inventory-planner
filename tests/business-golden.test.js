@@ -20,10 +20,8 @@
        node tests/business-golden.test.js --update
    ובגוף ה-PR מסבירים מה זז ולמה.
 
-   תקלה קיימת שטביעת האצבע מקבעת כמו שהיא (לא תוקנה בשלב 0): גיליון
-   «התצוגה» בייצוא לאקסל במסכים burn, cust, applied ו-catalog מכיל את
-   פריטי המסך הקודם. ראה KNOWN-ISSUES.md. התיקון ישנה את הגיבובים של
-   ארבעת הגיליונות האלה בלבד. */
+   תקלות שטביעת האצבע קיבעה ותוקנו: ראה KNOWN-ISSUES.md (גיליון «התצוגה»,
+   VIEW_SHEET — הגיבובים של «התצוגה» ב-7 מסכים ושל «תנועות» עודכנו אז). */
 const {execFileSync}=require('child_process');
 const path=require('path'),fs=require('fs'),os=require('os'),crypto=require('crypto');
 const ROOT=path.resolve(__dirname,'..'),V=path.join(ROOT,'.claude/skills/go/verify');
@@ -84,7 +82,8 @@ for(const m of Object.keys(G.exports)){const a=G.exports[m],b=D.exports[m];
  if(m==='__mail'){ok('טיוטת המייל לספקים',J(a)===J(b),`${a.lines} → ${b.lines} שורות`);continue}
  if(m==='__expedite'){ok('דוח זירוז — כל הגיליונות',J(a)===J(b));continue}
  for(const kind of ['excel','sap','slow'])
-  if(J(a[kind])!==J(b&&b[kind])){const bad=[];(a[kind]||[]).forEach((f,i)=>{const g=((b||{})[kind]||[])[i];
+  /* צד אחד יכול להיות {err} ולא רשימת קבצים — «תנועות» לפני VIEW_SHEET */
+  if(J(a[kind])!==J(b&&b[kind])){const bad=[];(Array.isArray(a[kind])?a[kind]:[]).forEach((f,i)=>{const g=(Array.isArray((b||{})[kind])?b[kind]:[])[i];
    for(const s of Object.keys(f.sheets||{}))if(!g||J(f.sheets[s])!==J(g.sheets[s]))bad.push(s)});
    ok(`מסך ${m} · ${({excel:'אקסל',sap:'SAP',slow:'מלאי איטי'})[kind]}`,false,bad.join(', ')||'קובץ נוסף/נעלם')}
  ok(`מסך ${m} · אקסל, SAP ומלאי איטי`,['excel','sap','slow'].every(k=>J(a[k])===J(b&&b[k])))}
