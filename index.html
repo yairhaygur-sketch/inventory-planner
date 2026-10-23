@@ -5562,7 +5562,10 @@ const NAV_WHAT={
  done:'פריטים שסימנת כטופלו',
  moves:'מכירה וכניסה אחרונות לכל פריט',
  stale:'שורות בדוח ה-ETA שתאריך ההגעה שלהן חלף — לבדוק מול SAP אם הסחורה נכנסה',
- prof:'פרופיל MRP לפי תדירות הצריכה — PD שכדאי להחזיק במלאי, ופרופיל שכבר אינו מוצדק'};
+ /* המונה במסילה הוא «להעלות» + «לבדוק» (profActive), והמסך מציג גם את
+    «בהמתנה» ו«לא להוריד» — 116 מול 5,046 בדוח האמיתי. ההחלטה נשארת;
+    התיאור אומר מה סופרים, כדי שהפער לא ייקרא כטעות. */
+ prof:'פרופיל MRP לפי תדירות הצריכה — PD שכדאי להחזיק במלאי, ופרופיל שכבר אינו מוצדק · המספר: להעלות + לבדוק; הרשימה כוללת גם בהמתנה ולא להוריד'};
 /* כמה פריטים בכל מסלול, ואיזה מהם מחזיק חומרה 3 — הספירה היא מה
    שצריך כדי לבחור מסלול; הסכום הכספי נשאר בתוך המסלול. */
 /* ============ העדפות התצוגה נקראות בעלייה ============
@@ -7169,10 +7172,7 @@ function kpis(){
  if(!QF){const el=document.getElementById('kpis');if(el)el.innerHTML='';
   const qs=document.getElementById('qsub');if(qs)qs.textContent='';return}
  const waiting=QF.waiting,im=QF.immediate,pr=QF.prevent,ex=QF.excess,capList=decisionList('cap');
- /* אותה הגדרה בדיוק כמו בכותרת העליונה — excess נספר בנפרד */
- const tasks=['waiting','immediate','follow','prevent','quality'].reduce((s,k)=>s+QF[k].length,0);
  const handled=QF.marked.filter(x=>x.mark&&x.mark.t==='handled').length;
- const fixList=decisionList('fix');
  const units=a=>a.reduce((t,r)=>t+(r.miss||0),0);
  const uTxt=a=>`${units(a).toLocaleString('he-IL')} יח׳ חסרות`;
  /* ============ מדד שאפשר ללחוץ עליו, ושסופר את מה שייפתח ============
@@ -7187,17 +7187,40 @@ function kpis(){
    note:'הזמנות לקוח ללא כיסוי מלאי ובלי הזמנת רכש פתוחה',cls:'burn'},
   {k:'today',l:'חוסרים ולקוחות',n:navCount('today').n,m:uTxt(modeRows('today')),cls:'warn'},
   {k:'cap',l:'כסף תקוע',n:navCount('cap').n,m:moneyMix(capList,r=>r.expCap)+noPriceTxt(capList),cls:''},
-  {k:'month',l:'תכנון ו-MRP',n:navCount('month').n,m:`${fixList.length.toLocaleString('he-IL')} לעדכון ב-SAP`,cls:''}];
+  {k:'month',l:'תכנון ו-MRP',n:navCount('month').n,m:`${sapDueN().toLocaleString('he-IL')} לעדכון ב-SAP`,cls:''}];
  document.getElementById('kpis').innerHTML=K.map(k=>{
   const inner=k.cls==='burn'
    ?`<div class="l">${k.l}</div><div class="row"><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny">${k.m}</div></div><div class="note">${k.note}</div>`
    :`<div class="l">${k.l}</div><div class="v">${k.n.toLocaleString('he-IL')}</div><div class="mny ${k.cls}">${k.m}</div>`;
   return `<button type="button" class="kpi${k.cls==='burn'?' burn':''}" data-kpi="${k.k}" title="פתח את ${esc(k.l)}">${inner}</button>`}).join('');
  document.querySelectorAll('#kpis [data-kpi]').forEach(e=>e.onclick=()=>setMode(e.dataset.kpi));
+ const G=greetSync();
  document.getElementById('qsub').textContent=
-   `${tasks.toLocaleString('he-IL')} דורשים החלטה · ${QF.excess.length.toLocaleString('he-IL')} כסף תקוע · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
+   `${G.home.toLocaleString('he-IL')} דורשים החלטה · ${G.cap.toLocaleString('he-IL')} כסף תקוע · ${QF.passive.length.toLocaleString('he-IL')} רקע${handled?' · ✓ '+handled+' טופלו':''}`}
+/* ============ S3 · הברכה אומרת את מה שהמסילה אומרת ============
+   הברכה סכמה חמישה תורים (waiting+immediate+follow+prevent+quality) —
+   על הדוח האמיתי 239 «דורשים החלטה», בזמן שהמסילה אמרה «מרכז עבודה 38».
+   ו«כסף תקוע» היה QF.excess (2,919) מול «בריאות המלאי 2,779». שני
+   מספרים לאותו שם. עכשיו שניהם נלקחים מ-navCount — המונה שהמסילה
+   מציגה, שהוא אורך הרשימה שנפתחת בלחיצה. הסיווג עצמו לא זז. */
+let GREET_WHO='';
+function greetSync(){
+ const home=navCount('home').n,cap=navCount('cap').n;
+ if(ZN)ZN.tasks=home;
+ const g=document.getElementById('plannerGreeting');
+ if(g)g.textContent=(GREET_WHO?GREET_WHO+' · ':'')
+   +`${home.toLocaleString('he-IL')} דורשים החלטה`
+   +(cap?` · ${cap.toLocaleString('he-IL')} כסף תקוע לבדיקה`:'');
+ return {home,cap}}
 /* שורת המצב של תחום — מופיעה ב-title של המסילה ובכותרת המסך. מקור
    אחד, כדי ששני המקומות לא יוכלו לומר דברים שונים. */
+/* «לעדכון ב-SAP» ספר paramFix — 45 בדוח האמיתי — וקובץ «עדכון ל-SAP» מאותו
+   מסך יצא עם 33: שישה כבר במספר המוצע, ארבעה בלי זמן אספקה, שניים עם
+   המלצה 0 (התצוגה המקדימה של S2 מראה את זה). המספר הוא עכשיו מספר
+   השורות בקובץ, באותו מסנן שבונה אותו. */
+/* «מוצג 1-0 מתוך 0» הופיע בכל מסך ריק, והקטלוג כתב «7990» בלי מפריד. */
+function pgTxt(shown,total){return total?`מוצג 1-${shown.toLocaleString('he-IL')} מתוך ${total.toLocaleString('he-IL')}`:'אין פריטים'}
+function sapDueN(){return modeRows('month').filter(sapMassUsable).length}
 function navSub(k){
   if(k==='today'){const l=modeRows('today');
    const c=l.reduce((x,r)=>x+(isT1(r)?(r.cust||0):0),0);
@@ -7206,7 +7229,7 @@ function navSub(k){
    return u||c?`${c?c.toLocaleString('he-IL')+' יח׳ בהזמנות לקוח · ':''}${u.toLocaleString('he-IL')} יח׳ לא יסופקו`:''}
   if(k==='burn'){const r=burnRows();if(!r.length)return '';
    return `${burnTotals(r).units.toLocaleString('he-IL')} יח׳ ללא כיסוי · ${moneyMix(r,burnVal,true)}`}
-  if(k==='month'){const ex=modeRows('month').filter(r=>r.paramFix).length;
+  if(k==='month'){const ex=sapDueN();
    return ex?`${ex.toLocaleString('he-IL')} לעדכון ב-SAP`:''}
   if(k==='catalog'){const cap=decisionList('cap');
    return cap.length?`כסף תקוע ${moneyMix(cap,r=>r.expCap||0,true)}`:''}
@@ -8864,7 +8887,7 @@ function renderAgenda(rows){
  const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
  LAST_VIEW=view;
  document.getElementById('pgL').textContent=
-  `מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+  pgTxt(idx,rows.length);
  /* התווית הקצרה היא שדה משלה ב-AGROUP ולא חיתוך מהכותרת:
     שינוי ניסוח בכותרת היה משבש את הפוטר בלי שיבחין בזה. */
  document.getElementById('pgR').textContent=AGROUP
@@ -8904,7 +8927,7 @@ function renderCust(rows){
   `<tr><td colspan="${NCOL()}" class="empty">אין פריט עם הזמנת לקוח פתוחה שהמלאי הפנוי שלו אפס.</td></tr>`;
  const t=custTotals(rows);
  const noneT=custTotals(G.none), supN=rows.length-G.none.length;
- document.getElementById('pgL').textContent=`מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgL').textContent=pgTxt(idx,rows.length);
  document.getElementById('pgR').textContent=
   /* «78 ממתינים ל-ETA» הפך לשקר ברגע שנוספה עמודת ההגעה: ל-30 מהם
      יש תאריך. הפוטר אומר עכשיו את שלושת המצבים כפי שהם. */
@@ -8946,7 +8969,7 @@ function renderApplied(rows){
  document.querySelector('#tbl tbody').innerHTML=body.join('')||
   `<tr><td colspan="${NCOL()}" class="empty">אין עם מה להשוות — צריך שתי העלאות של שני דוחות שונים.</td></tr>`;
  const A=APPLIED;
- document.getElementById('pgL').textContent=`מוצג 1-${idx} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgL').textContent=pgTxt(idx,rows.length);
  document.getElementById('pgR').textContent=A
   ?`${A.done} יושמו · ${A.other} שונו אחרת · ${A.none} לא נגעו${A.gone?` · ${A.gone} כבר לא בדוח`:''}`
   :'';
@@ -9086,7 +9109,7 @@ function renderDecisions(rows){
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,RCAP)} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgL').textContent=pgTxt(Math.min(view.length,RCAP),rows.length);
  let extra='';
  /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
     ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
@@ -9131,7 +9154,12 @@ function renderDecisions(rows){
    :FIXLIKE()?'ניתן לעדכן במרוכז ב-SAP'
    :track==='m1'?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.r3-r.free),0).toLocaleString('he-IL')} יח׳ חסרות לחודש · ${m1dry.toLocaleString('he-IL')} במלאי אפס`
    :SHORTLIKE()?`סה״כ ${rows.reduce((t,r)=>t+Math.ceil(r.unsQty||0),0).toLocaleString('he-IL')} יח׳ לא יסופקו החודש · ${rows.reduce((t,r)=>t+(isT1(r)?(r.cust||0):0),0).toLocaleString('he-IL')} יח׳ לקוח ממתינות · ${moneyMix(rows,r=>r.unsVal||0)}`
-   :`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`)+npx;
+   /* בלי מפתח כספי (איכות נתונים) הסכום היה תמיד «סה״כ ₪0» — מספר שלא
+      מייצג כלום. אומרים כמה פריטים יש, וזה הכול. ורשימה ריקה אינה «₪0»:
+      «אין פריטים» כבר כתוב לידה. */
+   :!rows.length?''
+   :TRACKKEY[track]?`סה״כ ${moneyMix(rows,r=>r[TRACKKEY[track]]||0)}${extra}`
+   :`${rows.length.toLocaleString('he-IL')} פריטים`)+npx;
  /* CAP_SPLIT — לכל ידית הכיתוב שלה, מתוך CAP_DOORS, כדי שמי שנכנס
     יקרא מה הוא *יכול* לעשות ולא רק למה הכסף תקוע. */
  const capDoor=(track==='cap'&&CAP_DOORS[mode])?CAP_DOORS[mode][1]:null;
@@ -9261,8 +9289,8 @@ function render(){if(!QF)return;
   ||`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
  wireMarkBtns();document.querySelectorAll('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{
   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length}`;
- document.getElementById('pgR').textContent=`${QF.all.length} מק״טים בקובץ`;
+ document.getElementById('pgL').textContent=pgTxt(Math.min(view.length,500),rows.length);
+ document.getElementById('pgR').textContent=`${QF.all.length.toLocaleString('he-IL')} מק״טים בקובץ`;
  wireCopy()}
 /* ============ אריח תנועות אחרונות (v0.12) ============ */
 let movTab='sales';
@@ -10868,13 +10896,10 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
      מעתד שפתח את הכלי קרא «3,246 פריטים דורשים טיפול» והסיק
      שהוא בפיגור של חודשים. שני מספרים, שתי משמעויות. */
   const tasks=['waiting','immediate','follow','prevent','quality'].reduce((s,k)=>s+Q[k].length,0);
-  const capN=Q.excess.length;
   const planners={};ALL.forEach(it=>{if(it.planner&&it.planner!=='ללא שיוך')planners[it.planner]=(planners[it.planner]||0)+1});
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('plannerGreeting').textContent=
-    (planner?planner[0]+' · ':'')
-    +`${tasks.toLocaleString('he-IL')} דורשים החלטה`
-    +(capN?` · ${capN.toLocaleString('he-IL')} כסף תקוע לבדיקה`:'');
+  /* S3: המספרים עצמם נכתבים ב-greetSync, מהמונים של המסילה — ראה שם */
+  GREET_WHO=planner?planner[0]:'';
   ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
   /* חזרה למסך שבו עבדת; בפתיחה ראשונה — מרכז העבודה.
@@ -11034,13 +11059,15 @@ const TOUR=[
  {t:'1 · מתחילים מדוח',sel:'#welGo,label[for="f"]',
   x:'העלה את דוח ה-ZMRP היומי. הכלי קורא אותו בדפדפן, מזהה את שורת הכותרות לבד, ומסיק ממנו את חודש הבסיס. דוח האספקות המתוכננות (ETA) הוא תוספת — אפשר לצרף אותו בהמשך ולא צריך אותו כדי להתחיל.'},
  {t:'2 · בוחרים מסלול',sel:'#tabs',
-  x:'שני מסלולי עבודה: «לטיפול היום» הוא מה שדורש החלטה עכשיו — חוסרים ולקוחות שממתינים. «הקטלוג» הוא לחיפוש ובדיקה של כל פריט. אלה מסלולי עבודה, לא מסנני תאריך: «היום» אינו אומר שנטענו נתוני היום, אלא מה בוער.'},
+  /* S3: הטקסט תיאר שני מסלולים, «לטיפול היום» ו«הקטלוג» — שמות שכבר
+     אינם במסילה. עכשיו הוא מתאר את מה שרואים. */
+  x:'המסילה מימין היא שבעה תחומים, והמספר ליד כל אחד הוא בדיוק מספר הפריטים שייפתחו בלחיצה. «מרכז עבודה» הוא מה שדורש החלטה עכשיו — לקוח ממתין וחוסר צפוי. «קטלוג פריטים» הוא לחיפוש ובדיקה של כל פריט. בתוך כל תחום יש דלתות משנה, מתחת לשם התחום.'},
  {t:'3 · פותחים פריט',sel:'#tbl',
-  x:'לחיצה על שורה פותחת את כרטיס הפריט מימין: מלאי, הזמנות, צריכת 11 חודשים והפרמטרים שב-SAP. אפשר גם בלי עכבר — ↑↓ לפריט, ←→ לטאב.'},
+  x:'לחיצה על שורה פותחת את כרטיס הפריט: מלאי, הזמנות, צריכת 11 חודשים והפרמטרים שב-SAP. אפשר גם בלי עכבר — ↑↓ לפריט, Enter פותח, ←→ לתחום הבא.'},
  {t:'4 · מבינים את ההמלצה',sel:'#detail',
   x:'בכרטיס יש «מה קרה» ו«מה לעשות», ולידם כפתור «מאחורי החישוב» שמראה את הנוסחה עצמה: מלאי הביטחון מפורק לשלושה מרכיבים, ולידם מי מהם קבע. אם ההמלצה נראית לך שגויה — שם רואים למה היא יצאה כך.'},
  {t:'5 · מסמנים טיפול',sel:'#detail',
-  x:'«✓ טופל» מוציא את הפריט מהתור. חשוב: הסימון נשמר בכלי בלבד ואינו מעדכן את SAP. הוא מסתיר את הפריט לשבוע, ואז הוא חוזר לסיווג האמיתי שלו — כדי שהדוח הבא יוכל להראות אם השינוי בוצע בפועל.'}];
+  x:'«✓ טופל» (או המקש D) מוציא את הפריט מהתור, ו«בטל» בהודעה מחזיר אותו בתוך 6 שניות. חשוב: הסימון נשמר בכלי בלבד ואינו מעדכן את SAP. הוא מסתיר את הפריט לשבוע, ואז הוא חוזר לסיווג האמיתי שלו — כדי שהדוח הבא יוכל להראות אם השינוי בוצע בפועל.'}];
 let TOURI=-1;
 function tourSpot(sel){
  document.querySelectorAll('.tourspot').forEach(e=>e.classList.remove('tourspot'));
