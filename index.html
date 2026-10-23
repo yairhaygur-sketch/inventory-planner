@@ -8971,6 +8971,12 @@ function renderDecisions(rows){
     הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
     לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
  LAST_VIEW=view;
+ /* ============ RENDER_CAP ============
+    במסלול בלי מפתח כספי cut80 מחזיר n = כל הרשימה, ולכן lim לא חתך
+    כלום: «שינוי פרופיל MRP» בנה 5,046 שורות (כ-115 אלף רכיבים) ונפתח
+    ב-4.3 שניות על הדוח האמיתי. הרינדור נחתך כאן ב-500, כמו הקטלוג.
+    LAST_VIEW נשאר הרשימה המלאה — גיליון «התצוגה» בייצוא לא משתנה. */
+ const RCAP=(!k&&!grouped&&!bySup)?500:Infinity;
  const body=[];
  let acc=0,curBlk=null,blkI=0;
  if(bySup){let idx=0;
@@ -9011,6 +9017,7 @@ function renderDecisions(rows){
      +colRowHTML(r,{dlen:24,maj})+'</tr>')}}
  }
  else view.forEach((r,i)=>{
+  if(i>=RCAP)return;
   const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   /* תצוגה שיש לה רישום עמודות מרונדרת ממנו, ולכן הכותרת והתאים
      נגזרים מאותו מקור — ועמודה שנוספה בבורר מופיעה בשניהם.
@@ -9063,7 +9070,7 @@ function renderDecisions(rows){
  document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
  wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
    document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=`מוצג 1-${view.length} מתוך ${rows.length.toLocaleString('he-IL')}`;
+ document.getElementById('pgL').textContent=`מוצג 1-${Math.min(view.length,RCAP)} מתוך ${rows.length.toLocaleString('he-IL')}`;
  let extra='';
  /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
     ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
