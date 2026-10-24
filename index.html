@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מרכז עבודה יומי למעתד מלאי חלפים</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Archivo:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- ============ NO_CDN — הספרייה בתוך הקובץ ============
      היה: <script src="https://cdn.sheetjs.com/xlsx-0.20.2/...">.
      כלומר כל הכלי היה תלוי בהורדה מרשת חיצונית בכל פתיחה. ברשת
@@ -55,21 +55,21 @@ body.dark tbody tr:hover{background:var(--surface-2)}
 body.dark tbody tr.sel{background:#20264a}
 *{box-sizing:border-box}
 html,body{height:100%;overflow:hidden;margin:0}
-body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;color:var(--ink);display:flex;flex-direction:column;font-size:13px;transition:background .2s,color .2s}
+body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f8;color:var(--ink);display:flex;flex-direction:column;font-size:13px;transition:background .2s,color .2s}
 .top{height:62px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 18px;flex:0 0 auto;z-index:40}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .mk{width:34px;height:34px;border-radius:9px;background:#28354d;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px}
-.brand .nm{line-height:1.2}.brand .nm b{font-size:14px;font-weight:800}.brand .nm span{display:block;font-size:10.5px;color:var(--dim);margin-top:2px}
+.brand .nm{line-height:1.2}.brand .nm b{font-size:14px;font-weight:800}.brand .nm span{display:block;font-size:12px;color:var(--dim);margin-top:2px}
 .titleblock{display:flex;flex-direction:column;gap:2px;padding-inline-start:16px;border-inline-start:1px solid var(--line)}
-.top .ttl{font-size:15px;font-weight:800}.plannerGreeting{font-size:10.5px;color:var(--dim)}
+.top .ttl{font-size:15px;font-weight:800}.plannerGreeting{font-size:12px;color:var(--dim)}
 .top .lc{display:flex;align-items:center;gap:8px;margin-inline-start:10px}
 .top .sp{margin-inline-start:auto;display:flex;align-items:center;gap:10px}
-.updated{font-size:11.5px;color:var(--dim);background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+.updated{font-size:12px;color:var(--dim);background:#f7f8fb;border:1px solid var(--line);border-radius:8px;padding:5px 10px}
 /* שתי שורות זעירות במקום שני שבבים בשורה: אותו מידע, כמחצית
    הרוחב, ובגובה שהסרגל ממילא מחזיק. */
 .dstate{display:flex;flex-direction:column;justify-content:center;gap:0;
  line-height:1.3;min-width:0;padding-inline:2px}
-.zchip{font-size:11px;font-family:var(--num);font-variant-numeric:tabular-nums;
+.zchip{font-size:12px;font-family:var(--num);font-variant-numeric:tabular-nums;
  color:var(--ink-2);white-space:nowrap;font-weight:700}
 /* ============ ROW_AUDIT · כשהמשוואה אינה מסתדרת ============
    השבב אומר «נקראו N · נוצלו M» בכל טעינה. כששתיהן שוות הוא שקט
@@ -77,16 +77,16 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
    במקביל. הצבע אינו הסימן היחיד: המספרים עצמם שונים בטקסט,
    ונוסף ⚠. */
 .zchip.rgap{color:var(--org);font-weight:800}
-.dstate .updated{font-size:10.5px;color:var(--ink-3);white-space:nowrap}
-.etachip{font-size:11.5px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.dstate .updated{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.etachip{font-size:12px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
 .etachip.stale{color:var(--org);background:var(--orgL);border-color:var(--org)}
 .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--ink);white-space:nowrap}
 .btn:hover{border-color:var(--accBorder);background:var(--accL);color:var(--accD)}
 .btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-fill)}.btn.pri:hover{background:var(--accD)}
 .top input[type=file]{width:0;opacity:0;position:absolute;pointer-events:none}
-.top input[type=month]{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:11.5px;font-family:inherit;background:#fff;color:var(--ink)}
-.top .rdlbl{font-size:11px;color:var(--dim)}
+.top input[type=month]{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;font-family:inherit;background:#fff;color:var(--ink)}
+.top .rdlbl{font-size:12px;color:var(--dim)}
 .menuwrap{position:relative}
 .menu{display:none;position:absolute;top:38px;inset-inline-start:0;z-index:80;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadowH);padding:8px;width:210px}
 .menu.open{display:block}
@@ -122,7 +122,7 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 .whead:active{cursor:grabbing}
 .whead .hnd{color:var(--ink-3);font-size:14px;letter-spacing:-2px;cursor:grab}
 .whead .wt{font-weight:700;font-size:13px}
-.whead .wsub{font-size:11px;color:var(--dim)}
+.whead .wsub{font-size:12px;color:var(--dim)}
 .whead .wsp{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
 .whead .wx{color:#b6bccb;cursor:pointer;font-size:13px;padding:2px 5px;border-radius:6px}
 .whead .wx:hover{background:var(--redL);color:var(--red)}
@@ -146,7 +146,7 @@ body{font-family:"Assistant","72",Arial,Helvetica,sans-serif;background:#f3f5f8;
 
    הבורר הוא ‎.abnext .abchip‎ ולא ‎.abchip‎, ולא מתוך נימוס: ‎#track‎
    נושא עד היום את המחלקה ‎seg‎ משכבה ישנה, ולכן ‎.seg button‎ —
-   ‎background:none;border:none;padding:6px 10px;font-size:11.5px‎ —
+   ‎background:none;border:none;padding:6px 10px;font-size:12px‎ —
    ניצח בספציפיות (0,1,1 מול 0,1,0) כל אריח שנבנה כאן. נמדד:
    ‎getComputedStyle(.abchip).backgroundColor === 'rgba(0,0,0,0)'‎ —
    כלומר הגוון שבניתי מעולם לא הופיע על המסך, וגם ה-hover נחטף
@@ -190,27 +190,27 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .kpi.urgent .ic{background:var(--redL)}
 .fbody{padding:12px 13px;overflow:auto;flex:1}
 .fgroup{margin-bottom:12px}
-.fgroup label.tl{display:block;font-size:11.5px;color:var(--dim);font-weight:700;margin-bottom:5px}
+.fgroup label.tl{display:block;font-size:12px;color:var(--dim);font-weight:700;margin-bottom:5px}
 .qsearch{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;font-family:inherit;outline:none;background:#fafbfd}
 .qsearch:focus{border-color:var(--accBorder);background:var(--panel)}
 .dd{position:relative}
 .ddbtn{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;font-family:inherit;background:#fafbfd;cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:var(--ink)}
 .ddbtn:hover{border-color:var(--accBorder)}
 .ddbtn.on{border-color:var(--acc);background:var(--accL);color:var(--accD);font-weight:600}
-.ddbtn .car{color:var(--dim);font-size:9px}
-.ddbtn .cnt{background:var(--acc);color:var(--on-fill);border-radius:9px;font-size:10px;font-weight:700;padding:1px 7px}
+.ddbtn .car{color:var(--dim);font-size:12px}
+.ddbtn .cnt{background:var(--acc);color:var(--on-fill);border-radius:9px;font-size:12px;font-weight:700;padding:1px 7px}
 .ddpanel{display:none;position:absolute;top:38px;inset-inline-start:0;inset-inline-end:0;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;max-height:260px;overflow:auto;box-shadow:var(--shadowH)}
 .ddpanel.open{display:block}
 .ddpanel input.s{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12px;margin-bottom:6px;font-family:inherit;outline:none}
 .ddpanel label{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:5px 6px;border-radius:6px;cursor:pointer}
 .ddpanel label:hover{background:var(--accL)}
-.ddpanel label .c{color:var(--dim);margin-inline-start:auto;font-size:11px}
+.ddpanel label .c{color:var(--dim);margin-inline-start:auto;font-size:12px}
 .toggle{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;cursor:pointer;padding:6px 0;user-select:none}
 .sw{width:38px;height:22px;border-radius:11px;background:#cdd3df;position:relative;transition:.15s;flex:0 0 auto}
 .sw::after{content:'';position:absolute;top:2px;inset-inline-start:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:.15s}
 .toggle.on .sw{background:var(--acc)}.toggle.on .sw::after{inset-inline-start:18px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{background:var(--accL);border:1px solid var(--accBorder);color:var(--accD);border-radius:20px;padding:3px 10px;font-size:11px;display:flex;gap:6px;align-items:center}
+.chip{background:var(--accL);border:1px solid var(--accBorder);color:var(--accD);border-radius:20px;padding:3px 10px;font-size:12px;display:flex;gap:6px;align-items:center}
 .chip b{color:var(--dim);font-weight:600}.chip span{cursor:pointer;font-weight:800}
 .fclear{width:100%;margin-top:6px;border:1px dashed var(--line);background:#fff;color:var(--acc);border-radius:9px;padding:8px;font-size:12px;cursor:pointer;font-family:inherit}
 .fclear:hover{border-color:var(--acc);background:var(--accL)}
@@ -219,9 +219,9 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tab{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;min-width:88px;position:relative;transition:.12s}
 .tab:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
 .tab.sel{border-color:var(--c,var(--acc));box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--acc)) 22%,transparent)}
-.tab .t{font-size:11px;color:var(--dim);font-weight:600}
+.tab .t{font-size:12px;color:var(--dim);font-weight:600}
 .tab .n{font-size:19px;font-weight:800;color:var(--c,var(--ink));line-height:1.1;margin-top:1px}
-.tab .m{font-size:10px;color:var(--dim);margin-top:1px}
+.tab .m{font-size:12px;color:var(--dim);margin-top:1px}
 .tab::before{content:'';position:absolute;inset-inline-start:0;top:8px;bottom:8px;width:4px;border-radius:3px;background:var(--c,var(--neutral))}
 .qpanel{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid var(--line2);margin:0 -12px;padding:0 0}
 .phd{padding:8px 12px;border-bottom:1px solid var(--line2);display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -257,7 +257,7 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .oact{display:flex;align-items:baseline;gap:8px;margin:0 12px 10px;
   padding:9px 12px;border-radius:9px;background:var(--accL);
   border-inline-start:4px solid var(--acc);font-size:13.5px;line-height:1.45}
-.oact .oactk{font-size:10.5px;font-weight:700;letter-spacing:.04em;
+.oact .oactk{font-size:12px;font-weight:700;letter-spacing:.04em;
   color:var(--acc);white-space:nowrap}
 .oact b{font-weight:700;color:var(--ink)}
 .chips.inline{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;align-items:center;min-width:0}
@@ -268,10 +268,10 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
    דרסו זו את זו כשנוספה השישית — קליק על «מעל הדרישה» נחת על «לקוח
    ממתין». גלישה לשורה שנייה עולה כמה פיקסלים; דריסה עולה לחיצה. */
 .phd .title{font-size:13.5px;font-weight:700}
-.phd .sub{font-size:11px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phd .sub{font-size:12px;color:var(--dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rows{flex:1;overflow:auto}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-thead th{position:sticky;top:0;background:#f7f8fb;text-align:start;padding:0;font-weight:700;font-size:11.5px;color:var(--dim);border-bottom:1px solid var(--line);white-space:nowrap;z-index:2}
+thead th{position:sticky;top:0;background:#f7f8fb;text-align:start;padding:0;font-weight:700;font-size:12px;color:var(--dim);border-bottom:1px solid var(--line);white-space:nowrap;z-index:2}
 th .thc{display:flex;align-items:center;gap:4px;padding:9px 9px;cursor:pointer;user-select:none}
 th.srt .thc:hover{color:var(--acc)}
 th.act{color:var(--acc);background:var(--accL)}
@@ -321,20 +321,20 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
  background:color-mix(in srgb,var(--trend) 20%,var(--panel))}
 .dcxn{margin-top:5px;font-size:var(--f-xs);color:var(--dim);line-height:1.5}
 .neg{color:var(--red);font-weight:700}.pos{color:var(--grn);font-weight:700}
-.badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
-.markbadge{display:inline-block;font-size:10px;padding:1px 8px;border-radius:20px;background:var(--neutralL);border:1px solid var(--line);color:var(--gray);font-weight:700;margin-inline-start:6px}
+.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;font-weight:700;white-space:nowrap}
+.markbadge{display:inline-block;font-size:12px;padding:1px 8px;border-radius:20px;background:var(--neutralL);border:1px solid var(--line);color:var(--gray);font-weight:700;margin-inline-start:6px}
 .markbadge.done{background:var(--grnL);border-color:#86efac;color:var(--grn)}
-.agebadge{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid transparent}
+.agebadge{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:20px;border:1px solid transparent}
 .age-g{background:var(--grnL);color:var(--grn);border-color:#bbf7d0}
 .age-y{background:#fff7ed;color:#c2740c;border-color:#fed7aa}
 .age-r{background:var(--redL);color:var(--red);border-color:#fecaca}
 .age-x{background:var(--neutralL);color:var(--dim);border-color:var(--line)}
-.cp{background:#fff;border:1px solid var(--line);color:var(--dim);border-radius:6px;font-size:10px;padding:2px 7px;cursor:pointer;margin-inline-start:6px;font-family:inherit;vertical-align:1px}
+.cp{background:#fff;border:1px solid var(--line);color:var(--dim);border-radius:6px;font-size:12px;padding:2px 7px;cursor:pointer;margin-inline-start:6px;font-family:inherit;vertical-align:1px}
 .cp:hover{color:var(--acc);border-color:var(--accBorder);background:var(--accL)}
 .cp.done{color:var(--grn);border-color:#86efac;background:var(--grnL)}
-.dn{background:#fff;border:1px solid #86efac;color:var(--grn);border-radius:6px;font-size:10px;font-weight:700;padding:2px 8px;cursor:pointer;margin-inline-start:4px;font-family:inherit;vertical-align:1px}
+.dn{background:#fff;border:1px solid #86efac;color:var(--grn);border-radius:6px;font-size:12px;font-weight:700;padding:2px 8px;cursor:pointer;margin-inline-start:4px;font-family:inherit;vertical-align:1px}
 .dn:hover{background:var(--grn);color:var(--on-fill);border-color:var(--grn)}
-.pager{padding:8px 12px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--dim);flex:0 0 auto}
+.pager{padding:8px 12px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--dim);flex:0 0 auto}
 .colpop{display:none;position:fixed;z-index:120;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadowH);width:240px;padding:9px}
 .colpop.open{display:block}
 .colpop .srtrow{display:flex;gap:6px;margin-bottom:8px}
@@ -346,7 +346,7 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .colpop .vals{max-height:180px;overflow:auto;border-top:1px solid var(--line2);padding-top:6px}
 .colpop .vals label{display:flex;gap:8px;align-items:center;font-size:12px;padding:4px 5px;border-radius:6px;cursor:pointer}
 .colpop .vals label:hover{background:var(--accL)}
-.colpop .vals label .c{color:var(--dim);margin-inline-start:auto;font-size:11px}
+.colpop .vals label .c{color:var(--dim);margin-inline-start:auto;font-size:12px}
 .colpop .act{display:flex;justify-content:space-between;margin-top:8px}
 .colpop .act button{border:none;background:none;color:var(--acc);font-size:12px;cursor:pointer;font-family:inherit;padding:4px}
 .colpop .act button.ok{background:var(--acc);color:var(--on-fill);border-radius:8px;padding:5px 12px;font-weight:700}
@@ -363,7 +363,7 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .ohead h2{font-size:15px;margin:0 0 2px;font-weight:700}
 .opn{font-family:"Courier New",monospace;font-size:13px;color:var(--acc);font-weight:700}
 .tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
-.tag{font-size:10.5px;background:#f4f6fb;border:1px solid var(--line);color:var(--dim);padding:2px 9px;border-radius:20px}
+.tag{font-size:12px;background:#f4f6fb;border:1px solid var(--line);color:var(--dim);padding:2px 9px;border-radius:20px}
 .tag.b{background:var(--accL);border-color:var(--accBorder);color:var(--accD)}
 .tag.d{background:var(--redL);border-color:#fecaca;color:var(--red);font-weight:700}
 .tag.w{background:var(--orgL);border-color:#fed7aa;color:#c2740c;font-weight:700}
@@ -381,7 +381,7 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .dtabs{position:sticky;top:0;z-index:4}
 .col{min-height:0;display:flex;flex-direction:column;gap:8px}
 .sec{margin:0}
-.sec h3{font-size:11px;margin:0 0 5px;font-weight:700;padding-bottom:4px;border-bottom:1px solid var(--line2);color:var(--dim)}
+.sec h3{font-size:12px;margin:0 0 5px;font-weight:700;padding-bottom:4px;border-bottom:1px solid var(--line2);color:var(--dim)}
 .msg{border-radius:9px;padding:6px 10px;margin-bottom:5px;font-size:12px;display:flex;gap:7px;align-items:flex-start;line-height:1.4}
 .msg.warn{background:var(--orgL);border-inline-start:3px solid var(--org)}
 .msg.err{background:var(--redL);border-inline-start:3px solid var(--red)}
@@ -400,29 +400,29 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .marknote{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;font-family:inherit;outline:none}
 .acts{list-style:none;padding:0;margin:0;counter-reset:a}
 .acts li{background:#f7f8fb;border:1px solid var(--line2);border-radius:9px;padding:6px 10px;margin-bottom:5px;font-size:12px;display:flex;gap:8px;align-items:center;line-height:1.35}
-.acts li::before{counter-increment:a;content:counter(a);background:var(--acc);color:var(--on-fill);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto}
+.acts li::before{counter-increment:a;content:counter(a);background:var(--acc);color:var(--on-fill);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 auto}
 .fix{display:flex;gap:7px}
 .fixbox{flex:1;background:#f7f8fb;border:1px solid var(--line2);border-radius:9px;padding:8px;text-align:center}
-.fixbox .cur{font-size:10.5px;color:var(--dim)}.fixbox .new{font-size:23px;font-weight:800;margin:1px 0;color:var(--acc)}
-.fixbox .dlt{font-size:11px;font-weight:700}
+.fixbox .cur{font-size:12px;color:var(--dim)}.fixbox .new{font-size:23px;font-weight:800;margin:1px 0;color:var(--acc)}
+.fixbox .dlt{font-size:12px;font-weight:700}
 .up{color:var(--red)}.down{color:var(--grn)}.same{color:var(--gray)}
 .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}
 .kv .box{background:#fff;padding:6px 9px}
-.kv .box b{display:block;font-size:14px;font-weight:700}.kv .box span{font-size:10px;color:var(--dim)}
+.kv .box b{display:block;font-size:14px;font-weight:700}.kv .box span{font-size:12px;color:var(--dim)}
 .mvrow{display:flex;gap:7px;margin-top:5px}
 .mvcard{flex:1;border:1px solid var(--line2);border-radius:9px;padding:7px 10px;background:#f7f8fb}
-.mvcard .lbl{font-size:10.5px;color:var(--dim);display:flex;align-items:center;gap:5px}
+.mvcard .lbl{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:5px}
 .mvcard .dt{font-size:15px;font-weight:800;margin-top:1px}
 .mvcard.sale .dt{color:var(--grn)}.mvcard.ent .dt{color:var(--blue)}
-.mvcard .qt{font-size:10.5px;color:var(--dim)}
-.sdbadge{display:inline-block;font-size:10px;font-weight:700;background:#fef9c3;border:1px solid #fde047;color:#854d0e;border-radius:20px;padding:1px 8px;margin-inline-start:6px}
+.mvcard .qt{font-size:12px;color:var(--dim)}
+.sdbadge{display:inline-block;font-size:12px;font-weight:700;background:#fef9c3;border:1px solid #fde047;color:#854d0e;border-radius:20px;padding:1px 8px;margin-inline-start:6px}
 canvas{display:block;width:100%;border-radius:12px}
-.legend{font-size:10.5px;color:var(--dim);margin-top:4px;line-height:1.45}
+.legend{font-size:12px;color:var(--dim);margin-top:4px;line-height:1.45}
 .cantknow{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
-.cantknow .ck{font-size:10px;background:var(--blueL);border:1px solid #bfdbfe;color:#1e40af;padding:2px 8px;border-radius:20px}
+.cantknow .ck{font-size:12px;background:var(--blueL);border:1px solid #bfdbfe;color:#1e40af;padding:2px 8px;border-radius:20px}
 body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 .empty{color:var(--dim);padding:40px;text-align:center;font-size:13.5px}
-.explain{background:var(--accL);border:1px solid var(--accBorder);color:var(--accD);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:700}
+.explain{background:var(--accL);border:1px solid var(--accBorder);color:var(--accD);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:700}
 .explain:hover{background:var(--acc);color:var(--on-fill);border-color:var(--acc)}
 .modalwrap{display:none;position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.45);align-items:center;justify-content:center}
 .modalwrap.open{display:flex}
@@ -448,7 +448,7 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 .flag.crit{border-color:var(--red);background:var(--redL)}
 .flag.info{border-color:var(--acc);background:var(--accL)}
 .flag b{color:var(--red)}.flag.info b{color:var(--accD)}
-.mrpline{font-size:11.5px;color:var(--dim);padding:7px 12px;border-top:1px solid var(--line2)}
+.mrpline{font-size:12px;color:var(--dim);padding:7px 12px;border-top:1px solid var(--line2)}
 .toast{position:fixed;bottom:22px;inset-inline-start:50%;transform:translateX(50%) translateY(20px);background:var(--ink);color:var(--panel);padding:9px 16px;border-radius:10px;font-size:12.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:300;box-shadow:var(--shadowH)}
 .toast.show{opacity:1;transform:translateX(50%) translateY(0)}
 @media(max-width:1180px){
@@ -461,16 +461,16 @@ body.dark .cantknow .ck{border-color:#2b3a63;color:#93b4f5}
 /* מרכז עבודה יומי — פריסה תפעולית צפופה */
 body{background:#f5f6f8}
 .top{height:56px;gap:12px;padding:0 16px}
-.bld{font-family:var(--num);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--dimmer);border:1px solid var(--line);padding:0 4px;margin-inline-start:6px;white-space:nowrap;cursor:help}.brand .mk{width:30px;height:30px;border-radius:7px}.brand .nm b{font-size:13px}.titleblock{gap:0}.top .ttl{font-size:14px}
+.bld{font-family:var(--num);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--dimmer);border:1px solid var(--line);padding:0 4px;margin-inline-start:6px;white-space:nowrap;cursor:help}.brand .mk{width:30px;height:30px;border-radius:7px}.brand .nm b{font-size:13px}.titleblock{gap:0}.top .ttl{font-size:14px}
 .dash{padding:8px 12px 12px;gap:8px;grid-template-columns:230px minmax(520px,1fr) 360px;grid-template-rows:auto minmax(510px,1fr) minmax(290px,.5fr)}
 .widget{border-radius:8px;border-color:#d9dee7;box-shadow:0 1px 1px rgba(16,24,40,.03)}
-.whead{padding:8px 11px;background:#fff;border-bottom:1px solid #e9edf2;cursor:default}.whead .hnd,.whead .wx,.rz{display:none!important}.whead .wt{font-size:12px;letter-spacing:.1px}.whead .wsub{font-size:10px}
+.whead{padding:8px 11px;background:#fff;border-bottom:1px solid #e9edf2;cursor:default}.whead .hnd,.whead .wx,.rz{display:none!important}.whead .wt{font-size:12px;letter-spacing:.1px}.whead .wsub{font-size:12px}
 .wkpi{border:none;background:transparent;box-shadow:none;overflow:visible}.wkpi .whead{display:none}.wkpi .wbody{overflow:visible}
-.kpis{padding:0;gap:7px;grid-template-columns:repeat(8,minmax(0,1fr))}.kpi{border-radius:7px;padding:7px 9px;gap:7px;background:#fff;border-color:#dce2ea}.kpi .ic{width:29px;height:29px;border-radius:7px;font-size:13px}.kpi .l{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .v{font-size:21px}
-.wfilters{background:#fbfcfd}.wfilters .wbody{overflow:auto}.fbody{padding:10px}.fgroup{margin-bottom:9px}.fgroup label.tl{font-size:10.5px;margin-bottom:4px}.qsearch,.ddbtn{border-radius:6px;padding:7px 9px;font-size:12px}.toggle{font-size:11.5px;padding:4px 0}.fclear{border-radius:6px;padding:7px}
-.wqueue{background:#fff}.wqueue .qbody{padding:8px 9px 0}.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:7px}.tab{min-width:0;border-radius:6px;padding:6px 8px}.tab::before{display:none}.tab .t{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab .n{font-size:18px}.tab .m{font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab.sel{border-width:1px;box-shadow:inset 0 -3px 0 var(--c,var(--acc))}
-.phd{padding:7px 10px}.phd .title{font-size:12.5px}.phd .sub{font-size:10px}thead th{font-size:10.5px;background:#f7f8fa}th .thc{padding:8px}td{padding:7px 8px;font-size:12px}.pager{padding:7px 10px;font-size:10.5px}
-.wdetail{background:#fff}.wdetail .ohead{padding:10px 12px}.ohead h2{font-size:14px}.opad{padding:9px 12px;grid-template-columns:1fr;gap:8px}.sec h3{font-size:10.5px}.msg,.acts li{font-size:11.5px}.kv .box b{font-size:13px}.kv .box span{font-size:9px}.fixbox .new{font-size:19px}
+.kpis{padding:0;gap:7px;grid-template-columns:repeat(8,minmax(0,1fr))}.kpi{border-radius:7px;padding:7px 9px;gap:7px;background:#fff;border-color:#dce2ea}.kpi .ic{width:29px;height:29px;border-radius:7px;font-size:13px}.kpi .l{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kpi .v{font-size:21px}
+.wfilters{background:#fbfcfd}.wfilters .wbody{overflow:auto}.fbody{padding:10px}.fgroup{margin-bottom:9px}.fgroup label.tl{font-size:12px;margin-bottom:4px}.qsearch,.ddbtn{border-radius:6px;padding:7px 9px;font-size:12px}.toggle{font-size:12px;padding:4px 0}.fclear{border-radius:6px;padding:7px}
+.wqueue{background:#fff}.wqueue .qbody{padding:8px 9px 0}.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:7px}.tab{min-width:0;border-radius:6px;padding:6px 8px}.tab::before{display:none}.tab .t{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab .n{font-size:18px}.tab .m{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tab.sel{border-width:1px;box-shadow:inset 0 -3px 0 var(--c,var(--acc))}
+.phd{padding:7px 10px}.phd .title{font-size:12.5px}.phd .sub{font-size:12px}thead th{font-size:12px;background:#f7f8fa}th .thc{padding:8px}td{padding:7px 8px;font-size:12px}.pager{padding:7px 10px;font-size:12px}
+.wdetail{background:#fff}.wdetail .ohead{padding:10px 12px}.ohead h2{font-size:14px}.opad{padding:9px 12px;grid-template-columns:1fr;gap:8px}.sec h3{font-size:12px}.msg,.acts li{font-size:12px}.kv .box b{font-size:13px}.kv .box span{font-size:12px}.fixbox .new{font-size:19px}
 .wmoves .qbody{padding:7px 9px 0}.wmoves .tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:1180px){.dash{grid-template-columns:220px minmax(0,1fr);grid-template-rows:auto minmax(500px,1fr) minmax(420px,.8fr) minmax(280px,.5fr)}.wdetail{grid-column:1 / -1;grid-row:3}.wmoves{grid-row:4}.kpis{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:760px){.dash{display:flex;padding:7px}.tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.kpis{grid-template-columns:repeat(2,1fr)}.whead .wsp{display:none}}
@@ -478,27 +478,27 @@ body{background:#f5f6f8}
 .wkpi{min-height:52px}
 .kpi.mny .v{font-size:19px}
 .kpi.mny.rev .v{color:var(--red)}.kpi.mny.cap .v{color:var(--blue)}
-.kpi.mny .sub{font-size:9.5px;color:var(--dim);margin-top:1px}
+.kpi.mny .sub{font-size:12px;color:var(--dim);margin-top:1px}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex:0 0 auto;background:#fafbfd}
-.seg button{border:none;background:none;font-family:inherit;font-size:11.5px;padding:6px 10px;cursor:pointer;color:var(--dim);border-inline-start:1px solid var(--line2);white-space:nowrap}
+.seg button{border:none;background:none;font-family:inherit;font-size:12px;padding:6px 10px;cursor:pointer;color:var(--dim);border-inline-start:1px solid var(--line2);white-space:nowrap}
 .seg button:first-child{border-inline-start:none}
 .seg button:hover{color:var(--accD);background:var(--accL)}
 .seg button.on{background:var(--acc);color:var(--on-fill);font-weight:700}
 body.dark .seg{background:#232833}
 .phd .seg{margin-inline-start:auto}
-.phd .seg button{padding:5px 9px;font-size:11px}
+.phd .seg button{padding:5px 9px;font-size:12px}
 tr.cutrow td{background:linear-gradient(90deg,var(--redL),transparent);border-top:2px dashed var(--red);border-bottom:1px solid var(--line2);
- font-size:11px;font-weight:700;color:var(--red);padding:6px 9px;white-space:normal}
+ font-size:12px;font-weight:700;color:var(--red);padding:6px 9px;white-space:normal}
 body.dark tr.cutrow td{background:linear-gradient(90deg,#3a1d21,transparent)}
 tr.below td{opacity:.62}
 td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
 .rank{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;background:var(--neutralL);
- color:var(--dim);font-size:10.5px;font-weight:800}
+ color:var(--dim);font-size:12px;font-weight:800}
 .rank.hi{background:var(--redL);color:var(--red)}
 .stake{font-weight:800;white-space:nowrap}
 .stake.short{color:var(--red)}.stake.cap{color:var(--blue)}.stake.qty{color:var(--red);font-variant-numeric:tabular-nums}
-.cum{font-size:10.5px;color:var(--dim)}
-.sug{color:var(--acc);font-weight:700;font-size:10.5px;margin-inline-start:3px}
+.cum{font-size:12px;color:var(--dim)}
+.sug{color:var(--acc);font-weight:700;font-size:12px;margin-inline-start:3px}
 @media(max-width:1180px){.wkpi{min-height:104px}}
 @media(max-width:760px){.dash{flex-direction:column}.wkpi{min-height:0;flex:0 0 auto}}
 
@@ -507,25 +507,29 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
    העסקיים (הדפים האלה הוגשו מהכתובת הציבורית עם מק״טים אמיתיים).
    ההיסטוריה שומרת אותם. ============================================ */
 :root{
- --num:"Archivo","Assistant",Arial,sans-serif;
+ /* ============ D1 — פלטת D2 ============
+    אותם טוקנים, אותם תפקידים, ערכים מאב-הטיפוס המאושר (D2). כל צבע סמנטי
+    שומר על המשמעות שלו: אדום = מישהו ממתין, ענבר = אוזל החודש, ירוק = כסף
+    תקוע, סגול = מגמה, אפור = רקע. הניגודיות נבדקת ב-contrast.js בשני המצבים. */
+ --num:"Heebo","Segoe UI",Arial,sans-serif;   /* D1: גופן אחד; ספרות טבלאיות — ראה body */
 
  /* ---- משטחים: נייר קריר בהטיה כחולה, לא לבן טהור ---- */
- --paper:#F3F6FA; --surface:#FFFFFF; --surface-2:#F7F9FC;
- --line:#DDE4ED; --line-soft:#E9EEF4;
+ --paper:#F3F5F8; --surface:#FFFFFF; --surface-2:#F7F8FA;
+ --line:#DCE1E8; --line-soft:#ECEFF3;
 
  /* ---- דיו ---- */
- --ink:#101828; --ink-2:#475467; --ink-3:#5D6878;
+ --ink:#121925; --ink-2:#444F62; --ink-3:#5F6A7D;
 
  /* ---- מבטא: כחול פלדה. צבע המערכת, לא צבע התרעה ---- */
- --accent:#2563EB; --accent-ink:#1D4FD0; --accent-bg:#E8F0FE; --accent-line:#C2D6FB;
+ --accent:#3149C9; --accent-ink:#2A3FB0; --accent-bg:#EDF0FC; --accent-line:#C9D1F4;
 
  /* ---- סמנטיקה: תפקיד אחד לכל צבע ---- */
- --critical:#C93636; --critical-bg:#FDECEC;   /* חומרה 3 — מישהו ממתין עכשיו */
- --high:#9A5806;     --high-bg:#FDF3E3;       /* חומרה 2 — אוזל החודש */
- --steady:#2563EB;   --steady-bg:#E8F0FE;     /* חומרה 1 — פרמטרים, מעקב */
- --capital:#207653;  --capital-bg:#E8F5EE;    /* כסף תקוע — הזדמנות, לא סכנה */
- --calm:#5D6878;     --calm-bg:#EEF1F5;       /* חומרה 0 — רקע, תקין */
- --trend:#63489F;    --trend-bg:#F1ECFA;      /* מסלול מגמה — ציר נפרד מחומרה */
+ --critical:#BF281D; --critical-bg:#FCEBE9;   /* חומרה 3 — מישהו ממתין עכשיו */
+ --high:#965000;     --high-bg:#FDF1DE;       /* חומרה 2 — אוזל החודש */
+ --steady:#3149C9;   --steady-bg:#EDF0FC;     /* חומרה 1 — פרמטרים, מעקב */
+ --capital:#16714A;  --capital-bg:#E3F3EA;    /* כסף תקוע — הזדמנות, לא סכנה */
+ --calm:#59647A;     --calm-bg:#EEF1F5;       /* חומרה 0 — רקע, תקין */
+ --trend:#583EAF;    --trend-bg:#EFEBFB;      /* מסלול מגמה — ציר נפרד מחומרה */
 
  /* דיו על מילוי. מתהפך במצב כהה — ראה body.dark */
  --on-fill:#FFFFFF;
@@ -537,18 +541,18 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     החודש») ואינו הופך לצבע מותג: צבע שמסמן מצב אינו יכול לסמן גם
     הדגשה, אחרת «מודגש» ו«בעייתי» נראים אותו דבר.
     כל היחס נמדד מול הרצועה עצמה, לא מול הנייר. */
- --shell:#172B45;
- --shell-ink:#FFFFFF;    /* 14.03 */
- --shell-dim:#A7BBD4;    /*  7.02 */
+ --shell:#141B28;
+ --shell-ink:#F1F4F9;
+ --shell-dim:#AAB4C4;
  --shell-crit:#FF9B9B;   /*  7.01 */
  --shell-warn:#F5BC63;   /*  8.19 */
- --shell-acc:#8DB6FF;    /*  6.77 */
- --shell-track:#27405C;
- --shell-mute:#93A9C4;   /* דיו הרצועה עליה 5.04 — תוויות בתוך מקטע */
+ --shell-acc:#8DA4FF;
+ --shell-track:#252E3E;
+ --shell-mute:#97A2B4;   /* תוויות בתוך מקטע */
  /* משטח הפקדים על הרצועה. אטום ולא rgba: שכבה שקופה-למחצה אי אפשר
     לאמת — בודק הניגודיות עוצר עליה ומשווה טקסט מול שקיפות (1.00).
     מה שאי אפשר למדוד, אי אפשר להבטיח. */
- --shell-btn:#22384F; --shell-btn-h:#2C4762;   /* טקסט 11.18 / 8.94 */
+ --shell-btn:#1F2838; --shell-btn-h:#29344A;
 
  /* ---- צורה: משטח שצף, לא מסגרת ----
     --r היה מוגדר ולא היה בשימוש באף מקום (אפס הופעות). הוא מוחלף
@@ -568,15 +572,15 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --shadow-card:0 1px 2px rgba(11,21,34,.07),0 6px 18px rgba(11,21,34,.08);
 
  /* ---- שמות ישנים. אותם ערכים בדיוק, עד שהשימושים יוחלפו ---- */
- --bg:#F3F6FA; --panel:#FFFFFF; --panel2:#F7F9FC; --panel0:#F3F6FA;
- --dim:#475467; --dimmer:#5D6878; --soft:#475467; --line2:#E9EEF4;
- --acc:#2563EB; --accD:#1D4FD0; --accL:#E8F0FE; --accBorder:#C2D6FB;
- --red:#C93636; --redL:#FDECEC; --redInk:#FDF2F0;
- --org:#9A5806; --orgL:#FDF3E3;
- --grn:#207653; --grnL:#E8F5EE;
- --blue:#2563EB; --blueL:#E8F0FE;
- --purple:#63489F; --purpleL:#F1ECFA;
- --gray:#5D6878; --neutral:#8792A4; --neutralL:#EEF1F5; --bar:#5B6B7F;
+ --bg:#F3F5F8; --panel:#FFFFFF; --panel2:#F7F8FA; --panel0:#F3F5F8;
+ --dim:#444F62; --dimmer:#5F6A7D; --soft:#444F62; --line2:#ECEFF3;
+ --acc:#3149C9; --accD:#2A3FB0; --accL:#EDF0FC; --accBorder:#C9D1F4;
+ --red:#BF281D; --redL:#FCEBE9; --redInk:#FDF3F2;
+ --org:#965000; --orgL:#FDF1DE;
+ --grn:#16714A; --grnL:#E3F3EA;
+ --blue:#3149C9; --blueL:#EDF0FC;
+ --purple:#583EAF; --purpleL:#EFEBFB;
+ --gray:#59647A; --neutral:#8792A4; --neutralL:#EEF1F5; --bar:#58698A;
 
  /* ---- טיפוגרפיה ----
     הסולם החדש נכנס כשמות. הגדלים הישנים נשארים, וזו החלטה ולא דחייה.
@@ -597,8 +601,8 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
     הסולם הישן נשאר בדיוק כפי שהוא. 480 בדיקות ומאות כללי CSS
     נשענים עליו, והשינוי כאן הוא *מעליו* ולא בתוכו:
       f-lg 19  →  f-num 30  →  f-hero 72     (יחס 1.58 ואז 2.4) */
- --f-micro:10.5px; --f-base:13.5px; --f-num:30px; --f-hero:72px;
- --f-xs:10px; --f-sm:11.5px; --f-md:13px; --f-lg:19px; --f-xl:24px;
+ --f-micro:12px; --f-base:13.5px; --f-num:30px; --f-hero:72px;
+ --f-xs:12px; --f-sm:12px; --f-md:13px; --f-lg:19px; --f-xl:24px;   /* D1: אין טקסט מתחת ל-12px */
 
  /* ---- צורה ---- */
  --shadow:none; --shadowH:0 8px 24px rgba(15,18,22,.18);
@@ -606,19 +610,19 @@ td.act1{white-space:normal;min-width:180px;max-width:320px;line-height:1.35}
  --r-ctl:6px;    /* פקדים בלבד. ההבחנה בין מה שלוחצים למה שקוראים */
 }
 body.dark{
- --paper:#0F1720; --surface:#17212E; --surface-2:#1C2735;
- --line:#2A3949; --line-soft:#222F3E;
- --ink:#E8EDF5; --ink-2:#9BA8BC; --ink-3:#8B9AB0;
- --accent:#6BA0FF; --accent-ink:#8DB6FF; --accent-bg:#16263F; --accent-line:#274263;
- --critical:#FF7B7B; --critical-bg:#3A1E20;
- --high:#F0A93C;     --high-bg:#3A2C15;
- --steady:#6BA0FF;   --steady-bg:#16263F;
- --capital:#4FC48A;  --capital-bg:#17301F;
- --calm:#8B9AB0;     --calm-bg:#1C2735;
- --trend:#B49BEA;    --trend-bg:#2A2340;
+ --paper:#0F131A; --surface:#171C25; --surface-2:#1C222C;
+ --line:#2A323E; --line-soft:#222933;
+ --ink:#E8EBF0; --ink-2:#B3BBC8; --ink-3:#98A2B2;
+ --accent:#8DA4FF; --accent-ink:#A3B5FF; --accent-bg:#222B47; --accent-line:#34406A;
+ --critical:#FF8D82; --critical-bg:#3A1F1D;
+ --high:#F0B35F;     --high-bg:#372A17;
+ --steady:#8DA4FF;   --steady-bg:#222B47;
+ --capital:#6CD09D;  --capital-bg:#173326;
+ --calm:#AAB3C2;     --calm-bg:#262D38;
+ --trend:#BBA9FF;    --trend-bg:#2A2445;
 
  /* לבן על המילוי הבהיר נותן 2.98:1. דיו כהה נותן 6.31:1. ההיפוך מכוון. */
- --on-fill:#0B131C;
+ --on-fill:#0B1020;
 
  /* העומק בכהה אינו הצללה חזקה יותר אלא טבעת אור דקה: על משטח כהה
     צל שחור אינו נראה, ומה שמפריד משטחים הוא הקצה המואר. */
@@ -627,29 +631,29 @@ body.dark{
  --e-3:0 0 0 1px rgba(255,255,255,.06),0 14px 28px rgba(0,0,0,.5);
  /* הרצועה במצב כהה בהירה מהרקע ולא כהה ממנו — משטח מורם. ההפרש
     מהרקע הוא 1.31 בלבד, ולכן הגבול נשען גם על קו ולא על הצבע לבדו. */
- --shell:#0B131C;
- --shell-ink:#FFFFFF;    /* 13.34 */
- --shell-dim:#A7BBD4;    /*  6.67 */
+ --shell:#0B1018;
+ --shell-ink:#F1F4F9;
+ --shell-dim:#AAB4C4;
  --shell-crit:#FF9384;   /*  6.66 */
  --shell-warn:#F0B45E;
- --shell-acc:#7FB3E0;
- --shell-track:#31455F;
- --shell-mute:#8497AD;
- --shell-btn:#2A3E56; --shell-btn-h:#35506C;   /* טקסט 10.16 / 7.76 */
+ --shell-acc:#8DA4FF;
+ --shell-track:#252E3E;
+ --shell-mute:#8D99AC;
+ --shell-btn:#1F2735; --shell-btn-h:#2A3446;
  --shadow-card:0 1px 2px rgba(0,0,0,.42),0 6px 18px rgba(0,0,0,.34);
 
- --bg:#0F1720; --panel:#17212E; --panel2:#1C2735; --panel0:#0F1720;
- --dim:#9BA8BC; --dimmer:#8B9AB0; --soft:#9BA8BC; --line2:#222F3E;
- --acc:#6BA0FF; --accD:#8DB6FF; --accL:#16263F; --accBorder:#274263;
- --red:#FF7B7B; --redL:#3A1E20; --redInk:#2A1416;
- --org:#F0A93C; --orgL:#3A2C15;
- --grn:#4FC48A; --grnL:#17301F;
- --blue:#6BA0FF; --blueL:#16263F;
- --purple:#B49BEA; --purpleL:#2A2340;
- --gray:#8B9AB0; --neutral:#7E8DA3; --neutralL:#222F3E; --bar:#7E8DA3;
+ --bg:#0F131A; --panel:#171C25; --panel2:#1C222C; --panel0:#0F131A;
+ --dim:#B3BBC8; --dimmer:#98A2B2; --soft:#B3BBC8; --line2:#222933;
+ --acc:#8DA4FF; --accD:#A3B5FF; --accL:#222B47; --accBorder:#34406A;
+ --red:#FF8D82; --redL:#3A1F1D; --redInk:#2A1614;
+ --org:#F0B35F; --orgL:#372A17;
+ --grn:#6CD09D; --grnL:#173326;
+ --blue:#8DA4FF; --blueL:#222B47;
+ --purple:#BBA9FF; --purpleL:#2A2445;
+ --gray:#AAB3C2; --neutral:#7E8DA3; --neutralL:#262D38; --bar:#8FA2C0;
  --shadow:none; --shadowH:0 10px 30px rgba(0,0,0,.55);
 }
-body{font-family:"Rubik","Assistant",Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--ink)}
 /* ============ RADIUS_SCALE — במקום «קצוות חדים בכל הממשק» ============
    כאן ישב כלל אחד שאיפס `border-radius` על ארבעים מחלקות בבת אחת.
    הוא שריד מכיוון עיצובי קודם, והוא — ולא עשרות החלטות נפרדות —
@@ -684,7 +688,7 @@ canvas{border-radius:0}
 .top,.widget,.wqueue,.wdetail,.wfilters,.whead,.menu,.ddpanel,.colpop,.modal{background:var(--panel)}
 .kpi,.tab,.acts li,.fixbox,.mvcard,.kv .box,.calc .ch,.calc tr.step td,.updated,.btn,.cp,.dn,.qbtn,.sxls,.fchip,.rq,.kbd,
 .qsearch,.ddbtn,.sinput,.seg,.marknote,.fclear,.top input[type=month]{background:var(--panel2);color:var(--ink)}
-thead th{background:var(--bg);color:var(--dimmer);text-transform:uppercase;letter-spacing:.08em;font-size:11px}
+thead th{background:var(--bg);color:var(--dimmer);text-transform:uppercase;letter-spacing:.08em;font-size:12px}
 tbody tr:hover{background:var(--panel2)}
 tbody tr.sel{background:var(--accL)}
 td{border-bottom:1px solid var(--line2)}
@@ -702,7 +706,7 @@ td{border-bottom:1px solid var(--line2)}
 .kpi .ic{display:none}
 .kpi .l{font-size:12px;font-weight:600;color:var(--dim)}
 .kpi .v{font-size:30px;letter-spacing:-.5px}
-.kpi .sub{font-size:11px;color:var(--dimmer)}
+.kpi .sub{font-size:12px;color:var(--dimmer)}
 #kpis .kpi:first-child{background:var(--red);color:var(--redInk)}
 #kpis .kpi:first-child .l{color:var(--redInk);font-weight:700}
 #kpis .kpi:first-child .v{color:var(--redInk);font-size:40px}
@@ -720,7 +724,7 @@ td{border-bottom:1px solid var(--line2)}
 /* כרטיס הפריט — בלוק ההחלטה */
 .wdetail .ohead{border-bottom:2px solid var(--line)}
 .opn{font-family:var(--num);font-size:16px;color:var(--acc);direction:ltr;text-align:start}
-.sec h3{text-transform:uppercase;letter-spacing:.1em;color:var(--dimmer);font-size:10px}
+.sec h3{text-transform:uppercase;letter-spacing:.1em;color:var(--dimmer);font-size:12px}
 /* המונה ברשימת הפעולות הוא עיגול, לא ריבוע */
 .acts li::before{border-radius:50%;background:var(--acc);color:var(--panel)}
 .fixbox{border:1px solid var(--line);border-inline-start:4px solid var(--acc)}
@@ -809,7 +813,7 @@ td.pnc{padding:12px 18px;border-inline-start:4px solid var(--neutral);font-famil
 .nlqout{margin-top:7px;background:var(--surface-2);padding:8px 9px;font-size:var(--f-sm)}
 .nlqout .nrow{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .nlqout .nch{background:var(--accent-bg);color:var(--accent-ink);border:1px solid var(--accent-line);
-  border-radius:99px;padding:2px 9px;font-weight:700;font-size:11.5px}
+  border-radius:99px;padding:2px 9px;font-weight:700;font-size:12px}
 .nlqout .nch.st{background:var(--high-bg);color:var(--high);border-color:var(--high)}
 .nlqout .nch.no{background:transparent;color:var(--ink-3);border-color:var(--line);
   text-decoration:line-through;font-weight:400}
@@ -836,7 +840,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .xppop .xph{font-weight:800;font-size:15px;margin-bottom:9px;
   padding-bottom:7px;border-bottom:1px solid var(--line-soft)}
 .xppop .xpb+.xpb{margin-top:11px}
-.xppop .xpl{font-size:10.5px;letter-spacing:.06em;font-weight:700;
+.xppop .xpl{font-size:12px;letter-spacing:.06em;font-weight:700;
   color:var(--accent);text-transform:uppercase;margin-bottom:2px}
 .xppop .xpl.chk{color:var(--high)}
 .xppop p{margin:0;color:var(--ink-2)}
@@ -862,7 +866,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .briefsum[aria-expanded="true"] .bbx{transform:rotate(180deg)}
 .briefbar .briefbody{border-top:1px solid var(--line)}
 .briefbar .briefbody[hidden]{display:none}
-.briefbar .briefbase{padding:7px 10px 0;font-size:11.5px;color:var(--ink-2);font-weight:700}
+.briefbar .briefbase{padding:7px 10px 0;font-size:12px;color:var(--ink-2);font-weight:700}
 .briefbar .briefbase[hidden]{display:none}
 .briefbar .briefcards{margin:0;padding:8px 10px 10px}
 .briefbar .briefdiag{margin:0;border-radius:0}
@@ -948,7 +952,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
    לפני הטבלה — השם נשאר, רק הריפוד והמרווחים יורדים. */
 .rail{background:var(--shell);color:var(--shell-dim);display:flex;flex-direction:column;
  overflow:auto;padding-block-end:6px}
-.railsect{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--shell-mute);padding:13px 14px 5px}
+.railsect{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--shell-mute);padding:13px 14px 5px}
 .railsp{flex:1}
 .railsub{display:flex;flex-direction:column;gap:1px;padding-block-end:6px}
 .railsub2{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;
@@ -1023,7 +1027,7 @@ body.xp #tbl,body.xp .rows{cursor:default}
  .railsub2{padding-inline:10px}}
 @media(max-width:1240px){:root{--rail-w:164px}
  .rail .tab.navtab{padding:6px 7px;gap:6px;margin:0 5px}
- .rail .tab.navtab .nico{width:21px;height:21px;font-size:11px}
+ .rail .tab.navtab .nico{width:21px;height:21px;font-size:12px}
  .rail .tab.navtab .bdg{padding:0;min-width:0}
  .railsub2{padding-inline:8px}}
 
@@ -1198,13 +1202,13 @@ table.rzing .colrz{background:var(--accent);opacity:.5}
 #tbl thead th.wsrt .thc,#movtbl thead th.wsrt .thc{cursor:pointer}
 #tbl thead th.wsrt:hover .thc,#movtbl thead th.wsrt:hover .thc{color:var(--accent-ink)}
 #tbl thead th.wsrt.act .thc,#movtbl thead th.wsrt.act .thc{color:var(--accent-ink);font-weight:800}
-#tbl thead th .warr,#movtbl thead th .warr{margin-inline-start:3px;font-size:9px}
+#tbl thead th .warr,#movtbl thead th .warr{margin-inline-start:3px;font-size:12px}
 /* כפתור הסינון אינו גוזל רוחב: הוא ממוקם מוחלט בקצה הכותרת, והחץ
    מצויר ב-::before כדי ש-textContent של הכותרת יישאר השם בלבד.
    נמדד כשהוא היה בזרימה: הטבלה גדלה מ-1046 ל-1142 ב-1280px. */
 #tbl thead th .wfil,#movtbl thead th .wfil{position:absolute;inset-inline-end:1px;inset-block-start:50%;
  transform:translateY(-50%);width:15px;height:16px;padding:0;border:0;cursor:pointer;
- background:none;color:var(--ink-3);font-size:9px;line-height:16px;border-radius:3px;
+ background:none;color:var(--ink-3);font-size:12px;line-height:16px;border-radius:3px;
  opacity:0;font-family:inherit}
 #tbl thead th .wfil::before,#movtbl thead th .wfil::before{content:'▾'}
 #tbl thead th:hover .wfil,#tbl thead th.filt .wfil,#tbl thead th .wfil:focus-visible,
@@ -1297,7 +1301,7 @@ body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 .tab.navtab .nico{font-size:15px;line-height:1;color:var(--c,var(--calm))}
 .tab.navtab .t{font-size:var(--f-md);font-weight:700;white-space:nowrap;overflow:visible;
   text-overflow:clip}
-.tab.navtab .bdg{font-family:var(--num);font-size:11.5px;font-weight:700;
+.tab.navtab .bdg{font-family:var(--num);font-size:12px;font-weight:700;
   background:var(--calm-bg);color:var(--ink-2);border-radius:99px;padding:1px 7px;
   font-variant-numeric:tabular-nums}
 /* תג אדום גם כשהטאב כבוי — ככה «היום» צועק כשיש בו חומרה 3 */
@@ -1307,7 +1311,7 @@ body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 .tab.navtab.mini{padding:5px 9px;gap:5px;opacity:.9}
 .tab.navtab.mini .t{font-size:var(--f-sm);font-weight:700}
 .tab.navtab.mini .nico{font-size:12.5px}
-.tab.navtab.mini .bdg{font-size:10.5px;padding:0 6px}
+.tab.navtab.mini .bdg{font-size:12px;padding:0 6px}
 .tab.navtab.mini.sel{background:var(--surface);box-shadow:inset 0 0 0 1px var(--c,var(--acc));opacity:1}
 .tab.navtab.mini.sel .t,.tab.navtab.mini.sel .nico{color:var(--ink)}
 .tabs.nostat .tab.navtab .m.stat{display:none}
@@ -1324,7 +1328,7 @@ body.dense #tbl tbody tr[data-i] td>*{vertical-align:middle}
 .tab.navtab.sel .bdg{background:color-mix(in srgb,var(--on-fill) 22%,transparent);color:var(--on-fill)}
 .tab.navtab.sel.alert .bdg{background:var(--critical);color:var(--on-fill)}
 /* המשנה של הטאב הפעיל בלבד — ספירה בוחרת מסלול, הסכום שייך לתוכו */
-.tab.navtab.sel .m{display:inline;font-size:11px;font-weight:600;
+.tab.navtab.sel .m{display:inline;font-size:12px;font-weight:600;
   color:var(--on-fill);opacity:.85;white-space:nowrap}
 @media(max-width:1280px){.tab.navtab .t{font-size:12px}.tab.navtab{padding:6px 8px;gap:5px}
   .tab.navtab.sel .m,.tab.navtab .m.what{display:none}}
@@ -1421,7 +1425,9 @@ td.miss .posq{color:var(--dim)}
  font-size:var(--f-sm);font-weight:800;color:var(--ink)}
 .cpanel h4 span{font-family:var(--num);color:var(--capital);font-weight:800}
 .cbar{display:flex;align-items:center;gap:7px;padding:1px 0;font-size:var(--f-xs)}
-.cbar .cbn{flex:0 0 74px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* D1: 74px קבועים → 35% מהלוח (82–210px). העמודה גמישה ויחסית, ולכן היא
+   מתקצרת והערך נשאר מלא; השם המלא גם ב-title */
+.cbar .cbn{flex:0 0 clamp(82px,35%,210px);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbar .cbt{flex:1 1 auto;min-width:0;height:10px;background:var(--surface-2);
  border-radius:3px;overflow:hidden;display:block}
 .cbar .cbt i{display:block;height:100%;background:var(--capital);border-radius:3px}
@@ -1448,7 +1454,7 @@ td.miss .posq{color:var(--dim)}
  padding:9px 12px;border-bottom:1px solid var(--line2);
  font-size:var(--f-md);font-weight:700;color:var(--ink)}
 .hcard .hic{width:20px;height:20px;border-radius:6px;display:flex;
- align-items:center;justify-content:center;font-size:11px;flex:0 0 auto}
+ align-items:center;justify-content:center;font-size:12px;flex:0 0 auto}
 .hcard .hic.critical{background:var(--critical-bg);color:var(--critical)}
 .hcard .hic.steady{background:var(--accent-bg);color:var(--accent-ink)}
 .hcard .hic.trend{background:var(--trend-bg);color:var(--trend)}
@@ -1482,7 +1488,7 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
 
 /* ‹ › ומיקום ברשימה, בשורת המק״ט */
 .onav{display:inline-flex;align-items:center;gap:2px;margin-inline-start:auto;
- font-family:var(--num);font-size:11px;color:var(--ink-3);font-weight:700}
+ font-family:var(--num);font-size:12px;color:var(--ink-3);font-weight:700}
 .onav button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
  width:22px;height:22px;border-radius:var(--r-ctl);cursor:pointer;font-family:inherit;
  font-size:13px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
@@ -1496,7 +1502,7 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
  background:var(--surface-2);border:1px solid var(--line2)}
 .cstrip .cs b{font-family:var(--num);font-variant-numeric:tabular-nums;
  font-size:16px;font-weight:800;color:var(--ink);line-height:1.1}
-.cstrip .cs i{font-style:normal;font-size:10.5px;color:var(--ink-3);white-space:nowrap}
+.cstrip .cs i{font-style:normal;font-size:12px;color:var(--ink-3);white-space:nowrap}
 .cstrip .cs.c b{color:var(--critical)}
 .cstrip .cs.g{background:var(--critical-bg);border-color:var(--critical)}
 .cstrip .cs.g b{color:var(--critical)}
@@ -1504,19 +1510,19 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
 .cstrip .cs.u b{font-size:12px;color:var(--ink-3);font-weight:700}
 .pstrip{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-top:7px}
 .pstrip .ps{display:inline-flex;align-items:baseline;gap:5px;white-space:nowrap}
-.pstrip .ps i{font-style:normal;font-size:11px;color:var(--ink-3)}
+.pstrip .ps i{font-style:normal;font-size:12px;color:var(--ink-3)}
 .pstrip .ps em{font-style:normal;font-family:var(--num);
  font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;
  color:var(--ink-3);line-height:1.15}
 .pstrip .ps em b{font-weight:800;color:var(--ink)}
-.pstrip .ps.pf{font-size:11px;font-weight:700;color:var(--ink-3);
+.pstrip .ps.pf{font-size:12px;font-weight:700;color:var(--ink-3);
  padding:1px 7px;border-radius:999px;border:1px solid var(--line2)}
 .pstrip .ps.pf.in{color:var(--ink);border-color:var(--accent)}
 .dcb{display:flex;gap:8px;margin-top:14px}
 /* ============ אזור ההחלטה המאוחד ============ */
 .dcql{font-family:inherit;font-size:13px;font-weight:600;color:var(--dim);
  margin-inline-start:8px;letter-spacing:0}
-.dcmk{display:block;font-size:11px;font-weight:700;letter-spacing:.04em;
+.dcmk{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;
  color:var(--dim);margin-bottom:5px}
 .dcmore{margin-top:13px}
 .dcmore ul{margin:0;padding-inline-start:18px;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
@@ -1524,7 +1530,7 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
 .dcwhy .msg{margin:0}
 .dcnote .undoref{font-weight:700;color:var(--ink)}
 .dcwhat{margin-top:5px}
-.dcwhat summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--ink-2)}
+.dcwhat summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--ink-2)}
 .dcwhat p{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)}
 .tags.attrs{margin:0}
 .bpri{font-family:inherit;font-size:14px;font-weight:700;background:var(--acc);border:0;color:var(--bg);padding:10px 16px;cursor:pointer}
@@ -1555,7 +1561,7 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
 /* ============ מנוע חיפוש — שכבת עיצוב (v0.13) ============ */
 .qwrap{position:relative}
 .qwrap>label.tl{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.qkbd{font-family:var(--num);font-size:9.5px;font-weight:700;color:var(--dimmer);border:1px solid var(--line);
+.qkbd{font-family:var(--num);font-size:12px;font-weight:700;color:var(--dimmer);border:1px solid var(--line);
  padding:0 5px;line-height:15px;background:var(--panel2);letter-spacing:.06em}
 .qbox{display:flex;align-items:center;border:1px solid var(--line);background:var(--panel2);
  transition:border-color .12s,box-shadow .12s}
@@ -1569,7 +1575,7 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
  font-size:12px;padding:0 8px;line-height:1;visibility:hidden}
 .qclr:hover{color:var(--red)}
 .qbox.has .qclr{visibility:visible}
-.qstat{font-size:11px;margin-top:6px;color:var(--dim);line-height:1.5;min-height:17px}
+.qstat{font-size:12px;margin-top:6px;color:var(--dim);line-height:1.5;min-height:17px}
 .qstat b{font-family:var(--num);color:var(--ink);font-weight:700}
 .qstat.none{color:var(--org)}
 /* חלונית תוצאות מרחפת */
@@ -1577,10 +1583,10 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
  box-shadow:var(--shadowH);overflow:auto;border-radius:0}
 .qsug.open{display:block}
 .qsug .sgh{position:sticky;top:0;z-index:1;background:var(--bg);border-bottom:1px solid var(--line);
- padding:7px 12px;font-family:var(--num);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+ padding:7px 12px;font-family:var(--num);font-size:12px;letter-spacing:.11em;text-transform:uppercase;
  color:var(--dimmer);font-weight:700;display:flex;justify-content:space-between;gap:10px}
 .qsug .sgall{padding:8px 12px;border-bottom:1px solid var(--line);background:var(--accL);color:var(--acc);
- font-size:11.5px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center}
+ font-size:12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center}
 .qsug .sgall:hover{background:var(--acc);color:var(--bg)}
 .qsug .sgi{padding:9px 12px;border-bottom:1px solid var(--line2);border-inline-start:3px solid var(--neutral);
  cursor:pointer}
@@ -1593,10 +1599,10 @@ body.home-on #w_queue .phd #gseg,body.home-on .pager{display:none}
  white-space:nowrap;color:var(--ink)}
 .qsug .m{font-family:var(--num);font-size:12px;font-weight:700;color:var(--dim);white-space:nowrap}
 .qsug .d{font-size:12px;color:var(--soft);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.qsug .c{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:5px;font-size:10.5px;color:var(--dimmer)}
+.qsug .c{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:5px;font-size:12px;color:var(--dimmer)}
 .qsug .c i{font-style:normal;border:1px solid var(--line);padding:1px 6px;white-space:nowrap}
 .qsug .sgf{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);
- padding:7px 12px;font-size:10px;color:var(--dimmer);line-height:1.7}
+ padding:7px 12px;font-size:12px;color:var(--dimmer);line-height:1.7}
 .qsug .sgf b{font-family:var(--num);color:var(--acc);font-weight:700}
 .qsug .sgn{padding:16px 12px;font-size:12px;color:var(--dim);text-align:center}
 .qsug .rc{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;cursor:pointer;
@@ -1669,7 +1675,7 @@ body.probing .wqueue{transition:none}
 .dclose:hover{color:var(--red);border-color:var(--red)}
 body:not(.dopen) .dclose{display:none}
 .dchip{border:1px solid var(--org);background:var(--orgL);color:var(--org);font-family:var(--num);
- font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;line-height:1.4}
+ font-size:12px;font-weight:700;padding:3px 9px;cursor:pointer;white-space:nowrap;line-height:1.4}
 .dchip:hover,.dchip.on{background:var(--org);color:var(--bg);border-color:var(--org)}
 .dchip[hidden]{display:none}
 /* כותרת קבוצה במצב "היום" */
@@ -1680,8 +1686,8 @@ tr.grp:hover td{background:var(--accL)}
 tr.grp b{font-size:12.5px;color:var(--gc,var(--ink))}
 tr.grp .gcar{font-family:var(--num);font-size:12px;color:var(--gc,var(--dim));margin-inline-end:7px}
 tr.grp .gn{font-family:var(--num);font-size:12.5px;font-weight:800;color:var(--gc,var(--ink));margin-inline-start:8px}
-tr.grp .gs{font-size:11px;color:var(--dim);margin-inline-start:12px}
-tr.grp .gu{font-family:var(--num);font-size:11.5px;font-weight:700;color:var(--gc,var(--dim));float:left}
+tr.grp .gs{font-size:12px;color:var(--dim);margin-inline-start:12px}
+tr.grp .gu{font-family:var(--num);font-size:12px;font-weight:700;color:var(--gc,var(--dim));float:left}
 tr.grp.coll b,tr.grp.coll .gn{opacity:.75}
 /* בקטלוג יש עשר עמודות. ב-1180 הגרף החודשי יורד — הוא כפול לכרטיס הפריט,
    ובלעדיו כל שאר העמודות נכנסות בלי גלילה אופקית. */
@@ -1695,20 +1701,20 @@ tr.grp.coll b,tr.grp.coll .gn{opacity:.75}
 
 /* מדדים: 135px → ~76px. המספרים נשארים גדולים, האוויר סביבם לא. */
 .kpi{padding:8px 14px}
-.kpi .l{font-size:11.5px}
+.kpi .l{font-size:12px}
 .kpi .v{font-size:22px;margin-top:0}
-.kpi .mny{font-size:11.5px}
+.kpi .mny{font-size:12px}
 #kpis .kpi.burn{padding:8px 16px}
 #kpis .kpi.burn .l{font-size:12px}
 #kpis .kpi.burn .row{gap:12px;margin-top:1px}
 #kpis .kpi.burn .v{font-size:32px}
 #kpis .kpi.burn .mny{font-size:13px}
-#kpis .kpi.burn .note{font-size:11px;margin-top:1px}
+#kpis .kpi.burn .note{font-size:12px;margin-top:1px}
 
 /* טאבים: 81px → ~48px. שורת ההסבר עברה ל-title. */
 .tabs{overflow-x:auto;scrollbar-width:thin}
 .tab{min-width:104px;padding:5px 11px 6px;border-top-width:3px}
-.tab .t{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tab .t{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tab .n{font-size:17px}
 .tab .m{display:none}
 .wmoves .tab,#movesPanel .tab{min-width:98px}
@@ -1716,18 +1722,18 @@ tr.grp.coll b,tr.grp.coll .gn{opacity:.75}
 /* כותרת פאנל ופוטר */
 .phd{padding:6px 14px;gap:10px}
 .phd .title{font-size:13.5px}
-.phd .sub,.phd #phdSub{font-size:11px}
-.pager{padding:4px 12px;font-size:11px}
+.phd .sub,.phd #phdSub{font-size:12px}
+.pager{padding:4px 12px;font-size:12px}
 
 /* שורות: 45px → ~30px. פי 6 שורות באותו מסך. */
 .rows table{font-size:12.5px}
-th .thc{padding:6px 9px;font-size:11px}
+th .thc{padding:6px 9px;font-size:12px}
 td{padding:5px 9px}
 td.pnc{padding:5px 14px;font-size:13px}
-.cp,.dn{font-size:9.5px;padding:1px 6px;margin-inline-start:4px}
-.badge{font-size:10px;padding:1px 8px}
+.cp,.dn{font-size:12px;padding:1px 6px;margin-inline-start:4px}
+.badge{font-size:12px;padding:1px 8px}
 .spark{height:18px;width:82px}
-.agebadge{font-size:9.5px;padding:1px 5px}
+.agebadge{font-size:12px;padding:1px 5px}
 #movesPanel td,#movesPanel th .thc{padding:5px 9px}
 
 /* כרטיס הפריט: 1066px תוכן בחלון 328px. מכווץ ומקפל את הצלילה. */
@@ -1738,14 +1744,14 @@ td.pnc{padding:5px 14px;font-size:13px}
    ו-.mvcard ל-7px בשקט, בזמן ש-.msg (שיש לו כלל ייעודי בכרטיס)
    נשאר 14. אותו רכיב, שתי צורות. */
 .opad{padding:10px 14px;gap:9px}
-.sec h3{font-size:10.5px;margin-bottom:4px;padding-bottom:3px}
-.msg{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
-.acts li{padding:5px 9px;margin-bottom:4px;font-size:11.5px}
-.acts li::before{width:16px;height:16px;font-size:9.5px}
+.sec h3{font-size:12px;margin-bottom:4px;padding-bottom:3px}
+.msg{padding:5px 9px;margin-bottom:4px;font-size:12px}
+.acts li{padding:5px 9px;margin-bottom:4px;font-size:12px}
+.acts li::before{width:16px;height:16px;font-size:12px}
 .kv{grid-template-columns:repeat(4,1fr)}
 .kv .box{padding:4px 7px}
 .kv .box b{font-size:12px}
-.kv .box span{font-size:9px}
+.kv .box span{font-size:12px}
 .mvrow{gap:6px;margin-top:4px}
 .mvcard{padding:5px 9px}
 .mvcard .dt{font-size:13px}
@@ -1766,10 +1772,10 @@ td.pnc{padding:5px 14px;font-size:13px}
 /* גרף הצריכה יושב ישירות ב-.opad ולא בתוך עמודה, כדי שיהיה ראשון
    בסדר הקריאה. ברוחב מלא הוא חוצה את שתי העמודות. */
 .opad>.dsec.wide,.opad>.sec.wide{grid-column:1/-1}
-.dsec>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:10.5px;font-weight:700;
+.dsec>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:12px;font-weight:700;
  color:var(--dim);display:flex;align-items:center;gap:6px;user-select:none}
 .dsec>summary::-webkit-details-marker{display:none}
-.dsec>summary::before{content:'▸';font-size:10px;transition:transform .12s}
+.dsec>summary::before{content:'▸';font-size:12px;transition:transform .12s}
 .dsec[open]>summary::before{transform:rotate(-90deg)}
 .dsec>summary:hover{color:var(--ink)}
 .dsec>*:not(summary){margin:0 10px 9px}
@@ -1813,14 +1819,14 @@ td.pnc{padding:5px 14px;font-size:13px}
 
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
-.bulkbtn{font-family:inherit;font-size:11.5px;font-weight:700;background:var(--panel2);
+.bulkbtn{font-family:inherit;font-size:12px;font-weight:700;background:var(--panel2);
  border:1px solid var(--line);color:var(--soft);padding:4px 10px;border-radius:3px;cursor:pointer;white-space:nowrap}
 .bulkbtn:hover{border-color:var(--acc);color:var(--acc)}
 .bulkmenu{display:none;position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:120;
  min-width:270px;background:var(--panel);border:1px solid var(--line);border-radius:4px;
  box-shadow:0 8px 26px rgba(0,0,0,.28);padding:6px}
 .bulkmenu.open{display:block}
-.bulkmenu .bh{font-size:11px;color:var(--dim);padding:7px 9px 8px;border-bottom:1px solid var(--line2);
+.bulkmenu .bh{font-size:12px;color:var(--dim);padding:7px 9px 8px;border-bottom:1px solid var(--line2);
  margin-bottom:5px;line-height:1.5}
 .bulkmenu .bh b{color:var(--ink)}
 .bulkmenu button{display:block;width:100%;text-align:start;font-family:inherit;font-size:12.5px;
@@ -1836,7 +1842,7 @@ td.pnc{padding:5px 14px;font-size:13px}
 .toast.show{pointer-events:auto}
 
 /* מקרא קיצורי המקלדת */
-.kbd{display:flex;gap:5px;align-items:center;font-size:10px;color:var(--dim);white-space:nowrap}
+.kbd{display:flex;gap:5px;align-items:center;font-size:12px;color:var(--dim);white-space:nowrap}
 .kbd b{font-family:var(--num);font-weight:700;border:1px solid var(--line);border-radius:4px;
  padding:0 4px;color:var(--soft);background:var(--panel2)}
 
@@ -1858,7 +1864,7 @@ td.pnc{padding:5px 14px;font-size:13px}
  z-index:3;pointer-events:none;opacity:0;transition:opacity .15s;
  background:linear-gradient(to var(--fadeDir,left),var(--panel),transparent)}
 .wqueue .qbody.tabsover::before{opacity:1}
-@media(max-width:1600px){ .tab{min-width:90px;padding:5px 8px 6px} .tab .t{font-size:11px} }
+@media(max-width:1600px){ .tab{min-width:90px;padding:5px 8px 6px} .tab .t{font-size:12px} }
 @media(max-width:1400px){
  .dash{grid-template-columns:200px minmax(0,1fr)}
  .tab{min-width:84px;padding:5px 7px 6px}
@@ -1981,7 +1987,7 @@ td .mut{color:var(--dimmer)}
  color:var(--ink-2);text-align:end}
 #tbl td.cust{color:var(--ink);font-weight:700}
 #tbl td.otw{color:var(--dimmer);font-weight:400}
-#tbl td.otw i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.7}
+#tbl td.otw i{font-style:normal;font-size:12px;margin-inline-start:2px;opacity:.7}
 #tbl[data-track=short] td:nth-child(3){max-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* סך היחידות של הקבוצה צף שמאלה וחרג מהטבלה ב-17 פיקסלים */
 tr.grp td{padding-inline-end:16px}
@@ -2172,7 +2178,7 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
   content:'';position:absolute;inset:-9px -2px}
  .wfil::after,.qclr::after,#phdInfo::after{inset:-9px -6px}
  /* 10px בטבלה הוא מתחת לסף הקריאה בטלפון; 11px לא מוסיף שורה */
- .cp,.dn,.rank,#tbl thead .thc{font-size:11px}}
+ .cp,.dn,.rank,#tbl thead .thc{font-size:12px}}
 /* ============ מגירת סינון בטלפון — עיצוב שלב 7א ============
    נמדד ב-390 לפני: לוח הסינון נפתח בתוך הזרימה, דחף את הטבלה ל-588
    מתוך 844 (6 שורות גלויות), ולא היה לו כפתור סגירה — רק ✕ זעיר
@@ -2218,7 +2224,7 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
   background:none;box-shadow:none;font-size:13px!important}
  #tbl tbody tr[data-i]>td *{font-size:inherit}
  #tbl tbody tr[data-i]>td[data-ck]::before{content:attr(data-lbl);color:var(--ink-2);
-  font-size:10.5px;font-weight:500;margin-inline-end:4px}
+  font-size:12px;font-weight:500;margin-inline-end:4px}
  /* שורת הכותרת של הכרטיס: מק״ט ותיאור באותה שורה, התיאור נחתך בסוף */
  #tbl tbody tr[data-i]>td.rnk{order:-3;flex:0 0 auto}
  #tbl tbody tr[data-i]>td[data-ck="sel"]{order:-3}
@@ -2272,7 +2278,7 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
    בפעיל בלבד, כי הוא שייך לתוכן ולא לבחירה.
    הצבע על הטאב הפעיל חייב להיות --on-fill: המילוי הוא --accent,
    ודיו כהה עליו נותן 2.46:1. */
-.tab.navtab .m.what{display:inline;font-size:11px;font-weight:600;
+.tab.navtab .m.what{display:inline;font-size:12px;font-weight:600;
  color:var(--ink-2);white-space:nowrap}
 .tab.navtab.sel .m.what{color:var(--on-fill);opacity:.9}
 .tab.navtab .m.stat{font-weight:700}
@@ -2288,7 +2294,7 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
  font-size:12px;font-weight:700;cursor:pointer}
 /* ============ חודש הבסיס — תווית גלויה ============ */
 .rdwrap{display:flex;flex-direction:column;gap:2px}
-.rdwrap .tl{font-size:10.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.rdwrap .tl{font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap}
 .rdwrap .tl .hint{font-weight:500;color:var(--dim)}
 .dsec summary .sumnote{font-weight:600;color:var(--high)}
 .dcnote{grid-column:1/-1;margin-top:8px;font-size:12px;line-height:1.6;color:var(--ink-2);
@@ -2300,7 +2306,7 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
    הוא נקרא כל בוקר ואינו קישוט: מוגדל, ומועבר ל--ink-2 שיחס
    הניגודיות שלו גבוה יותר. */
 .updated{font-size:12.5px;color:var(--ink-2);font-weight:600}
-.top .qwrap .qstat{font-size:11.5px;color:var(--ink-2)}
+.top .qwrap .qstat{font-size:12px;color:var(--ink-2)}
 .plannerGreeting{color:var(--ink-2)}
 /* ============ מיקוד מקלדת ============
    היה outline:none על כמה רכיבים, ובלעדיו אי אפשר לנווט במקלדת
@@ -2387,7 +2393,9 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
    בדיוק במסכים שהמפרט מבקש לבדוק (1366 ו-1440). */
 @media(max-width:1560px){
  #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:150px}
- #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:100px}
+ /* D1: 100→112. ב-12px ובגופן Heebo «להשלים 19 יח׳» לא נכנס ב-100 —
+    32 פעולות נחתכו ב-1366 על הדוח האמיתי. 112 מחזיר ל-0 */
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:112px}
  #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:100px}}
 @media(max-width:1344px){
  #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:92px}
@@ -2496,9 +2504,9 @@ body.probing #tbl[data-track="short"] td.sup,body.probing #tbl[data-track="line"
    לא קרתה. לכן היא בצבע הטקסט הרגיל ולא בירוק — ירוק היה אומר
    «נפתר», והיא לא פתרה כלום עד שהיא נוחתת. */
 #tbl td.sched{color:var(--soft);font-weight:600;white-space:nowrap}
-#tbl td.sched i{font-style:normal;font-size:9px;margin-inline-start:2px;opacity:.75}
+#tbl td.sched i{font-style:normal;font-size:12px;margin-inline-start:2px;opacity:.75}
 #tbl td.stk{color:var(--org);font-weight:700;white-space:nowrap}
-#tbl td.stk i{font-style:normal;font-size:9px;margin-inline-start:1px;opacity:.7;font-weight:400}
+#tbl td.stk i{font-style:normal;font-size:12px;margin-inline-start:1px;opacity:.7;font-weight:400}
 #tbl td.sched .mut,#tbl td.stk .mut{font-weight:400}
 #tbl[data-track="short"] td.sched{width:58px}
 #tbl[data-track="short"] td.stk{width:48px}
@@ -2698,7 +2706,7 @@ body.dark .lband{border:1px solid #2B3B50}
 .lband{position:relative}
 .lband .bandx{position:absolute;inset-block-start:6px;inset-inline-start:8px;z-index:2;
   background:var(--shell-btn);color:var(--shell-dim);border:1px solid var(--shell-track);
-  border-radius:6px;font-size:11px;line-height:1;padding:3px 6px;cursor:pointer}
+  border-radius:6px;font-size:12px;line-height:1;padding:3px 6px;cursor:pointer}
 .lband .bandx:hover{background:var(--shell-btn-h);color:var(--shell-ink)}
 .lband.mini{padding:6px 14px}
 .lband.mini .brow,.lband.mini .lout,.lband.mini .lrec,
@@ -2723,7 +2731,7 @@ body.dark .lband{border:1px solid #2B3B50}
 .lmail .lmh button+button{margin-inline-start:0}
 .lmail .lmh b+span{margin-inline-end:auto}
 .lmail textarea{width:100%;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-radius:8px;
+  font-size:12px;line-height:1.55;border:1px solid var(--line);border-radius:8px;
   padding:9px;background:var(--panel0);color:var(--ink);resize:vertical}
 @media(max-width:900px){.line .lhd .n{font-size:22px}.st{min-width:86px}}
 #tbl tr.grp.cur td{padding-block:4px}
@@ -2747,7 +2755,7 @@ body.dark .lband{border:1px solid #2B3B50}
 #tbl td .cov{color:var(--grn);font-weight:700;margin-inline-start:4px}
 /* ⊘ אומר «קיים אך אינו מנוכה». הוא חייב להיראות שונה מ-✓ שאומר «סגור». */
 #tbl td .nodeduct{color:var(--org);font-weight:700;margin-inline-start:3px}
-#tbl td .chain{color:var(--dimmer);font-style:normal;font-size:.85em;margin-inline-end:3px;white-space:nowrap}
+#tbl td .chain{color:var(--dimmer);font-style:normal;font-size:max(12px,.85em);margin-inline-end:3px;white-space:nowrap}
 #tbl td.sched i.stk{color:var(--dim);font-style:normal;margin-inline-start:4px}
 #riseBtn.on{background:var(--accL);border-color:var(--acc);color:var(--acc);font-weight:700}
 #riseBtn .fn{font-family:var(--num);font-weight:700}
@@ -2914,6 +2922,62 @@ tr.grp.sup b{font-size:var(--f-md)}
    כחול נשאר לפעולות ולהדגשת תוצאת חיפוש. המשקל לא משתנה, ולכן גם
    הרוחב לא. */
 #tbl td .obj{color:var(--ink)}
+
+/* ============ D1_DENSITY — Heebo ו-12px בלי לאבד שורה או עמודה ============
+   נמדד על הדוח האמיתי: Heebo והמינימום 12px לבדם חתכו עמודות ב-1366/1440
+   («מצב טיפול», «ותק», «כיסוי», «כסף תקוע»), הגדילו שורה מ-30.5 ל-37px
+   (17→14 שורות ב«חוסרים») והעלימו את תג «לקוח ממתין · אין רכש». הסיבות:
+   ריווח אותיות בכותרות (‎.08em‎ נועד לאותיות רישיות לטיניות), ו-line-height
+   טבעי של Heebo גבוה משל Assistant — בכל תא, בפס הכותרת, בפוטר ובאזורי
+   הסיכום. מה שמחזיר, בלי לגעת בעמודות או במיקומים:
+
+   · כותרות: בלי ריווח אותיות; שתי מילים נשברות לשתי שורות צפופות — רק עד
+     1560, כי מעל זה יש מקום ושורה אחת חוסכת שורה בטבלה.
+   · line-height מפורש ומרכוז אנכי בתאים, ובפס הכותרת, בפוטר ובסיכום.
+   · ריווח תאים 9→7px אופקית, רק עד 1440 (באישור המעתד).
+
+   מול המצב שלפני D1, 25 מסכים × 4 רוחבים × 2 מצבים: אף מסך עם פחות שורות
+   (סכום השורות במסך עלה בכל רוחב), אף עמודה חתוכה או גלילה חדשה, ופחות
+   תיאורים מקוצרים: 1366 70→48, 1440 49→30, טלפון 477→470. */
+#tbl thead th{letter-spacing:0;white-space:normal;line-height:1}
+#tbl thead th .thc{padding-block:2px}
+#tbl tbody td{line-height:1.12}
+#tbl tbody td>*{vertical-align:middle}
+#tbl .ocat{line-height:1.2}
+@media(max-width:1440px){#tbl td{padding-inline:7px}
+ /* הכותרת זזה באותם 2px, אחרת הטקסט שלה והעמודה שמתחתיה נפרדים (ui.test) */
+ #tbl thead th .thc{margin-inline-start:-2px}}
+/* כרטיס הפריט: אותו line-height טבעי של Heebo הוסיף 3–5px לכל שורה — 1,344→1,503px
+   תוכן, מעבר לסף ui.test (1.70 מסכים). line-height 1.2 ומרווחים צרים ב-2–3px בין
+   הסעיפים מחזירים ל-1,347 — כמו לפני D1 — למרות ששני משפטים שנכנסו בשורה ב-10px
+   נשברים לשתיים ב-12px. (החלטת המעתד: לא להזיז את הסף ולא לרדת מ-12px.) */
+.wdetail,.wdetail *{line-height:1.2}
+.wdetail .opad{padding-block:8px;gap:6px}
+.wdetail .dcs{padding-block:9px}
+.wdetail .ohead{padding-block:8px}
+.wdetail .tags{margin-top:4px}
+/* כותרת בשתי שורות רק איפה שיש לחץ. מעל 1560 יש מקום, ושורה אחת חוסכת
+   שישה פיקסלים — ב-1920 זו השורה ה-28 ב«חוסרים». */
+@media(min-width:1561px){#tbl thead th{white-space:nowrap}}
+/* אותו line-height טבעי של Heebo, מחוץ לטבלה: פס הכותרת של המסך (+3px),
+   הפוטר (+1px), ואזור הסיכום של «בריאות המלאי» (+53px — שבע עמודות ספקים
+   ואריחים), שהוריד שתי שורות מהטבלה מתחתיו ב-1366. */
+.phd,.phd *{line-height:1.2}
+.pager,.pager *{line-height:1.2}
+#capTop .cbar,#capTop .cpanel h4{line-height:1.15}
+#capTop .ctile,#capTop .ctile *{line-height:1.2}
+/* טלפון: המק״ט והתיאור חולקים שורה אחת בכרטיס, ומק״ט ב-Heebo רחב יותר.
+   מק״ט 13.5 ותיאור 12.5 (שניהם מעל 12): בכל 25 המסכים 470 תיאורים חתוכים
+   מול 477 לפני D1, ו-106 כרטיסים במסך מול 101. */
+@media(max-width:760px){
+ #tbl tbody tr[data-i]>td:is([data-ck="pn"],[data-ck="pnPlain"],[data-ck="cPn"]){font-size:13.5px!important}
+ #tbl tbody tr[data-i]>td:is([data-ck="desc"],[data-ck="cDesc"]){font-size:12.5px!important}}
+/* «הפעולה הבאה» נשברת לשתי שורות במסכים שבהם היא רשאית (כסף תקוע ודלתותיו):
+   ב-Heebo הטקסט חרג מ-204px, וכל שורה ב«החלטה מסחרית» עלתה מ-31 ל-40 —
+   18→14 שורות במסך. 216px מחזירים שורה אחת; התיאור, שנחתך ממילא, מוותר. */
+#tbl[data-track="cap"] td.act1{min-width:216px}
+/* פס התאריכים מעל טבלת «רכש ואספקות» (74→77px באותו line-height) */
+#line,#line *{line-height:1.2}
 </style>
 </head>
 <body>
@@ -9513,7 +9577,7 @@ function barChart(cv,r){
    ctx.strokeStyle=CHART_C.med;ctx.setLineDash([6,5]);ctx.lineWidth=1.5;
    ctx.beginPath();ctx.moveTo(padX,my);ctx.lineTo(W-padX,my);ctx.stroke();ctx.setLineDash([]);
    const t='חציון '+r.A.med+(r.A.active<11?' · חו׳ עם מכירה':'');
-   ctx.font='600 11px system-ui,Arial';ctx.textAlign='right';ctx.textBaseline='alphabetic';
+   ctx.font='600 12px Heebo,system-ui,Arial';ctx.textAlign='right';ctx.textBaseline='alphabetic';
    ctx.fillStyle=CHART_C.ink2;ctx.fillText(t,W-padX,16);
    const tw=ctx.measureText(t).width;
    ctx.strokeStyle=CHART_C.med;ctx.setLineDash([4,3]);ctx.lineWidth=1.5;
@@ -9533,14 +9597,14 @@ function barChart(cv,r){
    else{ctx.fillStyle=col;dropBar(ctx,x,y,w,base-y);ctx.fill()}
    /* הערך מעל הכיפה, בדיו. חריגה מקבלת ▲/▼ — ערוץ שאינו צבע. */
    ctx.textAlign='center';ctx.textBaseline='alphabetic';
-   ctx.font=(isSpike||isDrop)?'800 13px system-ui,Arial':'600 13px system-ui,Arial';
+   ctx.font=(isSpike||isDrop)?'800 13px Heebo,system-ui,Arial':'600 13px Heebo,system-ui,Arial';
    ctx.fillStyle=(isSpike||isDrop)?CHART_C.ink:CHART_C.ink2;
    ctx.fillText(String(v),cx,y-8);
-   if(isSpike||isDrop){ctx.font='700 9px system-ui,Arial';ctx.fillStyle=col;
+   if(isSpike||isDrop){ctx.font='700 12px Heebo,system-ui,Arial';ctx.fillStyle=col;
      ctx.fillText(isSpike?'▲':'▼',cx,y-21)}
-   ctx.font='600 12px system-ui,Arial';ctx.fillStyle=CHART_C.ink2;
+   ctx.font='600 12px Heebo,system-ui,Arial';ctx.fillStyle=CHART_C.ink2;
    ctx.fillText(labs[i].short,cx,H-19);
-   ctx.font='11px system-ui,Arial';ctx.fillStyle=CHART_C.ink3;
+   ctx.font='12px Heebo,system-ui,Arial';ctx.fillStyle=CHART_C.ink3;
    ctx.fillText(isCur?'חלקי':("'"+labs[i].yy),cx,H-6)})}
 function projChart(cv,r){
  /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
@@ -9567,10 +9631,10 @@ function projChart(cv,r){
    const g=ctx.createRadialGradient(px,py,0,px,py,28);g.addColorStop(0,'rgba(255,91,91,.55)');g.addColorStop(1,'rgba(255,91,91,0)');
    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,28,0,7);ctx.fill();
    ctx.fillStyle='#ff5b5b';ctx.beginPath();ctx.arc(px,py,6,0,7);ctx.fill();
-   ctx.fillStyle=CHART_C.ink;ctx.font='700 13px system-ui,Arial';ctx.textAlign='center';ctx.fillText('מלאי אפס — שבוע '+cz,px,py-16)}
- ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px system-ui,Arial';ctx.textAlign='center';
+   ctx.fillStyle=CHART_C.ink;ctx.font='700 13px Heebo,system-ui,Arial';ctx.textAlign='center';ctx.fillText('מלאי אפס — שבוע '+cz,px,py-16)}
+ ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px Heebo,system-ui,Arial';ctx.textAlign='center';
  [0,4,8,12].forEach(w=>ctx.fillText('שבוע '+w,sx(w),H-10));
- ctx.textAlign='right';ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px system-ui,Arial';
+ ctx.textAlign='right';ctx.fillStyle=CHART_C.ink2;ctx.font='600 12px Heebo,system-ui,Arial';
  ctx.fillText('ROP '+r.rop,W-padX,sy(r.rop)-6)}
 function delta(c,n){return n>c?`<div class="dlt up">▲ להעלות ב-${n-c}</div>`:n<c?`<div class="dlt down">▼ להוריד ב-${c-n}</div>`:`<div class="dlt same">זהה</div>`}
 const PATDESC={'חלק':'ביקוש סדיר וצפוי','תנודתי':'סדיר בתדירות, משתנה בכמות',
