@@ -60,27 +60,48 @@ async function open(b,file,W,H){
      const f=rs[0].getBoundingClientRect(),l=rs[rs.length-1].getBoundingClientRect();
      return f.top<=bt.top+th+1&&(l.bottom>=bt.bottom-1||rs[rs.length-1]===s.tb.lastElementChild)};
     box.scrollTop=0;await __raf();const w0=ths();
-    let maxTr=s.tb.children.length,gaps=0,jit=0;
+    let maxTr=s.tb.children.length,gaps=0,jit=0,numCut=0,noTitle=0,cut=0;const NUM=/^[\d\s.,:%₪$€+\-−–—()\/×]*$/;
+    /* רוחבים נעולים: מה שלא נכנס מתקצר ב-«…» — אבל לעולם לא מספר, ותמיד עם title */
+    /* רק בטבלה נעולה (vfix). בטלפון אין נעילה — לכרטיסים קיצור משלהם, מ-D1 */
+    const trunc=()=>{if(!s.tb.parentNode.classList.contains('vfix'))return;
+     for(const tr of s.tb.querySelectorAll(sel))for(const td of tr.children){
+     const inner=td.querySelector('.badge,.ocat,.obj');
+     if(!(td.scrollWidth>td.clientWidth+1||(inner&&inner.scrollWidth>inner.clientWidth+1)))continue;
+     if(getComputedStyle(td).overflowX==='visible')continue;
+     const c=td.cloneNode(true);c.querySelectorAll('button,.ract').forEach(x=>x.remove());const t=c.textContent.trim();
+     cut++;if(NUM.test(t))numCut++;else if(!td.title)noTitle++}};trunc();
     for(let i=0;i<5000&&box.clientHeight>0&&box.scrollTop+box.clientHeight<box.scrollHeight-1;i++){
      box.scrollTop+=box.clientHeight*.9;await __raf();
-     maxTr=Math.max(maxTr,s.tb.children.length);if(!cover())gaps++;
+     maxTr=Math.max(maxTr,s.tb.children.length);if(!cover())gaps++;trunc();
      const w=ths();for(let j=0;j<w.length;j++)jit=Math.max(jit,Math.abs(w[j]-(w0[j]||w[j])))}
     const trs=[...s.tb.querySelectorAll(sel)];
     const last=trs.length?+(trs[trs.length-1].dataset.i??trs[trs.length-1].dataset.mi):-1;
     /* קפיצה לאמצע — כמו גרירה של פס הגלילה */
     box.scrollTop=box.scrollHeight/2;await __raf();await __raf();const mid=cover();
-    res.push({m,n,want,virt:s.ents.length>VFULL,maxTr,gaps,jit:+jit.toFixed(2),last,mid,boxH:box.clientHeight})}
+    res.push({m,n,want,virt:s.ents.length>VFULL,maxTr,gaps,jit:+jit.toFixed(2),last,mid,boxH:box.clientHeight,numCut,noTitle,cut})}
    return res});
   const L=R.filter(r=>!r.none);
   ok(`${W} · נבדקו כל 26 המסכים`,R.length===26,R.length);
   let x=L.filter(r=>r.n!==r.want);
   ok(`${W} · הרשימה במסך = כל מה שבסינון (במסכי הכסף — עד קו ה-80%)`,!x.length,
     x.map(r=>`${r.m} ${r.n}≠${r.want}`).join(' · ')||`${N(L.reduce((t,r)=>t+r.n,0))} פריטים`);
-  /* מסך שתיבת הגלילה שלו בגובה 0 (בטלפון, «כסף תקוע» — כך גם ב-main) נמדד בנפרד */
+  /* החריגה היחידה: «כסף תקוע» (cap) בטלפון — תיבת הגלילה בגובה 0, תקלה ידועה
+     שקיימת גם ב-main ותתוקן ב-PR נפרד (KNOWN-ISSUES). כל מסך אחר עם תיבה
+     בגובה 0 — כשל. ושאר הבדיקות של cap בטלפון (הרשימה, אין חור, 80%,
+     שגיאות) רצות כרגיל. */
+  const KNOWN0=r=>W<=760&&r.m==='cap';
   const H0=L.filter(r=>r.boxH===0&&r.n);
-  x=L.filter(r=>r.boxH>0&&r.n&&r.last!==r.n-1);
+  x=H0.filter(r=>!KNOWN0(r));
+  ok(`${W} · אין מסך שאזור הגלילה שלו בגובה 0${W<=760?' (מלבד «כסף תקוע», תקלה ידועה)':''}`,!x.length,
+    x.map(r=>r.m).join(', ')||(H0.length?`ידוע: ${H0.map(r=>r.m).join(', ')}`:'אין'));
+  x=L.filter(r=>r.n&&!KNOWN0(r)&&r.last!==r.n-1);
   ok(`${W} · גלילה עד הסוף מגיעה לפריט האחרון`,!x.length,x.map(r=>`${r.m}: ${r.last+1}/${r.n}`).join(' · ')
-    ||`${L.filter(r=>r.virt).length} רשימות וירטואליות`+(H0.length?` · תיבה בגובה 0: ${H0.map(r=>r.m).join(', ')}`:''));
+    ||`${L.filter(r=>r.virt).length} רשימות וירטואליות`);
+  x=L.filter(r=>r.numCut);
+  ok(`${W} · אף מספר לא מתקצר`,!x.length,x.map(r=>`${r.m} ${r.numCut}`).join(' · '));
+  x=L.filter(r=>r.noTitle);
+  ok(`${W} · כל טקסט שהתקצר ב-«…» — עם הטקסט המלא במעבר עכבר`,!x.length,
+    x.map(r=>`${r.m} ${r.noTitle}`).join(' · ')||`${L.reduce((t,r)=>t+r.cut,0)} תאים מקוצרים`);
   x=L.filter(r=>r.gaps||!r.mid);
   ok(`${W} · אין חור בגלילה — גם בקפיצה לאמצע`,!x.length,x.map(r=>`${r.m}: ${r.gaps}`).join(' · '));
   const big=L.filter(r=>r.virt);
@@ -163,24 +184,29 @@ async function open(b,file,W,H){
  fs.writeFileSync(tmp,patched);
  {const {ctx,p,errs}=await open(b,tmp,1440,900);
   const G=await p.evaluate(async()=>{GCOLL.clear();const res=[];
+   /* שורת מטבע (grp cur, data-g="cur:…") אינה קבוצה מתקפלת — גם ב-main */
+   const RE=/^<tr class="grp(?: sup)?" data-g="(?!cur:)/;
+   const parse=h=>{const t=document.createElement('template');t.innerHTML='<table><tbody>'+h+'</tbody></table>';return t.content.querySelector('tr')};
    for(const m of Object.keys(MODESET)){setMode(m);await __raf();const s=VL.tbl;
-    if(cur==='moves'||!s.tb.isConnected)continue;
-    /* שורת מטבע (grp cur, data-g="cur:…") אינה קבוצה מתקפלת — גם ב-main */
-    const gs=s.ents.filter(e=>e.k==='g'&&/<tr class="grp(?: sup)?" data-g="(?!cur:)/.test(e.h));
-    if(!gs.length||s.ents.length<=VFULL)continue;
-    const n0=s.items.length;
-    /* הקבוצה האחרונה — בדרך כלל מחוץ לחלון הראשון */
-    s.box.scrollTop=s.box.scrollHeight;await __raf();await __raf();
-    const tr=[...VL.tbl.tb.querySelectorAll('tr.grp:not(.cur):not([data-g^="cur:"])')].pop();if(!tr)continue;
-    const g=tr.dataset.g,inG=+((tr.querySelector('.gn')||{}).textContent||'0').replace(/[^\d]/g,'');tr.click();await __raf();
-    const n1=VL.tbl.items.length;VL.tbl.box.scrollTop=VL.tbl.box.scrollHeight;await __raf();await __raf();
-    const shown=!!VL.tbl.tb.querySelector(`tr.grp.coll[data-g="${CSS.escape(g)}"]`);
-    VL.tbl.tb.querySelector(`tr.grp[data-g="${CSS.escape(g)}"]`).click();await __raf();
-    res.push({m,g,n0,n1,inG,shown,n2:VL.tbl.items.length,open:!GCOLL.has(g)})}
+    if(cur==='moves'||!s.tb.isConnected||!s.box.clientHeight||s.ents.length<=VFULL)continue;
+    /* הקבוצה האחרונה ברשימה — מוצאים אותה ברשימה עצמה וגוללים אליה */
+    let j=-1;s.ents.forEach((e,k)=>{if(e.k==='g'&&RE.test(e.h))j=k});if(j<0)continue;
+    const g=parse(s.ents[j].h).dataset.g;let inG=0;
+    for(let t=j+1;t<s.ents.length&&!(s.ents[t].k==='g'&&RE.test(s.ents[t].h));t++)if(s.ents[t].k==='i')inG++;
+    const n0=s.items.length,bt=s.box.getBoundingClientRect().top;
+    s.box.scrollTop=s.tb.getBoundingClientRect().top-bt+s.box.scrollTop+vsum(s,0,j)-40;await __raf();await __raf();
+    const tr=VL.tbl.tb.querySelector(`tr.grp[data-g="${CSS.escape(g)}"]`);
+    if(!tr){res.push({m,g,miss:true});continue}
+    tr.click();await __raf();const n1=VL.tbl.items.length;
+    const shown=VL.tbl.ents.some(e=>e.k==='g'&&/ coll"/.test(e.h)&&parse(e.h).dataset.g===g);
+    const t2=VL.tbl;t2.box.scrollTop=t2.tb.getBoundingClientRect().top-t2.box.getBoundingClientRect().top+t2.box.scrollTop+vsum(t2,0,t2.ents.findIndex(e=>e.k==='g'&&parse(e.h).dataset.g===g))-40;
+    await __raf();await __raf();
+    const tr2=VL.tbl.tb.querySelector(`tr.grp[data-g="${CSS.escape(g)}"]`);if(tr2)tr2.click();await __raf();
+    res.push({m,g,n0,n1,inG,shown,dom:!!tr2,n2:VL.tbl.items.length,open:!GCOLL.has(g)})}
    GCOLL.clear();return res});
   ok('VFULL=10 · קבוצות: קיפול הקבוצה האחרונה מוריד בדיוק את שורותיה, ופתיחה מחזירה',
-    G.length>0&&G.every(g=>g.n1===g.n0-g.inG&&g.shown&&g.open&&g.n2===g.n0),
-    G.map(g=>`${g.m} ${g.n0}→${g.n1}→${g.n2}`).join(' · '));
+    G.length>0&&G.every(g=>!g.miss&&g.n1===g.n0-g.inG&&g.shown&&g.dom&&g.open&&g.n2===g.n0),
+    G.map(g=>g.miss?`${g.m}: לא נמצאה שורת הקבוצה`:`${g.m} ${g.n0}→${g.n1}→${g.n2}`).join(' · '));
   const S=await p.evaluate(async()=>{SAPSEL.clear();setMode('month');await __raf();const s=VL.tbl;
    if(s.ents.length<=VFULL)return {skip:true};
    s.box.scrollTop=0;await __raf();const b0=s.tb.querySelector('.sapsel');if(!b0)return {none:true};const pn=b0.dataset.pn;
@@ -205,6 +231,19 @@ async function open(b,file,W,H){
   const T=await p.evaluate(async()=>{setMode('catalog');await __raf();const s=VL.tbl;s.box.scrollTop=s.box.scrollHeight/2;await __raf();
    return Math.round(s.tb.parentNode.tHead.querySelector('th').getBoundingClientRect().top-s.box.getBoundingClientRect().top)});
   ok('VFULL=10 · הכותרת נשארת דביקה באמצע הרשימה',Math.abs(T)<=1,T+'px');
+  /* שינוי רוחב ידני נשאר כמו שהיה: רוחב שנשמר גובר על הנעילה, נשאר בגלילה,
+     ואיפוס (לחיצה כפולה על הידית) מחזיר לנעול */
+  const RZ=await p.evaluate(async()=>{setMode('catalog');await __raf();const s=VL.tbl,tbl=s.tb.parentNode;
+   const ths=()=>[...tbl.querySelectorAll('thead th')].map(t=>t.getBoundingClientRect().width);
+   const w0=ths(),v=cwView(),arr=w0.map(()=>null);arr[2]=Math.round(w0[2]/2);cwSet(v,arr);applyColWidths();await __raf();
+   const w1=ths();s.box.scrollTop=s.box.scrollHeight/2;await __raf();await __raf();const w2=ths();
+   const handles=tbl.querySelectorAll('thead .colrz').length;
+   const h=tbl.querySelectorAll('thead th')[2].querySelector('.colrz');if(h)h.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));await __raf();
+   const w3=ths();try{localStorage.removeItem(CW_KEY)}catch(_){}applyColWidths();
+   return {vfix:tbl.classList.contains('vfix'),want:arr[2],got:Math.round(w1[2]),kept:Math.abs(w2[2]-w1[2])<0.5,
+    back:Math.abs(w3[2]-w0[2])<1,handles,n:w0.length}});
+  ok('VFULL=10 · רוחב עמודה ידני גובר על הנעילה ונשאר בגלילה, ואיפוס מחזיר אותה',
+    RZ.vfix&&Math.abs(RZ.got-RZ.want)<=1&&RZ.kept&&RZ.back&&RZ.handles===RZ.n-1,JSON.stringify(RZ));
   await ctx.close();
   ok('VFULL=10 · אפס שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '))}
  {const {ctx,p,errs}=await open(b,tmp,780,800);

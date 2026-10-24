@@ -2986,6 +2986,11 @@ tbody tr.vsp>td{padding:0!important;border:0!important;background:none!important
    חצי ממנו — מהעמודות. כשהשורה יצאה מהחלון, 1.5px חזרו לעמודות והן זזו.
    המרווח נושא את אותו פס, שקוף, ולכן הקצה קבוע. */
 tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
+/* רוחבים נעולים (vlock): מה שלא נכנס בתא מתקצר ב-«…» — הטקסט המלא ב-title
+   ובכרטיס. רק בתצוגה; הנתונים, החיפוש, ההעתקה והייצוא לא משתנים. */
+.vfix tbody tr:is([data-i],[data-mi])>td{overflow:hidden;text-overflow:ellipsis}
+.vfix tbody td :is(.badge,.ocat,.obj){max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+.vfix tbody td .obj{display:inline-block;white-space:nowrap}
 #tbl tbody tr.vmore,#tbl tbody tr.vmore:hover{cursor:default}
 #tbl tbody tr.vmore>td{padding:10px 12px;text-align:center;color:var(--ink-2);white-space:normal;background:var(--panel)!important}
 .capall{margin-inline-start:8px;border:1px solid var(--line);background:var(--panel);color:var(--acc);
@@ -5471,6 +5476,7 @@ function updatePush(){const b=document.body;
     הבדיקה כולה סינכרונית ולפני ציור, ולכן אין הבהוב. */
  b.classList.add('probing','push');
  b.style.setProperty('--pushw',Math.round(dw)+'px');
+ vrefit(document.getElementById('tbl'));     /* D2A — הנעילה מותאמת לפני המדידה */
  /* שני תנאים, ושניהם נמדדים אחרי הדחיפה:
     1. הטבלה עדיין נכנסת לקופסה שלה. `table{width:100%}` אינו מבטיח
        זאת — לטבלה יש רוחב מינימלי משלה, וכשהיא גדולה ממנו היא *גולשת
@@ -5483,6 +5489,7 @@ function updatePush(){const b=document.body;
  const ok=fits&&pushed!=null&&pushed>=PUSH_DESC_MIN;
  b.classList.toggle('push',ok);
  void b.offsetWidth;b.classList.remove('probing');
+ vrefit(document.getElementById('tbl'));
  return ok!==had}
 function openDetail(){if(!LAYOUT.hidden.includes('detail')){document.body.classList.add('dopen');updatePush()}}
 function closeDetail(){document.body.classList.remove('dopen','push');
@@ -5698,12 +5705,18 @@ function applyColWidths(){
  for(const tbl of cwTables()){
   const ths=[...tbl.querySelectorAll('thead th')];if(!ths.length)continue;
   const v=tbl.id==='movtbl'?'moves|'+movTab:cwView();
-  const w=cwGet(v);
+  /* D2A — לרשימה וירטואלית יש רוחבים נעולים (vlock); רוחב שנגרר ביד גובר
+     בעמודה שלו, ולחיצה כפולה על הידית מחזירה אותה לנעול */
+  const w=cwGet(v),L=tbl._lockW&&tbl._lockW.length===ths.length?tbl._lockW:null;
   let cg=tbl.querySelector('colgroup');
-  if(!w){if(cg)cg.remove();tbl.style.tableLayout='';continue}
-  ths.forEach(t=>t.style.minWidth='');       /* D2A — רוחב שנגרר גובר על נעילת הגלילה (vlock) */
+  if(!w&&!L){if(cg)cg.remove();tbl.style.tableLayout='';continue}
   if(!cg){cg=document.createElement('colgroup');tbl.insertBefore(cg,tbl.firstChild)}
-  cg.innerHTML=ths.map((_,i)=>`<col${w[i]?` style="width:${w[i]}px"`:''}>`).join('');
+  const X=ths.map((_,i)=>(w&&w[i])||(L&&L[i])||null);
+  /* עמודה שהוצרה ביד: מה שהתפנה הולך לעמודות האחרות (כמו בפריסה אוטומטית),
+     ולא מתחלק גם אליה — אחרת היא יוצאת רחבה מהרוחב שנבחר */
+  if(L&&w){const d=ths.reduce((p,_,i)=>p+(w[i]?w[i]-L[i]:0),0),oth=X.reduce((p,x,i)=>p+(w[i]?0:x),0);
+   if(d<0&&oth>0)X.forEach((x,i)=>{if(!w[i])X[i]=x-d*x/oth})}
+  cg.innerHTML=X.map(x=>`<col${x?` style="width:${x}px"`:''}>`).join('');
   tbl.style.tableLayout='fixed'}}
 function wireColResize(){
  for(const tbl of cwTables()){
@@ -8995,7 +9008,7 @@ const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
    ב-on…= ולכן ציור חוזר אינו מכפיל אותם. הבחירה נשמרת כאינדקס ברשימה
    (sel) ולא כשורה ב-DOM, ולכן היא שורדת יציאה מהחלון, והמקלדת עוברת על
    הרשימה כולה וגוללת אל השורה (vgo). */
-const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSAMPLE=20,VTOP=4;
+const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSHRINK=120,VMAIN=500;
 function vh(st,j){return st.hs[j]||st.est[st.ents[j].k]||30}
 function vsum(st,a,b){let t=0;for(let j=a;j<b;j++)t+=vh(st,j);return t}
 function vspc(st,h){return `<tr class="vsp${st.g?' g':''}" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
@@ -9008,9 +9021,13 @@ function vlist(id,ents,o){
   box.addEventListener('scroll',()=>{const s=VL[box._vl];
    if(s&&!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;vdraw(s)})},{passive:true});
   /* רוחב אחר הוא גובה שורה אחר (בטלפון — כרטיס שנשבר אחרת) */
-  addEventListener('resize',()=>{const s=VL[box._vl];if(s){s.hs.fill(0);vdraw(s,true)}})}
- if(!ents.length){tb.innerHTML=o.empty||'';st.wire&&st.wire();return st}
- vdraw(st,true);return st}
+  addEventListener('resize',()=>{const s=VL[box._vl];if(s){s.hs.fill(0);vdraw(s,true)}});
+  if(window.ResizeObserver){let bw=box.clientWidth;
+   new ResizeObserver(()=>{if(box.clientWidth===bw)return;bw=box.clientWidth;vrefit(box.querySelector('table'))}).observe(box)}}
+ /* נעילת רוחב שייכת לרשימה שננעלה; רשימה קצרה (מצוירת כולה) — פריסה רגילה */
+ tb.parentNode._lockW=tb.parentNode._lockBase=null;tb.parentNode.classList.remove('vfix');
+ if(!ents.length){tb.innerHTML=o.empty||'';applyColWidths();st.wire&&st.wire();return st}
+ vdraw(st,true);if(ents.length<=VFULL)applyColWidths();return st}
 function vdraw(st,force){
  const {ents,box,tb}=st,n=ents.length;
  if(!n||VL[st.id]!==st||!tb.isConnected)return;
@@ -9045,47 +9062,92 @@ function vdraw(st,force){
   if(Math.abs(d)>.5)box.scrollTop+=d}
  const sj=st.sel>=0?st.items[st.sel]:-1;
  if(sj>=a&&sj<b)st.nodes[sj-a].classList.add('sel');
+ vtitle(st);
  if(st.wire)st.wire()}
 /* ============ רוחבי העמודות בגלילה ============
-   הטבלה בפריסה אוטומטית: רוחב עמודה נקבע מהתוכן שבה. כשמצוירות רק
-   השורות שבחלון, כל חלון קובע רוחבים משלו — ובגלילה העמודות קפצו (נמדד
-   על הדוח האמיתי: עד 105px ב«שינוי פרופיל MRP», 64px בקטלוג).
-   מדגם אחיד של 200 שורות הוריד את זה ל-16px — עדיין תזוזה. עכשיו, לפני
-   הציור הראשון של רשימה גדולה, נבנה ה-HTML של כל השורות (35–100ms על
-   הדוח האמיתי), ולכל עמודה נבחרות VTOP השורות שהטקסט הגלוי בתא שלהן
-   הארוך ביותר — אלה שקובעות את הרוחב. הן, השורות של החלון ומדגם של
-   VSAMPLE מצוירות פעם אחת באותה טבלה, והרוחב שיצא נקבע כ-min-width
-   לכותרת. רוחבים שהמעתד קבע בגרירה (פריסה קבועה) והכרטיסים בטלפון
-   (בלי כותרת) — לא נוגעים. */
-function vlock(st,a,b){const th=st.tb.parentNode.tHead;if(!th)return;
- const ths=[...th.querySelectorAll('th')];ths.forEach(t=>t.style.minWidth='');
- if(!ths.length||st.tb.parentNode.style.tableLayout==='fixed'||getComputedStyle(th).display==='none')return;
- const n=st.ents.length,pick=new Set();
- for(let k=0;k<VSAMPLE;k++)pick.add(Math.floor(k*n/VSAMPLE));
- pick.add(n-1);                                  /* מספר הדירוג הארוך ביותר */
+   הטבלה בפריסה אוטומטית: רוחב עמודה נקבע מהתוכן שבה. כשמצוירות רק השורות
+   שבחלון, כל חלון קבע רוחבים משלו — ובגלילה העמודות קפצו (נמדד על הדוח
+   האמיתי: עד 105px ב«שינוי פרופיל MRP»). מדגם הוריד ל-16px; נעילה לפי
+   התא הרחב ביותר ברשימה — לאפס, אבל עמוק בקטלוג יש פריטים שרחבים מכל
+   500 הראשונים (תג סיווג 167px מול 146), וב-1366 זה הוסיף גלילה אופקית
+   של 17px ושורה אחת פחות. ההחלטה (המעתד): רוחב נקבע לפי המקום הזמין,
+   לא לפי החריגים, וטקסט שלא נכנס מתקצר חזותית.
+
+   לפני הציור הראשון של רשימה גדולה:
+     1. מצוירות פעם אחת, בפריסה אוטומטית, שורות החלון, שישית מ-VMAIN השורות
+        הראשונות (מה ש-main צייר לפני D2A) והשורות לכל הרוחב → רוחב כמו
+        שהיה, ורוחב מינימלי (min-content) לכל עמודה.
+     2. עמודת מספרים לעולם לא נחתכת: אם יש ברשימה מספר ארוך מכל מה שצויר,
+        היא מתרחבת בהפרש (תווים × רוחב ספרה, tabular-nums). אם זה דוחף את
+        הטבלה מעבר לגלישה שהייתה, ההפרש יורד מעמודות הטקסט הרחבות (מעל
+        VSHRINK px), ביחס לרוחבן.
+     3. הרוחבים ננעלים: colgroup + table-layout:fixed (vfix) — אותו מנגנון
+        של רוחב שנגרר ביד, ורוחב שנגרר גובר לעמודה שלו (applyColWidths).
+   תא שהטקסט שלו לא נכנס מקבל «…» (CSS), ו-title עם הטקסט המלא (vtitle);
+   הכרטיס בלחיצה מציג הכול. הנתונים עצמם, החיפוש, הסינון, ההעתקה
+   והייצוא — לא נוגעים. הכרטיסים בטלפון (בלי כותרת) — לא נוגעים. */
+function vlock(st,a,b){const tbl=st.tb.parentNode,th=tbl.tHead;if(!th)return;
+ const ths=[...th.querySelectorAll('th')];
+ if(!ths.length||getComputedStyle(th).display==='none')return;
+ const cg=tbl.querySelector('colgroup');if(cg)cg.remove();tbl.style.tableLayout='';
+ const n=st.ents.length,box=st.box,base=new Set();
+ for(let j=a;j<b;j++)base.add(j);
+ for(let j=0;j<Math.min(n,VMAIN);j+=6)base.add(j);
  /* שורות לכל הרוחב (קבוצה, קו ה-80%, סוף הרשימה) — מעטות, וגם הן מזיזות
     את חלוקת הרוחב כשהן נכנסות לחלון (נמדד: 0.3px לכל עמודה ב«כסף תקוע») */
- st.ents.forEach((e,j)=>{if(e.k!=='i')pick.add(j)});
- /* תיאור נחתך ל-30 תווים, ולכן אלפי תאים שווים באורך ונבדלים רק ברוחב
-    האותיות (נמדד: 3.6px בקטלוג). מי שקרוב לאורך המרבי נמדד ברוחב אמיתי,
-    בגופן של התא עצמו (canvas measureText). */
- const cells=[],maxL=[];
- st.ents.forEach((e,j)=>{if(e.k!=='i')return;
-  (typeof e.h==='function'?e.h():e.h).split('</td>').forEach((td,c)=>{
-   const t=td.replace(/<[^>]*>/g,'').replace(/&[#\w]+;/g,'x').trim();
-   (cells[c]||(cells[c]=[])).push([t,j]);if(t.length>(maxL[c]||0))maxL[c]=t.length})});
- const cx=document.createElement('canvas').getContext('2d');
- const td0=st.tb.querySelector('tr[data-i] td,tr[data-mi] td');
- cx.font=td0?getComputedStyle(td0).font:'12px Heebo';
- /* ספרות מוצגות ב-tabular-nums — אורך הוא רוחב; נמדד רק טקסט עם אותיות */
- const dg=cx.measureText('0').width,mw=new Map(),M=t=>{if(!/[^\d\s.,:%₪$€+\-−–()\/×]/.test(t))return t.length*dg;
-  let w=mw.get(t);if(w==null)mw.set(t,w=cx.measureText(t).width);return w};
- cells.forEach((list,c)=>{const near=list.filter(([t])=>t.length>=maxL[c]-3);
-  const w=near.map(([t,j])=>[M(t),j]);
-  w.sort((x,y)=>y[0]-x[0]);for(const [,j] of w.slice(0,VTOP))pick.add(j)});
- st.tb.innerHTML=[...pick].sort((x,y)=>x-y).map(j=>{const e=st.ents[j];return typeof e.h==='function'?e.h():e.h}).join('');
- const w=ths.map(t=>t.getBoundingClientRect().width);
- ths.forEach((t,i)=>t.style.minWidth=w[i]+'px')}
+ st.ents.forEach((e,j)=>{if(e.k!=='i')base.add(j)});
+ const H=j=>{const e=st.ents[j];return typeof e.h==='function'?e.h():e.h};
+ const order=[...base].sort((x,y)=>x-y);
+ st.tb.innerHTML=order.map(H).join('');
+ const w=ths.map(t=>t.getBoundingClientRect().width),ov0=box.scrollWidth-box.clientWidth;
+ tbl.style.width='min-content';const mc=ths.map(t=>t.getBoundingClientRect().width);tbl.style.width='';
+ /* עמודות: מספר (רק ספרות וסימנים) או טקסט — לפי השורות שצוירו */
+ const NUM=/^[\d\s.,:%₪$€+\-−–—()\/×]*$/,strip=td=>td.replace(/<[^>]*>/g,'').replace(/&[#\w]+;/g,'x').trim();
+ const txt=ths.map(()=>false),num=[];
+ for(const tr of st.tb.children){if(!tr.matches('[data-i],[data-mi]'))continue;
+  [...tr.children].forEach((td,c)=>{const t=td.textContent.trim();if(t&&!NUM.test(t))txt[c]=true})}
+ ths.forEach((_,c)=>{if(!txt[c])num.push(c)});
+ /* מספר לעולם לא נחתך: האורך הארוך ביותר בכל הרשימה מול זה שבשורות שצוירו.
+    הספרות ב-tabular-nums, ולכן כל תו נוסף הוא רוחב ספרה — חישוב, לא ציור */
+ if(num.length){const lenB=num.map(()=>0),lenA=num.map(()=>0);
+  st.ents.forEach((e,j)=>{if(e.k!=='i')return;const parts=H(j).split('</td>'),inB=base.has(j);
+   num.forEach((c,q)=>{const L=parts[c]?strip(parts[c]).length:0;if(L>lenA[q])lenA[q]=L;if(inB&&L>lenB[q])lenB[q]=L})});
+  const td0=st.tb.querySelector('tr[data-i] td,tr[data-mi] td'),cx=document.createElement('canvas').getContext('2d');
+  cx.font=td0?getComputedStyle(td0).font:'12px Heebo';const dg=cx.measureText('0').width;
+  num.forEach((c,q)=>{const d=(lenA[q]-lenB[q])*dg;if(d>0){w[c]+=d;mc[c]+=d}})}
+ /* מה שהמספרים הוסיפו מעבר לרוחב שהיה — יורד קודם מהמרווח שבעמודות
+    (עד הרוחב המינימלי שלהן), ורק אם לא די בו — מעמודות הטקסט הרחבות, ב-«…» */
+ const need=w.reduce((p,x)=>p+x,0)-(box.clientWidth+Math.max(0,ov0));
+ vtake(w,need,[w.map((x,i)=>Math.max(0,x-mc[i])),w.map((x,i)=>txt[i]&&x>VSHRINK?x-VSHRINK:0)]);
+ tbl._lockBase={w:w.slice(),mc,cw:box.clientWidth,txt,ov0};tbl.classList.add('vfix');vrefit(tbl)}
+/* רוחב הקופסה השתנה בלי שינוי חלון — הכרטיס נדחף לצד הטבלה (push), המסילה
+   התקפלה. הנעילה מתאימה את עצמה: מה שחסר יורד מכל עמודה עד הרוחב המינימלי
+   שלה (min-content), ומה שנוסף מתחלק בין כל העמודות (פריסה קבועה עושה זאת לבד). חישוב, לא
+   ציור — ולכן גם updatePush, שמודד סינכרונית אחרי הדחיפה, רואה את מה
+   שיהיה על המסך וממשיך להחליט כמו קודם. */
+/* מוריד need פיקסלים מ-w: מכל מקור בתורו, ביחס למה שאפשר לקחת מכל עמודה */
+function vtake(w,need,sources){for(const can of sources){const tot=can.reduce((p,x)=>p+x,0);
+ if(tot<=0||need<=0.5)continue;const k=Math.min(1,need/tot);w.forEach((x,i)=>{w[i]=x-can[i]*k});need-=tot*k}}
+function vrefit(tbl){const L=tbl&&tbl._lockBase;if(!L)return;
+ const box=tbl.closest('.rows'),w=L.w.slice(),need=box?L.cw-box.clientWidth:0;
+ /* עד הרוחב המינימלי — כמו פריסה אוטומטית. בלי «…» כאן: אחרת הטבלה «נכנסת»
+    בדחיפה שב-main לא נכנסה (נמדד: «כסף תקוע» ב-1920), וזו החלטה אחרת. */
+ vtake(w,need,[w.map((x,i)=>Math.max(0,x-L.mc[i]))]);
+ tbl._lockW=w.map(x=>Math.floor(x*100)/100);applyColWidths();
+ /* טבלה שלא גלשה — לא תגלוש בגלל הגבולות (border-collapse מוסיף לקצה כ-1.4px
+    מעבר לסכום העמודות; נמדד: גלישה של 1px ב-1920, וזה חסם דחיפה). נמדד
+    אחרי ההחלה ומתוקן פעם אחת. */
+ const extra=box&&L.ov0<=0?tbl.getBoundingClientRect().width-box.clientWidth:0;
+ if(extra>0.01){vtake(w,extra+0.25,[w.map((x,i)=>Math.max(0,x-L.mc[i]))]);     /* רק מרווח — לא «…» */
+  tbl._lockW=w.map(x=>Math.floor(x*100)/100);applyColWidths()}}
+/* תא שהתקצר חזותית — הטקסט המלא ב-title. רק בתאים שבאמת גולשים, אחרי ציור */
+function vtitle(st){if(!st.tb.parentNode.classList.contains('vfix'))return;
+ const over=[];
+ for(const tr of st.nodes)for(const td of tr.children){if(td.title)continue;
+  const inner=td.querySelector('.badge,.ocat,.obj');
+  if(td.scrollWidth>td.clientWidth+1||(inner&&inner.scrollWidth>inner.clientWidth+1))over.push(td)}
+ for(const td of over){const c=td.cloneNode(true);c.querySelectorAll('button,.ract').forEach(x=>x.remove());
+  const t=c.textContent.replace(/\s+/g,' ').trim();if(t)td.title=t}}
 /* מביא את פריט i לחלון ולתוך התצוגה, ומחזיר את השורה שלו */
 function vgo(st,i){const j=st.items[i];if(j==null)return null;
  if(st.ents.length>VFULL){const box=st.box,bt=box.getBoundingClientRect().top;
