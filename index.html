@@ -2948,9 +2948,14 @@ tr.grp.sup b{font-size:var(--f-md)}
  /* הכותרת זזה באותם 2px, אחרת הטקסט שלה והעמודה שמתחתיה נפרדים (ui.test) */
  #tbl thead th .thc{margin-inline-start:-2px}}
 /* כרטיס הפריט: אותו line-height טבעי של Heebo הוסיף 3–5px לכל שורה — 1,344→1,503px
-   תוכן. 1.25 מחזיר את רובו (1,398); השאר הוא שני משפטים שב-10px נכנסו בשורה
-   אחת וב-12px נשברים לשתיים, וזה המחיר של המינימום. */
-.wdetail,.wdetail *{line-height:1.25}
+   תוכן, מעבר לסף ui.test (1.70 מסכים). line-height 1.2 ומרווחים צרים ב-2–3px בין
+   הסעיפים מחזירים ל-1,347 — כמו לפני D1 — למרות ששני משפטים שנכנסו בשורה ב-10px
+   נשברים לשתיים ב-12px. (החלטת המעתד: לא להזיז את הסף ולא לרדת מ-12px.) */
+.wdetail,.wdetail *{line-height:1.2}
+.wdetail .opad{padding-block:8px;gap:6px}
+.wdetail .dcs{padding-block:9px}
+.wdetail .ohead{padding-block:8px}
+.wdetail .tags{margin-top:4px}
 /* כותרת בשתי שורות רק איפה שיש לחץ. מעל 1560 יש מקום, ושורה אחת חוסכת
    שישה פיקסלים — ב-1920 זו השורה ה-28 ב«חוסרים». */
 @media(min-width:1561px){#tbl thead th{white-space:nowrap}}
