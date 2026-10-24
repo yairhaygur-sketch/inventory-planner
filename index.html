@@ -3007,6 +3007,17 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
 @media(max-width:760px){
  #tbl tbody tr.vsp,#tbl tbody tr.vmore{display:block}
  #tbl tbody tr.vsp>td,#tbl tbody tr.vmore>td{display:block}}
+/* ============ טלפון, «כסף תקוע»: הסיכום והרשימה בגלילה אחת ============
+   נמדד ב-390: הפאנל 608px וסיכום «בריאות המלאי» (#capTop) 796px. הטבלה
+   (.rows, flex:1) קיבלה 0px — אף פריט לא נראה ואין לאן לגלול — ותחתית
+   הסיכום עצמו נחתכה (הווידג'ט overflow:hidden). כאן, רק כשהסיכום מוצג
+   ורק בטלפון, הפאנל נגלל כיחידה: הסיכום במלואו, ומתחתיו הרשימה בגובה
+   הפאנל, עם הגלילה שלה (הגלילה הווירטואלית עובדת עליה כמו בכל מסך).
+   הפס התחתון נשאר צמוד לתחתית. שאר המסכים והרוחבים — בלי שינוי. */
+@media(max-width:760px){
+ #w_queue .qpanel:has(>#capTop:not([hidden])){overflow-y:auto;overscroll-behavior-y:contain}
+ #w_queue .qpanel:has(>#capTop:not([hidden]))>.rows{flex:0 0 auto;height:calc(100% - 40px);min-height:320px}
+ #w_queue .qpanel:has(>#capTop:not([hidden]))>.pager{position:sticky;bottom:0;background:var(--panel);z-index:2}}
 </style>
 </head>
 <body>
