@@ -1425,7 +1425,9 @@ td.miss .posq{color:var(--dim)}
  font-size:var(--f-sm);font-weight:800;color:var(--ink)}
 .cpanel h4 span{font-family:var(--num);color:var(--capital);font-weight:800}
 .cbar{display:flex;align-items:center;gap:7px;padding:1px 0;font-size:var(--f-xs)}
-.cbar .cbn{flex:0 0 74px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* D1: 74px קבועים → 35% מהלוח (82–210px). העמודה גמישה ויחסית, ולכן היא
+   מתקצרת והערך נשאר מלא; השם המלא גם ב-title */
+.cbar .cbn{flex:0 0 clamp(82px,35%,210px);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cbar .cbt{flex:1 1 auto;min-width:0;height:10px;background:var(--surface-2);
  border-radius:3px;overflow:hidden;display:block}
 .cbar .cbt i{display:block;height:100%;background:var(--capital);border-radius:3px}
@@ -2391,7 +2393,9 @@ body.toptight .top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
    בדיוק במסכים שהמפרט מבקש לבדוק (1366 ו-1440). */
 @media(max-width:1560px){
  #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:150px}
- #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:100px}
+ /* D1: 100→112. ב-12px ובגופן Heebo «להשלים 19 יח׳» לא נכנס ב-100 —
+    32 פעולות נחתכו ב-1366 על הדוח האמיתי. 112 מחזיר ל-0 */
+ #tbl[data-track="short"] td.act1,#tbl[data-track="line"] td.act1{max-width:112px}
  #tbl[data-track="short"] td.sup,#tbl[data-track="line"] td.sup{max-width:100px}}
 @media(max-width:1344px){
  #tbl[data-track="short"] td.dsc,#tbl[data-track="line"] td.dsc{max-width:92px}
@@ -2920,26 +2924,49 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl td .obj{color:var(--ink)}
 
 /* ============ D1_DENSITY — Heebo ו-12px בלי לאבד שורה או עמודה ============
-   נמדד על הדוח האמיתי, «חוסרים ולקוחות» ב-1366: Heebo והמינימום 12px לבדם
-   חתכו את «מצב טיפול» ו«ותק», הורידו את «כסף תקוע» מהקטלוג ואת «כיסוי»
-   מבריאות המלאי, הגדילו שורה מ-30.5 ל-37 פיקסלים (17→14 שורות במסך) והעלימו
-   את תג «לקוח ממתין · אין רכש» מעמודת התיאור. ארבעה תיקונים מחזירים הכול:
+   נמדד על הדוח האמיתי: Heebo והמינימום 12px לבדם חתכו עמודות ב-1366/1440
+   («מצב טיפול», «ותק», «כיסוי», «כסף תקוע»), הגדילו שורה מ-30.5 ל-37px
+   (17→14 שורות ב«חוסרים») והעלימו את תג «לקוח ממתין · אין רכש». הסיבות:
+   ריווח אותיות בכותרות (‎.08em‎ נועד לאותיות רישיות לטיניות), ו-line-height
+   טבעי של Heebo גבוה משל Assistant — בכל תא, בפס הכותרת, בפוטר ובאזורי
+   הסיכום. מה שמחזיר, בלי לגעת בעמודות או במיקומים:
 
-   · כותרות: בלי ריווח אותיות (‎.08em‎ נועד לאותיות רישיות לטיניות — בעברית
-     הוא רק מרחיב), ושתי מילים נשברות לשתי שורות צפופות במקום להרחיב עמודה.
-   · שורות: גובה שורה מפורש ומרכוז אנכי. ה-line-height הטבעי של Heebo גבוה
-     משל Assistant, והמספר הגדול בעמודת השווי קבע את גובה השורה כולה.
-   · ריווח תאים 9→7px אופקית, רק עד 1440.
+   · כותרות: בלי ריווח אותיות; שתי מילים נשברות לשתי שורות צפופות — רק עד
+     1560, כי מעל זה יש מקום ושורה אחת חוסכת שורה בטבלה.
+   · line-height מפורש ומרכוז אנכי בתאים, ובפס הכותרת, בפוטר ובסיכום.
+   · ריווח תאים 9→7px אופקית, רק עד 1440 (באישור המעתד).
 
-   התוצאה, מול המצב שלפני D1: 17 שורות במסך כמו קודם (30.7px מול 30.5), פחות
-   תיאורים מקוצרים (28→19 ב-1366, 19→6 ב-1440), ואף עמודה או גלילה חדשה
-   בארבעת הרוחבים ובשני המצבים. */
-#tbl thead th{letter-spacing:0;white-space:normal;line-height:1.05}
-#tbl thead th .thc{padding-block:3px}
+   מול המצב שלפני D1, 25 מסכים × 4 רוחבים × 2 מצבים: אף מסך עם פחות שורות
+   (סכום השורות במסך עלה בכל רוחב), אף עמודה חתוכה או גלילה חדשה, ופחות
+   תיאורים מקוצרים: 1366 70→48, 1440 49→30, טלפון 477→470. */
+#tbl thead th{letter-spacing:0;white-space:normal;line-height:1}
+#tbl thead th .thc{padding-block:2px}
 #tbl tbody td{line-height:1.12}
 #tbl tbody td>*{vertical-align:middle}
 #tbl .ocat{line-height:1.2}
 @media(max-width:1440px){#tbl td{padding-inline:7px}}
+/* כותרת בשתי שורות רק איפה שיש לחץ. מעל 1560 יש מקום, ושורה אחת חוסכת
+   שישה פיקסלים — ב-1920 זו השורה ה-28 ב«חוסרים». */
+@media(min-width:1561px){#tbl thead th{white-space:nowrap}}
+/* אותו line-height טבעי של Heebo, מחוץ לטבלה: פס הכותרת של המסך (+3px),
+   הפוטר (+1px), ואזור הסיכום של «בריאות המלאי» (+53px — שבע עמודות ספקים
+   ואריחים), שהוריד שתי שורות מהטבלה מתחתיו ב-1366. */
+.phd,.phd *{line-height:1.2}
+.pager,.pager *{line-height:1.2}
+#capTop .cbar,#capTop .cpanel h4{line-height:1.15}
+#capTop .ctile,#capTop .ctile *{line-height:1.2}
+/* טלפון: המק״ט והתיאור חולקים שורה אחת בכרטיס, ומק״ט ב-Heebo רחב יותר.
+   מק״ט 13.5 ותיאור 12.5 (שניהם מעל 12): בכל 25 המסכים 470 תיאורים חתוכים
+   מול 477 לפני D1, ו-106 כרטיסים במסך מול 101. */
+@media(max-width:760px){
+ #tbl tbody tr[data-i]>td:is([data-ck="pn"],[data-ck="pnPlain"],[data-ck="cPn"]){font-size:13.5px!important}
+ #tbl tbody tr[data-i]>td:is([data-ck="desc"],[data-ck="cDesc"]){font-size:12.5px!important}}
+/* «הפעולה הבאה» נשברת לשתי שורות במסכים שבהם היא רשאית (כסף תקוע ודלתותיו):
+   ב-Heebo הטקסט חרג מ-204px, וכל שורה ב«החלטה מסחרית» עלתה מ-31 ל-40 —
+   18→14 שורות במסך. 216px מחזירים שורה אחת; התיאור, שנחתך ממילא, מוותר. */
+#tbl[data-track="cap"] td.act1{min-width:216px}
+/* פס התאריכים מעל טבלת «רכש ואספקות» (74→77px באותו line-height) */
+#line,#line *{line-height:1.2}
 </style>
 </head>
 <body>
