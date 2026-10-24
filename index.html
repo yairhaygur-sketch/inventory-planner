@@ -3013,10 +3013,12 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
    הסיכום עצמו נחתכה (הווידג'ט overflow:hidden). כאן, רק כשהסיכום מוצג
    ורק בטלפון, הפאנל נגלל כיחידה: הסיכום במלואו, ומתחתיו הרשימה בגובה
    הפאנל, עם הגלילה שלה (הגלילה הווירטואלית עובדת עליה כמו בכל מסך).
-   הפס התחתון נשאר צמוד לתחתית. שאר המסכים והרוחבים — בלי שינוי. */
+   הפס התחתון נשאר צמוד לתחתית, והרשימה מפנה לו את הגובה שלו בפועל
+   (--pgh, נמדד — בדוח האמיתי הוא נשבר לשתיים-שלוש שורות של סכומים).
+   שאר המסכים והרוחבים — בלי שינוי. */
 @media(max-width:760px){
  #w_queue .qpanel:has(>#capTop:not([hidden])){overflow-y:auto;overscroll-behavior-y:contain}
- #w_queue .qpanel:has(>#capTop:not([hidden]))>.rows{flex:0 0 auto;height:calc(100% - 40px);min-height:320px}
+ #w_queue .qpanel:has(>#capTop:not([hidden]))>.rows{flex:0 0 auto;height:calc(100% - var(--pgh,40px));min-height:320px}
  #w_queue .qpanel:has(>#capTop:not([hidden]))>.pager{position:sticky;bottom:0;background:var(--panel);z-index:2}}
 </style>
 </head>
@@ -9206,6 +9208,9 @@ function capAllSync(o){const b=document.getElementById('capAll');if(!b)return;
  b.hidden=!o||(!o.all&&o.shown>=o.total);if(b.hidden)return;
  b.textContent=o.all?'רק 80% מהשווי':`הצג את כל ${o.total.toLocaleString('he-IL')} הפריטים`;
  b.title=o.all?'חזרה לפריטים שמרכזים 80% מהשווי בכל מטבע':'כל הפריטים במסך, עם קו ה-80% במקומו'}
+/* גובה הפס התחתון בפועל, למסך «כסף תקוע» בטלפון (ראה --pgh ב-CSS) */
+(()=>{const pg=document.querySelector('#w_queue .pager'),qp=pg&&pg.parentNode;if(!pg||!window.ResizeObserver)return;
+ new ResizeObserver(()=>qp.style.setProperty('--pgh',pg.offsetHeight+'px')).observe(pg)})();
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-capall]');if(!b)return;
  e.stopPropagation();CAPALL.has(mode)?CAPALL.delete(mode):CAPALL.add(mode);render()});
 function renderAgenda(rows){
