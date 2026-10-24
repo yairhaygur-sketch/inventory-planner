@@ -2982,6 +2982,10 @@ tr.grp.sup b{font-size:var(--f-md)}
    tr.vsp הוא המרווח שמחזיק את גובה השורות שמחוץ לחלון — לא שורה. */
 tbody tr.vsp,tbody tr.vsp:hover{background:none;cursor:default;pointer-events:none;border:0}
 tbody tr.vsp>td{padding:0!important;border:0!important;background:none!important;position:static!important;box-shadow:none!important}
+/* שורת קבוצה נושאת פס צד של 3px, ובטבלה עם border-collapse קצה הטבלה לוקח
+   חצי ממנו — מהעמודות. כשהשורה יצאה מהחלון, 1.5px חזרו לעמודות והן זזו.
+   המרווח נושא את אותו פס, שקוף, ולכן הקצה קבוע. */
+tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
 #tbl tbody tr.vmore,#tbl tbody tr.vmore:hover{cursor:default}
 #tbl tbody tr.vmore>td{padding:10px 12px;text-align:center;color:var(--ink-2);white-space:normal;background:var(--panel)!important}
 .capall{margin-inline-start:8px;border:1px solid var(--line);background:var(--panel);color:var(--acc);
@@ -8874,8 +8878,14 @@ function colHeadHTML(vk){
 /* כל תא נושא את שם העמודה שלו (data-ck) ואת הכותרת שלה (data-lbl). במחשב
    אין לזה שום השפעה; בטלפון הם מה שמאפשר לפרוש שורה ככרטיס — כל ערך
    עם השם שלו — בלי לבנות כל טבלה מחדש. ראה «כרטיסים בטלפון». */
-function colRowHTML(r,x,vk){return visCols(vk).map(k=>{const c=SCOL[k];
- return c.cell(r,x||{}).replace(/<td(?=[\s>])/,`<td data-ck="${k}" data-lbl="${esc(c.t)}"`)}).join('')}
+/* D2A — נקרא לכל שורה (בגלילה, ולכל הרשימה בנעילת הרוחבים), ולכן התוספת
+   לכל עמודה מחושבת פעם אחת ונכנסת בלי ביטוי רגולרי. התוצאה זהה לתו. */
+const COLATTR={};
+function colRowHTML(r,x,vk){return visCols(vk).map(k=>{const c=SCOL[k],h=c.cell(r,x||{});
+ let i=h.indexOf('<td');while(i>=0&&!/[\s>]/.test(h[i+3]))i=h.indexOf('<td',i+3);
+ if(i<0)return h;
+ const at=COLATTR[k]||(COLATTR[k]=` data-ck="${k}" data-lbl="${esc(c.t)}"`);
+ return h.slice(0,i+3)+at+h.slice(i+3)}).join('')}
 
 function decisionHead(){const cols=FIXLIKE()
   ?['מק״ט','תיאור','ROP','SS',
@@ -8985,15 +8995,15 @@ const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
    ב-on…= ולכן ציור חוזר אינו מכפיל אותם. הבחירה נשמרת כאינדקס ברשימה
    (sel) ולא כשורה ב-DOM, ולכן היא שורדת יציאה מהחלון, והמקלדת עוברת על
    הרשימה כולה וגוללת אל השורה (vgo). */
-const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSAMPLE=200;
+const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSAMPLE=20,VTOP=4;
 function vh(st,j){return st.hs[j]||st.est[st.ents[j].k]||30}
 function vsum(st,a,b){let t=0;for(let j=a;j<b;j++)t+=vh(st,j);return t}
-function vspc(st,h){return `<tr class="vsp" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
+function vspc(st,h){return `<tr class="vsp${st.g?' g':''}" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
 function vlist(id,ents,o){
  const tb=document.querySelector('#'+id+' tbody'),box=tb.closest('.rows'),prev=VL[id];
  const st=VL[id]={id,tb,box,ents,view:o.view||[],wire:o.wire,ncol:o.ncol,
   hs:new Float64Array(ents.length),est:prev?prev.est:{},a:-1,b:-1,sel:-1,nodes:[],items:[]};
- ents.forEach((e,j)=>{if(e.i!=null)st.items[e.i]=j});
+ ents.forEach((e,j)=>{if(e.i!=null)st.items[e.i]=j;else if(/<tr class="grp/.test(e.h))st.g=1});
  if(!box._vl){box._vl=id;
   box.addEventListener('scroll',()=>{const s=VL[box._vl];
    if(s&&!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;vdraw(s)})},{passive:true});
@@ -9039,18 +9049,40 @@ function vdraw(st,force){
 /* ============ רוחבי העמודות בגלילה ============
    הטבלה בפריסה אוטומטית: רוחב עמודה נקבע מהתוכן שבה. כשמצוירות רק
    השורות שבחלון, כל חלון קובע רוחבים משלו — ובגלילה העמודות קפצו (נמדד
-   על הדוח האמיתי: עד 105px ב«שינוי פרופיל MRP», 64px בקטלוג). לפני
-   הציור הראשון של רשימה גדולה מצוירות פעם אחת, באותה טבלה, השורות של
-   החלון ועוד VSAMPLE שורות שפזורות על כל הרשימה; הרוחב שיצא נקבע
-   כ-min-width לכותרת. עמודה יכולה עוד לגדול אם שורה רחבה יותר מופיעה,
-   אבל לא להצטמק ולא לרקוד. רוחבים שהמעתד קבע בגרירה (פריסה קבועה)
-   והכרטיסים בטלפון (בלי כותרת) — לא נוגעים. */
+   על הדוח האמיתי: עד 105px ב«שינוי פרופיל MRP», 64px בקטלוג).
+   מדגם אחיד של 200 שורות הוריד את זה ל-16px — עדיין תזוזה. עכשיו, לפני
+   הציור הראשון של רשימה גדולה, נבנה ה-HTML של כל השורות (35–100ms על
+   הדוח האמיתי), ולכל עמודה נבחרות VTOP השורות שהטקסט הגלוי בתא שלהן
+   הארוך ביותר — אלה שקובעות את הרוחב. הן, השורות של החלון ומדגם של
+   VSAMPLE מצוירות פעם אחת באותה טבלה, והרוחב שיצא נקבע כ-min-width
+   לכותרת. רוחבים שהמעתד קבע בגרירה (פריסה קבועה) והכרטיסים בטלפון
+   (בלי כותרת) — לא נוגעים. */
 function vlock(st,a,b){const th=st.tb.parentNode.tHead;if(!th)return;
  const ths=[...th.querySelectorAll('th')];ths.forEach(t=>t.style.minWidth='');
  if(!ths.length||st.tb.parentNode.style.tableLayout==='fixed'||getComputedStyle(th).display==='none')return;
  const n=st.ents.length,pick=new Set();
- for(let j=a;j<b;j++)pick.add(j);
  for(let k=0;k<VSAMPLE;k++)pick.add(Math.floor(k*n/VSAMPLE));
+ pick.add(n-1);                                  /* מספר הדירוג הארוך ביותר */
+ /* שורות לכל הרוחב (קבוצה, קו ה-80%, סוף הרשימה) — מעטות, וגם הן מזיזות
+    את חלוקת הרוחב כשהן נכנסות לחלון (נמדד: 0.3px לכל עמודה ב«כסף תקוע») */
+ st.ents.forEach((e,j)=>{if(e.k!=='i')pick.add(j)});
+ /* תיאור נחתך ל-30 תווים, ולכן אלפי תאים שווים באורך ונבדלים רק ברוחב
+    האותיות (נמדד: 3.6px בקטלוג). מי שקרוב לאורך המרבי נמדד ברוחב אמיתי,
+    בגופן של התא עצמו (canvas measureText). */
+ const cells=[],maxL=[];
+ st.ents.forEach((e,j)=>{if(e.k!=='i')return;
+  (typeof e.h==='function'?e.h():e.h).split('</td>').forEach((td,c)=>{
+   const t=td.replace(/<[^>]*>/g,'').replace(/&[#\w]+;/g,'x').trim();
+   (cells[c]||(cells[c]=[])).push([t,j]);if(t.length>(maxL[c]||0))maxL[c]=t.length})});
+ const cx=document.createElement('canvas').getContext('2d');
+ const td0=st.tb.querySelector('tr[data-i] td,tr[data-mi] td');
+ cx.font=td0?getComputedStyle(td0).font:'12px Heebo';
+ /* ספרות מוצגות ב-tabular-nums — אורך הוא רוחב; נמדד רק טקסט עם אותיות */
+ const dg=cx.measureText('0').width,mw=new Map(),M=t=>{if(!/[^\d\s.,:%₪$€+\-−–()\/×]/.test(t))return t.length*dg;
+  let w=mw.get(t);if(w==null)mw.set(t,w=cx.measureText(t).width);return w};
+ cells.forEach((list,c)=>{const near=list.filter(([t])=>t.length>=maxL[c]-3);
+  const w=near.map(([t,j])=>[M(t),j]);
+  w.sort((x,y)=>y[0]-x[0]);for(const [,j] of w.slice(0,VTOP))pick.add(j)});
  st.tb.innerHTML=[...pick].sort((x,y)=>x-y).map(j=>{const e=st.ents[j];return typeof e.h==='function'?e.h():e.h}).join('');
  const w=ths.map(t=>t.getBoundingClientRect().width);
  ths.forEach((t,i)=>t.style.minWidth=w[i]+'px')}

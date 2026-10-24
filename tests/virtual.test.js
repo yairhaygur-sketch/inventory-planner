@@ -8,7 +8,7 @@
        «הצג את כל הפריטים» פותח את השאר, וקו ה-80% מסומן)
      · גלילה עד הסוף מגיעה לפריט האחרון, בלי חור באף נקודה בדרך
      · מספר השורות ב-DOM חסום — לא גדל עם הרשימה
-     · העמודות לא «רוקדות» ברוחב בזמן הגלילה
+     · העמודות לא זזות ברוחב בזמן הגלילה — אף פיקסל
      · המקלדת (↓ ↑ PageDown Enter Escape) עוברת על כל הרשימה וגוללת אליה
      · כרטיס הפריט: «הבא» עובר את גבול החלון, והמיקום «מתוך» כל הרשימה
      · החיפוש מוצא פריט שמחוץ לחלון, בוחר אותו וגולל אליו
@@ -69,7 +69,7 @@ async function open(b,file,W,H){
     const last=trs.length?+(trs[trs.length-1].dataset.i??trs[trs.length-1].dataset.mi):-1;
     /* קפיצה לאמצע — כמו גרירה של פס הגלילה */
     box.scrollTop=box.scrollHeight/2;await __raf();await __raf();const mid=cover();
-    res.push({m,n,want,virt:s.ents.length>VFULL,maxTr,gaps,jit:Math.round(jit),last,mid,boxH:box.clientHeight})}
+    res.push({m,n,want,virt:s.ents.length>VFULL,maxTr,gaps,jit:+jit.toFixed(2),last,mid,boxH:box.clientHeight})}
    return res});
   const L=R.filter(r=>!r.none);
   ok(`${W} · נבדקו כל 26 המסכים`,R.length===26,R.length);
@@ -88,8 +88,10 @@ async function open(b,file,W,H){
   x=big.filter(r=>r.maxTr>lim);
   ok(`${W} · מספר השורות ב-DOM חסום (≤${lim}) גם ברשימה של אלפים`,big.length>0&&!x.length,
     x.map(r=>`${r.m} ${r.maxTr}`).join(' · ')||big.map(r=>`${r.m} ${N(r.n)}→${r.maxTr}`).join(' · '));
-  if(W>760){x=L.filter(r=>r.jit>24);
-   ok(`${W} · העמודות לא קופצות ברוחב בגלילה (≤24px)`,!x.length,
+  /* היה עד 105px עם רוחבי החלון, 16px עם מדגם — עכשיו אפס (נעילה לפי התא
+     הרחב ביותר בכל עמודה, ראה vlock). <0.5px = שום פיקסל לא זז. */
+  if(W>760){x=L.filter(r=>r.jit>=0.5);
+   ok(`${W} · העמודות לא זזות ברוחב בגלילה — אף פיקסל`,!x.length,
      x.map(r=>`${r.m} ${r.jit}px`).join(' · ')||`מקס׳ ${Math.max(0,...L.map(r=>r.jit))}px`)}
 
   /* ---------------- מקלדת וכרטיס — בקטלוג ---------------- */
