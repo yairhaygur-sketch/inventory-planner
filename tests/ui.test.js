@@ -1852,6 +1852,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    nth:document.querySelectorAll('#tbl thead th').length,
    ntd:(document.querySelector('#tbl tbody tr[data-i]')||{children:[]}).children.length,
    rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   /* D2A — במסך מצויר רק החלון שבגלילה; אורך הרשימה עצמה הוא n */
+   n:VL.tbl.items.length,
    pnc:document.querySelectorAll('#tbl tbody td.pnc').length,
    dn:document.querySelectorAll('#tbl tbody .dn[data-done]').length,
    srt:document.querySelectorAll('#tbl thead th.wsrt').length,
@@ -1872,9 +1874,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* ברירת המחדל היא חומרה — המיון לא החליף אותה במנגנון שני. */
  /* דגימה לאורך הרשימה ולא רק בראשה: 12 השורות הראשונות הן כולן
     חומרה 3 גם בלי מיון בכלל, ולכן לא היו מבחינות. */
- const catSev=()=>p.evaluate(()=>{const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
-   return [0,60,140,240,340,440,tr.length-1].filter(i=>i<tr.length&&i>=0)
-     .map(i=>+(tr[i].className.match(/sev(\d)/)||[,0])[1])});
+ /* D2A — הדגימה על הרשימה (VL.tbl.view) ולא על השורות שב-DOM: בחלון
+    יש רק כמה עשרות, והדגימה הייתה נעצרת בתחילתה. כל שורה בחלון נושאת
+    את ה-sev של אותו פריט ברשימה — נבדק גם זה. */
+ const catSev=()=>p.evaluate(()=>{const v=VL.tbl.view;
+   const dom=[...document.querySelectorAll('#tbl tbody tr[data-i]')]
+     .every(tr=>+(tr.className.match(/sev(\d)/)||[,0])[1]===(v[+tr.dataset.i].sev|0));
+   if(!dom)return [-1];
+   return [0,60,140,240,340,440,v.length-1].filter(i=>i<v.length&&i>=0).map(i=>v[i].sev|0)});
  const cs0=await catSev();
  ok('ברירת המחדל בטבלה הכללית היא חומרה יורדת',
    cs0.every((v,i)=>i===0||cs0[i-1]>=v),cs0.join(' '));
@@ -1905,17 +1912,17 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    bx[0].checked=true;const v=bx[0].value;
    document.getElementById('cpOk').click();return {v,n:bx.length}});
  await p.waitForTimeout(600);
- const catAf=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+ const catAf=await p.evaluate(()=>({rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,n:VL.tbl.items.length,
    marked:document.querySelectorAll('#tbl thead th.filt').length,
    keys:Object.keys(colFilters),
    chips:[...document.querySelectorAll('#chipsTop .chip')].map(c=>c.textContent.trim())}));
  ok('טבלה כללית · ▾ פותח בורר עמודה עם ערכים',!catF.err&&catF.n>0,
    catF.err||`${catF.n} ערכים · «${catF.v}»`);
  ok('טבלה כללית · הסינון חותך שורות, מסמן את הכותרת ומציג שבב',
-   catAf.rows<catB4.rows&&catAf.marked===1&&catAf.keys.includes('c:cCat')
+   catAf.n<catB4.n&&catAf.marked===1&&catAf.keys.includes('c:cCat')
    /* השבב נגזר מ-COLLABEL, שעבר מ«מצב» ל«סיווג» יחד עם כותרת העמודה */
    &&catAf.chips.some(c=>/סיווג/.test(c)),
-   `${catB4.rows} → ${catAf.rows} · ${catAf.chips.join(' | ')}`);
+   `${catB4.n} → ${catAf.n} · ${catAf.chips.join(' | ')}`);
  await p.evaluate(()=>{Object.keys(colFilters).forEach(k=>delete colFilters[k]);chips();render()});
  await p.waitForTimeout(500);
  await p.click('#colsBtn');await p.waitForTimeout(400);

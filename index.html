@@ -2978,6 +2978,26 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl[data-track="cap"] td.act1{min-width:216px}
 /* פס התאריכים מעל טבלת «רכש ואספקות» (74→77px באותו line-height) */
 #line,#line *{line-height:1.2}
+/* ============ D2A · גלילה וירטואלית ============
+   tr.vsp הוא המרווח שמחזיק את גובה השורות שמחוץ לחלון — לא שורה. */
+tbody tr.vsp,tbody tr.vsp:hover{background:none;cursor:default;pointer-events:none;border:0}
+tbody tr.vsp>td{padding:0!important;border:0!important;background:none!important;position:static!important;box-shadow:none!important}
+#tbl tbody tr.vmore,#tbl tbody tr.vmore:hover{cursor:default}
+#tbl tbody tr.vmore>td{padding:10px 12px;text-align:center;color:var(--ink-2);white-space:normal;background:var(--panel)!important}
+.capall{margin-inline-start:8px;border:1px solid var(--line);background:var(--panel);color:var(--acc);
+ border-radius:6px;padding:2px 10px;font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.capall:hover{background:var(--surface-2)}
+.capall:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+/* בפס התחתון — קישור בתוך שורת הטקסט, לא כפתור: מסגרת וריפוד הגביהו את
+   הפס ב-6px, ובמסכי הכסף זו הייתה שורה אחת פחות בטבלה (נמדד, 1366 ו-390). */
+.pager .capall{border:0;background:none;padding:0;border-radius:0;line-height:inherit;
+ text-decoration:underline;text-underline-offset:2px;white-space:normal}
+.pager .capall:hover{background:none;color:var(--ink)}
+/* בטלפון הפס נשבר לשורה נוספת (38→52px) — שם המתג נשאר בשורה שבסוף הרשימה */
+@media(max-width:760px){.pager .capall{display:none}}
+@media(max-width:760px){
+ #tbl tbody tr.vsp,#tbl tbody tr.vmore{display:block}
+ #tbl tbody tr.vsp>td,#tbl tbody tr.vmore>td{display:block}}
 </style>
 </head>
 <body>
@@ -3166,7 +3186,7 @@ tr.grp.sup b{font-size:var(--f-md)}
           <button type="button" class="btn pri" id="sapbarGo">⇪ קובץ SAP לנבחרים</button>
           <button type="button" class="btn" id="sapbarClr">נקה בחירה</button>
           <span class="sapbarN">רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»</span></div>
-        <div class="pager"><span id="pgL"></span><span id="pgR"></span></div>
+        <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button></span><span id="pgR"></span></div>
       </div>
     </div></div>
     <div class="rz" data-rz="queue" title="שינוי גודל"></div>
@@ -5462,7 +5482,8 @@ function updatePush(){const b=document.body;
  return ok!==had}
 function openDetail(){if(!LAYOUT.hidden.includes('detail')){document.body.classList.add('dopen');updatePush()}}
 function closeDetail(){document.body.classList.remove('dopen','push');
- document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'))}
+ document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'));
+ if(VL.tbl)VL.tbl.sel=-1}
 addEventListener('resize',()=>{clearTimeout(window._pushT);
  window._pushT=setTimeout(updatePush,120)});
 let ALL=[],SEL={},Q=null,QF=null,HRUN=null,APPLIED=null,cur='today',sortCol='sev',sortDir='desc',onlyTasks=false,CURRENT_DETAIL=null;
@@ -5676,6 +5697,7 @@ function applyColWidths(){
   const w=cwGet(v);
   let cg=tbl.querySelector('colgroup');
   if(!w){if(cg)cg.remove();tbl.style.tableLayout='';continue}
+  ths.forEach(t=>t.style.minWidth='');       /* D2A — רוחב שנגרר גובר על נעילת הגלילה (vlock) */
   if(!cg){cg=document.createElement('colgroup');tbl.insertBefore(cg,tbl.firstChild)}
   cg.innerHTML=ths.map((_,i)=>`<col${w[i]?` style="width:${w[i]}px"`:''}>`).join('');
   tbl.style.tableLayout='fixed'}}
@@ -7585,11 +7607,13 @@ function markSug(){const p=qEl('qsug'),items=p.querySelectorAll('.sgi,.rc');
 function openSug(r){if(!r)return;
  pushRecent(SQ?SQ.raw:'');closeSug();
  detail(r);
- let found=false;
- document.querySelectorAll('#tbl tbody tr').forEach(tr=>{const o=tr.querySelector('.obj');
-  if(o&&CLEAN(o.textContent)===r.pn){tr.classList.add('sel');tr.scrollIntoView({block:'nearest'});found=true}
-  else tr.classList.remove('sel')});
- if(!found)toast(r.pn+' — הכרטיס נפתח (הפריט אינו ברשימה המוצגת)')}
+ /* D2A — מחפשים ברשימה, לא בשורות שצוירו: פריט שמחוץ לחלון נמצא, והגלילה מגיעה אליו */
+ const s=VL.tbl,i=s&&s.tb.isConnected?s.view.findIndex(x=>x.pn===r.pn):-1;
+ document.querySelectorAll('#tbl tbody tr.sel').forEach(x=>x.classList.remove('sel'));
+ if(s)s.sel=-1;
+ const tr=i>=0&&s.items[i]!=null?vgo(s,i):null;
+ if(tr){s.sel=i;tr.classList.add('sel');tr.scrollIntoView({block:'nearest'})}
+ else toast(r.pn+' — הכרטיס נפתח (הפריט אינו ברשימה המוצגת)')}
 /* שורת המצב מתחת לתיבה */
 function showAllResults(){cur='all';onlyTasks=false;
  const t=qEl('onlyTasks');if(t)t.classList.remove('on');
@@ -8239,6 +8263,8 @@ function covBarCell(r){const c=covParts(r);
   +(c.und?`<i class="u" style="width:${w(c.und)}"></i>`:'')
   +(c.open?`<i class="g" style="width:${w(c.open)}"></i>`:'')
   +`</span><span class="covp">${c.pct}%</span></td>`}
+/* D2A — תיאור שנחתך ל-dlen תווים נקרא במלואו במעבר עכבר (ובכרטיס הפריט) */
+function dscTtl(t,n){t=String(t||'');return t.length>n?` title="${esc(t)}"`:''}
 function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
 /* ============ «✓ טופל» מחובר בכל טבלה ============
    החיבור ישב בשתיים מחמש פונקציות הרינדור. במרכז העבודה (renderAgenda)
@@ -8255,16 +8281,22 @@ function sapBarSync(){const bar=document.getElementById('sapbar');if(!bar)return
  const n=on?sapSelRows().length:0;
  bar.hidden=!n;if(!n)return;
  document.getElementById('sapbarN').textContent=n.toLocaleString('he-IL');
- const all=document.querySelector('#tbl thead .sapall'),boxes=[...document.querySelectorAll('#tbl tbody .sapsel')];
- if(all){const c=boxes.filter(b=>b.checked).length;all.checked=c>0&&c===boxes.length;all.indeterminate=c>0&&c<boxes.length}}
+ const all=document.querySelector('#tbl thead .sapall'),pool=sapAllPool();
+ if(all){const c=pool.filter(r=>SAPSEL.has(r.pn)).length;all.checked=c>0&&c===pool.length;all.indeterminate=c>0&&c<pool.length}}
+/* D2A — התיבה שבכותרת סימנה את התיבות שצוירו, ותור התכנון צויר עד 300
+   שורות. עכשיו רק החלון מצויר, ולכן היא עובדת על הרשימה — באותו כלל:
+   300 השורות הראשונות שיש להן תיבה. (על הדוח האמיתי בתור יש 182, כלומר
+   כולן.) «בחר את כל N» הוא שלב D2b, ולא כאן. */
+function sapAllPool(){const s=VL.tbl;
+ return s&&s.tb.isConnected?s.view.slice(0,300).filter(sapUsableBase):[]}
 function wireSapSel(){
  document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{
   b.onclick=e=>e.stopPropagation();
   b.onchange=()=>{b.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn);sapBarSync()}});
  const all=document.querySelector('#tbl thead .sapall');
  if(all){all.onclick=e=>e.stopPropagation();
-  all.onchange=()=>{document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{b.checked=all.checked;
-   all.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn)});sapBarSync()}}
+  all.onchange=()=>{for(const r of sapAllPool())all.checked?SAPSEL.add(r.pn):SAPSEL.delete(r.pn);
+   document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>b.checked=SAPSEL.has(b.dataset.pn));sapBarSync()}}
  sapBarSync()}
 /* «טופל» לפריט אחד — מכפתור השורה או מ-D — עם «בטל» בהודעה למשך 6 שניות.
    הביטול מחזיר את MARKS[key] בדיוק למה שהיה לפני הלחיצה (בדרך כלל: כלום),
@@ -8303,12 +8335,12 @@ const SCOL={
     בטבלה ללא סיבה. 144 מתוך 7,987 נושאים בעמודה האנגלית העתק
     של העברית, וגם הם מוחרגים. */
  desc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
-  cell:(r,x)=>`<td class="dsc">${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
+  cell:(r,x)=>`<td class="dsc"${dscTtl(r.desc,x.dlen||24)}>${hlMark((r.desc||'').slice(0,x.dlen||24),SQ)}`
    +(d2Hit(r)?`<span class="den" title="${esc(r.desc2)}">${hlMark(r.desc2.slice(0,x.dlen||24),SQ)}</span>`:'')
    +((x.maj&&r.cat&&r.cat!==x.maj)?` <span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span>`:'')+'</td>'},
  desc2:{t:'תיאור נוסף',val:r=>String(r.desc2||''),
   ttl:'עמודת התיאור השנייה בדוח. ב-ZMRP של 5.10 היא אנגלית ב-7,771 מתוך 7,987 פריטים — אבל הכלי אינו מניח שפה',
-  cell:r=>`<td class="dsc"><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
+  cell:r=>`<td class="dsc"${dscTtl(r.desc2,30)}><bdi>${hlMark((r.desc2||'—').slice(0,30),SQ)}</bdi></td>`},
  sup:{t:'ספק',val:r=>String(r.supplier||''),ttl:'שם הספק כפי שהוא בדוח',
   cell:r=>`<td class="sup" title="${esc(r.supplier||'')}"><bdi>${esc((r.supplier||'—').slice(0,15))}</bdi></td>`},
  /* ============ דלת «שינוי פרופיל MRP» ============ */
@@ -8649,7 +8681,7 @@ const SCOL={
     שורות במסך העיקרי בלי להראות למה. נמדד: שתי הגרסות
     של עמודת התיאור קיימות במקביל, ולכן התיקון בשתיהן. */
  cDesc:{t:'תיאור',val:r=>String(r.desc||''),ttl:'תיאור הפריט בדוח',
-  cell:r=>`<td class="dsc">${hlMark(r.desc.slice(0,30),SQ)}`
+  cell:r=>`<td class="dsc"${dscTtl(r.desc,30)}>${hlMark(r.desc.slice(0,30),SQ)}`
    +(d2Hit(r)?`<span class="den" title="${esc(r.desc2)}">${hlMark(r.desc2.slice(0,30),SQ)}</span>`:'')+'</td>'},
  cCat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
@@ -8932,26 +8964,149 @@ function agendaGroups(rows){const by={ag1:[],ag2:[],ag3:[]};
    יחד היה להמציא מספר שאין לו מובן. */
 const aUnits=(g,list)=>list.reduce((t,r)=>t+(g==='ag3'?Math.ceil(r.unsQty||0):(r.miss||0)),0);
 const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
+/* ============ D2A · גלילה וירטואלית ============
+   עד כאן כל מרנדר צייר את כל השורות שלו בבת אחת, ולכן כל רשימה גדולה
+   נחתכה: הקטלוג ב-500 מתוך 7,990, «שינוי פרופיל MRP» ב-500 מתוך 5,046,
+   מרכז העבודה ב-300, «תנועות» ב-500 — ומה שמעבר לזה לא היה נגיש בגלילה.
+   נמדד על הדוח האמיתי: ציור כל 7,990 שורות הקטלוג לוקח 5–12 שניות
+   ו-233 אלף רכיבים, מול 0.4–0.9 שניות ל-500 היום.
+
+   כאן הרשימה נשמרת במלואה (ents — שורת קבוצה, שורת פריט, קו ה-80%), ובמסך
+   נמצא רק החלון שסביב הגלילה, בין שני מרווחים בגובה השורות שמעליו
+   ומתחתיו. הגובה של כל שורה נמדד ממנה כשהיא מצוירת (שורת קבוצה, שורת
+   פריט וכרטיס בטלפון אינם באותו גובה), ועד אז ההערכה היא ממוצע מה שכבר
+   נמדד מאותו סוג. השורה הראשונה שנראית היא העוגן: כשהמרווח שמעליה משנה
+   גובה, הגלילה מתוקנת כך שהיא לא זזה.
+
+   רשימה עד VFULL שורות מצוירת כולה — אין בה מה לחסוך, והחיפוש של הדפדפן
+   (Ctrl+F) ממשיך למצוא בה הכול.
+
+   החיבורים (לחיצה, ✓ טופל, העתק, תיבת SAP) נעשים אחרי כל ציור של חלון,
+   ב-on…= ולכן ציור חוזר אינו מכפיל אותם. הבחירה נשמרת כאינדקס ברשימה
+   (sel) ולא כשורה ב-DOM, ולכן היא שורדת יציאה מהחלון, והמקלדת עוברת על
+   הרשימה כולה וגוללת אל השורה (vgo). */
+const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSAMPLE=200;
+function vh(st,j){return st.hs[j]||st.est[st.ents[j].k]||30}
+function vsum(st,a,b){let t=0;for(let j=a;j<b;j++)t+=vh(st,j);return t}
+function vspc(st,h){return `<tr class="vsp" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
+function vlist(id,ents,o){
+ const tb=document.querySelector('#'+id+' tbody'),box=tb.closest('.rows'),prev=VL[id];
+ const st=VL[id]={id,tb,box,ents,view:o.view||[],wire:o.wire,ncol:o.ncol,
+  hs:new Float64Array(ents.length),est:prev?prev.est:{},a:-1,b:-1,sel:-1,nodes:[],items:[]};
+ ents.forEach((e,j)=>{if(e.i!=null)st.items[e.i]=j});
+ if(!box._vl){box._vl=id;
+  box.addEventListener('scroll',()=>{const s=VL[box._vl];
+   if(s&&!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;vdraw(s)})},{passive:true});
+  /* רוחב אחר הוא גובה שורה אחר (בטלפון — כרטיס שנשבר אחרת) */
+  addEventListener('resize',()=>{const s=VL[box._vl];if(s){s.hs.fill(0);vdraw(s,true)}})}
+ if(!ents.length){tb.innerHTML=o.empty||'';st.wire&&st.wire();return st}
+ vdraw(st,true);return st}
+function vdraw(st,force){
+ const {ents,box,tb}=st,n=ents.length;
+ if(!n||VL[st.id]!==st||!tb.isConnected)return;
+ let a=0,b=n;
+ if(n>VFULL){
+  const bt=box.getBoundingClientRect().top;
+  const y0=tb.getBoundingClientRect().top-bt+box.scrollTop;
+  const lo=box.scrollTop-y0-VOVER,hi=box.scrollTop-y0+box.clientHeight+VOVER;
+  let y=0,j=0;
+  for(;j<n;j++){const h=vh(st,j);if(y+h>lo)break;y+=h}
+  a=Math.min(j,n-1);
+  for(;j<n&&y<hi;j++)y+=vh(st,j);
+  a=Math.floor(a/VCHUNK)*VCHUNK;b=Math.min(n,Math.max(a+VCHUNK,Math.ceil(j/VCHUNK)*VCHUNK))}
+ if(!force&&a===st.a&&b===st.b)return;
+ if(force&&n>VFULL)vlock(st,a,b);
+ let anc=null;
+ if(!force&&st.a>=0){const bt=box.getBoundingClientRect().top;
+  for(let j=st.a;j<st.b;j++){const r=st.nodes[j-st.a].getBoundingClientRect();
+   if(r.bottom>bt){anc={j,off:r.top-bt};break}}}
+ tb.innerHTML=(a?vspc(st,vsum(st,0,a)):'')
+  +ents.slice(a,b).map(e=>typeof e.h==='function'?e.h():e.h).join('')
+  +(b<n?vspc(st,vsum(st,b,n)):'');
+ const kids=tb.children,off=a?1:0,S={},C={};
+ st.a=a;st.b=b;st.nodes=[];
+ for(let j=a;j<b;j++){const tr=kids[j-a+off];st.nodes.push(tr);
+  const h=tr.getBoundingClientRect().height,k=ents[j].k;st.hs[j]=h;S[k]=(S[k]||0)+h;C[k]=(C[k]||0)+1}
+ for(const k in S)st.est[k]=S[k]/C[k];
+ if(a)kids[0].firstChild.style.height=vsum(st,0,a)+'px';
+ if(b<n)tb.lastElementChild.firstChild.style.height=vsum(st,b,n)+'px';
+ if(anc&&anc.j>=a&&anc.j<b){
+  const d=st.nodes[anc.j-a].getBoundingClientRect().top-box.getBoundingClientRect().top-anc.off;
+  if(Math.abs(d)>.5)box.scrollTop+=d}
+ const sj=st.sel>=0?st.items[st.sel]:-1;
+ if(sj>=a&&sj<b)st.nodes[sj-a].classList.add('sel');
+ if(st.wire)st.wire()}
+/* ============ רוחבי העמודות בגלילה ============
+   הטבלה בפריסה אוטומטית: רוחב עמודה נקבע מהתוכן שבה. כשמצוירות רק
+   השורות שבחלון, כל חלון קובע רוחבים משלו — ובגלילה העמודות קפצו (נמדד
+   על הדוח האמיתי: עד 105px ב«שינוי פרופיל MRP», 64px בקטלוג). לפני
+   הציור הראשון של רשימה גדולה מצוירות פעם אחת, באותה טבלה, השורות של
+   החלון ועוד VSAMPLE שורות שפזורות על כל הרשימה; הרוחב שיצא נקבע
+   כ-min-width לכותרת. עמודה יכולה עוד לגדול אם שורה רחבה יותר מופיעה,
+   אבל לא להצטמק ולא לרקוד. רוחבים שהמעתד קבע בגרירה (פריסה קבועה)
+   והכרטיסים בטלפון (בלי כותרת) — לא נוגעים. */
+function vlock(st,a,b){const th=st.tb.parentNode.tHead;if(!th)return;
+ const ths=[...th.querySelectorAll('th')];ths.forEach(t=>t.style.minWidth='');
+ if(!ths.length||st.tb.parentNode.style.tableLayout==='fixed'||getComputedStyle(th).display==='none')return;
+ const n=st.ents.length,pick=new Set();
+ for(let j=a;j<b;j++)pick.add(j);
+ for(let k=0;k<VSAMPLE;k++)pick.add(Math.floor(k*n/VSAMPLE));
+ st.tb.innerHTML=[...pick].sort((x,y)=>x-y).map(j=>{const e=st.ents[j];return typeof e.h==='function'?e.h():e.h}).join('');
+ const w=ths.map(t=>t.getBoundingClientRect().width);
+ ths.forEach((t,i)=>t.style.minWidth=w[i]+'px')}
+/* מביא את פריט i לחלון ולתוך התצוגה, ומחזיר את השורה שלו */
+function vgo(st,i){const j=st.items[i];if(j==null)return null;
+ if(st.ents.length>VFULL){const box=st.box,bt=box.getBoundingClientRect().top;
+  const y=st.tb.getBoundingClientRect().top-bt+box.scrollTop+vsum(st,0,j),h=vh(st,j);
+  const th=(st.tb.parentNode.tHead||{}).offsetHeight||0;
+  if(y-th<box.scrollTop)box.scrollTop=y-th;
+  else if(y+h>box.scrollTop+box.clientHeight)box.scrollTop=y+h-box.clientHeight;
+  vdraw(st)}
+ return st.nodes[j-st.a]||null}
+/* לחיצה על שורה: הבחירה עוברת אליה, ונשמרת ברשימה ולא רק ב-DOM */
+function vpick(tr,r){const s=VL[tr.closest('table').id];
+ tr.parentNode.querySelectorAll('tr.sel').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');
+ if(s)s.sel=+(tr.dataset.i!=null?tr.dataset.i:tr.dataset.mi);
+ if(r)detail(r)}
+/* החיבורים של טבלת התור, אחרי כל ציור של חלון */
+function vwire(view){return ()=>{
+ document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
+ wireMarkBtns();
+ document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>vpick(tr,view[+tr.dataset.i]));
+ wireCopy()}}
+/* ============ D2A · מסכי הכסף: 80% כברירת מחדל, «הצג את כל הפריטים» ============
+   ההחלטה של המעתד: התצוגה נשארת הפריטים שמרכזים 80% מהשווי בכל מטבע
+   (capView), ומי שרוצה את השאר פותח אותם. בתצוגה המלאה קו ה-80% נשאר
+   במקומו, והפריטים שמתחתיו מעומעמים — אותו ציור כמו קודם. הבחירה היא
+   לכל דלת בנפרד, לזמן הביקור בלבד: כניסה מחדש לכלי חוזרת ל-80%. */
+const CAPALL=new Set();
+function capMoreTxt(shown,total){
+ return `מוצגים ${shown.toLocaleString('he-IL')} פריטים — עד קו ה-80% מהשווי בכל מטבע, ושלושה אחריו · עוד ${(total-shown).toLocaleString('he-IL')} מתחת`}
+function capAllSync(o){const b=document.getElementById('capAll');if(!b)return;
+ b.hidden=!o||(!o.all&&o.shown>=o.total);if(b.hidden)return;
+ b.textContent=o.all?'רק 80% מהשווי':`הצג את כל ${o.total.toLocaleString('he-IL')} הפריטים`;
+ b.title=o.all?'חזרה לפריטים שמרכזים 80% מהשווי בכל מטבע':'כל הפריטים במסך, עם קו ה-80% במקומו'}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-capall]');if(!b)return;
+ e.stopPropagation();CAPALL.has(mode)?CAPALL.delete(mode):CAPALL.add(mode);render()});
 function renderAgenda(rows){
- const G=agendaGroups(rows),body=[];let idx=0;
- const lim=300;
+ const G=agendaGroups(rows),ents=[];let idx=0;
  for(const [g,name,sub,col] of AGROUP){
   const list=G[g],coll=GCOLL.has(g);
-  body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
+  ents.push({k:'g',h:`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
     <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
     <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>
     <span class="gu">${list.length
       ?`${aUnits(g,list).toLocaleString('he-IL')} יח׳ · ${moneyMix(list,aVal(g))}${noPriceTxt(list)}`
-      :'אין פריטים'}</span></td></tr>`);
+      :'אין פריטים'}</span></td></tr>`});
   if(coll||!list.length)continue;
-  for(const r of list){if(idx>=lim)break;const i=idx++;
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-    +colRowHTML(r,{dlen:30})+'</tr>')}}
- document.querySelector('#tbl tbody').innerHTML=body.join('')||
-  `<tr><td colspan="${NCOL()}" class="empty">אין פריט שדורש החלטה הבוקר.</td></tr>`;
+  for(const r of list){const i=idx++;
+   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:30})+'</tr>'})}}
  /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
     הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
  const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
+ vlist('tbl',ents,{view,ncol:NCOL(),wire:vwire(view),
+  empty:`<tr><td colspan="${NCOL()}" class="empty">אין פריט שדורש החלטה הבוקר.</td></tr>`});
  LAST_VIEW=AGROUP.flatMap(([g])=>G[g]);       /* VIEW_SHEET — גם קבוצה מקופלת */
  document.getElementById('pgL').textContent=
   pgTxt(idx,rows.length);
@@ -8960,24 +9115,20 @@ function renderAgenda(rows){
  document.getElementById('pgR').textContent=AGROUP
    .map(([g,,,,short])=>`${short} ${G[g].length}`).join(' · ');
  setPhdSub('שלושת הרונגים שהמנוע הכריע, בסדר הזה: הבטחה ללא רכש · '
-  +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.');
- document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
-  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
-  tr.classList.add('sel');detail(view[+tr.dataset.i])});
- wireCopy()}
+  +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.')}
 function renderCust(rows){
- const G=custGroups(rows),body=[];let idx=0;
+ const G=custGroups(rows),ents=[];let idx=0;
  const head=(key,color,name,n,sub,units,list)=>{const coll=GCOLL.has(key);
-  body.push(`<tr class="grp${coll?' coll':''}" data-g="${esc(key)}"><td colspan="${NCOL()}" style="--gc:${color}">
+  ents.push({k:'g',h:`<tr class="grp${coll?' coll':''}" data-g="${esc(key)}"><td colspan="${NCOL()}" style="--gc:${color}">
    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
    <span class="gn">${n}</span><span class="gs">${esc(sub)}</span>
-   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}${noPriceTxt(list)}</span></td></tr>`);
+   <span class="gu">${units.toLocaleString('he-IL')} יח׳ · ${moneyMix(list,custVal)}${noPriceTxt(list)}</span></td></tr>`});
   return coll};
+ const item=r=>{const i=idx++;ents.push({k:'i',i,h:()=>custRow(r,i)})};
  if(G.none.length){
   const t=custTotals(G.none);
   if(!head('cst:none','var(--red)','אין רכש',G.none.length,'לפתוח הזמנת רכש — אף יחידה לא הוזמנה',t.units,G.none))
-   for(const r of G.none)body.push(custRow(r,idx++))}
+   for(const r of G.none)item(r)}
  for(const [sup,list] of G.sup){
   const t=custTotals(list),lt=list[0]&&list[0].ltD?`${list[0].ltD} ימ׳ אספקה · `:'';
   /* הכותרת הזאת הכריזה «אין תאריך בדוח» גם כשנטען דוח ETA שבו חלק
@@ -8989,10 +9140,13 @@ function renderCust(rows){
     :`${nEta} מתוך ${list.length} עם תאריך אספקה · לדרוש ETA לשאר`;
   if(head('cst:sup:'+sup,'var(--acc)',sup,list.length,
       `${lt}הוזמן במלואו — ${sub}`,t.units,list))continue;
-  for(const r of list)body.push(custRow(r,idx++))}
+  for(const r of list)item(r)}
  LAST_VIEW=G.none.concat(...G.sup.map(([,l])=>l));   /* VIEW_SHEET — סדר המסך, כל הקבוצות */
- document.querySelector('#tbl tbody').innerHTML=body.join('')||
-  `<tr><td colspan="${NCOL()}" class="empty">אין פריט עם הזמנת לקוח פתוחה שהמלאי הפנוי שלו אפס.</td></tr>`;
+ const view=[];
+ if(!GCOLL.has('cst:none'))view.push(...G.none);
+ for(const [sup,list] of G.sup)if(!GCOLL.has('cst:sup:'+sup))view.push(...list);
+ vlist('tbl',ents,{view,ncol:NCOL(),wire:vwire(view),
+  empty:`<tr><td colspan="${NCOL()}" class="empty">אין פריט עם הזמנת לקוח פתוחה שהמלאי הפנוי שלו אפס.</td></tr>`});
  const t=custTotals(rows);
  const noneT=custTotals(G.none), supN=rows.length-G.none.length;
  document.getElementById('pgL').textContent=pgTxt(idx,rows.length);
@@ -9007,14 +9161,7 @@ function renderCust(rows){
           :` · ${supN} ברכש — לא נטען דוח ETA`)})();
  setPhdSub(
   'הזמנת לקוח פתוחה מול מלאי פנוי אפס · הקטע האדום הוא היחיד שדורש הזמנת רכש · השאר מקובצים לפי ספק כי הפעולה היא דרישת ETA');
- document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- const view=[];{const G2=custGroups(rows);
-  if(!GCOLL.has('cst:none'))view.push(...G2.none);
-  for(const [sup,list] of G2.sup)if(!GCOLL.has('cst:sup:'+sup))view.push(...list)}
- wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
-  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
-  tr.classList.add('sel');detail(view[+tr.dataset.i])});
- wireCopy()}
+}
 const AP_G=[['done','יושם','שונה ב-SAP בדיוק למספר שהוצע','var(--grn)'],
  ['other','שונה אחרת','הפרמטר זז, אבל לא למספר שהוצע — החלטה אחרת או תיקון חלקי','var(--acc)'],
  ['none','לא נגעו','הפרמטר נשאר כפי שהיה','var(--gray)']];
@@ -9025,18 +9172,19 @@ function apCell(then,now,sug,st){
 function renderApplied(rows){
  document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
- const body=[];let idx=0;
+ const ents=[];let idx=0;
  for(const [k,name,sub,col] of AP_G){
   const list=rows.filter(r=>r.apStatus===k),coll=GCOLL.has('ap:'+k);
-  body.push(`<tr class="grp${coll?' coll':''}" data-g="ap:${k}"><td colspan="${NCOL()}" style="--gc:${col}">
+  ents.push({k:'g',h:`<tr class="grp${coll?' coll':''}" data-g="ap:${k}"><td colspan="${NCOL()}" style="--gc:${col}">
    <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
-   <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`);
+   <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`});
   if(coll||!list.length)continue;
   for(const r of list){const i=idx++;
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-    +colRowHTML(r,{dlen:34})+'</tr>')}}
- document.querySelector('#tbl tbody').innerHTML=body.join('')||
-  `<tr><td colspan="${NCOL()}" class="empty">אין עם מה להשוות — צריך שתי העלאות של שני דוחות שונים.</td></tr>`;
+   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:34})+'</tr>'})}}
+ const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
+ vlist('tbl',ents,{view,ncol:NCOL(),wire:vwire(view),
+  empty:`<tr><td colspan="${NCOL()}" class="empty">אין עם מה להשוות — צריך שתי העלאות של שני דוחות שונים.</td></tr>`});
  const A=APPLIED;
  document.getElementById('pgL').textContent=pgTxt(idx,rows.length);
  document.getElementById('pgR').textContent=A
@@ -9049,18 +9197,11 @@ function renderApplied(rows){
  setPhdSub((A
   ?`מתוך ${A.total} ההמלצות שהיו בהעלאה הקודמת${A.days?` לפני ${A.days} ימים`:''} — מה שונה בפועל ב-SAP`
   :'השוואה בין שתי העלאות')+(dr?' · '+dr:'')+(oc?' · '+oc:''));
- document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
- LAST_VIEW=AP_G.flatMap(([k])=>rows.filter(r=>r.apStatus===k));   /* VIEW_SHEET */
- wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
-  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));
-  tr.classList.add('sel');detail(view[+tr.dataset.i])});
- wireCopy()}
+ LAST_VIEW=AP_G.flatMap(([k])=>rows.filter(r=>r.apStatus===k));   /* VIEW_SHEET */}
 function renderDecisions(rows){
  document.getElementById('tbl').dataset.track=track;
  document.querySelector('#tbl thead').innerHTML=decisionHead();
  const c=cut80(rows,track),k=TRACKKEY[track];
- const lim=FIXLIKE()?300:Math.min(rows.length,Math.max(300,c.n+3));
  /* במצב "היום" הרשימה מסודרת בקבוצות, עם שורת כותרת מתקפלת בין קבוצה לקבוצה */
  /* "לקוח ממתין" מרונדר בקבוצות משלו לפני כל שאר הענפים */
  if(track==='agenda'){renderAgenda(rows);return}
@@ -9072,10 +9213,15 @@ function renderDecisions(rows){
  const SG=SG0?SG0.map(([k,l])=>[k,wsortApply(l)]):null;
  const GB0=(grouped&&!bySup)?groupRows(rows):null;
  const GB=GB0?Object.fromEntries(Object.keys(GB0).map(k=>[k,wsortApply(GB0[k],true)])):null;
- const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l).slice(0,lim)
-   :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g]).slice(0,lim)
+ /* D2A — אין יותר חיתוך ברינדור (lim 300 · RCAP 500): כל הרשימה נגישה
+    בגלילה. מה שנשאר הוא ההחלטה של מסכי הכסף: ברירת המחדל היא הפריטים
+    שמרכזים 80% מהשווי בכל מטבע (capView), ו«הצג את כל הפריטים» פותח
+    את השאר — עם קו ה-80% במקומו. */
+ const capAll=!!k&&CAPALL.has(mode);
+ const view=bySup?SG.flatMap(([k,l])=>GCOLL.has('sup:'+k)?[]:l)
+   :grouped?TGROUP.flatMap(([g])=>GCOLL.has(g)?[]:GB[g])
    /* מסלול עם רישום אינו מקובץ, ולכן המיון חל על הרשימה כולה. */
-   :k?capView(rows,c):(colReg()?wsortApply(rows):rows).slice(0,lim);
+   :k?(capAll?rows:capView(rows,c)):(colReg()?wsortApply(rows):rows);
  /* הסדר שעל המסך אינו הסדר של currentRows(): הקיבוץ, המיון בתוך
     הקבוצה וקיפול קבוצות מסדרים אותו מחדש. הייצוא «של התצוגה» חייב
     לצאת בסדר הזה, ולכן הוא נשמר כאן — במקום להיבנות שוב ולסטות. */
@@ -9083,31 +9229,29 @@ function renderDecisions(rows){
  LAST_VIEW=bySup?SG.flatMap(([,l])=>l):grouped?TGROUP.flatMap(([g])=>GB[g])
    :k?rows:(colReg()?wsortApply(rows):rows);
  /* ============ RENDER_CAP ============
-    במסלול בלי מפתח כספי cut80 מחזיר n = כל הרשימה, ולכן lim לא חתך
-    כלום: «שינוי פרופיל MRP» בנה 5,046 שורות (כ-115 אלף רכיבים) ונפתח
-    ב-4.3 שניות על הדוח האמיתי. הרינדור נחתך כאן ב-500, כמו הקטלוג.
-    LAST_VIEW נשאר הרשימה המלאה — גיליון «התצוגה» בייצוא לא משתנה. */
- const RCAP=(!k&&!grouped&&!bySup)?500:Infinity;
- const body=[];
+    «שינוי פרופיל MRP» בנה 5,046 שורות (כ-115 אלף רכיבים) ונפתח ב-4.3
+    שניות על הדוח האמיתי, ולכן הרינדור נחתך ב-500. מאז D2A הרשימה
+    כולה נבנית כ-ents ורק החלון שבגלילה מצויר — ראה vlist. */
+ const ents=[],G=h=>ents.push({k:'g',h});
  let acc=0,curBlk=null,blkI=0;
  if(bySup){let idx=0;
   for(const [sup,list] of SG){
    const t=supTotals(list),coll=GCOLL.has('sup:'+sup);
    const lt=list[0]&&list[0].ltD?list[0].ltD+' ימ׳ אספקה':'';
-   body.push(`<tr class="grp sup${coll?' coll':''}" data-g="sup:${esc(sup)}"><td colspan="${NCOL()}" style="--gc:var(--acc)">
+   G(`<tr class="grp sup${coll?' coll':''}" data-g="sup:${esc(sup)}"><td colspan="${NCOL()}" style="--gc:var(--acc)">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
      <span class="gn">${list.length}</span>
      <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
      <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
    if(coll)continue;
-   for(const r of list){if(idx>=lim)break;const i=idx++;
-    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-     +colRowHTML(r,{dlen:40})+'</tr>')}}
+   for(const r of list){const i=idx++;
+    ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+     +colRowHTML(r,{dlen:40})+'</tr>'})}}
  }
  else if(grouped){let idx=0;
   for(const [g,name,sub,col] of TGROUP){const list=GB[g];
    const units=list.reduce((t,r)=>t+(g==='t1'?(r.cust||0):Math.ceil(r.unsQty||0)),0),coll=GCOLL.has(g);
-   body.push(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
+   G(`<tr class="grp${coll?' coll':''}" data-g="${g}"><td colspan="${NCOL()}" style="--gc:${col}">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(name)}</b>
      <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span>${g==='t2'?etaCovered():''}
      <span class="gu">${list.length?`${units.toLocaleString('he-IL')} ${g==='t1'?'יח׳ לקוח ממתינות':'יח׳ לא יסופקו'} · ${moneyMix(list,r=>r.unsVal||0)}${noPriceTxt(list)}`:'אין פריטים'}</span></td></tr>`);
@@ -9117,27 +9261,25 @@ function renderDecisions(rows){
    const curN=new Set(list.map(curKey)).size;
    const maj=majorCat(list);
    let blk=null;
-   for(const r of list){if(idx>=lim)break;const i=idx++;
+   for(const r of list){const i=idx++;
     if(curN>1&&curKey(r)!==blk){blk=curKey(r);
      const inBlk=list.filter(x=>curKey(x)===blk);
-     body.push(`<tr class="grp cur" data-g="${g}:${esc(blk)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
+     G(`<tr class="grp cur" data-g="${g}:${esc(blk)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
        <b>${esc(curName(blk))}</b><span class="gn">${inBlk.length}</span>
        <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
        <span class="gu">${money(inBlk.reduce((t,x)=>t+(x.unsVal||0),0),blk)}</span></td></tr>`)}
-    body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-     +colRowHTML(r,{dlen:24,maj})+'</tr>')}}
+    ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+     +colRowHTML(r,{dlen:24,maj})+'</tr>'})}}
  }
  else view.forEach((r,i)=>{
-  if(i>=RCAP)return;
-  const doneBtn=r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`;
   /* תצוגה שיש לה רישום עמודות מרונדרת ממנו, ולכן הכותרת והתאים
      נגזרים מאותו מקור — ועמודה שנוספה בבורר מופיעה בשניהם.
      «כסף תקוע» אינו נכנס כאן: יש לו מבנה נוסף — כותרת לכל בלוק
      מטבע וקו ה-80% — שיושב אחרי הענף הזה. הוא מרונדר מהרישום
      בהמשך, באותה colRowHTML. */
   if(colReg()&&!k){
-   body.push(`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-    +colRowHTML(r,{dlen:34})+'</tr>');
+   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    +colRowHTML(r,{dlen:34})+'</tr>'});
    return}
   /* האחוז המצטבר וקו ה-80% נמדדים בתוך המטבע של השורה בלבד. הרשימה
      מסודרת בבלוקים לפי מטבע, ולכן המונה מתאפס במעבר בין בלוק לבלוק. */
@@ -9145,18 +9287,25 @@ function renderDecisions(rows){
    if(ck!==curBlk){curBlk=ck;acc=0;blkI=0;
     const cb=c.byCur&&c.byCur[ck];
     if(cb&&c.byCur&&Object.keys(c.byCur).length>1)
-     body.push(`<tr class="grp" data-g="cur:${esc(ck)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
+     G(`<tr class="grp" data-g="cur:${esc(ck)}"><td colspan="${NCOL()}" style="--gc:var(--gray)">
        <b>${esc(curName(ck))}</b><span class="gn">${cb.count.toLocaleString('he-IL')}</span>
        <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
        <span class="gu">${money(cb.total,ck)}</span></td></tr>`)}
    acc+=r[k]||0;blkI++}
   const cb=k&&c.byCur?c.byCur[curKey(r)]:null;
   const pct=(cb&&cb.total)?Math.round(acc/cb.total*100):0,above=cb?blkI<=cb.n:false;
-  body.push(`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>`
-   +colRowHTML(r,{dlen:30,pct})+'</tr>');
+  ents.push({k:'i',i,h:()=>`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>`
+   +colRowHTML(r,{dlen:30,pct})+'</tr>'});
   if(cb&&above&&blkI===cb.n){const ck=curKey(r);
-   body.push(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
- document.querySelector('#tbl tbody').innerHTML=body.join('')||
+   G(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
+ /* «הצג את כל הפריטים» — בסוף הרשימה, במקום שבו הגלילה נגמרת; ובתצוגה
+    המלאה — הדרך חזרה ל-80%. אותו מתג כמו בפס התחתון (capAll). */
+ if(k&&(capAll||view.length<rows.length))
+  G(`<tr class="vmore"><td colspan="${NCOL()}">${esc(capAll
+     ?`מוצגים כל ${rows.length.toLocaleString('he-IL')} הפריטים — קו ה-80% מסומן בכל מטבע`
+     :capMoreTxt(view.length,rows.length))}
+   <button type="button" class="capall" data-capall="1">${capAll?'רק 80% מהשווי':`הצג את כל ${rows.length.toLocaleString('he-IL')} הפריטים`}</button></td></tr>`);
+ vlist('tbl',ents,{view,ncol:NCOL(),wire:vwire(view),empty:
    `<tr><td colspan="${NCOL()}" class="empty">${SHORTLIKE()
      ?'אין חוסרים היום — כל הביקוש מכוסה במלאי, ברכש פתוח ובמלאי בהעברה. בדוק את "כסף תקוע" ואת "מספר לתקן ב-SAP".'
      :track==='m1'?`אין פריט ZM שצרך ${M1_MIN3}+ יח׳ ברבעון האחרון ושהמלאי הפנוי שלו לא מכסה את החודש הקרוב.`
@@ -9177,11 +9326,9 @@ function renderDecisions(rows){
         :mode==='capNone'?'אין כסף תקוע שאין מולו מה לשנות — לכל פריט בדלת יש ידית.'
         :'אין כסף תקוע במסלול הזה.')
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
-     :'אין מספרים לתקן ב-SAP.'}</td></tr>`;
- document.querySelectorAll('#tbl tbody tr.grp').forEach(tr=>tr.onclick=()=>toggleGroup(tr.dataset.g));
- wireMarkBtns();document.querySelectorAll('#tbl tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
-   document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=pgTxt(Math.min(view.length,RCAP),rows.length)
+     :'אין מספרים לתקן ב-SAP.'}</td></tr>`});
+ capAllSync(k?{all:capAll,shown:view.length,total:rows.length}:null);
+ document.getElementById('pgL').textContent=pgTxt(view.length,rows.length)
    /* המונה במסילה הוא «לפעולה» — כאן רואים מאיפה הוא בא */
    +(track==='prof'&&rows.length?` · ${rows.filter(profActive).length.toLocaleString('he-IL')} לפעולה (להעלות + לבדוק)`:'');
  let extra='';
@@ -9262,7 +9409,7 @@ function renderDecisions(rows){
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
   :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
     :'כסף שיושב במחסן ולא זז — ממוין לפי הכסף התקוע בתוך כל מטבע בנפרד · ארבע הדלתות שמתחת מחלקות אותו לפי הידית שאפשר למשוך'));
- wireCopy()}
+}
 /* ============ RENDER_NEEDS_DATA ============
    התקלה שהמעתד דיווח עליה ב-4.10, מתוך ה-stack שהוא שלח:
      TypeError: Cannot read properties of null (reading 'quality')
@@ -9290,7 +9437,7 @@ function renderDecisions(rows){
    לכמה שורות צוירו או אילו קבוצות פתוחות. המסך עצמו לא משתנה — כל
    מרנדר שומר את הרשימה המלאה לצד מה שהוא מצייר. האיפוס כאן מבטיח שמסך
    ששכח לשמור לא יירש את קודמו: viewExportRows נופל אז ל-currentRows(). */
-function render(){LAST_VIEW=null;sapBtnSync();if(!QF)return;
+function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
  DL_CACHE={};XMAP=null;LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
@@ -9370,16 +9517,14 @@ function render(){LAST_VIEW=null;sapBtnSync();if(!QF)return;
     נפרדות באותה פונקציה, ולכן לא היה בורר עמודות — «כל הטבלאות
     בכלי» כולל גם את זאת. העמודות והתאים זהים לתו. */
  document.querySelector('#tbl thead').innerHTML='<tr>'+colHeadHTML()+'</tr>';
- const view=rows.slice(0,500);
- LAST_VIEW=rows;                               /* VIEW_SHEET — 7,990 ולא 500 */
- document.querySelector('#tbl tbody').innerHTML=view.map((r,i)=>
-  `<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>').join('')
-  ||`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`;
- wireMarkBtns();document.querySelectorAll('#tbl tbody tr').forEach(tr=>tr.onclick=()=>{
-  document.querySelectorAll('#tbl tbody tr').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');detail(view[+tr.dataset.i])});
- document.getElementById('pgL').textContent=pgTxt(Math.min(view.length,500),rows.length);
- document.getElementById('pgR').textContent=`${QF.all.length.toLocaleString('he-IL')} מק״טים בקובץ`;
- wireCopy()}
+ /* D2A — כל 7,990, לא 500: רק החלון שבגלילה מצויר (vlist) */
+ const view=rows;
+ LAST_VIEW=rows;                               /* VIEW_SHEET */
+ vlist('tbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>'})),
+  {view,ncol:visCols().length,wire:vwire(view),
+   empty:`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`});
+ document.getElementById('pgL').textContent=pgTxt(view.length,rows.length);
+ document.getElementById('pgR').textContent=`${QF.all.length.toLocaleString('he-IL')} מק״טים בקובץ`}
 /* ============ אריח תנועות אחרונות (v0.12) ============ */
 let movTab='sales';
 const MOVDEF=[['sales','מכירות אחרונות','var(--acc)'],['entries','כניסות אחרונות','var(--blue)'],['stuck','כניסות ללא מכירה','var(--org)']];
@@ -9417,7 +9562,7 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  mt.innerHTML=MOVDEF.map(([k,l,c])=>`<div class="tab ${k===movTab?'sel':''}" style="--c:${c}" data-mt="${k}"><div class="t">${l}</div><div class="n">${counts[k].toLocaleString('he-IL')}</div><div class="m">${k==='stuck'?'נכנס ולא נמכר':'מהחדש לישן'}</div></div>`).join('');
  mt.querySelectorAll('.tab').forEach(e=>e.onclick=()=>{movTab=e.dataset.mt;renderMoves();
    if(document.getElementById('colspick').classList.contains('open'))colsOpen(true)});
- const rows=movRows(),view=rows.slice(0,500);
+ const rows=movRows(),view=rows;           /* D2A — כולן, לא 500 */
  document.getElementById('movlt').textContent=MOVDEF.find(d=>d[0]===movTab)[1]+' ('+rows.length.toLocaleString('he-IL')+')';
  const msub=document.getElementById('movsub');
  if(msub)msub.textContent=`${cS.toLocaleString('he-IL')} מכירות · ${cE.toLocaleString('he-IL')} כניסות · ${cK.toLocaleString('he-IL')} תקוע`;
@@ -9426,14 +9571,11 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  const mv='mv_'+movTab;
  document.querySelector('#movtbl thead').innerHTML='<tr>'+colHeadHTML(mv)+'</tr>';
  const ncol=visCols(mv).length;
- document.querySelector('#movtbl tbody').innerHTML=view.map((r,i)=>
-   `<tr data-mi="${i}">`+colRowHTML(r,{dlen:26},mv)+'</tr>').join('')
-  ||`<tr><td colspan="${ncol}" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`;
- document.querySelectorAll('#movtbl tbody tr').forEach(tr=>{const idx=+tr.dataset.mi;if(isNaN(idx))return;
-   tr.onclick=()=>{document.querySelectorAll('#movtbl tbody tr').forEach(x=>x.classList.remove('sel'));
-     tr.classList.add('sel');const r=view[idx];if(r)detail(r)}});
- document.getElementById('movpg').textContent=`מוצג 1-${Math.min(view.length,500)} מתוך ${rows.length.toLocaleString('he-IL')}`;
- wireCopy(document.getElementById('movtbl'));
+ vlist('movtbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-mi="${i}">`+colRowHTML(r,{dlen:26},mv)+'</tr>'})),
+  {view,ncol,empty:`<tr><td colspan="${ncol}" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`,
+   wire:()=>{document.querySelectorAll('#movtbl tbody tr[data-mi]').forEach(tr=>tr.onclick=()=>vpick(tr,view[+tr.dataset.mi]));
+    wireCopy(document.getElementById('movtbl'))}});
+ document.getElementById('movpg').textContent=`מוצג 1-${view.length.toLocaleString('he-IL')} מתוך ${rows.length.toLocaleString('he-IL')}`;
  /* מעבר בין טאבים מחליף עמודות, ולכן גם את רוחביהן ואת ידיות
     הגרירה — הן חייבות להיבנות מחדש ולא רק בציור של render(). */
  setTimeout(()=>{colsBoot()},0)}
@@ -9712,13 +9854,13 @@ function decisionQtyLabel(r){
    אמר את זה. אלה אותם שני כפתורים על אותה פונקציה — לא מסלול
    ניווט שני — ולצידם המיקום ברשימה, שעונה על «כמה נשארו». */
 function detailNav(){
- const rows=navRows();if(!rows.length)return '';
- const i=rows.findIndex(t=>t.classList.contains('sel'));
+ const n=navN();if(!n)return '';
+ const i=selIndex();
  if(i<0)return '';
  return `<span class="onav">
   <button type="button" data-dnav="-1" ${i<=0?'disabled':''} title="הפריט הקודם ברשימה (↑)" aria-label="הפריט הקודם">‹</button>
-  <span class="opos">${(i+1).toLocaleString('he-IL')} מתוך ${rows.length.toLocaleString('he-IL')}</span>
-  <button type="button" data-dnav="1" ${i>=rows.length-1?'disabled':''} title="הפריט הבא ברשימה (↓)" aria-label="הפריט הבא">›</button></span>`}
+  <span class="opos">${(i+1).toLocaleString('he-IL')} מתוך ${n.toLocaleString('he-IL')}</span>
+  <button type="button" data-dnav="1" ${i>=n-1?'disabled':''} title="הפריט הבא ברשימה (↓)" aria-label="הפריט הבא">›</button></span>`}
 
 /* ============ המספרים לפני המילים ============
    סעיף 4 במפרט: «המספרים ראשונים — לקוח 8 | פנוי 2 | רכש 0 | פער 6».
@@ -11836,7 +11978,7 @@ function renderHome(){
   ['cap','כסף תקוע — הגדולים','❤','capital','cap','אין כסף תקוע מזוהה']];
  const row=(k,r)=>`<button type="button" class="hrow" data-pn="${esc(r.pn)}">
    <span class="hpn"><bdi>${esc(r.pn)}</bdi></span>
-   <span class="hds">${esc((r.desc||'').slice(0,34))}</span>
+   <span class="hds"${dscTtl(r.desc,34)}>${esc((r.desc||'').slice(0,34))}</span>
    <span class="hv">${homeVal(k,r)}</span></button>`;
  const card=([k,title,ic,tone,go,empty])=>{const list=homeRows(k);
   return `<section class="hcard">
@@ -11890,35 +12032,37 @@ function showBody(which){
  holder.appendChild(body);qb.appendChild(holder);mv.remove()})();
 
 /* ============ ניווט מקלדת — לעבור על התור בלי עכבר ============ */
-function navRows(){return [...document.querySelectorAll(
-  cur==='moves'?'#movtbl tbody tr[data-mi]':'#tbl tbody tr[data-i]')]}
-function selIndex(rows){return rows.findIndex(r=>r.classList.contains('sel'))}
-function pickRow(tr){if(!tr)return;tr.click();tr.scrollIntoView({block:'nearest'})}
-function moveSel(d){const rows=navRows();if(!rows.length)return;
- const i=selIndex(rows);
- pickRow(rows[i<0?(d>0?0:rows.length-1):Math.min(rows.length-1,Math.max(0,i+d))])}
-function pageSel(d){const rows=navRows();if(!rows.length)return;
- const box=document.querySelector(cur==='moves'?'#movesPanel .rows':'#w_queue .rows');
- const step=Math.max(1,Math.floor((box?box.clientHeight:200)/(rows[0].offsetHeight||30))-1);
- const i=selIndex(rows);
- pickRow(rows[Math.min(rows.length-1,Math.max(0,(i<0?0:i)+d*step))])}
-function markSelHandled(){const rows=navRows();const i=selIndex(rows);if(i<0)return false;
- const b=rows[i].querySelector('[data-done]');if(!b)return false;
+/* D2A — הניווט עובר על הרשימה (VL), לא על השורות שב-DOM: בחלון יש
+   רק חלק מהן, והחץ למטה בשורה האחרונה שבו חייב להגיע לבאה אחריה. */
+function navSt(){const s=VL[cur==='moves'?'movtbl':'tbl'];return s&&s.tb.isConnected?s:null}
+function navN(){const s=navSt();return s?s.items.length:0}
+function selIndex(){const s=navSt();return s?s.sel:-1}
+function pickAt(i){const s=navSt();if(!s||i<0||i>=s.items.length)return;
+ const tr=vgo(s,i);if(!tr)return;tr.click();tr.scrollIntoView({block:'nearest'})}
+function moveSel(d){const n=navN();if(!n)return;
+ const i=selIndex();
+ pickAt(i<0?(d>0?0:n-1):Math.min(n-1,Math.max(0,i+d)))}
+function pageSel(d){const n=navN();if(!n)return;const s=navSt();
+ const step=Math.max(1,Math.floor(s.box.clientHeight/(s.est.i||30))-1);
+ const i=selIndex();
+ pickAt(Math.min(n-1,Math.max(0,(i<0?0:i)+d*step)))}
+function markSelHandled(){const i=selIndex();if(i<0)return false;
+ const tr=vgo(navSt(),i),b=tr&&tr.querySelector('[data-done]');if(!b)return false;
  /* אחרי «בטל» הפריט חוזר למקומו בסדר, ולכן לאותו אינדקס */
- markHandled(b.dataset.done,()=>pickRow(navRows()[i]));   /* setMark → apply → render */
- const after=navRows();                      /* הרשימה התכווצה — הבא תפס את המקום */
- if(after.length)pickRow(after[Math.min(i,after.length-1)]);
+ markHandled(b.dataset.done,()=>pickAt(i));   /* setMark → apply → render */
+ const n=navN();                             /* הרשימה התכווצה — הבא תפס את המקום */
+ if(n)pickAt(Math.min(i,n-1));
  return true}
 /* Enter פותח את הפריט שעומדים עליו. סגירת הכרטיס (Escape) מורידה את הבחירה,
    ולכן זוכרים את השורה האחרונה — Enter פותח אותה שוב ולא קופץ לראשונה. */
 let LAST_SEL=-1;
-function openSel(){const rows=navRows();if(!rows.length)return;
- const i=selIndex(rows);
- pickRow(rows[i>=0?i:(LAST_SEL>=0&&LAST_SEL<rows.length?LAST_SEL:0)])}
+function openSel(){const n=navN();if(!n)return;
+ const i=selIndex();
+ pickAt(i>=0?i:(LAST_SEL>=0&&LAST_SEL<n?LAST_SEL:0))}
 function tabStep(d){const tabs=[...document.querySelectorAll('#tabs .tab')];if(!tabs.length)return;
  const i=tabs.findIndex(t=>t.classList.contains('sel'));if(i<0)return;
  const n=tabs[Math.min(tabs.length-1,Math.max(0,i+d))];
- if(n&&n!==tabs[i]){n.click();const first=navRows()[0];if(first)pickRow(first)}}
+ if(n&&n!==tabs[i]){n.click();if(navN())pickAt(0)}}
 document.addEventListener('keydown',e=>{
  if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();focusQ();return}
  if(e.ctrlKey||e.metaKey||e.altKey)return;
@@ -11928,7 +12072,7 @@ document.addEventListener('keydown',e=>{
   if(typing){t.blur();return}
   document.querySelectorAll('.ddpanel,.menu').forEach(x=>x.classList.remove('open'));
   closeSug();closeColPop();
-  {const i=selIndex(navRows());if(i>=0)LAST_SEL=i}
+  {const i=selIndex();if(i>=0)LAST_SEL=i}
   const mw=document.getElementById('modalwrap');
   if(mw.classList.contains('open')){mw.classList.remove('open');return}
   closeDetail();return}
