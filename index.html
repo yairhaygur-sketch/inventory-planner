@@ -5712,11 +5712,14 @@ function applyColWidths(){
   if(!w&&!L){if(cg)cg.remove();tbl.style.tableLayout='';continue}
   if(!cg){cg=document.createElement('colgroup');tbl.insertBefore(cg,tbl.firstChild)}
   const X=ths.map((_,i)=>(w&&w[i])||(L&&L[i])||null);
+  /* עמודה שמוסתרת ב-CSS (display:none) אינה עמודה בטבלה — col שלה היה מזיז
+     את כל הרוחבים שאחריה בעמודה אחת (נמדד: «11 חודשים» סטה 14px ב-1180) */
+  const vis=ths.map(t=>getComputedStyle(t).display!=='none');
   /* עמודה שהוצרה ביד: מה שהתפנה הולך לעמודות האחרות (כמו בפריסה אוטומטית),
      ולא מתחלק גם אליה — אחרת היא יוצאת רחבה מהרוחב שנבחר */
   if(L&&w){const d=ths.reduce((p,_,i)=>p+(w[i]?w[i]-L[i]:0),0),oth=X.reduce((p,x,i)=>p+(w[i]?0:x),0);
    if(d<0&&oth>0)X.forEach((x,i)=>{if(!w[i])X[i]=x-d*x/oth})}
-  cg.innerHTML=X.map(x=>`<col${x?` style="width:${x}px"`:''}>`).join('');
+  cg.innerHTML=X.filter((_,i)=>vis[i]).map(x=>`<col${x?` style="width:${x}px"`:''}>`).join('');
   tbl.style.tableLayout='fixed'}}
 function wireColResize(){
  for(const tbl of cwTables()){
@@ -9112,9 +9115,21 @@ function vlock(st,a,b){const tbl=st.tb.parentNode,th=tbl.tHead;if(!th)return;
  if(num.length){const lenB=num.map(()=>0),lenA=num.map(()=>0);
   st.ents.forEach((e,j)=>{if(e.k!=='i')return;const parts=H(j).split('</td>'),inB=base.has(j);
    num.forEach((c,q)=>{const L=parts[c]?strip(parts[c]).length:0;if(L>lenA[q])lenA[q]=L;if(inB&&L>lenB[q])lenB[q]=L})});
-  const td0=st.tb.querySelector('tr[data-i] td,tr[data-mi] td'),cx=document.createElement('canvas').getContext('2d');
-  cx.font=td0?getComputedStyle(td0).font:'12px Heebo';const dg=cx.measureText('0').width;
-  num.forEach((c,q)=>{const d=(lenA[q]-lenB[q])*dg;if(d>0){w[c]+=d;mc[c]+=d}})}
+  /* רוחב ספרה בגופן של מה שמחזיק את המספר — לא של התא: הדירוג הוא גלולה
+     מודגשת, וספרה בה רחבה יותר (נמדד: «1000» דרש 43px וקיבל 40) */
+  const cx=document.createElement('canvas').getContext('2d'),row=st.tb.querySelector('tr[data-i],tr[data-mi]');
+  const dgOf=c=>{const td=row&&row.children[c];if(!td)return 8;let m=0;
+   for(const el of [td,...td.querySelectorAll('*')]){if(!el.textContent.trim()||el.closest('svg'))continue;
+    cx.font=getComputedStyle(el).font;m=Math.max(m,cx.measureText('0').width)}return m||8};
+  /* הרוחב הדרוש נמדד מהתא הארוך ביותר שצויר — רוחב התוכן (Range, כולל
+     הגלולה), ועוד ספרה לכל תו נוסף, הריפוד וההפרש בין העמודה לתא */
+  const rows=[...st.tb.children].filter(tr=>tr.matches('[data-i],[data-mi]'));
+  num.forEach((c,q)=>{if(lenA[q]<=lenB[q])return;let td=null,Lb=-1;
+   for(const tr of rows){const x=tr.children[c];const L=x?x.textContent.trim().length:0;if(L>Lb){Lb=L;td=x}}
+   if(!td)return;const rg=document.createRange();rg.selectNodeContents(td);const cs=getComputedStyle(td);
+   const need=rg.getBoundingClientRect().width+(lenA[q]-Lb)*dgOf(c)+parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight)
+    +(ths[c].getBoundingClientRect().width-td.clientWidth)+2;
+   if(need>w[c])w[c]=need;if(need>mc[c])mc[c]=need})}
  /* מה שהמספרים הוסיפו מעבר לרוחב שהיה — יורד קודם מהמרווח שבעמודות
     (עד הרוחב המינימלי שלהן), ורק אם לא די בו — מעמודות הטקסט הרחבות, ב-«…» */
  const need=w.reduce((p,x)=>p+x,0)-(box.clientWidth+Math.max(0,ov0));
