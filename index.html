@@ -2944,7 +2944,13 @@ tr.grp.sup b{font-size:var(--f-md)}
 #tbl tbody td{line-height:1.12}
 #tbl tbody td>*{vertical-align:middle}
 #tbl .ocat{line-height:1.2}
-@media(max-width:1440px){#tbl td{padding-inline:7px}}
+@media(max-width:1440px){#tbl td{padding-inline:7px}
+ /* הכותרת זזה באותם 2px, אחרת הטקסט שלה והעמודה שמתחתיה נפרדים (ui.test) */
+ #tbl thead th .thc{margin-inline-start:-2px}}
+/* כרטיס הפריט: אותו line-height טבעי של Heebo הוסיף 3–5px לכל שורה — 1,344→1,503px
+   תוכן. 1.25 מחזיר את רובו (1,398); השאר הוא שני משפטים שב-10px נכנסו בשורה
+   אחת וב-12px נשברים לשתיים, וזה המחיר של המינימום. */
+.wdetail,.wdetail *{line-height:1.25}
 /* כותרת בשתי שורות רק איפה שיש לחץ. מעל 1560 יש מקום, ושורה אחת חוסכת
    שישה פיקסלים — ב-1920 זו השורה ה-28 ב«חוסרים». */
 @media(min-width:1561px){#tbl thead th{white-space:nowrap}}
