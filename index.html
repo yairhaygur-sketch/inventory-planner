@@ -1973,6 +1973,11 @@ td .mut{color:var(--dimmer)}
 .sapbar[hidden]{display:none}
 .sapbar .btn{height:30px}
 .sapbar .sapbarN{color:var(--shell-dim);font-size:var(--f-sm);margin-inline-start:auto}
+.sapbar .sapbarInfo{color:var(--shell-dim);font-size:var(--f-sm)}
+.sapbar .sapbarInfo b{color:var(--shell-ink);font-family:var(--num)}
+.sapbar .sapbarOut{display:inline-flex;align-items:center;gap:6px;font-size:var(--f-sm);color:var(--shell-ink)}
+.sapbar .sapbarOut[hidden]{display:none}
+.sapbar #sapbarGo{margin-inline-start:auto}
 /* פס הכיסוי: אותו רוחב כמו הגרף שהוא מחליף (110px), כדי שתקציב
    הרוחב של הטבלה לא יזוז. */
 #tbl td.covc{width:88px;white-space:nowrap}
@@ -3003,7 +3008,10 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
  text-decoration:underline;text-underline-offset:2px;white-space:normal}
 .pager .capall:hover{background:none;color:var(--ink)}
 /* בטלפון הפס נשבר לשורה נוספת (38→52px) — שם המתג נשאר בשורה שבסוף הרשימה */
-@media(max-width:760px){.pager .capall{display:none}}
+@media(max-width:760px){.pager .capall{display:none}
+ /* D2B — «בחר את כל N לקובץ SAP» כן מוצג בטלפון, ומחליף את ההערה «ניתן לעדכן
+    במרוכז ב-SAP» שאומרת אותו דבר: אחרת הפס נשבר לשורה שנייה (23→38px, נמדד) */
+ .pager #selAll:not([hidden]){display:inline}.pager:has(#selAll:not([hidden])) #pgR{display:none}}
 @media(max-width:760px){
  #tbl tbody tr.vsp,#tbl tbody tr.vmore{display:block}
  #tbl tbody tr.vsp>td,#tbl tbody tr.vmore>td{display:block}}
@@ -3205,10 +3213,13 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
              הכפתור בתפריט «קבצים» מוריד את כל מה שבתצוגה. כאן — רק מה
              שסימנת, באותו פורמט ובאותם כללים בדיוק (doSapMass). -->
         <div class="sapbar" id="sapbar" hidden><b><span id="sapbarN">0</span> נבחרו</b>
-          <button type="button" class="btn pri" id="sapbarGo">⇪ קובץ SAP לנבחרים</button>
-          <button type="button" class="btn" id="sapbarClr">נקה בחירה</button>
-          <span class="sapbarN">רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»</span></div>
-        <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button></span><span id="pgR"></span></div>
+          <button type="button" class="btn" id="sapbarAll" hidden></button>
+          <span class="sapbarInfo" id="sapbarInfo" role="status" aria-live="polite"></span>
+          <span class="sapbarOut" id="sapbarOut" hidden><span id="sapbarOutN"></span>
+            <button type="button" class="btn" id="sapbarOutClr">בטל אותם</button></span>
+          <button type="button" class="btn pri" id="sapbarGo" title="רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»">⇪ קובץ SAP לנבחרים</button>
+          <button type="button" class="btn" id="sapbarClr">נקה בחירה</button></div>
+        <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button><button type="button" id="selAll" class="capall" hidden></button></span><span id="pgR"></span></div>
       </div>
     </div></div>
     <div class="rz" data-rz="queue" title="שינוי גודל"></div>
@@ -8305,31 +8316,78 @@ function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(ma
    ובהודעה הופיע data-done כפי שהוא: מפתח הסימון, «מעתד|ספק|מק״ט»,
    במקום המק״ט. עכשיו כל רינדור קורא לאותה פונקציה. */
 const SAPSEL=new Set();
-function sapSelRows(){const all=(QF&&QF.all)||[];return all.filter(r=>SAPSEL.has(r.pn)&&sapUsableBase(r))}
+/* D2B — הבחירה היא של המשתמש, לא של הסינון. עד כאן הבחירה נגזרה מ-QF.all —
+   הנתונים אחרי הסינון במגירה — ולכן סינון במגירה מחק בשקט פריטים שנבחרו
+   (נמדד: 33 → 18, וגם אחרי הסרת הסינון 18). סינון עמודה וחיפוש שמרו. עכשיו
+   שלושתם שומרים: הבחירה נמדדת מול כל הדוח (ALL), והפס והתצוגה לפני הייצוא
+   אומרים כמה מהנבחרים מוסתרים בסינון הנוכחי — והם בקובץ.
+   classify רץ רק על הנתונים המסוננים, ולכן פריט מוסתר נושא את הסיווג מהפעם
+   האחרונה שסווג — או אף אחד, אם הדוח נטען כשהסינון פעיל. sapFresh מסווג את
+   הנבחרים המוסתרים באותה classify בדיוק (נמדד: שדות הקובץ של פריט אינם
+   תלויים בשאר הפריטים — 0 הבדלים ב-7,990, לבד ובקבוצות), פעם אחת לכל סינון
+   (SIDXV), ומחזיר את סדר המטבעות (CURORDER) שהיא מעדכנת — התצוגה לא זזה. */
+let SAPFRESH=null;
+function sapFresh(){if(!QF||!ALL||!ALL.length||!SAPSEL.size)return;
+ const vis=QF.all;if(vis.length===ALL.length)return;
+ const inQ=new Set(vis),hid=ALL.filter(r=>SAPSEL.has(r.pn)&&!inQ.has(r));
+ const key=SIDXV+'|'+SAPSEL.size;if(!hid.length||(SAPFRESH&&SAPFRESH.key===key&&SAPFRESH.qf===QF))return;
+ const co=CURORDER;try{classify(hid)}finally{CURORDER=co}
+ SAPFRESH={key,qf:QF}}
+function sapSelAll(){sapFresh();return (ALL||[]).filter(r=>SAPSEL.has(r.pn))}
+function sapSelRows(){return sapSelAll().filter(sapUsableBase)}
+/* נבחרים שהסינון הנוכחי מסתיר (מגירה, עמודה, חיפוש או דלת אחרת) */
+function sapHidden(){const F=new Set(sapFiltered().map(r=>r.pn));return sapSelRows().filter(r=>!F.has(r.pn))}
 /* הפס מופיע רק במסך התכנון וכשיש בחירה. בחירה של פריט שכבר לא קיים
    (העלאת דוח חדש) נופלת כאן, ולכן הספירה תמיד של מה שבאמת ייכנס. */
+/* ============ D2B · «בחר את כל N» ============
+   עד D2A התיבה שבכותרת סימנה את מה שצויר (עד 300 שורות), בלי לומר כמה זה
+   מתוך כמה. מאז D2A רק החלון מצויר, ולכן «הכול» צריך להיות מפורש:
+     · התיבה שבכותרת — השורות שעל המסך (sapVisible), כמו בכל רשימה ארוכה.
+     · פס הבחירה — «בחר את כל N שבסינון»: כל פריט בסינון הנוכחי שיש לו
+       תיבה (sapFiltered — sapUsableBase, אותו כלל שמציג את התיבה), גם
+       כאלה שלא נגללו אליהם.
+   הפס אומר כמה נבחרו מתוך כמה שבסינון, כמה ייכללו בקובץ ו-כמה לא — אותו
+   sapPlan שהתצוגה לפני הייצוא (S2) והקובץ עצמו משתמשים בו — ואם יש נבחרים
+   מחוץ לסינון הנוכחי (נבחרו במסך אחר או לפני שינוי סינון) — כמה, עם ביטול
+   שלהם בלבד. הבחירה הידנית, «נקה בחירה» והקובץ לנבחרים — כמו שהיו. */
+function sapFiltered(){const s=VL.tbl;
+ return s&&s.tb.isConnected&&colViewKey()==='fix'?s.view.filter(sapUsableBase):[]}
+function sapVisible(){const s=VL.tbl;if(!s||!s.tb.isConnected)return [];
+ const b=s.box.getBoundingClientRect(),th=(s.tb.parentNode.tHead||{}).offsetHeight||0;
+ return [...s.tb.querySelectorAll('tr[data-i]')].filter(tr=>{const r=tr.getBoundingClientRect();
+  return r.bottom>b.top+th+1&&r.top<b.bottom-1}).map(tr=>s.view[+tr.dataset.i]).filter(sapUsableBase)}
+function sapBoxSync(){document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>b.checked=SAPSEL.has(b.dataset.pn))}
+function sapHeadSync(){const all=document.querySelector('#tbl thead .sapall');if(!all)return;
+ const v=sapVisible(),c=v.filter(r=>SAPSEL.has(r.pn)).length;
+ all.checked=c>0&&c===v.length;all.indeterminate=c>0&&c<v.length}
 function sapBarSync(){const bar=document.getElementById('sapbar');if(!bar)return;
  const on=colViewKey()==='fix';
- if(on){const live=new Set(((QF&&QF.all)||[]).map(r=>r.pn));for(const k of [...SAPSEL])if(!live.has(k))SAPSEL.delete(k)}
- const n=on?sapSelRows().length:0;
- bar.hidden=!n;if(!n)return;
- document.getElementById('sapbarN').textContent=n.toLocaleString('he-IL');
- const all=document.querySelector('#tbl thead .sapall'),pool=sapAllPool();
- if(all){const c=pool.filter(r=>SAPSEL.has(r.pn)).length;all.checked=c>0&&c===pool.length;all.indeterminate=c>0&&c<pool.length}}
-/* D2A — התיבה שבכותרת סימנה את התיבות שצוירו, ותור התכנון צויר עד 300
-   שורות. עכשיו רק החלון מצויר, ולכן היא עובדת על הרשימה — באותו כלל:
-   300 השורות הראשונות שיש להן תיבה. (על הדוח האמיתי בתור יש 182, כלומר
-   כולן.) «בחר את כל N» הוא שלב D2b, ולא כאן. */
-function sapAllPool(){const s=VL.tbl;
- return s&&s.tb.isConnected?s.view.slice(0,300).filter(sapUsableBase):[]}
+ /* רק מה שכבר לא קיים בדוח (דוח חדש) יוצא מהבחירה — לא מה שהסינון מסתיר */
+ if(on){const live=new Set((ALL||[]).map(r=>r.pn));for(const k of [...SAPSEL])if(!live.has(k))SAPSEL.delete(k)}
+ const sel=on?sapSelRows():[],n=sel.length;
+ bar.hidden=!n;sapHeadSync();
+ {const F0=on?sapFiltered():[],la=document.getElementById('selAll');
+  if(la){la.hidden=!F0.length||n>0;la.textContent=`בחר את כל ${F0.length.toLocaleString('he-IL')} לקובץ SAP`}}
+ if(!n)return;
+ const N=x=>x.toLocaleString('he-IL');
+ document.getElementById('sapbarN').textContent=N(n);
+ const F=sapFiltered(),fs=new Set(F.map(r=>r.pn)),inF=F.filter(r=>SAPSEL.has(r.pn)).length,outF=sel.filter(r=>!fs.has(r.pn));
+ const P=sapPlan(undefined,sel,sapSelAll());
+ const ab=document.getElementById('sapbarAll');ab.hidden=!F.length||inF===F.length;
+ ab.textContent=`בחר את כל ${N(F.length)} שבסינון`;
+ document.getElementById('sapbarInfo').innerHTML=(F.length&&inF===F.length?`כל <b>${N(F.length)}</b> שבסינון נבחרו`
+   :`<b>${N(inF)}</b> מתוך <b>${N(F.length)}</b> שבסינון`)
+  +` · ייכללו בקובץ <b>${N(P.rows)}</b>`+(P.out?` · <b>${N(P.out)}</b> לא ייכללו — הסיבות בתצוגה לפני הייצוא`:'');
+ const ob=document.getElementById('sapbarOut');ob.hidden=!outF.length;
+ document.getElementById('sapbarOutN').textContent=`${N(outF.length)} מהנבחרים מוסתרים בסינון הנוכחי — הם בחישוב הקובץ`}
 function wireSapSel(){
  document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{
   b.onclick=e=>e.stopPropagation();
   b.onchange=()=>{b.checked?SAPSEL.add(b.dataset.pn):SAPSEL.delete(b.dataset.pn);sapBarSync()}});
  const all=document.querySelector('#tbl thead .sapall');
  if(all){all.onclick=e=>e.stopPropagation();
-  all.onchange=()=>{for(const r of sapAllPool())all.checked?SAPSEL.add(r.pn):SAPSEL.delete(r.pn);
-   document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>b.checked=SAPSEL.has(b.dataset.pn));sapBarSync()}}
+  all.onchange=()=>{for(const r of sapVisible())all.checked?SAPSEL.add(r.pn):SAPSEL.delete(r.pn);
+   sapBoxSync();sapBarSync()}}
  sapBarSync()}
 /* «טופל» לפריט אחד — מכפתור השורה או מ-D — עם «בטל» בהודעה למשך 6 שניות.
    הביטול מחזיר את MARKS[key] בדיוק למה שהיה לפני הלחיצה (בדרך כלל: כלום),
@@ -8396,7 +8454,7 @@ const SCOL={
     במסך התכנון בלבד. תיבה רק בשורה שיש לה שינוי פרמטר שנכנס לקובץ
     (sapUsableBase) — בשורה אחרת סימון לא היה מוסיף לקובץ כלום. אין val,
     ולכן העמודה אינה ממוינת, אינה מסוננת ואינה מיוצאת. */
- sel:{t:'',ttl:'בחירה לקובץ SAP',head:()=>`<input type="checkbox" class="sapall" aria-label="בחר את כל השורות שיש להן שינוי פרמטר">`,
+ sel:{t:'',ttl:'בחירה לקובץ SAP',head:()=>`<input type="checkbox" class="sapall" aria-label="בחר את השורות שעל המסך — «בחר את כל» הרשימה נמצא בפס הבחירה" title="השורות שעל המסך · לכל הרשימה — «בחר את כל» בפס הבחירה">`,
   cell:r=>sapUsableBase(r)
    ?`<td class="selc"><input type="checkbox" class="sapsel" data-pn="${esc(r.pn)}"${SAPSEL.has(r.pn)?' checked':''} aria-label="בחר ${esc(r.pn)} לקובץ SAP"></td>`
    :'<td class="selc"></td>'},
@@ -9035,7 +9093,8 @@ function vlist(id,ents,o){
  ents.forEach((e,j)=>{if(e.i!=null)st.items[e.i]=j;else if(/<tr class="grp/.test(e.h))st.g=1});
  if(!box._vl){box._vl=id;
   box.addEventListener('scroll',()=>{const s=VL[box._vl];
-   if(s&&!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;vdraw(s)})},{passive:true});
+   if(s&&!s.raf)s.raf=requestAnimationFrame(()=>{s.raf=0;vdraw(s);
+    if(s.id==='tbl'&&colViewKey()==='fix')sapHeadSync()})},{passive:true});   /* D2B — «השורות שעל המסך» זזות עם הגלילה */
   /* רוחב אחר הוא גובה שורה אחר (בטלפון — כרטיס שנשבר אחרת) */
   addEventListener('resize',()=>{const s=VL[box._vl];if(s){s.hs.fill(0);vdraw(s,true)}});
   if(window.ResizeObserver){let bw=box.clientWidth;
@@ -10676,10 +10735,11 @@ function sapPreview(kind,sel){
  if(sapNoList()&&!sel){toast(SAP_NO_LIST);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const view=sel?sapSelRows():currentRows();
- const pool=sel?((QF&&QF.all)||[]).filter(r=>SAPSEL.has(r.pn)):view;
+ const pool=sel?sapSelAll():view;
+ const hidN=sel?sapHidden().length:0;
  const P=sapPlan(kind,view,pool);
  const N=n=>n.toLocaleString('he-IL');
- const src=sel?`נבחרו ידנית: ${N(P.total)} פריטים`
+ const src=sel?`נבחרו ידנית: ${N(P.total)} פריטים${hidN?` · מתוכם ${N(hidN)} מוסתרים בסינון הנוכחי — הם בחישוב שלמטה`:''}`
   :`בתצוגה הנוכחית («${esc((DEF.find(d=>d[0]===cur)||[,'רשימה'])[1])}»${track==='tier'?' · רצפת מדרגה':''}): ${N(P.total)} פריטים`;
  const why=Object.entries(P.why).sort((a,b)=>b[1]-a[1])
   .map(([k,n])=>`<tr><td>${esc(SAP_WHY[k]||k)}</td><td class="sapn">${N(n)}</td></tr>`).join('');
@@ -11061,7 +11121,12 @@ document.getElementById('exportXls').onclick=()=>doExport();
 {const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>sapPreview('slow');}
 {const g=document.getElementById('sapbarGo');if(g)g.onclick=()=>sapPreview(undefined,true);
  const c=document.getElementById('sapbarClr');if(c)c.onclick=()=>{SAPSEL.clear();
-  document.querySelectorAll('#tbl .sapsel,#tbl .sapall').forEach(b=>{b.checked=false;b.indeterminate=false});sapBarSync()}}
+  document.querySelectorAll('#tbl .sapsel,#tbl .sapall').forEach(b=>{b.checked=false;b.indeterminate=false});sapBarSync()};
+ /* D2B — כל הסינון / ביטול רק מה שמחוץ לו */
+ const la=document.getElementById('selAll');if(la)la.onclick=()=>{for(const r of sapFiltered())SAPSEL.add(r.pn);sapBoxSync();sapBarSync()};
+ const a=document.getElementById('sapbarAll');if(a)a.onclick=()=>{for(const r of sapFiltered())SAPSEL.add(r.pn);sapBoxSync();sapBarSync()};
+ const o=document.getElementById('sapbarOutClr');if(o)o.onclick=()=>{const fs=new Set(sapFiltered().map(r=>r.pn));
+  for(const k of [...SAPSEL])if(!fs.has(k))SAPSEL.delete(k);sapBoxSync();sapBarSync()}}
 function showDiag(){const el=document.getElementById('diag');
  if(DIAG.hardStop){el.className='diag show err';el.innerHTML='⛔ '+DIAG.hardStop;return}
  const parts=[];
