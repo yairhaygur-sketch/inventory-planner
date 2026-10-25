@@ -4,6 +4,7 @@
    ב-500 — והשאר לא היה נגיש בגלילה. עכשיו הרשימה כולה נשמרת (VL) ובמסך
    מצויר רק החלון שבגלילה. הבדיקה הזאת מוודאה, בכל 26 המסכים:
 
+     · אין מסך שאזור הגלילה שלו בגובה 0 (גם «כסף תקוע» בטלפון — תוקן)
      · הרשימה במסך = כל מה שבסינון (ובמסכי הכסף: 80% כברירת מחדל,
        «הצג את כל הפריטים» פותח את השאר, וקו ה-80% מסומן)
      · גלילה עד הסוף מגיעה לפריט האחרון, בלי חור באף נקודה בדרך
@@ -85,16 +86,11 @@ async function open(b,file,W,H){
   let x=L.filter(r=>r.n!==r.want);
   ok(`${W} · הרשימה במסך = כל מה שבסינון (במסכי הכסף — עד קו ה-80%)`,!x.length,
     x.map(r=>`${r.m} ${r.n}≠${r.want}`).join(' · ')||`${N(L.reduce((t,r)=>t+r.n,0))} פריטים`);
-  /* החריגה היחידה: «כסף תקוע» (cap) בטלפון — תיבת הגלילה בגובה 0, תקלה ידועה
-     שקיימת גם ב-main ותתוקן ב-PR נפרד (KNOWN-ISSUES). כל מסך אחר עם תיבה
-     בגובה 0 — כשל. ושאר הבדיקות של cap בטלפון (הרשימה, אין חור, 80%,
-     שגיאות) רצות כרגיל. */
-  const KNOWN0=r=>W<=760&&r.m==='cap';
+  /* עד תיקון הטלפון, «כסף תקוע» בטלפון היה חריגה ידועה (תיבה בגובה 0). מאז
+     אין חריגה: כל מסך עם אזור גלילה בגובה 0 — כשל. */
   const H0=L.filter(r=>r.boxH===0&&r.n);
-  x=H0.filter(r=>!KNOWN0(r));
-  ok(`${W} · אין מסך שאזור הגלילה שלו בגובה 0${W<=760?' (מלבד «כסף תקוע», תקלה ידועה)':''}`,!x.length,
-    x.map(r=>r.m).join(', ')||(H0.length?`ידוע: ${H0.map(r=>r.m).join(', ')}`:'אין'));
-  x=L.filter(r=>r.n&&!KNOWN0(r)&&r.last!==r.n-1);
+  ok(`${W} · אין מסך שאזור הגלילה שלו בגובה 0`,!H0.length,H0.map(r=>r.m).join(', ')||'אין');
+  x=L.filter(r=>r.n&&r.last!==r.n-1);
   ok(`${W} · גלילה עד הסוף מגיעה לפריט האחרון`,!x.length,x.map(r=>`${r.m}: ${r.last+1}/${r.n}`).join(' · ')
     ||`${L.filter(r=>r.virt).length} רשימות וירטואליות`);
   x=L.filter(r=>r.numCut);
@@ -114,6 +110,24 @@ async function open(b,file,W,H){
   if(W>760){x=L.filter(r=>r.jit>=0.5);
    ok(`${W} · העמודות לא זזות ברוחב בגלילה — אף פיקסל`,!x.length,
      x.map(r=>`${r.m} ${r.jit}px`).join(' · ')||`מקס׳ ${Math.max(0,...L.map(r=>r.jit))}px`)}
+
+  /* ---------------- טלפון, «כסף תקוע»: הסיכום והרשימה בגלילה אחת ----------------
+     הפאנל 608px והסיכום 796px: הרשימה קיבלה 0px ותחתית הסיכום נחתכה. עכשיו
+     הפאנל נגלל כיחידה — הסיכום במלואו, ומתחתיו הרשימה בגובה הפאנל. */
+  if(W<=760){const P=await p.evaluate(async()=>{setMode('cap');await __raf();
+    const qp=document.querySelector('#w_queue .qpanel'),box=document.querySelector('#w_queue .rows'),cap=document.getElementById('capTop'),pg=document.querySelector('#w_queue .pager');
+    const o={rowsH:box.clientHeight,capShown:!cap.hidden};
+    qp.scrollTop=cap.offsetTop+cap.offsetHeight-qp.clientHeight;await __raf();
+    o.capBottom=cap.getBoundingClientRect().bottom<=qp.getBoundingClientRect().bottom+1;
+    qp.scrollTop=qp.scrollHeight;await __raf();const br=box.getBoundingClientRect(),qr=qp.getBoundingClientRect();
+    o.listVisible=br.top>=qr.top-1&&br.bottom<=pg.getBoundingClientRect().top+1&&pg.getBoundingClientRect().bottom<=qr.bottom+1;
+    box.scrollTop=box.scrollHeight;await __raf();await __raf();const s=VL.tbl,trs=s.tb.querySelectorAll('tr[data-i]');
+    o.last=trs.length?+trs[trs.length-1].dataset.i+1:0;o.n=s.items.length;
+    /* מסך בלי הסיכום — הפאנל לא נגלל כיחידה, הרשימה היא שנגללת */
+    setMode('capPO');await __raf();o.other=getComputedStyle(qp).overflowY;return o});
+   ok(`${W} · «כסף תקוע»: הרשימה בגובה של ממש (≥300px), והסיכום מגיע עד התחתית שלו`,P.capShown&&P.rowsH>=300&&P.capBottom,`${P.rowsH}px`);
+   ok(`${W} · «כסף תקוע»: אחרי הסיכום הרשימה כולה בתוך הפאנל, עם הפס התחתון, וגלילה מגיעה לאחרון`,P.listVisible&&P.last===P.n&&P.n>0,`${P.last}/${P.n}`);
+   ok(`${W} · מסך בלי הסיכום לא משתנה — הפאנל לא נגלל כיחידה`,P.other==='visible',P.other)}
 
   /* ---------------- מקלדת וכרטיס — בקטלוג ---------------- */
   const K=await p.evaluate(async()=>{setMode('catalog');await __raf();const s=VL.tbl,n=s.items.length;
