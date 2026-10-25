@@ -3008,7 +3008,10 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
  text-decoration:underline;text-underline-offset:2px;white-space:normal}
 .pager .capall:hover{background:none;color:var(--ink)}
 /* בטלפון הפס נשבר לשורה נוספת (38→52px) — שם המתג נשאר בשורה שבסוף הרשימה */
-@media(max-width:760px){.pager .capall{display:none}}
+@media(max-width:760px){.pager .capall{display:none}
+ /* D2B — «בחר את כל N לקובץ SAP» כן מוצג בטלפון, ומחליף את ההערה «ניתן לעדכן
+    במרוכז ב-SAP» שאומרת אותו דבר: אחרת הפס נשבר לשורה שנייה (23→38px, נמדד) */
+ .pager #selAll:not([hidden]){display:inline}.pager:has(#selAll:not([hidden])) #pgR{display:none}}
 @media(max-width:760px){
  #tbl tbody tr.vsp,#tbl tbody tr.vmore{display:block}
  #tbl tbody tr.vsp>td,#tbl tbody tr.vmore>td{display:block}}
@@ -3216,7 +3219,7 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
             <button type="button" class="btn" id="sapbarOutClr">בטל אותם</button></span>
           <button type="button" class="btn pri" id="sapbarGo" title="רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»">⇪ קובץ SAP לנבחרים</button>
           <button type="button" class="btn" id="sapbarClr">נקה בחירה</button></div>
-        <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button></span><span id="pgR"></span></div>
+        <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button><button type="button" id="selAll" class="capall" hidden></button></span><span id="pgR"></span></div>
       </div>
     </div></div>
     <div class="rz" data-rz="queue" title="שינוי גודל"></div>
@@ -8313,7 +8316,27 @@ function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(ma
    ובהודעה הופיע data-done כפי שהוא: מפתח הסימון, «מעתד|ספק|מק״ט»,
    במקום המק״ט. עכשיו כל רינדור קורא לאותה פונקציה. */
 const SAPSEL=new Set();
-function sapSelRows(){const all=(QF&&QF.all)||[];return all.filter(r=>SAPSEL.has(r.pn)&&sapUsableBase(r))}
+/* D2B — הבחירה היא של המשתמש, לא של הסינון. עד כאן הבחירה נגזרה מ-QF.all —
+   הנתונים אחרי הסינון במגירה — ולכן סינון במגירה מחק בשקט פריטים שנבחרו
+   (נמדד: 33 → 18, וגם אחרי הסרת הסינון 18). סינון עמודה וחיפוש שמרו. עכשיו
+   שלושתם שומרים: הבחירה נמדדת מול כל הדוח (ALL), והפס והתצוגה לפני הייצוא
+   אומרים כמה מהנבחרים מוסתרים בסינון הנוכחי — והם בקובץ.
+   classify רץ רק על הנתונים המסוננים, ולכן פריט מוסתר נושא את הסיווג מהפעם
+   האחרונה שסווג — או אף אחד, אם הדוח נטען כשהסינון פעיל. sapFresh מסווג את
+   הנבחרים המוסתרים באותה classify בדיוק (נמדד: שדות הקובץ של פריט אינם
+   תלויים בשאר הפריטים — 0 הבדלים ב-7,990, לבד ובקבוצות), פעם אחת לכל סינון
+   (SIDXV), ומחזיר את סדר המטבעות (CURORDER) שהיא מעדכנת — התצוגה לא זזה. */
+let SAPFRESH=null;
+function sapFresh(){if(!QF||!ALL||!ALL.length||!SAPSEL.size)return;
+ const vis=QF.all;if(vis.length===ALL.length)return;
+ const inQ=new Set(vis),hid=ALL.filter(r=>SAPSEL.has(r.pn)&&!inQ.has(r));
+ const key=SIDXV+'|'+SAPSEL.size;if(!hid.length||(SAPFRESH&&SAPFRESH.key===key&&SAPFRESH.qf===QF))return;
+ const co=CURORDER;try{classify(hid)}finally{CURORDER=co}
+ SAPFRESH={key,qf:QF}}
+function sapSelAll(){sapFresh();return (ALL||[]).filter(r=>SAPSEL.has(r.pn))}
+function sapSelRows(){return sapSelAll().filter(sapUsableBase)}
+/* נבחרים שהסינון הנוכחי מסתיר (מגירה, עמודה, חיפוש או דלת אחרת) */
+function sapHidden(){const F=new Set(sapFiltered().map(r=>r.pn));return sapSelRows().filter(r=>!F.has(r.pn))}
 /* הפס מופיע רק במסך התכנון וכשיש בחירה. בחירה של פריט שכבר לא קיים
    (העלאת דוח חדש) נופלת כאן, ולכן הספירה תמיד של מה שבאמת ייכנס. */
 /* ============ D2B · «בחר את כל N» ============
@@ -8339,20 +8362,24 @@ function sapHeadSync(){const all=document.querySelector('#tbl thead .sapall');if
  all.checked=c>0&&c===v.length;all.indeterminate=c>0&&c<v.length}
 function sapBarSync(){const bar=document.getElementById('sapbar');if(!bar)return;
  const on=colViewKey()==='fix';
- if(on){const live=new Set(((QF&&QF.all)||[]).map(r=>r.pn));for(const k of [...SAPSEL])if(!live.has(k))SAPSEL.delete(k)}
+ /* רק מה שכבר לא קיים בדוח (דוח חדש) יוצא מהבחירה — לא מה שהסינון מסתיר */
+ if(on){const live=new Set((ALL||[]).map(r=>r.pn));for(const k of [...SAPSEL])if(!live.has(k))SAPSEL.delete(k)}
  const sel=on?sapSelRows():[],n=sel.length;
- bar.hidden=!n;sapHeadSync();if(!n)return;
+ bar.hidden=!n;sapHeadSync();
+ {const F0=on?sapFiltered():[],la=document.getElementById('selAll');
+  if(la){la.hidden=!F0.length||n>0;la.textContent=`בחר את כל ${F0.length.toLocaleString('he-IL')} לקובץ SAP`}}
+ if(!n)return;
  const N=x=>x.toLocaleString('he-IL');
  document.getElementById('sapbarN').textContent=N(n);
  const F=sapFiltered(),fs=new Set(F.map(r=>r.pn)),inF=F.filter(r=>SAPSEL.has(r.pn)).length,outF=sel.filter(r=>!fs.has(r.pn));
- const P=sapPlan(undefined,sel,((QF&&QF.all)||[]).filter(r=>SAPSEL.has(r.pn)));
+ const P=sapPlan(undefined,sel,sapSelAll());
  const ab=document.getElementById('sapbarAll');ab.hidden=!F.length||inF===F.length;
  ab.textContent=`בחר את כל ${N(F.length)} שבסינון`;
  document.getElementById('sapbarInfo').innerHTML=(F.length&&inF===F.length?`כל <b>${N(F.length)}</b> שבסינון נבחרו`
    :`<b>${N(inF)}</b> מתוך <b>${N(F.length)}</b> שבסינון`)
   +` · ייכללו בקובץ <b>${N(P.rows)}</b>`+(P.out?` · <b>${N(P.out)}</b> לא ייכללו — הסיבות בתצוגה לפני הייצוא`:'');
  const ob=document.getElementById('sapbarOut');ob.hidden=!outF.length;
- document.getElementById('sapbarOutN').textContent=`${N(outF.length)} מהנבחרים מחוץ לסינון הנוכחי`}
+ document.getElementById('sapbarOutN').textContent=`${N(outF.length)} מהנבחרים מוסתרים בסינון הנוכחי — הם בחישוב הקובץ`}
 function wireSapSel(){
  document.querySelectorAll('#tbl tbody .sapsel').forEach(b=>{
   b.onclick=e=>e.stopPropagation();
@@ -10708,10 +10735,11 @@ function sapPreview(kind,sel){
  if(sapNoList()&&!sel){toast(SAP_NO_LIST);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const view=sel?sapSelRows():currentRows();
- const pool=sel?((QF&&QF.all)||[]).filter(r=>SAPSEL.has(r.pn)):view;
+ const pool=sel?sapSelAll():view;
+ const hidN=sel?sapHidden().length:0;
  const P=sapPlan(kind,view,pool);
  const N=n=>n.toLocaleString('he-IL');
- const src=sel?`נבחרו ידנית: ${N(P.total)} פריטים`
+ const src=sel?`נבחרו ידנית: ${N(P.total)} פריטים${hidN?` · מתוכם ${N(hidN)} מוסתרים בסינון הנוכחי — הם בחישוב שלמטה`:''}`
   :`בתצוגה הנוכחית («${esc((DEF.find(d=>d[0]===cur)||[,'רשימה'])[1])}»${track==='tier'?' · רצפת מדרגה':''}): ${N(P.total)} פריטים`;
  const why=Object.entries(P.why).sort((a,b)=>b[1]-a[1])
   .map(([k,n])=>`<tr><td>${esc(SAP_WHY[k]||k)}</td><td class="sapn">${N(n)}</td></tr>`).join('');
@@ -11095,6 +11123,7 @@ document.getElementById('exportXls').onclick=()=>doExport();
  const c=document.getElementById('sapbarClr');if(c)c.onclick=()=>{SAPSEL.clear();
   document.querySelectorAll('#tbl .sapsel,#tbl .sapall').forEach(b=>{b.checked=false;b.indeterminate=false});sapBarSync()};
  /* D2B — כל הסינון / ביטול רק מה שמחוץ לו */
+ const la=document.getElementById('selAll');if(la)la.onclick=()=>{for(const r of sapFiltered())SAPSEL.add(r.pn);sapBoxSync();sapBarSync()};
  const a=document.getElementById('sapbarAll');if(a)a.onclick=()=>{for(const r of sapFiltered())SAPSEL.add(r.pn);sapBoxSync();sapBarSync()};
  const o=document.getElementById('sapbarOutClr');if(o)o.onclick=()=>{const fs=new Set(sapFiltered().map(r=>r.pn));
   for(const k of [...SAPSEL])if(!fs.has(k))SAPSEL.delete(k);sapBoxSync();sapBarSync()}}
