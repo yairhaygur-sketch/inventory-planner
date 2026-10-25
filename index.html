@@ -11298,7 +11298,18 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
  const t0=performance.now();
  document.getElementById('updated').textContent='קורא קובץ...';
  const rd=new FileReader();
- rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});let best=null;
+ /* ============ L1 · קריאה חסכונית ============
+    דוח של 50,000 שורות הפיל את הלשונית: XLSX.read בנה לכל תא אובייקט עם
+    טקסט מעוצב (w), סגנון ופורמט — אף אחד מהם לא נקרא כאן; sheet_to_json
+    קורא רק את הערך (v), ותאריכים נשארים Date בזכות cellDates. נמדד על
+    דוח בנוי מהדוח האמיתי (שורות משוכפלות, Chromium במחשב):
+      50,000   45s · שיא 1.4GB · קורס ב-1GB   →  19s · 0.87GB · נטען ב-1GB
+      100,000  לא הסתיים ב-20 דקות (4GB)      →  37–42s · נטען ב-2GB
+    dense: תאי הגיליון במערך ולא באובייקט לפי כתובת — חצי מהזיכרון, ו-
+    sheet_to_json מהיר פי 16. הפלט של sheet_to_json זהה תא בתא (ערך וסוג)
+    על הדוח האמיתי ועל 10/50/100 אלף שורות, והמנוע — 0 פריטים זזו. */
+ const XOPT={type:'array',cellDates:true,dense:true,cellText:false,cellHTML:false,cellFormula:false,cellStyles:false,cellNF:false};
+ rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,XOPT);let best=null;
   for(const nm of wb.SheetNames){const a=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,blankrows:false,defval:''});
    for(let i=0;i<Math.min(30,a.length);i++){const row=a[i].map(CLEAN);
     if(row.some(c=>/מק"ט מוביל|מק״ט מוביל/.test(c))&&row.filter(Boolean).length>10){best={hdr:a[i],rows:a.slice(i+1),nm,hl:i+1,pre:a.slice(0,i)};break}}
