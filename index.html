@@ -347,6 +347,10 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .colpop .vals label{display:flex;gap:8px;align-items:center;font-size:12px;padding:4px 5px;border-radius:6px;cursor:pointer}
 .colpop .vals label:hover{background:var(--accL)}
 .colpop .vals label .c{color:var(--dim);margin-inline-start:auto;font-size:12px}
+.colpop .vals label span:not(.c){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.colpop .vmeta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;color:var(--dim);margin:-2px 0 4px}
+.colpop .vmeta #cpVn{margin-inline-end:auto}
+.colpop .vmeta button{border:none;background:none;color:var(--acc);font:inherit;cursor:pointer;padding:0}
 .colpop .act{display:flex;justify-content:space-between;margin-top:8px}
 .colpop .act button{border:none;background:none;color:var(--acc);font-size:12px;cursor:pointer;font-family:inherit;padding:4px}
 .colpop .act button.ok{background:var(--acc);color:var(--on-fill);border-radius:8px;padding:5px 12px;font-weight:700}
@@ -9773,14 +9777,32 @@ function openColPop(th,col){const pop=document.getElementById('colpop');
  const type=reg?((sample&&typeof acc(sample)==='number')?'n':'t')
    :((COLS.find(c=>c[0]===col)||[])[2]||'t');
  const f=colFilters[col]||{search:'',values:null,min:null,max:null};
- let valsHtml='';
+ let valsHtml='',vAll=null;
  /* הערכים שבבורר הם של הטבלה שמסננים — currentRows() נופלת
     ל-QF['moves'] שאינו קיים, וזרקה שגיאה בטבלת התנועות. נמדד. */
- if(type==='t'){const base=reg?(cur==='moves'?movRows():(currentRows()||[]))
-   :(cur==='all'?QF.all:QF[cur]);
-   const c={};base.forEach(r=>{const v=String(acc(r));c[v]=(c[v]||0)+1});
-   const opts=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,60);
-   valsHtml=`<div class="vals">`+opts.map(([v,n])=>`<label><input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${f.values&&f.values.has(v)?'checked':''}><span>${v}</span><span class="c">${n}</span></label>`).join('')+`</div>`;}
+ /* ============ D2C · חיפוש בכל ערכי העמודה ============
+    עד כאן הבורר הראה את 60 הערכים הנפוצים בלבד, וערך נדיר פשוט לא היה בו.
+    ועוד: הרשימה נבנתה מהשורות שכבר עברו את הסינון של *אותה* עמודה, ולכן
+    בפתיחה חוזרת הופיעו רק הערכים שכבר נבחרו — אי אפשר היה להוסיף ערך בלי
+    לנקות קודם. עכשיו:
+      · כל הערכים, מהשורות שעוברות את שאר הסינונים (לא את הסינון של העמודה
+        הזאת) — כמו בכל גיליון; ממוינים לפי שכיחות
+      · חיפוש בתוך הערכים; הערכים שנבחרו מוצמדים למעלה — גם כאלה שאין להם
+        כרגע אף שורה (0), כדי שאפשר יהיה להסיר אותם
+      · הבחירה נשמרת בזמן החיפוש (vPick), ו«החל» מחיל בדיוק אותה — לא רק את
+        מה שנראה ברשימה
+      · מצוירים VLIM ערכים בכל פעם, ועוד VLIM בגלילה לתחתית — גם באלפי ערכים
+    מנגנון הסינון עצמו (passColFilters) לא השתנה. */
+ const vPick=new Set(f.values||[]);
+ if(type==='t'){const own=colFilters[col];delete colFilters[col];let base;
+   try{base=reg?(cur==='moves'?movRows():(currentRows()||[])):(cur==='all'?QF.all:QF[cur])}
+   finally{if(own)colFilters[col]=own}
+   const c=new Map();for(const r of base){const v=String(acc(r));c.set(v,(c.get(v)||0)+1)}
+   for(const v of vPick)if(!c.has(v))c.set(v,0);
+   vAll=[...c].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'he'));
+   valsHtml=`<input class="cs vq" id="cpVq" placeholder="חיפוש בתוך ${vAll.length.toLocaleString('he-IL')} הערכים…" aria-label="חיפוש בערכי העמודה">
+    <div class="vmeta"><span id="cpVn"></span><button type="button" id="cpVall">סמן את כל התואמים</button><button type="button" id="cpVnone">נקה סימון</button></div>
+    <div class="vals" id="cpVals" role="group" aria-label="ערכי העמודה"></div>`}
  const rngHtml=type==='n'?`<div class="rng"><input id="cpMin" type="number" placeholder="מ-" value="${f.min!=null?f.min:''}"><input id="cpMax" type="number" placeholder="עד" value="${f.max!=null?f.max:''}"></div>`:'';
  const sOn=d=>reg?(WSORT.col===rk&&WSORT.dir===d):(sortCol===col&&sortDir===d);
  pop.innerHTML=`<div class="srtrow">
@@ -9799,13 +9821,29 @@ function openColPop(th,col){const pop=document.getElementById('colpop');
  document.getElementById('cpAsc').onclick=()=>setSort('asc');
  document.getElementById('cpDesc').onclick=()=>setSort('desc');
  document.getElementById('cpClear').onclick=()=>{delete colFilters[col];closeColPop();chips();render()};
+ if(vAll){const box=document.getElementById('cpVals'),vq=document.getElementById('cpVq'),vn=document.getElementById('cpVn');
+  const VLIM=200,N=x=>x.toLocaleString('he-IL');let match=vAll,shown=0;
+  const row=([v,n])=>`<label><input type="checkbox" value="${esc(v)}"${vPick.has(v)?' checked':''}><span title="${esc(v)}">${esc(v)}</span><span class="c">${N(n)}</span></label>`;
+  const meta=()=>{vn.textContent=`${N(match.length)}${match.length!==vAll.length?` מתוך ${N(vAll.length)}`:''} ערכים · ${N(vPick.size)} נבחרו`};
+  const more=()=>{if(shown>=match.length)return;box.insertAdjacentHTML('beforeend',match.slice(shown,shown+VLIM).map(row).join(''));shown=Math.min(match.length,shown+VLIM)};
+  const draw=()=>{const q=vq.value.trim().toLowerCase();
+   const m=q?vAll.filter(([v])=>v.toLowerCase().includes(q)):vAll;
+   match=m.filter(([v])=>vPick.has(v)).concat(m.filter(([v])=>!vPick.has(v)));      /* הנבחרים למעלה */
+   box.innerHTML='';box.scrollTop=0;shown=0;more();meta()};
+  box.onscroll=()=>{if(box.scrollTop+box.clientHeight>=box.scrollHeight-40)more()};
+  box.onchange=e=>{const x=e.target;if(!x||x.type!=='checkbox')return;x.checked?vPick.add(x.value):vPick.delete(x.value);meta()};
+  vq.oninput=draw;
+  document.getElementById('cpVall').onclick=()=>{for(const [v] of match)vPick.add(v);box.querySelectorAll('input').forEach(x=>x.checked=true);meta()};
+  document.getElementById('cpVnone').onclick=()=>{vPick.clear();box.querySelectorAll('input').forEach(x=>x.checked=false);meta()};
+  draw()}
  document.getElementById('cpOk').onclick=()=>{
    const nf={search:'',values:null,min:null,max:null};
    const sv=document.getElementById('cpSearch').value.trim();if(sv)nf.search=sv;
    if(type==='n'){const mi=document.getElementById('cpMin').value,ma=document.getElementById('cpMax').value;
      if(mi!=='')nf.min=+mi;if(ma!=='')nf.max=+ma}
-   const chk=[...pop.querySelectorAll('.vals input:checked')].map(x=>x.value);
-   if(chk.length){nf.values=new Set(chk)}
+   /* D2C — כל מה שנבחר, גם מה שהחיפוש מסתיר; והתיבות שעל המסך כפי שהן */
+   pop.querySelectorAll('#cpVals input').forEach(x=>x.checked?vPick.add(x.value):vPick.delete(x.value));
+   if(vPick.size){nf.values=new Set(vPick)}
    if(nf.search||nf.values||nf.min!=null||nf.max!=null)colFilters[col]=nf;else delete colFilters[col];
    closeColPop();chips();render()};}
 function copyBtn(pn){return `<button class="cp" data-pn="${pn}">העתק</button>`}
