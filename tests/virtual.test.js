@@ -227,21 +227,25 @@ async function open(b,file,W,H){
    b0.checked=true;b0.dispatchEvent(new Event('change'));
    s.box.scrollTop=s.box.scrollHeight;await __raf();await __raf();const gone=!s.tb.querySelector(`.sapsel[data-pn="${CSS.escape(pn)}"]`);
    s.box.scrollTop=0;await __raf();await __raf();const kept=!!(s.tb.querySelector(`.sapsel[data-pn="${CSS.escape(pn)}"]`)||{}).checked;
-   const all=document.querySelector('#tbl thead .sapall');const ind1=all.indeterminate;
+   /* D2B — התיבה שבכותרת בוחרת את השורות שעל המסך; «בחר את כל N» בפס
+      בוחר את כל מי שבסינון ויש לו תיבה — גם מחוץ לחלון */
+   const all=document.querySelector('#tbl thead .sapall'),vis=sapVisible().map(r=>r.pn);
    all.checked=true;all.dispatchEvent(new Event('change'));
-   const pool=sapAllPool().length,n1=SAPSEL.size,h1=all.checked&&!all.indeterminate;
-   const used=s.view.slice(0,300).filter(sapUsableBase).length;
+   const onlyVis=SAPSEL.size===new Set([...vis,pn]).size&&vis.every(x=>SAPSEL.has(x));
+   const N=sapFiltered().length,btn=!document.getElementById('sapbarAll').hidden;
+   document.getElementById('sapbarAll').click();
+   const n1=SAPSEL.size,allF=sapFiltered().every(r=>SAPSEL.has(r.pn));
    s.box.scrollTop=s.box.scrollHeight;await __raf();await __raf();
    const far=[...s.tb.querySelectorAll('.sapsel')],farAll=far.length>0&&far.every(x=>x.checked);
-   const fb=far[far.length-1];fb.checked=false;fb.dispatchEvent(new Event('change'));
-   const ind2=all.indeterminate,bar=document.getElementById('sapbarN').textContent;
-   SAPSEL.clear();sapBarSync();return {gone,kept,ind1,pool,n1,h1,used,farAll,ind2,bar}});
+   const fb=far[far.length-1];fb.checked=false;fb.dispatchEvent(new Event('change'));await __raf();
+   const ind2=all.indeterminate,bar=document.getElementById('sapbarN').textContent,back=!document.getElementById('sapbarAll').hidden;
+   SAPSEL.clear();sapBarSync();return {gone,kept,vis:vis.length,onlyVis,N,btn,n1,allF,farAll,ind2,bar,back}});
   if(S.skip||S.none)ok('VFULL=10 · בחירת SAP — אין בתכנון תיבות לבדוק',true,JSON.stringify(S));
   else{
    ok('VFULL=10 · SAP: תיבה שסומנה נשארת מסומנת אחרי שהשורה יצאה מהחלון וחזרה',S.gone&&S.kept);
-   ok('VFULL=10 · SAP: «בחר הכול» בוחר את כל מי שיש לו תיבה — כמו קודם (עד 300) — גם מחוץ לחלון',
-     S.ind1&&S.h1&&S.n1===S.pool&&S.pool===S.used&&S.farAll,`${S.n1} נבחרו`);
-   ok('VFULL=10 · SAP: ביטול אחת רחוקה — הכותרת «חלקית» והמונה יורד',S.ind2&&S.bar===N(S.n1-1),S.bar)}
+   ok('VFULL=10 · SAP: התיבה שבכותרת בוחרת רק את השורות שעל המסך, והפס מציע «בחר את כל N»',S.onlyVis&&S.btn&&S.vis<S.N,`${S.vis} על המסך מתוך ${S.N}`);
+   ok('VFULL=10 · SAP: «בחר את כל N» בוחר את כל מי שבסינון — גם מחוץ לחלון',S.allF&&S.n1===S.N&&S.farAll,`${S.n1} נבחרו`);
+   ok('VFULL=10 · SAP: ביטול אחת רחוקה — הכותרת «חלקית», המונה יורד ו«בחר את כל» חוזר',S.ind2&&S.bar===N(S.n1-1)&&S.back,S.bar)}
   const T=await p.evaluate(async()=>{setMode('catalog');await __raf();const s=VL.tbl;s.box.scrollTop=s.box.scrollHeight/2;await __raf();
    return Math.round(s.tb.parentNode.tHead.querySelector('th').getBoundingClientRect().top-s.box.getBoundingClientRect().top)});
   ok('VFULL=10 · הכותרת נשארת דביקה באמצע הרשימה',Math.abs(T)<=1,T+'px');
