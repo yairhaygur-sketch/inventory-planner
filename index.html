@@ -10811,36 +10811,115 @@ function sapPreview(kind,sel){
  const go=document.getElementById('sapGo');
  if(go){go.onclick=()=>{close();doSapMass(kind,sel?sapSelRows():undefined)};go.focus()}
  else document.getElementById('sapCancel').focus()}
+/* ============ L3 · ייצוא Excel גדול — dense, דחוס, וכתיבה ב-Worker ============
+   נמדד ב-100,000 שורות: XLSX.write תפס את הדף 40 שניות, שיא זיכרון הדף 2.3GB,
+   וקובץ של 257MB. שלושה שינויים, ואף אחד מהם לא נוגע בתוכן:
+     · dense — תאי הגיליון במערך (כמו בקריאה ב-L1)
+     · compression — אותו XML בתוך ה-zip, דחוס (257MB → 87MB). אותם גיליונות,
+       תאים, סוגים ורוחבי עמודות — נבדק תא בתא, ב-openpyxl וב-LibreOffice
+     · הכתיבה ב-Worker — הדף לא קופא (40s → פחות משנייה)
+   תמונת מצב: כל השורות מחושבות *ברגע הלחיצה*, כמו קודם (exportRows וחבריו).
+   ה-Worker מקבל אותן בחלקים של XCH שורות, וחלק נשלח רק אחרי שהקודם נקלט
+   (ack) — אין תור שמצטבר. כל חלק נכנס מיד לגיליון (sheet_add_aoa), כך שגם
+   ב-Worker אין העתק שלם של השורות לצד הגיליון. סינון או מעבר מסך באמצע אינם
+   משנים את הקובץ: הוא כבר חושב.
+   אותו קוד בונה את הספר בדף וב-Worker (xBook/xApply, מוזרקים למחרוזת ה-Worker).
+   XLSX.writeFile שהוחלף (הבדיקות והשומר העסקי מחליפים אותו כדי לקרוא את הספר)
+   מקבל את הספר בדיוק כמו קודם, בדף. כך גם אם אין Worker, או שהוא נכשל:
+   הקובץ נכתב בדף מאותה תמונת מצב. ייצוא אינו נוגע בנתונים הטעונים.
+   מה *אי אפשר*: קריסה מחוסר זיכרון בתוך ה-Worker מפילה את הלשונית, כמו
+   ב-L2. נרשם XEXP_KEY, והפתיחה הבאה אומרת שהייצוא לא הסתיים. */
+const XCH=5000,XEXP_KEY='planner_exporting_v1',XWF0=XLSX.writeFile;
+let XJOB=null,XW_URL=null;
+function xBook(){const wb=XLSX.utils.book_new();let ws=null;
+ return {wb,add(name,cols,aoa){ws=XLSX.utils.aoa_to_sheet(aoa,{dense:true});ws['!cols']=cols;XLSX.utils.book_append_sheet(wb,ws,name)},
+  rows(aoa){XLSX.utils.sheet_add_aoa(ws,aoa,{origin:-1,dense:true})}}}
+function xApply(B,m){if(m.t==='add')B.add(m.name,m.cols,m.aoa);else B.rows(m.aoa)}
+/* החלקים, לפי הסדר: לכל גיליון «add» עם XCH השורות הראשונות, ואז «rows» */
+function xSteps(sheets){const st=[];for(const sh of sheets){
+  st.push({t:'add',name:sh.name,cols:sh.cols,from:0,to:Math.min(XCH,sh.aoa.length),aoa:sh.aoa});
+  for(let i=XCH;i<sh.aoa.length;i+=XCH)st.push({t:'rows',from:i,to:Math.min(i+XCH,sh.aoa.length),aoa:sh.aoa})}
+ return st}
+const xMsg=s=>({t:s.t,name:s.name,cols:s.cols,aoa:s.aoa.slice(s.from,s.to)});
+function xDownload(buf,name){const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+ const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
+/* בדף: אותם חלקים, אותו בונה, ו-XLSX.writeFile (או זה שהוחלף) */
+function xSaveMain(sheets,name){const B=xBook();for(const s of xSteps(sheets))xApply(B,xMsg(s));
+ XLSX.writeFile(B.wb,name,{compression:true})}
+function xEnd(job){if(!job)return;job.dead=true;clearInterval(job.timer);if(job.w)try{job.w.terminate()}catch(_){}
+ if(XJOB===job){XJOB=null;if(!LOADJOB)zBox(null)}
+ try{localStorage.removeItem(XEXP_KEY)}catch(_){}}
+function xCancel(silent){const job=XJOB;if(!job)return;xEnd(job);if(!silent)toast('הייצוא בוטל — שום דבר לא השתנה')}
+function xDraw(job){if(!job||job.dead||LOADJOB)return;const sec=Math.round((performance.now()-job.t0)/1000);
+ zBox(`<div class="lbt"><span class="lbspin" aria-hidden="true"></span>מכין את קובץ האקסל…</div>
+  <div class="lbs">«${esc(job.name)}» · ${job.sent<job.total?`${job.sent.toLocaleString('he-IL')} מתוך ${job.total.toLocaleString('he-IL')} שורות`:'כותב ודוחס'} · ${sec} שנ׳ · אפשר להמשיך לעבוד</div>
+  <div class="lbr"><button type="button" class="btn" id="xCancelBtn">בטל ייצוא</button></div>`);
+ const c=document.getElementById('xCancelBtn');if(c)c.onclick=()=>xCancel()}
+function xWorker(){if(typeof Worker!=='function'||typeof Blob!=='function'||!window.URL||!URL.createObjectURL)return null;
+ const lib=document.getElementById('xlsxlib');if(!lib)return null;
+ try{if(!XW_URL)XW_URL=URL.createObjectURL(new Blob([lib.textContent,'\n',xBook.toString(),'\n',xApply.toString(),'\n',
+  `let B=null;self.onmessage=e=>{const m=e.data;try{
+    if(m.t==='write'){const out=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});B=null;postMessage({t:'done',buf:out},[out]);return}
+    if(!B)B=xBook();xApply(B,m);postMessage({t:'ok'})}catch(err){postMessage({t:'err',msg:String(err&&err.message||err)})}}`],{type:'text/javascript'}));
+  return new Worker(XW_URL)}catch(_){return null}}
+/* sheets = [{name,cols,aoa}] — תמונת המצב של הלחיצה; done() — אחרי שהקובץ ירד */
+function xSave(sheets,name,done){
+ const total=sheets.reduce((n,s)=>n+s.aoa.length,0);
+ const w=(XLSX.writeFile===XWF0)?xWorker():null;
+ if(!w){xSaveMain(sheets,name);done();return}
+ const job={w,name,t0:performance.now(),sent:0,total,dead:false};XJOB=job;
+ try{localStorage.setItem(XEXP_KEY,JSON.stringify({n:name,r:total,t:Date.now()}))}catch(_){}
+ xDraw(job);job.timer=setInterval(()=>xDraw(job),1000);
+ const steps=xSteps(sheets);let k=0;
+ const next=()=>{if(job.dead)return;
+  if(k<steps.length){const s=steps[k++];w.postMessage(xMsg(s));job.sent+=s.to-s.from;return}
+  w.postMessage({t:'write'})};
+ /* ה-Worker נכשל — אותה תמונת מצב נכתבת בדף; הנתונים הטעונים לא נגעו */
+ const fallback=why=>{if(job.dead)return;xEnd(job);console.error('L3 export worker:',why);
+  try{xSaveMain(sheets,name);done();toast('הקובץ נכתב בדרך הרגילה')}catch(err){console.error(err);toast('⚠ הייצוא נכשל — הנתונים לא השתנו. '+String(err&&err.message||err).slice(0,80))}};
+ w.onmessage=e=>{if(job.dead)return;const m=e.data;
+  if(m.t==='ok'){next();return}
+  if(m.t==='done'){xEnd(job);xDownload(m.buf,name);done();return}
+  if(m.t==='err')fallback(m.msg)};
+ w.onerror=e=>{if(e&&e.preventDefault)e.preventDefault();fallback((e&&e.message)||'error')};
+ w.onmessageerror=()=>fallback('messageerror');
+ next()}
+/* ייצוא שלא הסתיים — הלשונית נסגרה או קרסה באמצע */
+(()=>{let o=null;try{o=JSON.parse(localStorage.getItem(XEXP_KEY));localStorage.removeItem(XEXP_KEY)}catch(_){}
+ if(!o||!o.n)return;
+ zBox(`<div class="lbt">הייצוא הקודם לא הסתיים</div>
+  <div class="lbs">«${esc(String(o.n))}»${o.r?' · '+Number(o.r).toLocaleString('he-IL')+' שורות':''} — הלשונית נסגרה או קרסה בזמן הכנת הקובץ. אם היא קרסה, הסיבה הסבירה היא שלדפדפן לא היה מספיק זיכרון לקובץ בגודל הזה. הקובץ לא נשמר; צריך לטעון את הדוח שוב ולייצא.</div>
+  <div class="lbr"><button type="button" class="btn" id="lbClose">סגור</button></div>`);
+ const c=document.getElementById('lbClose');if(c)c.onclick=()=>zBox(null)})();
 function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
+ if(XJOB){toast('ייצוא קודם עדיין בהכנה — אפשר לחכות לו או לבטל אותו');return}
+ if(LOADJOB){toast('דוח עדיין נטען — הייצוא יהיה זמין כשהטעינה תסתיים');return}
  const movVisible=!LAYOUT.hidden.includes('moves');
  /* «תנועות אחרונות» אינו רשימת פריטים: currentRows() קורא שם QF['moves'],
     שאינו קיים, והייצוא נפל על שגיאה בלי קובץ. «כל הנתונים» הוא הקטלוג —
     המסך הזה יושב בתוכו — ו«התצוגה» היא טבלת התנועות כפי שהיא. */
  const onMoves=cur==='moves';
  const rowsAll=onMoves?(()=>{cur='all';try{return currentRows()}finally{cur='moves'}})():currentRows();
+ /* L3: כל מה שנכנס לקובץ מחושב כאן, ברגע הלחיצה — תמונת המצב */
  const aoa=exportRows(rowsAll);
- const ws=XLSX.utils.aoa_to_sheet(aoa);
- ws['!cols']=XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)}));
- const wb=XLSX.utils.book_new();
+ const sheets=[];
  const tabName=(DEF.find(d=>d[0]===(onMoves?'all':cur))||[,'רשימה'])[1];   /* בתנועות — «כל הפריטים», כי זה התוכן */
  const mAoa=movExportRows();
  const vx=onMoves?(mAoa.length?{aoa:mAoa,keys:mAoa[0]}:null):viewExportRows();
- if(vx){const vws=XLSX.utils.aoa_to_sheet(vx.aoa);
-  vws['!cols']=vx.keys.map((k,i)=>({wch:i<2?24:13}));
-  XLSX.utils.book_append_sheet(wb,vws,'התצוגה')}
- XLSX.utils.book_append_sheet(wb,ws,(vx?'כל הנתונים · ':'')+tabName.slice(0,16));
+ if(vx)sheets.push({name:'התצוגה',cols:vx.keys.map((k,i)=>({wch:i<2?24:13})),aoa:vx.aoa});
+ sheets.push({name:(vx?'כל הנתונים · ':'')+tabName.slice(0,16),cols:XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)})),aoa});
  /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל). בתנועות הוא כבר «התצוגה». */
- if(!onMoves&&mAoa.length>1){const mws=XLSX.utils.aoa_to_sheet(mAoa);
-   mws['!cols']=mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)}));
+ if(!onMoves&&mAoa.length>1){
    const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
-   XLSX.utils.book_append_sheet(wb,mws,mName.slice(0,28))}
+   sheets.push({name:mName.slice(0,28),cols:mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)})),aoa:mAoa})}
  const dstr=new Date().toISOString().slice(0,10);
  /* קובץ מסונן נקרא «מסונן». עד כאן תצוגה של ZT בלבד ירדה בשם
     Inventory_all_… — אותו שם כמו הקטלוג המלא, וקובץ שנשלח הלאה
     נקרא כאילו הוא הכול. «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
  const filt=FDEF.some(([k])=>SEL[k].size)||Object.keys(colFilters).length>0||!!SQ;
- XLSX.writeFile(wb,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`);
- toast(`יוצאו ${rowsAll.length} מק״טים${mAoa.length>1?' + '+(mAoa.length-1)+' תנועות':''} ✓`)}
+ const n=rowsAll.length,mv=mAoa.length;
+ xSave(sheets,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`,
+  ()=>toast(`יוצאו ${n} מק״טים${mv>1?' + '+(mv-1)+' תנועות':''} ✓`))}
 /* ============ EXPEDITE — דוח הזירוז מול הספקים ============
    הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
    דחיפות ומיון לפי ימי פיגור. נמדד על הדוח האמיתי (7,569 פריטים,
@@ -11387,6 +11466,7 @@ function zFail(job,err,head,txt){zEnd(job);
  b.onclick=()=>{el.className='diag';el.textContent='';zLoad(job.file,job.opt)};el.appendChild(b)}
 function zLoad(file,opt){
  if(LOADJOB){const old=LOADJOB;if(old.stage==='calc')return;zEnd(old)}
+ if(typeof XJOB!=='undefined'&&XJOB)xCancel(true);   /* L3: ייצוא שבהכנה אינו ממתין לנתונים חדשים */
  const job={id:++ZJOB,file,opt,t0:performance.now(),stage:'read',via:'worker',prevUpd:document.getElementById('updated').textContent};
  LOADJOB=job;zMark(job);
  document.getElementById('updated').textContent='קורא קובץ...';
