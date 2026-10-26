@@ -4069,7 +4069,8 @@ function staleDocs(r){const seen=[];for(const l of etaPastLines(r)){
      רכש פתוח                  → «לבדוק», לא «להוריד»
    הכלל הזה מחליף את החוק הקודם PD→ZM-C (צריכה מעל 3, מחיר עד 2,000,
    בלי תביעות אחריות). המנוע, הסיווגים וחישובי SS/ROP לא נוגעים כאן:
-   הדוח ממליץ על פרופיל, הוא אינו מחשב מחדש לפי הפרופיל המוצע. */
+   הדוח ממליץ על פרופיל, הוא אינו מחשב מחדש לפי הפרופיל המוצע.
+   (סימולציה מבודדת של ROP/SS אחרי מעבר ל-ZM-C — ראה PROF_SIM.) */
 const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
  PROF_NAME={D:'PD',C:'ZM-C',B:'ZM-B',A:'ZM-A'};
 function profCur(r){if(isPD(r.mrp))return 'D';
@@ -4106,6 +4107,89 @@ function profRows(){if(!QF||!QF.all)return [];
    return PROF_ST[x.state][1]-PROF_ST[y.state][1]||PROF_RANK[y.tgt]-PROF_RANK[x.tgt]||y.h-x.h})}
 /* המונה במסילה סופר רק את מה שדורש פעולה עכשיו — לא «בהמתנה» ולא «לא להוריד» */
 function profActive(r){const i=profInfo(r);return !!i&&(i.state==='up'||i.state==='down'||i.state==='check')}
+/* ============ PROF_SIM — מה SAP יחשב אחרי מעבר PD → ZM-C ============
+   ההמלצה «להעלות» אומרת לעבור לפרופיל ZM-C, אבל עד כאן הכלי לא אמר
+   איזה ROP ו-SS הפריט יקבל שם. כאן מריצים את אותו build() בדיוק על
+   עותק של שורת הדוח, ומשנים בעותק שלושה תאים בלבד: סוג MRP ← ZM,
+   רמת שירות ← 80 (PROF_SRV.C), ABC ← C. אין נוסחה חדשה ואין רצפה חדשה.
+
+   החלוקה, כפי שאושרה:
+     תקין        ROP>0 וגם SS>0, ושום סיבה מהרשימה לא חלה
+     לבדיקה      כל השאר, עם כל הסיבות שחלות (חפיפה נשמרת)
+   הסיבה הראשונה לפי סדר PFSIM_WHY היא primary.
+
+   נמדד על הדוח האמיתי: 34 העלאות — 19 תקינות, 15 לבדיקה.
+     6 קבוצת כלי עבודה/אביזרים · 2 סטטוס לא פעיל (אחד מהם גם אביזר)
+     5 צריכה מעטה בלי רצפת מחיר · 1 שקט אחרי מכירה
+     2 ROP=1 מ-SAP עם SS=0 (ROP_MIN_ACT)
+
+   הכלל ROP>0 וגם SS>0 מכריע גם במקרים שלא הופיעו בדוח:
+     ROP≥2 ו-SS=0 → ss_zero_rate3y. בפריטים מנוהלים זה קורה כשהקצב בא
+       מחלון 3 השנים ואין שונות ב-11 החודשים — 5 כאלה היום, PN-07 אחד
+       מהם. במועמד להעלאה יש צריכה בשני חודשים לפחות, ולכן σ>0 ו-SS≥1;
+       הדרך היחידה שלו לכאן היא צריכה זהה בכל 11 החודשים (σ=0).
+     אין עמודת רמת שירות → no_srv. לא מחשבים 80% בהשערה.
+     מק״ט כפול או שורת מקור חסרה → no_row. לא בוחרים שורה בשקט.
+
+   בידוד: build() כותב ל-ROWS (const) ומחליף את DIAG (mapCols יוצר
+   אובייקט חדש). שניהם נשמרים ומוחזרים ב-finally, גם כשהחישוב נכשל
+   באמצע. ALL_RAW לא נכתב (row.slice), אף פריט ב-ALL לא נגע, ו-MARKS,
+   ETA, QF ו-localStorage לא נקראים ולא נכתבים כאן.
+   החישוב עצל: הוא רץ רק בקריאה מפורשת ונשמר במטמון כל עוד ALL ו-ALL_RAW
+   הם אותם מערכים. טעינה ושינוי חודש בסיס יוצרים ALL חדש.
+   אין לו קורא במסלול הרינדור — התצוגה תבוא בשלב נפרד. */
+const PFSIM_SRV=PROF_SRV.C;
+const PFSIM_WHY={
+ od_group:'קבוצת כלי עבודה / אביזרים — מדיניות «לפי דרישה»',
+ od_mark:'סומן ידנית «לפי דרישה»',
+ inactive:'סטטוס לא פעיל ב-SAP (04/14)',
+ no_lt:'חסר זמן אספקה',
+ no_srv:'אין עמודת רמת שירות בדוח',
+ no_row:'שורת המקור חסרה או שהמק״ט כפול בדוח',
+ zero_low:'ROP=0 ו-SS=0 — צריכה מעטה מדי לקצב, ואין רצפת מחיר',
+ zero_noprice:'ROP=0 ו-SS=0 — צריכה מעטה מדי לקצב, והמחיר חסר',
+ zero_silent:'ROP=0 ו-SS=0 — אין צריכה בששת החודשים האחרונים',
+ ss_zero:'ROP=1 ו-SS=0',
+ ss_zero_rate3y:'ROP≥2 ו-SS=0'};
+let PFSIM=null;
+function profSimAll(){
+ if(PFSIM&&PFSIM.all===ALL&&PFSIM.raw===ALL_RAW)return PFSIM;
+ const up=ALL.filter(r=>{const i=profInfo(r);return !!i&&i.state==='up'});
+ const res={all:ALL,raw:ALL_RAW,srvCol:null,map:new Map()};
+ if(!up.length||!ALL_RAW){PFSIM=res;return res}
+ const rows0=Object.assign({},ROWS),diag0=DIAG;
+ try{const hdr=ALL_RAW.hdr,m=mapCols(hdr);
+  res.srvCol=m.srv>=0;
+  if(m.pn>=0&&m.mrp>=0&&res.srvCol){
+   const want=new Set(up.map(r=>r.pn)),src=new Map();
+   for(const row of ALL_RAW.rows){const pn=CLEAN(row[m.pn]);if(!want.has(pn))continue;
+    const s=src.get(pn);if(s)s.n++;else src.set(pn,{n:1,row})}
+   const rows=[];
+   for(const [pn,s] of src){if(s.n!==1)continue;
+    const c=s.row.slice();c[m.mrp]='ZM';c[m.srv]=PFSIM_SRV;if(m.abc>=0)c[m.abc]='C';rows.push(c)}
+   for(const it of build(rows,hdr))res.map.set(it.pn,{rop:it.sugROP,ss:it.sugSS,
+    rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,ltD:it.ltD,
+    ssStat:it.ssStat,ssMin:it.ssMin,ssMinEff:it.ssMinEff,lowFloor:it.lowFloor,ssSrc:it.ssSrc,
+    noRec:it.isODStatic||it.noStock,priceMissing:it.priceMissing})}}
+ finally{Object.assign(ROWS,rows0);DIAG=diag0}
+ PFSIM=res;return res}
+/* החלוקה מחושבת בכל קריאה: הערכים מהמטמון, והסימון הידני מהפריט
+   עצמו (classify מעדכן את odMarked בכל apply), כך שביטול «לפי דרישה»
+   מחזיר את הפריט לתקין בלי טעינה מחדש. */
+function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
+ const S=profSimAll(),sim=S.map.get(r.pn)||null,why=[];
+ if(OD_GROUPS.has(r.mkt1))why.push('od_group');
+ if(r.odMarked)why.push('od_mark');
+ if(r.noStock)why.push('inactive');
+ if(!(r.ltD>0))why.push('no_lt');
+ if(S.srvCol===false)why.push('no_srv');
+ else if(!sim)why.push('no_row');
+ if(sim&&!sim.noRec&&sim.ltD>0){
+  if(sim.rop<=0&&sim.ss<=0)
+   why.push(sim.d12>LOWDEM_MAX?'zero_silent':sim.priceMissing?'zero_noprice':'zero_low');
+  else if(sim.ss<=0)why.push(sim.rop>=2?'ss_zero_rate3y':'ss_zero')}
+ const ok=!why.length&&!!sim&&sim.rop>0&&sim.ss>0;
+ return {grp:ok?'ok':'rev',reasons:why,primary:why[0]||null,sim}}
 /* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
    לפי חודש הבסיס של הדוח. העלאה חוזרת של אותו חודש דורסת את אותו
    מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
