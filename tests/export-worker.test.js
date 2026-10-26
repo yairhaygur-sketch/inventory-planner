@@ -71,7 +71,11 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
   /* 3 — מול main (git show origin/main), אם זמין */
   /* מול main — רק כש-main הוא גרסה *אחרת* מזו שנבדקת (ב-PR). אחרי המיזוג main
      הוא הקובץ הזה עצמו, וההשוואה הייתה קובץ מול עצמו: זהה, ובאותו גודל —
-     «קטן יותר» נכשל על לא כלום (CI על main אחרי #130). אז היא נאמרת ולא נעשית. */
+     «קטן יותר» נכשל על לא כלום (CI על main אחרי #130). אז היא נאמרת ולא נעשית.
+     הגודל נבדק כ«לא גדול יותר» ולא «קטן יותר»: «קטן יותר» הוכיח את הדחיסה
+     של L3 מול main שלפניו. מאז main כבר דחוס, ו-PR שלא נוגע בייצוא מוריד
+     קובץ באותו גודל בדיוק (18,624KB מול 18,624KB). קובץ שגדל — למשל
+     דחיסה שכבתה — עדיין נכשל, וכך גם כל שינוי בתאים (fileSig). */
   let mainF=null,mainSame=false;
   try{const mh=require('child_process').execSync('git show origin/main:index.html',{cwd:path.join(SD,'..'),stdio:['ignore','pipe','ignore'],maxBuffer:64e6});
    mainSame=mh.equals(fs.readFileSync(path.join(SD,'..','index.html')));if(mainSame)throw 0;
@@ -81,7 +85,7 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
    const t=Date.now();while(!files.length&&Date.now()-t<120000)await m.p.waitForTimeout(200);
    if(files.length){mainF=path.join(TMP,'main.xlsx');await files[0].saveAs(mainF)}await m.ctx.close()}catch(_){}
   if(mainF){const sm=fs.statSync(mainF).size,sn=fs.statSync(w1.f).size;
-   ok('מחשב · זהה תא בתא לקובץ של main — והקובץ קטן יותר (דחוס)',fileSig(mainF)===fileSig(w1.f)&&sn<sm,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
+   ok('מחשב · זהה תא בתא לקובץ של main — והקובץ אינו גדול יותר',fileSig(mainF)===fileSig(w1.f)&&sn<=sm,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
   else ok(mainSame?'מחשב · השוואה ל-main דולגה — main הוא כבר הגרסה הזו (נעשית ב-PR, מול main הקודם)'
    :'מחשב · השוואה ל-main דולגה (origin/main לא זמין בצ׳קאאוט הזה)',true);
   /* 4 — תמונת מצב: סינון ומעבר מסך באמצע הייצוא לא משנים את הקובץ */
