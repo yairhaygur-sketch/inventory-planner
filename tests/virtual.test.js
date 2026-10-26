@@ -54,7 +54,7 @@ async function open(b,file,W,H){
     const k=/^cap/.test(m)&&TRACKKEY[track];let want;
     if(cur==='moves')want=movRows().length;
     else{const rows=currentRows();want=k?capView(rows,cut80(rows,track)).length:rows.length}
-    const box=s.box,n=s.items.length,sel=cur==='moves'?'tr[data-mi]':'tr[data-i]';
+    const box=s.box,n=s.items.length,sel='[data-row]';
     const ths=()=>[...s.tb.parentNode.querySelectorAll('thead th')].map(t=>t.getBoundingClientRect().width);
     const cover=()=>{const bt=box.getBoundingClientRect(),th=(s.tb.parentNode.tHead||{}).offsetHeight||0;
      const rs=[...s.tb.children].filter(t=>!t.classList.contains('vsp'));if(!rs.length)return true;
@@ -121,7 +121,7 @@ async function open(b,file,W,H){
     o.capBottom=cap.getBoundingClientRect().bottom<=qp.getBoundingClientRect().bottom+1;
     qp.scrollTop=qp.scrollHeight;await __raf();const br=box.getBoundingClientRect(),qr=qp.getBoundingClientRect();
     o.listVisible=br.top>=qr.top-1&&br.bottom<=pg.getBoundingClientRect().top+1&&pg.getBoundingClientRect().bottom<=qr.bottom+1;
-    box.scrollTop=box.scrollHeight;await __raf();await __raf();const s=VL.tbl,trs=s.tb.querySelectorAll('tr[data-i]');
+    box.scrollTop=box.scrollHeight;await __raf();await __raf();const s=VL.tbl,trs=s.tb.querySelectorAll('[data-row]');
     o.last=trs.length?+trs[trs.length-1].dataset.i+1:0;o.n=s.items.length;
     /* מסך בלי הסיכום — הפאנל לא נגלל כיחידה, הרשימה היא שנגללת */
     setMode('capPO');await __raf();o.other=getComputedStyle(qp).overflowY;return o});
@@ -149,7 +149,7 @@ async function open(b,file,W,H){
   ok(`${W} · ↑ חוזר אחד, והכרטיס אומר «מתוך» כל הרשימה`,K.up===K.n-2&&new RegExp(`${N(K.up+1)} מתוך ${N(K.n)}`).test(K.pos),K.pos);
   ok(`${W} · Escape סוגר, ו-Enter חוזר לאותו פריט גם כשהוא מחוץ לחלון`,K.closed&&K.back);
   const C=await p.evaluate(async()=>{setMode('catalog');await __raf();const s=VL.tbl;s.box.scrollTop=0;await __raf();
-   s.tb.querySelector('tr[data-i]').click();await __raf();const steps=Math.min(s.items.length-1,s.b+5);let k=0;
+   s.tb.querySelector('[data-row]').click();await __raf();const steps=Math.min(s.items.length-1,s.b+5);let k=0;
    for(;k<steps;k++){const nx=document.querySelector('[data-dnav="1"]');if(!nx||nx.disabled)break;nx.click();if(k%10===0)await __raf()}
    await __raf();const tr=s.tb.querySelector('tr.sel');
    const r={k,sel:s.sel,same:CURRENT_DETAIL===s.view[s.sel],tr:!!tr&&+tr.dataset.i===s.sel};
@@ -268,7 +268,7 @@ async function open(b,file,W,H){
   const F=await p.evaluate(async()=>{setMode('today');await __raf();await new Promise(r=>setTimeout(r,250));const s=VL.tbl,box=s.box;
    const fz=document.body.classList.contains('freeze'),sw=box.scrollWidth-box.clientWidth;
    box.scrollLeft=-Math.min(200,sw);box.scrollTop=box.scrollHeight/2;await __raf();await __raf();
-   const tr=[...s.tb.querySelectorAll('tr[data-i]')][2],bx=box.getBoundingClientRect();
+   const tr=[...s.tb.querySelectorAll('[data-row]')][2],bx=box.getBoundingClientRect();
    return {fz,sw,virt:s.ents.length>VFULL,left:Math.round(box.scrollLeft),
     pin:tr?Math.round(bx.right-tr.children[0].getBoundingClientRect().right):null,
     pos:tr?getComputedStyle(tr.children[1]).position:''}});

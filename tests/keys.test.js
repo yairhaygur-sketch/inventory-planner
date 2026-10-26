@@ -19,10 +19,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1');
  await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');
  await p.evaluate(()=>{try{setMode('today')}catch(_){}});
- await p.waitForSelector('#tbl tbody tr[data-i] [data-done]',{timeout:120000});
+ await p.waitForSelector('#tbl tbody [data-row] [data-done]',{timeout:120000});
  await p.waitForTimeout(500);
  await p.evaluate(()=>document.activeElement&&document.activeElement.blur());
- const st=()=>p.evaluate(()=>{const rows=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+ const st=()=>p.evaluate(()=>{const rows=[...document.querySelectorAll('#tbl tbody [data-row]')];
   const i=rows.findIndex(r=>r.classList.contains('sel'));
   const t=document.getElementById('toast');
   return {i,n:rows.length,open:document.body.classList.contains('dopen'),
@@ -89,7 +89,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* ---- כפתור «✓ טופל» בשורה — אותה פעולה, אותו ביטול ---- */
  await p.waitForTimeout(1800);
  const b0=await st();
- const pnBtn=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
+ const pnBtn=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody [data-row]');
   const k=tr.querySelector('[data-done]').dataset.done;tr.querySelector('[data-done]').click();return k});
  await p.waitForTimeout(250);
  const b1=await st();
