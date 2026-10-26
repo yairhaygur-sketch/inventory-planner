@@ -69,8 +69,12 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
   ok('מחשב · הקובץ מה-Worker זהה תא בתא לספר שנבנה בדף (גיליונות, סדר, ערכים, סוגים, רוחבים)',!!w1.f&&fileSig(w1.f)===fileSig(hf));
   ok('מחשב · XLSX.writeFile שהוחלף מקבל את הספר בדף, סינכרוני — כמו קודם, עם דחיסה',!!h.b64&&h.opt&&h.opt.compression===true&&h.box);
   /* 3 — מול main (git show origin/main), אם זמין */
-  let mainF=null;
+  /* מול main — רק כש-main הוא גרסה *אחרת* מזו שנבדקת (ב-PR). אחרי המיזוג main
+     הוא הקובץ הזה עצמו, וההשוואה הייתה קובץ מול עצמו: זהה, ובאותו גודל —
+     «קטן יותר» נכשל על לא כלום (CI על main אחרי #130). אז היא נאמרת ולא נעשית. */
+  let mainF=null,mainSame=false;
   try{const mh=require('child_process').execSync('git show origin/main:index.html',{cwd:path.join(SD,'..'),stdio:['ignore','pipe','ignore'],maxBuffer:64e6});
+   mainSame=mh.equals(fs.readFileSync(path.join(SD,'..','index.html')));if(mainSame)throw 0;
    const MF=path.join(TMP,'main.html');fs.writeFileSync(MF,mh);
    const m=await open(b,1440,900,'file://'+MF+'?nobrief=1');
    const files=[];m.p.on('download',d=>files.push(d));await m.p.evaluate(()=>doExport());
@@ -78,7 +82,8 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
    if(files.length){mainF=path.join(TMP,'main.xlsx');await files[0].saveAs(mainF)}await m.ctx.close()}catch(_){}
   if(mainF){const sm=fs.statSync(mainF).size,sn=fs.statSync(w1.f).size;
    ok('מחשב · זהה תא בתא לקובץ של main — והקובץ קטן יותר (דחוס)',fileSig(mainF)===fileSig(w1.f)&&sn<sm,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
-  else ok('מחשב · השוואה ל-main דולגה (origin/main לא זמין בצ׳קאאוט הזה)',true);
+  else ok(mainSame?'מחשב · השוואה ל-main דולגה — main הוא כבר הגרסה הזו (נעשית ב-PR, מול main הקודם)'
+   :'מחשב · השוואה ל-main דולגה (origin/main לא זמין בצ׳קאאוט הזה)',true);
   /* 4 — תמונת מצב: סינון ומעבר מסך באמצע הייצוא לא משנים את הקובץ */
   const w2=await exp(p,'snapshot',async()=>{
    await p.waitForFunction(()=>!!XJOB,null,{timeout:10000}).catch(()=>{});
