@@ -3207,6 +3207,10 @@ body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
  .top .qsearch{height:38px;font-size:16px}
  .top .lc>.btn,.top .lc>label.btn,.top .lc .menuwrap>.btn{height:40px;min-width:44px}
  .top .menu{inset-inline-start:auto;inset-inline-end:0}
+ /* נמדד ב-390: תפריט הקובץ (300px) נפתח משבב באמצע השורה ויצא מהמסך.
+    בטלפון כל תפריט בכותרת נפתח לרוחב המסך, מתחת לכותרת */
+ .top .lc,.top .lc .menuwrap{position:static}
+ .top .lc .menu{top:100%;inset-inline:8px;width:auto;min-width:0;max-height:calc(100dvh - 140px);overflow-y:auto}
 }
 /* אזור לחיצה 44px במגע בלי להגביה את הכותרת: הכפתור 40px (פער השורות
    8px), סרגל הכלים 30px — ::after שקוף משלים, כמו בשאר הכלי */
@@ -6079,14 +6083,21 @@ function colsBtnEl(){return document.getElementById(cur==='moves'?'colsBtnM':'co
 function colsOpen(on){
  const b=colsBtnEl(),pk=document.getElementById('colspick');
  if(!b||!pk)return;
- if(!on){pk.classList.remove('open');b.classList.remove('on');
-  b.setAttribute('aria-expanded','false');return}
+ if(!on){const back=pk.classList.contains('open')&&pk.contains(document.activeElement);
+  pk.classList.remove('open');b.classList.remove('on');
+  b.setAttribute('aria-expanded','false');
+  /* סגירה כשהמיקוד בתוך הבורר מחזירה אותו לכפתור — לא ל-body */
+  if(back)b.focus();return}
  const v=colViewKey(),vis=visCols();
  const why=k=>SCOL[k].eta?'דורש דוח ETA':SCOL[k].noeta?'רק בלי דוח ETA':'';
  /* D1 — «תצוגה»: מה שקובע איך הרשימה נראית יושב במקום אחד. «מדדים»
     ו«צפיפות» עוברים מהשורה שמעל הטבלה אל ראש הבורר, עם אותם מזהים
     ואותם מטפלים — הם האלמנטים עצמם ולא העתק. מסך שאין בו בורר עמודות
     (colReg כבוי) מציג רק אותם. */
+ /* הבורר נבנה מחדש אחרי כל שינוי. מי שעבד בו במקלדת לא מאבד את מקומו:
+    המיקוד חוזר לאותו פקד (לפי מזהה או data-ck) אחרי הבנייה */
+ const fa=pk.contains(document.activeElement)?document.activeElement:null;
+ const fKey=fa&&(fa.id?'#'+fa.id:fa.dataset.ck?`input[data-ck="${fa.dataset.ck}"]`:fa.dataset.cpa?`[data-cpa="${fa.dataset.cpa}"]`:null);
  const keep=['kpiTog','denTog'].map(id=>document.getElementById(id)).filter(Boolean);
  keep.forEach(x=>x.remove());
  const reg=colReg();
@@ -6105,6 +6116,7 @@ function colsOpen(on){
  pk.style.insetInlineStart='';pk.style.insetInlineEnd='';
  pk.style.left=Math.round(Math.min(Math.max(8,r.left),innerWidth-258))+'px';
  pk.classList.add('open');b.classList.add('on');b.setAttribute('aria-expanded','true');
+ if(fKey){const f=pk.querySelector(fKey);if(f&&document.activeElement!==f)f.focus()}
  pk.querySelectorAll('input[data-ck]').forEach(cb=>cb.onchange=()=>{
    const picked=[...pk.querySelectorAll('input[data-ck]:checked')].map(x=>x.dataset.ck);
    /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. שתי הגרסאות
@@ -6141,7 +6153,12 @@ function colsWire(){
  ['colsBtn','colsBtnM'].forEach(id=>{const b=document.getElementById(id);
   if(!b||b.__w)return;b.__w=1;
   b.onclick=e=>{e.stopPropagation();
-    colsOpen(!document.getElementById('colspick').classList.contains('open'))}});
+    const open=!document.getElementById('colspick').classList.contains('open');colsOpen(open);
+    /* D1: הבורר יושב מחוץ לסדר ה-Tab של הסרגל (position:fixed בסוף הדף).
+       פתיחה במקלדת (Enter/רווח → click עם detail=0) מעבירה את המיקוד
+       לפקד הראשון בו — «מדדים» — כדי ש«מדדים», «צפיפות» והעמודות יהיו
+       נגישים בלי עכבר, כמו כשהיו בשורה */
+    if(open&&e.detail===0){const f=document.querySelector('#colspick button,#colspick input:not([disabled])');if(f)f.focus()}}});
  /* הסינון «נלחץ בחוץ» נעשה על המכולה עצמה ולא בהשוואה ל-e.target:
     לחיצה בתוך הבורר מרנדרת אותו מחדש, ועד שהאירוע מגיע ל-document
     היעד המקורי כבר מנותק מה-DOM — contains() מחזיר false, והבורר
@@ -6163,7 +6180,10 @@ function colsWire(){
  const pk0=document.getElementById('colspick');
  if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
  document.addEventListener('click',()=>colsOpen(false));
- document.addEventListener('keydown',e=>{if(e.key==='Escape')colsOpen(false)})}
+ /* בשלב הלכידה: מנוע המקשים הכללי עושה blur לכל input ב-Escape, ואם הוא
+    רץ קודם, תיבת עמודה שבמיקוד מאבדת אותו לפני שהבורר מחזיר אותו לכפתור */
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;
+  colsOpen(false)},true)}
 /* שם התצוגה בבורר: מה שהמעתד רואה במסילה, ולא מפתח פנימי. */
 function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
@@ -12155,7 +12175,11 @@ function menuWire(bid,mid){
   mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
  document.addEventListener('click',e=>{if(!mm.contains(e.target)&&e.target!==mb){
   mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
- document.addEventListener('keydown',e=>{if(e.key==='Escape')mm.classList.remove('open')})}
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!mm.classList.contains('open'))return;
+  /* D1: נמדד — Escape סגר את התפריט אבל השאיר aria-expanded=true, והמיקוד
+     נשאר על אלמנט מוסתר (נפל ל-body). עכשיו חוזר לכפתור שפתח */
+  const inside=mm.contains(document.activeElement);
+  mm.classList.remove('open');mb.setAttribute('aria-expanded','false');if(inside)mb.focus()})}
 function helpWire(){
  const hb=document.getElementById('helpBtn'),hm=document.getElementById('helpMenu');
  if(!hb||!hm)return;
