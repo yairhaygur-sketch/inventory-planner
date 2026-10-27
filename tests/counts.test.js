@@ -34,14 +34,14 @@ const XL2=path.join(tmp,'zmrp-demo.xlsx');
 const snap=p=>p.evaluate(()=>{
  const num=s=>{const m=String(s||'').match(/[\d,]+/);return m?+m[0].replace(/,/g,''):null};
  const T=s=>(document.querySelector(s)||{}).textContent?.replace(/\s+/g,' ').trim()||'';
- const bdg=sel=>Object.fromEntries([...document.querySelectorAll(sel)].map(e=>[e.dataset.m,num(e.querySelector('.bdg')?.textContent)]));
+ const bdg=sel=>Object.fromEntries([...document.querySelectorAll(sel)].map(e=>[e.dataset.nav,num(e.querySelector('[data-count]')?.textContent)]));
  setMode('home');
- const main=bdg('#tabs .tab[data-m]');
+ const main=bdg('[data-nav-level="main"]');
  const greet=T('#plannerGreeting'),qsub=T('#qsub');
  const sub={},title={};
  for(const a of Object.keys(main)){setMode(a);
-  for(const e of document.querySelectorAll('#railsub .railsub2[data-m]')){
-   sub[e.dataset.m]=num(e.querySelector('.bdg')?.textContent);title[e.dataset.m]=e.title}}
+  for(const e of document.querySelectorAll('[data-nav-level="sub"]')){
+   sub[e.dataset.nav]=num(e.querySelector('[data-count]')?.textContent);title[e.dataset.nav]=e.title}}
  const scr={};
  for(const m of Object.keys(MODESET)){setMode(m);
   let n;try{n=m==='moves'?movRows().length:currentRows().length}catch(_){n=null}
@@ -49,7 +49,7 @@ const snap=p=>p.evaluate(()=>{
    act:m==='prof'?profRows().filter(profActive).length:null}}
  setMode('month');const v=currentRows();
  const monthFile=sapPlan(undefined,v,v).rows;
- const monthSub=T('#tabs .tab[data-m="month"] .m.stat');
+ const monthSub=T('[data-nav-level="main"][data-nav="month"] .m.stat');
  setMode('home');
  return {main,sub,title,greet,qsub,scr,monthFile,monthSub,all:QF.all.length}});
 
@@ -105,7 +105,7 @@ function invariants(tag,R){
   const res={};for(const m of Object.keys(MODESET)){setMode(m);res[m]={pgL:T('#pgL'),pgR:T('#pgR'),
    n:(()=>{try{return m==='moves'?movRows().length:currentRows().length}catch(_){return 0}})()}}
   setMode('home');
-  return {greet:T('#plannerGreeting'),bdg:[...document.querySelectorAll('#tabs .tab[data-m] .bdg')].map(e=>e.textContent.trim()),res}});
+  return {greet:T('#plannerGreeting'),bdg:[...document.querySelectorAll('[data-nav-level="main"] [data-count]')].map(e=>e.textContent.trim()),res}});
  ok('אפס פריטים · הברכה אומרת 0',/(^|· )0 דורשים החלטה$/.test(R3.greet),R3.greet);
  ok('אפס פריטים · כל המונים במסילה 0',R3.bdg.every(t=>t==='0'||t==='▤'),R3.bdg.join(' '));
  const e3=Object.entries(R3.res).filter(([m,s])=>m!=='moves'&&(s.pgL!=='אין פריטים'||/₪0|\$0|1-0/.test(s.pgR)));
@@ -124,7 +124,7 @@ function invariants(tag,R){
  /* ---- ההיכרות והעזרה מול הממשק ---- */
  const H=await p.evaluate(()=>{
   setMode('home');
-  const tr=document.querySelector('#tbl tbody tr[data-i]');if(tr)tr.click();
+  const tr=document.querySelector('#tbl tbody [data-row]');if(tr)tr.click();
   /* כל הטאבים, גם הסמויים: פריט עם המלצת פרמטר, כמו שההיכרות אומרת */
   const fx=QF.all.find(r=>r.paramFix);const det0=(document.getElementById('detail').textContent||'');
   if(fx)detail(fx);

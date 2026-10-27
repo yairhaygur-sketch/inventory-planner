@@ -43,23 +43,23 @@ const N=n=>Number(n).toLocaleString('he-IL');
    const la=document.getElementById('selAll'),pg=document.querySelector('#w_queue .pager');
    o.linkShown=!!la&&!la.hidden&&la.offsetWidth>0;o.linkTxt=la?la.textContent:'';o.pgH=pg.offsetHeight;
    la.click();await __raf();o.link={sel:SAPSEL.size,all:sapFiltered().every(r=>SAPSEL.has(r.pn)),gone:la.hidden||!la.offsetWidth,bar:!hidden('sapbar')};
-   document.getElementById('sapbarClr').click();await __raf();o.linkBack=!la.hidden&&la.offsetWidth>0;
+   document.querySelector('[data-bulk="clear"]').click();await __raf();o.linkBack=!la.hidden&&la.offsetWidth>0;
    /* 1 — כניסה */
    /* השורות שעל המסך ברגע הלחיצה — אחריה הפס מופיע ודוחק את הטבלה */
    if(o.head){const vis=sapVisible().map(r=>r.pn);const a=document.querySelector('#tbl thead .sapall');a.checked=true;a.dispatchEvent(new Event('change'));
     o.vis=vis.length;o.onlyVis=SAPSEL.size===vis.length&&vis.every(x=>SAPSEL.has(x))}
-   else{const b0=document.querySelector('#tbl tbody .sapsel');b0.checked=true;b0.dispatchEvent(new Event('change'));o.vis=1;o.onlyVis=SAPSEL.size===1}
+   else{const b0=document.querySelector('#tbl tbody [data-bulk="pick"]');b0.checked=true;b0.dispatchEvent(new Event('change'));o.vis=1;o.onlyVis=SAPSEL.size===1}
    await __raf();o.bar1=!hidden('sapbar');o.allBtn=T('sapbarAll');o.info1=T('sapbarInfo');o.n1=SAPSEL.size;
    /* 2 — «בחר את כל N» */
-   document.getElementById('sapbarAll').click();await __raf();
+   document.querySelector('[data-bulk="select-all"]').click();await __raf();
    const F=sapFiltered();o.sel2=SAPSEL.size;o.allF=F.every(r=>SAPSEL.has(r.pn))&&SAPSEL.size===F.length;
    o.allHidden=hidden('sapbarAll');o.info2=T('sapbarInfo');o.cnt2=T('sapbarN');
    const s=VL.tbl;s.box.scrollTop=s.box.scrollHeight;await __raf();await __raf();
-   o.farAll=[...s.tb.querySelectorAll('.sapsel')].every(x=>x.checked);
+   o.farAll=[...s.tb.querySelectorAll('[data-bulk="pick"]')].every(x=>x.checked);
    /* 3 — «ייכללו» = הקובץ = התצוגה לפני הייצוא */
    const P=sapPlan(undefined,sapSelRows(),QF.all.filter(r=>SAPSEL.has(r.pn)));o.plan=P.rows;o.planOut=P.out;
    __cap.length=0;doSapMass(undefined,sapSelRows());o.file=__cap.length?__cap[0].rows:0;
-   document.getElementById('sapbarGo').click();await __raf();o.prevIn=T('sapIn');o.modal=document.getElementById('modalwrap').classList.contains('open');
+   document.querySelector('[data-bulk="sap-file"]').click();await __raf();o.prevIn=T('sapIn');o.modal=document.getElementById('modalwrap').classList.contains('open');
    document.getElementById('sapCancel').click();
    /* 4 — סינון עמודה: נבחרים מחוץ לסינון */
    const col='c:model',vals={};for(const r of F){const v=String(colAcc(col)(r));vals[v]=(vals[v]||0)+1}
@@ -71,7 +71,7 @@ const N=n=>Number(n).toLocaleString('he-IL');
     o.after4=SAPSEL.size;o.keptIn=sapFiltered().every(r=>SAPSEL.has(r.pn));o.outHidden=hidden('sapbarOut');
     delete colFilters[col];render();await __raf();o.info4b=T('sapbarInfo');o.allBack4=!hidden('sapbarAll')}
    /* 5 — סינון במגירה: הבחירה נשמרת, המוסתרים נספרים ונכללים בקובץ */
-   document.getElementById('sapbarAll').click();await __raf();
+   document.querySelector('[data-bulk="select-all"]').click();await __raf();
    const k=FDEF[0][0],cnt={};for(const r of sapFiltered())cnt[r[k]]=(cnt[r[k]]||0)+1;const kv=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
    o.drawerMulti=kv.length>1;
    if(o.drawerMulti){const before=SAPSEL.size;
@@ -84,7 +84,7 @@ const N=n=>Number(n).toLocaleString('he-IL');
     o.dKept=SAPSEL.size===before;const hid=sapHidden().length;o.dHid=hid;o.dOutTxt=T('sapbarOutN');o.dOut=!hidden('sapbarOut');
     const P=sapPlan(undefined,sapSelRows(),sapSelAll());__cap.length=0;doSapMass(undefined,sapSelRows());
     o.dPlan=P.rows;o.dFile=__cap.length?__cap[0].rows:0;o.dInfo=T('sapbarInfo');o.dN=T('sapbarN');
-    document.getElementById('sapbarGo').click();await __raf();o.dPrev=T('sapIn');o.dSrc=(document.querySelector('#mbody .sapsrc')||{}).textContent||'';
+    document.querySelector('[data-bulk="sap-file"]').click();await __raf();o.dPrev=T('sapIn');o.dSrc=(document.querySelector('#mbody .sapsrc')||{}).textContent||'';
     document.getElementById('sapCancel').click();
     /* אחרי הקובץ: הסרת הסינון וחזרה — ההמלצות והבחירה לא זזו */
     SEL[k]=new Set();apply();setMode('catalog');setMode('month');await __raf();
@@ -97,11 +97,11 @@ const N=n=>Number(n).toLocaleString('he-IL');
    const before6=SAPSEL.size;setMode('catalog');await __raf();o.barCat=hidden('sapbar');
    setMode('month');await __raf();o.kept6=SAPSEL.size===before6&&before6>0;o.bar6=!hidden('sapbar');
    /* 7 — ביטול חלקי ידני, ואז מלא */
-   document.getElementById('sapbarAll').click();await __raf();const full=SAPSEL.size;
-   const bx=document.querySelector('#tbl tbody .sapsel:checked');bx.checked=false;bx.dispatchEvent(new Event('change'));await __raf();
+   document.querySelector('[data-bulk="select-all"]').click();await __raf();const full=SAPSEL.size;
+   const bx=document.querySelector('#tbl tbody [data-bulk="pick"]:checked');bx.checked=false;bx.dispatchEvent(new Event('change'));await __raf();
    o.partial=SAPSEL.size===full-1;o.cnt7=T('sapbarN');o.allBack7=!hidden('sapbarAll');o.full=full;
-   document.getElementById('sapbarClr').click();await __raf();o.cleared=SAPSEL.size===0&&hidden('sapbar')
-    &&[...document.querySelectorAll('#tbl tbody .sapsel')].every(x=>!x.checked);
+   document.querySelector('[data-bulk="clear"]').click();await __raf();o.cleared=SAPSEL.size===0&&hidden('sapbar')
+    &&[...document.querySelectorAll('#tbl tbody [data-bulk="pick"]')].every(x=>!x.checked);
    /* 8 — דלת «רצפת מדרגה»: הפס מבטיח את הקובץ של הדלת הזאת */
    setMode('tier');await __raf();o.tierN=sapFiltered().length;
    if(o.tierN){for(const r of sapFiltered())SAPSEL.add(r.pn);sapBarSync();
