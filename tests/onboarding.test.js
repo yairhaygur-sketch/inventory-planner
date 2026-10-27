@@ -345,11 +345,13 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
     .map(e=>e.tagName+':'+(e.getAttribute('role')||'')));
   ok('פריטי העזרה הם כפתורים עם role=menuitem',
     kind.length===2&&kind.every(x=>x==='BUTTON:menuitem'),kind.join(' · '));
-  /* D1: הקבצים וההגדרות עברו לאותו תפריט — וגם הם פקדים אמיתיים */
+  /* D1: הקבצים וההגדרות עברו לאותו תפריט — וגם הם פקדים אמיתיים.
+     9 ולא 8: נוסף «תכנון מלאי — 4 נושאים» (?topics) תחת «תצוגות» —
+     המעתד פתח את הכלי המלא ולא מצא דרך לתצוגה. גם הוא כפתור. */
   const kAll=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu [role=menuitem]')]
     .map(e=>e.tagName));
   ok('כל פריט בתפריט «⋯» הוא כפתור עם role=menuitem',
-    kAll.length===8&&kAll.every(x=>x==='BUTTON'),kAll.join(' · '));
+    kAll.length===9&&kAll.every(x=>x==='BUTTON'),kAll.join(' · '));
   await p.evaluate(()=>document.getElementById('helpBtn').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(200);
   const k1=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),

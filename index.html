@@ -3318,6 +3318,8 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
         <div class="msec" role="presentation">עזרה</div>
         <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
         <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
+        <div class="msec" role="presentation">תצוגות</div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="topicsOpen" title="תכנון מלאי — 4 נושאים: טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר. נפתח בלשונית חדשה, על אותו מנוע — מעלים בה את הדוח שוב"><span aria-hidden="true">◫</span><span class="lbl"> תכנון מלאי — 4 נושאים ↗</span></button></div>
         <div class="msec" role="presentation">קבצים</div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button></div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button></div>
@@ -3444,6 +3446,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
             <div class="wellinks">
               <button type="button" class="wlink" id="welDemo">התנסות עם נתוני דוגמה</button>
               <button type="button" class="wlink" id="welTour">היכרות עם הכלי</button>
+              <button type="button" class="wlink" id="welTopics" title="טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר — אותו מנוע, ממשק מצומצם">תכנון מלאי — 4 נושאים</button>
             </div>
           </div>
         </div>
@@ -12275,6 +12278,12 @@ function helpWire(){
   else if(e.key==='Tab'&&!e.shiftKey&&i===it.length-1)shut(false)});}
 function welWire(){
  const dm=document.getElementById('welDemo');if(dm)dm.onclick=demoStart;
+ /* ============ TOPICS — הדרך מהכלי המלא לתצוגת 4 הנושאים ============
+    שתי כתובות היו קיימות, ולא היה קישור ביניהן מהצד הזה: המעתד פתח את
+    הכלי המלא ולא מצא את 4 הנושאים. במסך הפתיחה אין עדיין דוח, ולכן
+    אותה לשונית. מהתפריט — לשונית חדשה, כדי שדוח שכבר נטען כאן לא ייסגר. */
+ const wt=document.getElementById('welTopics');if(wt)wt.onclick=()=>{location.href='?topics'};
+ const to=document.getElementById('topicsOpen');if(to)to.onclick=()=>{window.open('?topics','_blank','noopener')};
  const tb=document.getElementById('welTour');if(tb)tb.onclick=()=>tourStart(true);
  const ex=document.getElementById('demoExit');
  if(ex)ex.onclick=()=>{

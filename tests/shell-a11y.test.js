@@ -34,8 +34,9 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.evaluate(()=>{const d=document.getElementById('dchip');if(document.getElementById('diag').getBoundingClientRect().height>0)d.click();document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open'))});
   // ⋯
   await p.focus('#helpBtn');await p.keyboard.press('Enter');await p.waitForTimeout(150);
-  const items=[await act(p)];for(let i=0;i<7;i++){await p.keyboard.press('ArrowDown');items.push(await act(p))}
-  ok('מקלדת · «⋯» נפתח במיקוד על הפריט הראשון והחצים עוברים על כל 8',items.join(',')==='tour,xp,btn,sapXls,sapSlowXls,expXls,darkToggle,stBtn'||new Set(items).size===8,items.join(','));
+  /* 9 ולא 8: «תכנון מלאי — 4 נושאים» (topicsOpen) נוסף תחת «תצוגות» */
+  const items=[await act(p)];for(let i=0;i<8;i++){await p.keyboard.press('ArrowDown');items.push(await act(p))}
+  ok('מקלדת · «⋯» נפתח במיקוד על הפריט הראשון והחצים עוברים על כל 9',items.join(',')==='tour,xp,topicsOpen,btn,sapXls,sapSlowXls,expXls,darkToggle,stBtn'||new Set(items).size===9,items.join(','));
   // ייצוא במקלדת
   await p.keyboard.press('Escape');await p.waitForTimeout(100);
   ok('מקלדת · Escape סוגר את «⋯» ומחזיר מיקוד',await act(p)==='helpBtn');
@@ -111,7 +112,7 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.evaluate(()=>{if(document.getElementById('diag').getBoundingClientRect().height>0)document.getElementById('dchip').click()});
   await p.tap('#helpBtn');await p.waitForTimeout(250);
   const hm=await inV('#helpMenu [role=menuitem]');
-  ok(`${T} · «⋯» נפתח בנגיעה, 8 פריטים, כולם בתוך המסך`,hm.length===8&&hm.every(x=>x.ok),hm.filter(x=>!x.ok).map(x=>x.id).join(',')||hm.length);
+  ok(`${T} · «⋯» נפתח בנגיעה, 9 פריטים, כולם בתוך המסך`,hm.length===9&&hm.every(x=>x.ok),hm.filter(x=>!x.ok).map(x=>x.id).join(',')||hm.length);
   ok(`${T} · גובה פריטי «⋯» ≥ 32px`,hm.every(x=>x.h>=32),hm.map(x=>x.h).join(','));
   const x0=await p.evaluate(()=>window.__x);await p.tap('#exportXls');await p.waitForTimeout(1200);
   ok(`${T} · «ייצוא לאקסל» עובד בנגיעה`,await p.evaluate(()=>window.__x)>x0);

@@ -66,6 +66,24 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   REF=await p.evaluate(ENGINE);
   await p.context().close()}
 
+ /* ---- 1א. הדרך מהכלי המלא: כפתור במסך הפתיחה ופריט בתפריט «⋯» ----
+    בלי הקישור, שתי הכתובות היו קיימות והמעתד לא מצא את 4 הנושאים. */
+ {const p=await page(1440,900,'?nobrief=1');
+  await p.waitForSelector('#welTopics',{state:'visible'});
+  await Promise.all([p.waitForURL(/\?topics$/),p.click('#welTopics')]);
+  await p.waitForSelector('#lite h1');
+  ok('מסך הפתיחה: «תכנון מלאי — 4 נושאים» פותח את ?topics',
+   await p.evaluate(()=>document.documentElement.classList.contains('lite')&&/4 נושאים/.test(document.querySelector('#lite h1').textContent)));
+  await p.goto(URL0+'?nobrief=1');await load(p);
+  await p.click('#helpBtn');
+  const [np]=await Promise.all([p.context().waitForEvent('page'),p.click('#topicsOpen')]);
+  await np.waitForLoadState();await np.waitForSelector('#lite h1');
+  const r=await np.evaluate(()=>({url:location.search,lite:document.documentElement.classList.contains('lite')}));
+  const still=await p.evaluate(()=>!!(QF&&QF.all&&QF.all.length)&&!document.documentElement.classList.contains('lite'));
+  ok('תפריט «⋯»: «תכנון מלאי — 4 נושאים» נפתח בלשונית חדשה, והכלי המלא נשאר עם הדוח',
+   r.url==='?topics'&&r.lite&&still,JSON.stringify({...r,still}));
+  await p.context().close()}
+
  /* ---- 2. ?topics — מצב ריק, ואז טעינה ---- */
  const p=await page(1440,900,'?topics');
  {const r=await p.evaluate(()=>({shell:getComputedStyle(document.getElementById('shell')).display,
