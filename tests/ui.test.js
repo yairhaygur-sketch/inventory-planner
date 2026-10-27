@@ -11,6 +11,15 @@ const topAct=async(p,id)=>{
  if(opener){await p.click('#'+opener);await p.waitForTimeout(200)}
  await p.click('#'+id);
  if(opener){await p.evaluate(()=>document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open')))}};
+/* ============ פעולה בבורר «תצוגה» ============
+   D1: «מדדים» ו«צפיפות» עברו מהשורה שמעל הרשימה אל ראש הבורר «תצוגה»
+   — אותם אלמנטים, אותם מזהים ואותם מטפלים. הבדיקה פותחת את הבורר כמו
+   שהמשתמש עושה, ולא לוחצת על כפתור מוסתר. close:false משאיר אותו פתוח
+   כדי לבדוק את מצב הכפתור עצמו. */
+const viewAct=async(p,id,{close=true}={})=>{
+ if(!await p.isVisible('#'+id)){await p.click('#colsBtn');await p.waitForTimeout(200)}
+ await p.click('#'+id);
+ if(close)await p.evaluate(()=>colsOpen(false))};
 /* ============ ניווט במסילה ============
    אחרי המעבר למסילה אנכית, מסלול ותיק שאינו אחד משישה התחומים
    (moves, burn, cust, done, rise, floor, trend, applied) נמצא כדלת
@@ -329,7 +338,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('מסילת הסינון מקופלת כברירת מחדל',dr.railW===0,`רוחב מסילה ${dr.railW}`);
  const railVis=()=>p.evaluate(()=>{const r=document.querySelector('.wfilters');
    return !!r&&r.offsetParent!==null});
- ok('כפתור «סינון» בסרגל העליון גלוי',
+ ok('כפתור «סינון» בסרגל הרשימה גלוי',
    await p.evaluate(()=>{const b=document.getElementById('filtBtn');return !!b&&b.offsetParent!==null}));
  await topAct(p,'filtBtn');await p.waitForTimeout(350);
  ok('הכפתור פותח את המסילה',await railVis());
@@ -344,6 +353,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.click('.wfilters .whead .wx');await p.waitForTimeout(300);
  await p.reload();await p.waitForTimeout(1600);
  ok('הקיפול שורד רענון',!(await railVis()));
+ /* D1: «סינון» יושב בסרגל הרשימה, ולפני שנטען דוח מסך הפתיחה מכסה
+    אותה — אין עדיין מה לסנן. טוענים, ואז בודקים שהפתיחה שורדת רענון */
+ await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.waitForTimeout(4000);
  await topAct(p,'filtBtn');await p.waitForTimeout(300);
  await p.reload();await p.waitForTimeout(1600);
  ok('הפתיחה שורדת רענון',await railVis());
@@ -518,10 +530,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('בלי חסרי מחיר — המונה נעלם ואינו מציג אפס',!clean.chip&&!/בלי מחיר/.test(clean.foot),
    clean.foot.slice(-34));
  await p.evaluate(m=>setMode(m),modeBefore);await p.waitForTimeout(400);
- await p.click('#dchip');await p.waitForTimeout(300);
+ await topAct(p,'dchip');await p.waitForTimeout(300);
  const dOpen=await p.evaluate(()=>Math.round(document.getElementById('diag').getBoundingClientRect().height));
  ok('לחיצה על השבב פותחת את פירוט האזהרות',dOpen>0,dOpen+'px');
- await p.click('#dchip');await p.waitForTimeout(250);
+ await topAct(p,'dchip');await p.waitForTimeout(250);
  const dShut=await p.evaluate(()=>Math.round(document.getElementById('diag').getBoundingClientRect().height));
  ok('לחיצה נוספת סוגרת',dShut===0);
  /* שורת המדדים ניתנת להחזרה — ההסתרה היא ברירת מחדל, לא מחיקה */
@@ -2302,11 +2314,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    try{localStorage.setItem('planner_dense','0')}catch(_){}});
  await p.waitForTimeout(250);
  const den0=await rowsFit();
- await p.click('#denTog');await p.waitForTimeout(300);
- const den1=await rowsFit();
+ await viewAct(p,'denTog',{close:false});await p.waitForTimeout(300);
  ok('מתג הצפיפות קיים ומסומן כשהוא פעיל',
    await p.evaluate(()=>{const b=document.getElementById('denTog');
      return !!b&&b.offsetParent!==null&&b.getAttribute('aria-pressed')==='true'}));
+ await p.evaluate(()=>colsOpen(false));await p.waitForTimeout(150);
+ const den1=await rowsFit();
  ok('«צפופה» מכניסה יותר שורות',den1.n>den0.n&&den1.h<den0.h,
    `${den0.n} שורות ב-${den0.h}px → ${den1.n} שורות ב-${den1.h}px`);
  /* הגופן של המסלול הזה הוא 11.5px גם ב«רגילה» — זו בחירה קודמת
@@ -2330,9 +2343,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    await p.waitForTimeout(350);
    const shown=await p.evaluate(()=>Math.round(document.getElementById('kpis').getBoundingClientRect().height));
    const a=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(350);
+   await viewAct(p,'kpiTog');await p.waitForTimeout(350);
    const b2=await p.evaluate(()=>Math.round(document.querySelector('.rows').getBoundingClientRect().height));
-   await p.click('#kpiTog');await p.waitForTimeout(250);
+   await viewAct(p,'kpiTog');await p.waitForTimeout(250);
    return shown>0&&b2>a})());
 
  await b.close();console.log(out.join('\n'));

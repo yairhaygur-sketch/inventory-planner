@@ -572,6 +572,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    const named=((e.querySelector('.lbl')||{}).textContent||'').trim().length>1;
    if(inMenu)return {id,ok:named,why:'בתפריט'};
    const r=e.getBoundingClientRect();
+   /* D1: «סינון» עבר מהסרגל העליון אל סרגל הכלים של הרשימה — שם
+      הוא פועל עליה. הטענה זהה: גלוי, ועם שם */
+   if(!e.closest('.top'))return {id,ok:named&&r.width>0&&r.height>0,why:'בסרגל הרשימה'};
    return {id,ok:named&&r.width>0&&r.left>=cb.left-1&&r.right<=cb.right+1,why:'בשורה'}});
   return {topClipped:top.scrollWidth>top.clientWidth+2,
    reachable:st.every(x=>x.ok),st,
