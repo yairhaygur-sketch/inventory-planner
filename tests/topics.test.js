@@ -8,6 +8,7 @@
    בדיוק מה שהמנוע של הכלי המלא כבר בחר — אותה קבוצת מק״טים, לא רק אותו
    מספר. ובנוסף: הכלי המלא אינו משתנה בלי ?topics, כסף מוצג במטבע של
    הפריט, הייצוא הוא התצוגה, ואין גלילה אופקית של העמוד.
+   התצוגה מיועדת למחשב בלבד: הבדיקה רצה ב-1366 · 1440 · 1920, בלי טלפון.
    ההשוואה העיקרית רצה בין שני עמודים נפרדים: הכלי המלא (בלי ?topics)
    מחשב את הנושאים מהבוררים של המנוע, והתצוגה (?topics) נטענת בנפרד על
    אותו קובץ. כל שדה שהתצוגה מציגה או מייצאת חייב לצאת זהה, מק״ט במק״ט.
@@ -191,7 +192,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  await p.context().close();
 
  /* ---- 8. רוחב: אין גלילה אופקית לעמוד; ב-1366 גם הטבלה נכנסת ---- */
- for(const [w,h] of [[1366,768],[1920,1080],[390,844]]){
+ for(const [w,h] of [[1366,768],[1440,900],[1920,1080]]){
   const q=await page(w,h,'?topics');await load(q);await q.waitForSelector('#lite table');
   const bad1=[];
   for(const t of ['fix','trend','cust','short']){await q.click(`[data-tp-tab="${t}"]`);
@@ -201,8 +202,9 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   ok(`${w}px: אין גלילה אופקית${w>=1366?' ואין טבלה חתוכה':''}`,!bad1.length,bad1.join(' · '));
   await q.context().close()}
 
- /* ---- 9. בהיר וכהה, מחשב וטלפון: ניגודיות ו-RTL ---- */
- for(const [w,h] of [[1440,900],[390,844]])for(const dark of [false,true]){
+ /* ---- 9. בהיר וכהה: ניגודיות ו-RTL ----
+    התצוגה מיועדת למחשב בלבד (החלטת המעתד, 27.10.2026) — אין כאן מדידות טלפון. */
+ for(const [w,h] of [[1366,768],[1920,1080]])for(const dark of [false,true]){
   const q=await page(w,h,'?topics');await load(q);await q.waitForSelector('#lite table');
   if(dark!==await q.evaluate(()=>document.body.classList.contains('dark')))await q.click('#lite [data-tp="dark"]');
   /* החלפת ערכת הצבעים מונפשת — מודדים אחרי שהמעבר הסתיים, לא באמצעו */
