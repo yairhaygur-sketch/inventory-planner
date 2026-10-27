@@ -3044,9 +3044,60 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
  #w_queue .qpanel:has(>#capTop:not([hidden])){overflow-y:auto;overscroll-behavior-y:contain}
  #w_queue .qpanel:has(>#capTop:not([hidden]))>.rows{flex:0 0 auto;height:calc(100% - var(--pgh,40px));min-height:320px}
  #w_queue .qpanel:has(>#capTop:not([hidden]))>.pager{position:sticky;bottom:0;background:var(--panel);z-index:2}}
+/* ============ TOPICS — התצוגה המצומצמת (index.html?topics) ============
+   כל מה שאינו התצוגה, האבחון, הטעינה, ההדגמה וההודעות — מוסתר. הכלי
+   המלא נשאר ב-DOM ועובד כרגיל מאחור: ממנו באים הקובץ, המנוע והתורים. */
+#lite{display:none}
+html.lite body>:not(#lite):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(script){display:none!important}
+html.lite body{overflow:auto;background:var(--paper)}
+html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-height:1.5}
+#lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+#lite .tph h1{font-size:var(--f-lg);margin:0;font-weight:700}
+#lite .tph .src{color:var(--shell-dim);flex:1;min-width:200px}
+#lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
+#lite .tph .btn:hover{background:var(--shell-btn-h)}
+#lite .tph .btn.pri{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
+#lite nav{background:var(--shell);padding:0 24px;display:flex;gap:2px;flex-wrap:wrap;border-bottom:3px solid var(--shell-acc)}
+#lite nav button{background:none;border:0;color:var(--shell-dim);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px}
+#lite nav button.on{color:var(--shell-ink);border-bottom-color:var(--shell-warn);font-weight:600}
+#lite nav .n{margin-inline-start:6px;background:var(--shell-track);border-radius:10px;padding:0 8px;font-size:var(--f-sm)}
+#lite main{padding:14px 24px 48px;max-width:1900px;margin:0 auto}
+#lite .lead{color:var(--ink-2);max-width:1050px;margin:0 0 12px}
+#lite .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+#lite .bar input,#lite .bar select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);min-width:180px}
+#lite .bar .btn{font:inherit;padding:6px 14px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);cursor:pointer}
+#lite .mini{color:var(--ink-3);font-size:var(--f-sm)}
+#lite .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 12px}
+#lite .tile{text-align:start;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line);padding:8px 12px;cursor:pointer}
+#lite .tile .v{font-size:var(--f-xl);font-weight:700;font-variant-numeric:tabular-nums}
+#lite .tile.on{outline:2px solid var(--accent);outline-offset:-2px}
+#lite .tile.red{border-top-color:var(--critical)} #lite .tile.amb{border-top-color:var(--high)}
+#lite .tile.blu{border-top-color:var(--steady)} #lite .tile.gry{border-top-color:var(--calm)}
+#lite .tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line)}
+#lite table{border-collapse:collapse;width:100%}
+#lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
+#lite th.on{color:var(--accent-ink)}
+#lite td{padding:6px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+#lite td.n,#lite th.n{text-align:end;font-variant-numeric:tabular-nums}
+#lite td.n{white-space:nowrap}
+#lite td.d{min-width:160px;max-width:300px;white-space:normal}
+#lite tr.r{cursor:pointer} #lite tr.r:hover td{background:var(--accent-bg)}
+#lite tr.det td{background:var(--surface-2);padding:10px 16px}
+#lite tr.det ul{margin:0;padding-inline-start:18px}
+#lite tr.det li.err{color:var(--critical)} #lite tr.det li.warn{color:var(--high)}
+#lite .old{color:var(--ink-3);text-decoration:line-through}
+#lite .p{display:inline-block;padding:0 8px;border-radius:10px;font-size:var(--f-sm);white-space:nowrap}
+#lite .p.red{background:var(--critical-bg);color:var(--critical)} #lite .p.amb{background:var(--high-bg);color:var(--high)}
+#lite .p.blu{background:var(--steady-bg);color:var(--steady)} #lite .p.gry{background:var(--calm-bg);color:var(--calm)}
+#lite .empty{background:var(--surface);border:1px solid var(--line);padding:24px;max-width:720px}
+#lite .more{margin:10px 0;display:flex;gap:10px;align-items:center}
+@media(max-width:760px){#lite .tph,#lite nav,#lite main{padding-inline:16px}
+ #lite .tile{padding:6px 10px} #lite .tile .v{font-size:var(--f-lg)}}
 </style>
 </head>
 <body>
+<script>if(/[?&]topics(=|&|$)/.test(location.search))document.documentElement.classList.add('lite')</script>
+<div id="lite" dir="rtl"></div>
 <!-- ============ תדריך פתיחה ============
      מופיע רק כשיש משהו חדש מאז ההרצה הקודמת. אחרת — ישר לטבלה, עם פס
      דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
@@ -3267,6 +3318,8 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
 <div class="modalwrap" id="modalwrap"><div class="modal"><div class="mhd"><b id="mtitle">מאחורי החישוב</b><span class="x" id="mclose">✕</span></div><div class="mbody" id="mbody"></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
+/* index.html?topics — התצוגה המצומצמת של ארבעת הנושאים. ראה TOPICS. */
+const LITE=document.documentElement.classList.contains('lite');
 const CLEAN=s=>String(s==null?'':s).replace(/[\u200e\u200f\u202a-\u202e]/g,'').trim();
 const NUM=v=>{const n=parseFloat(String(v==null?'':v).replace(/[^\d.\-]/g,''));return isNaN(n)?0:n};
 /* המחיר מגיע מ-BZ (מחיר FOB) והמטבע שלו מ-BE (מטבע FOB) — USD, EUR או ILS.
@@ -9723,6 +9776,7 @@ function renderDecisions(rows){
    מרנדר שומר את הרשימה המלאה לצד מה שהוא מצייר. האיפוס כאן מבטיח שמסך
    ששכח לשמור לא יירש את קודמו: viewExportRows נופל אז ל-currentRows(). */
 function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
+ if(LITE){DL_CACHE={};tpRender();return}
  DL_CACHE={};XMAP=null;LINE_M=null;autoTrack();renderLine();tiles();kpis();markTabsOverflow();
  if(typeof syncDoneBtn==='function')syncDoneBtn();
  if(typeof syncFloorBtn==='function')syncFloorBtn();
@@ -12267,7 +12321,7 @@ function nlqApply(r){
    «חדש» = פריט חדש בתור הממתינים או בחומרה 3, גידול בתור המיידי,
    אזהרת DIAG פעילה, או יותר מ-24 שעות מההרצה הקודמת.
    אם אין היסטוריה בכלל — מציגים. עדיף מיותר מאשר להחביא שינוי. */
-const BRIEF_SKIP=(()=>{try{return new URLSearchParams(location.search).has('nobrief')}catch(_){return false}})();
+const BRIEF_SKIP=LITE||(()=>{try{return new URLSearchParams(location.search).has('nobrief')}catch(_){return false}})();
 /* אזהרת DIAG *חדשה* היא חדשות; אותה אזהרה בדיוק כמו בהרצה הקודמת
    אינה. «172 פריטים ללא מחיר FOB» היא תכונה קבועה של הדוח, ואם היא
    תפתח את התדריך היא תפתח אותו בכל טעינה לנצח — כלומר תבטל את השער
@@ -12628,6 +12682,183 @@ applyDark(DARKON);
 /* לא לדרוס את התצוגה השמורה. השורה הזאת אתחלה את LAYOUT בכל טעינה,
    ולכן כל קיפול או פתיחה של מסילת הסינון נמחקו ברענון. */
 applyLayout();
+/* ============ TOPICS — ארבעת הנושאים, בלי מנוע שני ============
+   index.html?topics פותח תצוגה מצומצמת: ארבע לשוניות, טבלה אחת בכל
+   אחת, והסבר לכל שורה. התצוגה **אינה מחשבת דבר**. כל שורה, כל מונה
+   וכל מספר נקראים מהשדות ש-build() ו-classify() כבר חישבו, ומהבוררים
+   שהמסכים הקיימים משתמשים בהם:
+
+     טיוב נתוני תכנון   decisionList('fix') — אותן שורות שבקובץ ל-SAP
+     חריגת צריכה        trendRows() · riseRows() · «ייתכן שאזל ולא נרשם»
+     לקוח ללא כיסוי     isT1() · custGap · burn — כפי ש-classify הכריע
+     מלאי 0 / צפי ל-0   decisionList('short') · decisionList('m1')
+
+   למה כאן ולא קובץ נפרד: ההשוואה מול דשבורד 4 הנושאים הניסויי
+   (26.10.2026) מצאה שני מנועים שעונים על אותן שאלות בכללים שונים —
+   רמת שירות מסולם מחיר במקום מ-SAP, קצב שאינו יורד, המרת מטבעות,
+   ו-611 פריטים עם שתי הוראות הפוכות. תצוגה שקוראת את המנוע הזה אינה
+   יכולה להתפצל ממנו. כלל חדש נכנס למנוע, באישור, ומופיע בשני המקומות.
+
+   מה אין כאן בכוונה: סימונים, בחירה ל-SAP, ציר אספקות, עמודות לבחירה.
+   הם בכלי המלא, והקישור «לכלי המלא» פותח אותו על אותו דוח (הדוח
+   נטען מחדש — אין שיתוף זיכרון בין לשוניות).
+   כסף: לפריט בלבד, במטבע שלו (money). אין סכום על פני פריטים. */
+const TP={tab:'fix',cat:{},q:'',pl:'',sort:{},lim:200,open:null};
+try{const h=location.hash.slice(1);if(['fix','trend','cust','short'].includes(h))TP.tab=h}catch(_){}
+const TP_SRC={stat:'סטטיסטי',sap:'מינימום מ-SAP',policy:'מינימום לפי מחיר',none:'—',od:'לפי דרישה',nostock:'לא לחידוש'};
+const tpN=v=>v==null||v===''||isNaN(v)?'—':(+v).toLocaleString('he-IL',{maximumFractionDigits:1});
+const tpPair=(a,b)=>a===b?tpN(b):`<span class="old">${tpN(a)}</span> ← <b>${tpN(b)}</b>`;
+const tpP=(c,t)=>`<span class="p ${c}">${esc(t)}</span>`;
+const tpAct=r=>(r.act&&r.act[0])||'';
+const tpUniq=lists=>{const s=new Set(),out=[];for(const l of lists)for(const r of l)if(!s.has(r)){s.add(r);out.push(r)}return out};
+const tpVal=(n,r)=>r.priceMissing?null:n*(r.price||0);
+const TP_DROP='ייתכן שאזל ולא נרשם';
+/* עמודות משותפות לכל הנושאים — מק״ט, תיאור, מתכנן */
+const TP_HEAD=[
+ {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b>`},
+ {k:'desc',l:'תיאור',v:r=>r.desc,c:'d'},
+ {k:'planner',l:'מתכנן',v:r=>r.planner}];
+const TOPICS={
+ fix:{t:'טיוב נתוני תכנון',
+  lead:'נקודת הזמנה ומלאי ביטחון — הערך ב-SAP מול המוצע. אלה בדיוק השורות שהכלי המלא מכניס לקובץ העדכון ל-SAP («מספר לתקן ב-SAP»). רמת השירות וזמן האספקה נלקחים מ-SAP כמו שהם. הכול המלצה לשיקול המתכנן — דבר לא משתנה ב-SAP מכאן.',
+  rows:()=>decisionList('fix'),
+  cats:[['up','העלאת נקודת הזמנה','amb',r=>r.sugROP>r.rop],['down','הפחתת נקודת הזמנה','blu',r=>r.sugROP<r.rop],
+   ['ss','מלאי ביטחון בלבד','gry',r=>r.sugROP===r.rop]],
+  cols:[
+   {k:'mrp',l:'סוג MRP',v:r=>r.mrp},
+   {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>r.sugROP,h:r=>tpPair(r.rop,r.sugROP),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>r.sugROP]]},
+   {k:'ss',l:'מלאי ביטחון',n:1,v:r=>r.sugSS,h:r=>tpPair(r.ss,r.sugSS),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>r.sugSS]]},
+   {k:'src',l:'מה קבע את מלאי הביטחון',v:r=>TP_SRC[r.ssSrc]||'—'},
+   {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
+   {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
+   {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
+   {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpVal(r.sugROP-r.rop,r),
+    h:r=>{const v=tpVal(r.sugROP-r.rop,r);return v==null?'—':(v>0?'+':v<0?'−':'')+money(Math.abs(v),r.currency)},
+    x:[['שווי שינוי',r=>{const v=tpVal(r.sugROP-r.rop,r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
+   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
+ trend:{t:'חריגת צריכה',
+  lead:'3 החודשים האחרונים מול 3 שלפניהם, על סדרת הצריכה אחרי ניקוי: פיק נחתך, וחודש שבו כנראה אזל המלאי מוחלף בחציון. המגמה היא מספר מייעץ ואינה משנה את נקודת ההזמנה המוצעת — פריטים שזינקו חזרו בממוצע לכ-58% מהשיא. «ייתכן שאזל ולא נרשם» הוא רצף חודשים נמוכים בין חודשים תקינים: חסר מלאי, לא ירידה בביקוש.',
+  rows:()=>tpUniq([riseRows(),trendRows(),((QF&&QF.all)||[]).filter(r=>r.cat===TP_DROP)]),
+  cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0],
+   ['drop',TP_DROP,'red',r=>r.cat===TP_DROP]],
+  cols:[
+   {k:'kind',l:'סוג',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'tRec',l:'3 ח׳ אחרונים',n:1,v:r=>r.tRec,h:r=>tpN(r.tRec)},
+   {k:'tPre',l:'3 ח׳ קודמים',n:1,v:r=>r.tPre,h:r=>tpN(r.tPre)},
+   {k:'pct',l:'שינוי',n:1,v:r=>r.tRatio==null?null:Math.round((r.tRatio-1)*100),
+    h:r=>r.tRatio==null?'—':`${r.tRatio>1?'+':''}${Math.round((r.tRatio-1)*100)}%`},
+   {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
+   {k:'sug',l:'נק׳ הזמנה מוצעת',n:1,v:r=>r.sugROP},
+   {k:'adv',l:'לפי המגמה (מייעץ)',n:1,v:r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null},
+   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
+   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
+ cust:{t:'הזמנות לקוח ללא כיסוי',
+  lead:'הזמנת לקוח פתוחה (בניכוי כמות חסומה למשלוח) שהמלאי הפנוי אינו מכסה. PD נכלל — הזמנת לקוח היא בדיוק הסיבה להזמין פריט לפי דרישה. רכש פתוח מוצג בנפרד: בלי תאריך הגעה הוא מכסה כמות, לא את המדף.',
+  rows:()=>((QF&&QF.all)||[]).filter(r=>isT1(r)||r.custGap),
+  cats:[['burn','לקוח ממתין · אין רכש','red',r=>!!r.burn],['gap','ההזמנה גדולה מהמלאי והרכש','amb',r=>r.custGap&&!r.burn],
+   ['po','מדף ריק · הרכש מכסה בכמות','blu',r=>!r.custGap]],
+  cols:[
+   {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'mrp',l:'סוג MRP',v:r=>r.mrp},
+   {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust},
+   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
+   {k:'po',l:'רכש פתוח',n:1,v:r=>r.po},
+   {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>Math.max(0,r.cust-Math.max(0,r.free)-Math.max(0,r.po)),h:r=>{const g=Math.max(0,r.cust-Math.max(0,r.free)-Math.max(0,r.po));return g?`<b>${tpN(g)}</b>`:'—'}},
+   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
+ short:{t:'מלאי 0 או צפוי להיגמר',
+  lead:'פריטים מנוהלי מלאי שהמדף שלהם ריק, או שהקצב החודשי גדול ממה שיהיה זמין החודש. «אוזל החודש»: צריכה של 10+ יח׳ ב-3 החודשים האחרונים, ומלאי פנוי שאינו מכסה חודש אחד. רכש בלי תאריך אינו נספר; דוח ETA שנטען בכלי המלא מקזז אספקה מתוארכת לחודש. PD, «לפי דרישה» וסטטוס 04/14 — לא כאן.',
+  rows:()=>tpUniq([decisionList('short'),decisionList('m1')]),
+  cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0],['month','לא יכסה את החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0],
+   ['m1','אוזל החודש','amb',r=>isM1(r)]],
+  cols:[
+   {k:'kind',l:'מצב',v:r=>r.cat,h:r=>tpP(r.sev===3?'red':r.sev===2?'amb':'gry',r.cat)},
+   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
+   {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
+   {k:'uns',l:'לא יסופק החודש',n:1,v:r=>Math.ceil(r.unsQty||0),h:r=>r.unsQty>0?`<b>${tpN(Math.ceil(r.unsQty))}</b>`:'—'},
+   {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
+   {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
+   {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
+   {k:'act',l:'פעולה',v:tpAct,c:'d'}]}};
+/* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
+function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
+function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
+  cat=k?T.cats.find(c=>c[0]===k):null;
+ return T.rows().filter(r=>(!TP.pl||r.planner===TP.pl)
+  &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
+function tpSorted(t,list){const s=TP.sort[t];if(!s)return list;
+ const col=TOPICS[t].cols.concat(TP_HEAD).find(c=>c.k===s.k);if(!col)return list;
+ /* «—» (null) תמיד בסוף, בשני הכיוונים */
+ return list.slice().sort((a,b)=>{const x=col.v(a),y=col.v(b);
+  if(x==null||y==null)return (x==null)-(y==null);
+  return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'he'))*s.dir})}
+function tpDetail(r){
+ const why=(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w:['info',String(w)]);
+ const act=(r.act||[]).filter(Boolean);
+ return `<ul>${why.map(([c,t])=>`<li class="${esc(c)}">${esc(t)}</li>`).join('')}
+  ${act.map(a=>`<li><b>לעשות:</b> ${esc(a)}</li>`).join('')}
+  <li class="mini">סיווג במנוע: ${esc(r.cat||'—')} · סוג MRP ${esc(r.mrp||'—')} · זמן אספקה ${tpN(r.ltD)} ימים · מחיר FOB ${r.priceMissing?'חסר':money(r.price,r.currency)}</li></ul>`}
+function tpRender(){const el=document.getElementById('lite');if(!el)return;
+ const src=(document.getElementById('updated')||{}).textContent||'';
+ const head=`<header class="tph"><h1>תכנון מלאי — 4 נושאים</h1><span class="src">${esc(src)}</span>
+  <button class="btn pri" type="button" data-tp="load">⭱ העלאת קובץ ZMRP</button>
+  ${QF?'':'<button class="btn" type="button" data-tp="demo">נתוני הדגמה</button>'}
+  <button class="btn" type="button" data-tp="dark">מצב כהה / בהיר</button>
+  <a class="btn" href="${esc(location.pathname)}">לכלי המלא</a></header>`;
+ if(!QF){el.innerHTML=head+`<main><div class="empty"><p><b>מעלים דוח ZMRP, והכלי מציג ארבעה נושאים:</b>
+  טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר.</p>
+  <p class="mini">הקובץ נקרא בדפדפן ולא נשלח לשום מקום. החישוב הוא של הכלי המלא — אותו מנוע, אותם כללים.</p></div></main>`;return}
+ const t=TP.tab,T=TOPICS[t],all=tpRows(t,true),list=tpSorted(t,tpRows(t,false)),s=TP.sort[t]||{};
+ const cols=TP_HEAD.concat(T.cols);
+ const pls=[...new Set(((QF&&QF.all)||[]).map(r=>r.planner).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+ const nav=Object.keys(TOPICS).map((k,i)=>`<button type="button" class="${k===t?'on':''}" data-tp-tab="${k}">${i+1}. ${esc(TOPICS[k].t)}<span class="n">${tpRows(k,true).length.toLocaleString('he-IL')}</span></button>`).join('');
+ const tiles=[['','הכול','gry',()=>true]].concat(T.cats).map(([k,l,c,f])=>
+  `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}"><div>${esc(l)}</div><div class="v">${all.filter(f).length.toLocaleString('he-IL')}</div></button>`).join('');
+ const shown=list.slice(0,TP.lim);
+ const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
+ const body=shown.map((r,i)=>{const open=TP.open===r;
+  return `<tr class="r" data-tp-row="${i}">${cols.map(c=>`<td class="${c.n?'n':''} ${c.c||''}">${c.h?c.h(r):(c.n?tpN(c.v(r)):esc(c.v(r)==null?'—':c.v(r)))}</td>`).join('')}</tr>`
+   +(open?`<tr class="det"><td colspan="${cols.length}">${tpDetail(r)}</td></tr>`:'')}).join('');
+ el.innerHTML=head+`<nav aria-label="נושאים">${nav}</nav><main>
+  <p class="lead">${esc(T.lead)}</p>
+  <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
+   <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
+   <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span></div>
+  <div class="tiles">${tiles}</div>
+  ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
+  ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
+  <p class="mini">לחיצה על שורה פותחת את ההסבר מהמנוע. מיון — לחיצה על כותרת העמודה.</p></main>`;
+ TP.shown=shown}
+function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+ const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]);
+ const lines=[xs.map(x=>q(x[0])).join(',')];
+ for(const r of tpSorted(t,tpRows(t,false)))lines.push(xs.map(x=>q(x[1](r))).join(','));
+ const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download=`4topics_${t}.csv`;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+if(LITE){
+ const el=document.getElementById('lite');
+ el.addEventListener('click',e=>{const b=e.target.closest('[data-tp],[data-tp-tab],[data-tp-cat],[data-tp-sort],tr[data-tp-row]');if(!b)return;
+  const a=b.dataset;
+  if(a.tp==='load')document.getElementById('f').click();
+  else if(a.tp==='demo')demoStart();
+  else if(a.tp==='dark')document.getElementById('darkToggle').click();
+  else if(a.tp==='csv')tpCsv();
+  else if(a.tp==='more'){TP.lim+=200;tpRender()}
+  else if(a.tpTab){TP.tab=a.tpTab;TP.lim=200;TP.open=null;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
+  else if(a.tpCat!=null){TP.cat[TP.tab]=a.tpCat;TP.lim=200;TP.open=null;tpRender()}
+  else if(a.tpSort){const s=TP.sort[TP.tab],col=TOPICS[TP.tab].cols.concat(TP_HEAD).find(c=>c.k===a.tpSort);
+   TP.sort[TP.tab]=s&&s.k===a.tpSort?{k:a.tpSort,dir:-s.dir}:{k:a.tpSort,dir:col&&col.n?-1:1};tpRender()}
+  else if(a.tpRow!=null){const r=(TP.shown||[])[+a.tpRow];TP.open=TP.open===r?null:r;tpRender()}});
+ el.addEventListener('change',e=>{if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}});
+ let qt=null;
+ el.addEventListener('input',e=>{if(e.target.dataset.tp!=='q')return;TP.q=e.target.value;clearTimeout(qt);
+  qt=setTimeout(()=>{tpRender();const i=el.querySelector('[data-tp="q"]');if(i){i.focus();i.setSelectionRange(TP.q.length,TP.q.length)}},250)});
+ /* קיצורי המקלדת של הכלי המלא פועלים על מסך מוסתר — כאן הם כבויים */
+ document.addEventListener('keydown',e=>{const tag=(e.target.tagName||'').toLowerCase();
+  if(tag!=='input'&&tag!=='select'&&tag!=='textarea')e.stopImmediatePropagation()},true);
+ /* התאריך שבכותרת מתעדכן גם כשהדוח נדחה (QF נשאר null) */
+ new MutationObserver(()=>{if(!QF)tpRender()}).observe(document.getElementById('updated'),{childList:true,characterData:true,subtree:true});
+ tpRender()}
 /* «וידג'טים» הוסר עם הגרירה. «שמור תצוגה»/«אפס תצוגה» היו כפתורים
    מתים — הם נמחקו מה-DOM בעלייה ומעולם לא נראו; עכשיו הם פשוט
    אינם בקוד. שמירת פריסת העמודות נעשית בבורר העמודות. */
