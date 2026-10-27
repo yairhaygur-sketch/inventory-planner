@@ -23,7 +23,8 @@ const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js'
  'profile-sim.test.js',
  'hooks.test.js',
  'shell-a11y.test.js',
- 'shell-contrast.test.js'];
+ 'shell-contrast.test.js',
+ 'topics.test.js'];
 const SD=__dirname;const res=[];
 for(const f of FILES){
  process.stdout.write(`\n========== ${f} ==========\n`);
