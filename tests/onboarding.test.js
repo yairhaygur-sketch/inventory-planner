@@ -69,7 +69,9 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
     return {id,ok:lbl===nm,lbl,why:inMenu?'בתפריט':'בשורה'}});
    return {st,clipped:top.scrollWidth>top.clientWidth+2,
     help:((document.getElementById('helpBtn')||{}).textContent||'').replace(/\s+/g,' ').trim(),
-    helpItems:[...document.querySelectorAll('#helpMenu .mi')].map(e=>e.dataset.help)}});
+    /* D1: התפריט «⋯ עזרה ועוד» מחזיק גם קבצים והגדרות; כניסות העזרה
+       הן אלה שנושאות data-help, ושתיהן עדיין שם */
+    helpItems:[...document.querySelectorAll('#helpMenu .mi[data-help]')].map(e=>e.dataset.help)}});
   ok(`${W} · לכל פעולה שם מלא לפי מה שהיא עושה`,act.st.every(x=>x.ok),
     act.st.map(x=>`${x.lbl||x.id}(${x.why})`).join(' · '));
   ok(`${W} · הסרגל אינו נחתך`,!act.clipped);
@@ -339,10 +341,15 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   await p.evaluate(()=>localStorage.clear());await p.reload();await p.waitForTimeout(400);
   await load(p);
   /* פריטי התפריט חייבים להיות פקדים, לא div-ים עם onclick */
-  const kind=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu .mi')]
+  const kind=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu .mi[data-help]')]
     .map(e=>e.tagName+':'+(e.getAttribute('role')||'')));
   ok('פריטי העזרה הם כפתורים עם role=menuitem',
     kind.length===2&&kind.every(x=>x==='BUTTON:menuitem'),kind.join(' · '));
+  /* D1: הקבצים וההגדרות עברו לאותו תפריט — וגם הם פקדים אמיתיים */
+  const kAll=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu [role=menuitem]')]
+    .map(e=>e.tagName));
+  ok('כל פריט בתפריט «⋯» הוא כפתור עם role=menuitem',
+    kAll.length===8&&kAll.every(x=>x==='BUTTON'),kAll.join(' · '));
   await p.evaluate(()=>document.getElementById('helpBtn').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(200);
   const k1=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),
