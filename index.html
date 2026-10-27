@@ -3044,6 +3044,181 @@ tbody tr.vsp.g>td{border-inline-start:3px solid transparent!important}
  #w_queue .qpanel:has(>#capTop:not([hidden])){overflow-y:auto;overscroll-behavior-y:contain}
  #w_queue .qpanel:has(>#capTop:not([hidden]))>.rows{flex:0 0 auto;height:calc(100% - var(--pgh,40px));min-height:320px}
  #w_queue .qpanel:has(>#capTop:not([hidden]))>.pager{position:sticky;bottom:0;background:var(--panel);z-index:2}}
+
+/* ======================================================================
+   D1 · «מדף» — השלד
+   שכבה אחרונה ויחידה לשלב הזה. היא מחליפה ערכים ולא תפקידים: כל טוקן
+   שומר על המשמעות שלו (אדום = חוסר, ענבר = אוזל החודש, ירוק = כסף
+   תקוע), וכל רכיב ממשיך לקרוא לאותו שם. מה שמשתנה:
+     · מסגרת גרפיט — כותרת וסרגל, משטח אחד בצורת ר׳
+     · אזור עבודה ניטרלי־קריר, לא כחול
+     · צהוב «מדף» — לפוקוס ולבחירה פעילה בלבד, לא קישוט
+     · המבטא הכחול יורד: פעולה ראשית בגרפיט, ריחוף בניטרלי
+   מבנה השורות, התור והגיליון אינם כאן — הם D2–D4.
+   ====================================================================== */
+:root{
+ --mark:#F4C430; --mark-ink:#2B2200; --mark-bg:#FDF3CF; --mark-line:#E2B524;
+ --paper:#ECEEED; --surface:#FFFFFF; --surface-2:#F5F6F5; --line:#DDE1DF; --line-soft:#E9ECEA;
+ --ink:#17191D; --ink-2:#41444B; --ink-3:#575A61;
+ --accent:#23262C; --accent-ink:#23262C; --accent-bg:#EEF0EF; --accent-line:#C6CBC8;
+ --steady:#386A99;
+ --shell:#17191D; --shell-ink:#ECEBE6; --shell-dim:#B4B3AD; --shell-mute:#A3A29C;
+ --shell-track:#2A2D33; --shell-btn:#24272D; --shell-btn-h:#2F333A; --shell-acc:#F4C430;
+ --bg:#ECEEED; --panel:#FFFFFF; --panel2:#F5F6F5; --panel0:#ECEEED;
+ --dim:#41444B; --dimmer:#575A61; --soft:#41444B; --line2:#E9ECEA;
+ --acc:#23262C; --accD:#23262C; --accL:#EEF0EF; --accBorder:#C6CBC8;
+ --blue:#386A99; --blueL:#E3ECF4;
+}
+body.dark{
+ --mark:#F4C430; --mark-ink:#2B2200; --mark-bg:#3A3215; --mark-line:#8C7420;
+ --paper:#16171A; --surface:#1D1F23; --surface-2:#23262B; --line:#30333A; --line-soft:#272A30;
+ --ink:#ECEBE6; --ink-2:#C4C3BD; --ink-3:#A6A5A0;
+ --accent:#E3E1DA; --accent-ink:#ECEBE6; --accent-bg:#2A2D33; --accent-line:#454951;
+ --steady:#79A7D6;
+ --shell:#0F1013; --shell-ink:#ECEBE6; --shell-dim:#B0AFA9; --shell-mute:#A09F99;
+ --shell-track:#25282E; --shell-btn:#1E2025; --shell-btn-h:#2A2D33; --shell-acc:#F4C430;
+ --bg:#16171A; --panel:#1D1F23; --panel2:#23262B; --panel0:#16171A;
+ --dim:#C4C3BD; --dimmer:#A6A5A0; --soft:#C4C3BD; --line2:#272A30;
+ --acc:#E3E1DA; --accD:#ECEBE6; --accL:#2A2D33; --accBorder:#454951;
+ --blue:#79A7D6; --blueL:#22303F;
+}
+body{background:var(--paper)}
+
+/* ---------- הכותרת: גרפיט, שורה אחת, 52px ---------- */
+.top{height:52px;min-height:52px;background:var(--shell);color:var(--shell-ink);border-bottom:0;
+ gap:14px;padding:0 14px 0 16px;flex-wrap:nowrap}
+.top .brand{gap:9px;flex:0 0 auto}
+.top .brand .mk{width:26px;height:26px;border-radius:6px;background:var(--mark);color:var(--mark-ink);
+ font-size:var(--f-md);font-weight:800;box-shadow:none}
+.top .brand .nm b{color:var(--shell-ink);font-size:var(--f-md);font-weight:800;letter-spacing:0}
+.top .brand .nm{line-height:1.25}
+.top .brand .nm span{color:var(--shell-mute);font-size:12px;white-space:nowrap;max-width:none;overflow:visible}
+.top .brand .nm span .bld{color:var(--shell-dim);border:0;padding:0;margin-inline-start:4px;display:inline}
+/* החיפוש — שדה כהה על המסגרת; התווית נשארת לקורא מסך */
+.top .qwrap{flex:0 1 420px;min-width:220px;margin:0;display:block;position:relative}
+.top .qwrap>.tl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.top .qbox{height:34px;background:var(--shell-btn);border:1px solid var(--shell-track);border-radius:8px}
+.top .qbox:focus-within{border-color:var(--mark);box-shadow:0 0 0 1px var(--mark)}
+.top .qsearch{background:transparent;color:var(--shell-ink);border:0;height:32px}
+.top .qsearch::placeholder{color:var(--shell-mute);opacity:1}
+.top .qico,.top .qclr{color:var(--shell-dim)}
+.top .qstat{position:absolute;inset-block-start:100%;inset-inline-start:0;margin-top:3px;z-index:5}
+/* משפט המצב — שקט, לא פקד */
+.top .titleblock{display:flex;border-inline-start:1px solid var(--shell-track);padding-inline-start:14px;
+ min-width:0;flex:1 1 auto;overflow:hidden}
+.top .titleblock .ttl{display:none}
+.top .plannerGreeting{color:var(--shell-dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* הפעולות — בקצה, בלי גלישה */
+.top .lc{margin-inline-start:auto;gap:8px;flex:0 0 auto;overflow:visible}
+.top .lc>.btn,.top .lc>label.btn,.top .lc .menuwrap>.btn{height:34px;border-radius:8px;
+ background:var(--shell-btn);border:1px solid var(--shell-track);color:var(--shell-ink);font-weight:600}
+.top .lc>.btn:hover,.top .lc>label.btn:hover,.top .lc .menuwrap>.btn:hover{background:var(--shell-btn-h);color:#fff;border-color:var(--shell-track)}
+.top .lc>label.btn.pri{background:transparent;border-color:#4A4E56}
+.top .lc .menuwrap>.btn[aria-expanded="true"]{border-color:var(--mark)}
+.top :focus-visible{outline:2px solid var(--mark);outline-offset:2px}
+/* בתוך תפריט בהיר צהוב לבד הוא 1.6:1 מול הלבן — פחות מ-3:1. טבעת דיו
+   פנימית נושאת את הניגודיות, והצהוב נשאר כהילה סביבה. */
+.top .menu :focus-visible{outline:2px solid var(--ink);outline-offset:0;box-shadow:0 0 0 4px var(--mark)}
+/* שבב הקובץ: איזה דוח, מתי, כמה אזהרות */
+.top .fchip{gap:7px;max-width:360px}
+.top .fchip .lbl{display:inline!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:270px}
+.top .fchip .fdot{width:7px;height:7px;border-radius:50%;background:#7BD389;flex:0 0 auto}
+.top .fchip .fw{color:#F0B35A;font-weight:700}
+.top .fchip.warn .fdot{background:#F0B35A}
+/* התפריטים — משטח בהיר על המסגרת הכהה, עם כותרות קבוצה */
+/* תפריט פתוח עולה מעל כרטיס הפריט (z 60) — נמדד: «⋯» נפתח מעל המגירה
+   הפתוחה ונבלע מתחתיה. רק כשתפריט פתוח, כדי שמגירת הסינון בטלפון
+   (z 88–89) תמשיך לכסות את הכותרת */
+.top{position:relative}
+.top:has(.menu.open){z-index:95}
+/* התפריט הוא משטח בהיר: הטקסט שלו אינו יורש את הדיו הבהיר של המסגרת */
+.top .menu,body.dark .top .menu{background:var(--surface);color:var(--ink);border-color:var(--line)}
+/* «⋯» הוא הפקד האחרון בשורה — התפריט שלו נפתח פנימה ולא אל מחוץ למסך */
+.top #helpMenu{inset-inline-start:auto;inset-inline-end:0}
+.top .menu .msec{padding:8px 12px 4px;font-size:12px;font-weight:700;color:var(--ink-3)}
+.top .menu .msec:not(:first-child){border-block-start:1px solid var(--line-soft);margin-top:4px}
+.top .fmenu{min-width:300px;padding:6px 0 10px}
+.top .fmenu .mrow{padding:5px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.top .fmenu .dstate{display:flex;flex-direction:column;gap:2px}
+.top .fmenu .zchip,.top .fmenu .updated{border:0;background:none;padding:0;color:var(--ink);font-size:13px}
+.top .fmenu .updated{color:var(--ink-3)}
+.top .fmenu .rdwrap{flex-direction:column;gap:3px}
+.top .fmenu .rdwrap .tl .hint{display:inline}
+.top .fmenu input[type=month]{height:32px;border:1px solid var(--line);border-radius:6px;padding:0 8px;background:var(--surface);color:var(--ink)}
+.top .fmenu label.btn,.top .fmenu .dchip{height:32px}
+
+/* ---------- הסרגל: אותו גרפיט, יעד פעיל בלי צבע תחום ---------- */
+.rail{background:var(--shell)}
+.rail .tabs .tab.navtab{border-radius:8px}
+.rail .tabs .tab.navtab.sel{background:var(--shell-btn-h)}
+.rail .tabs .tab.navtab .nico{background:transparent;color:var(--shell-dim)}
+.rail .tabs .tab.navtab.sel .nico{background:transparent;color:var(--mark)}
+.rail .tab.navtab .bdg,.rail .tab.navtab.sel .bdg{background:none;color:var(--shell-dim)}
+.rail .tab.navtab.sel .bdg{color:var(--shell-ink)}
+.rail .tab.navtab.alert .nico::after{box-shadow:0 0 0 2px var(--shell)}
+.railsub2.sel{color:var(--shell-ink)}
+.railsub2.sel .t{font-weight:700}
+.railsub2.sel::before{background:var(--mark)}
+
+/* ---------- אזור העבודה ---------- */
+.dash{background:var(--paper)}
+/* פוקוס = צהוב «מדף» בכל מקום. על המסגרת הכהה הוא לבד (10.7:1); על
+   משטח בהיר טבעת דיו נושאת את הניגודיות והצהוב הוא ההילה סביבה */
+.rail :focus-visible{outline:2px solid var(--mark);outline-offset:-2px}
+.dash button:focus-visible,.dash input:focus-visible,.dash select:focus-visible,.dash label.btn:focus-visible,
+.dash .tab:focus-visible,.colspick :focus-visible{outline:2px solid var(--ink);outline-offset:0;box-shadow:0 0 0 4px var(--mark)}
+.phd .title{font-size:var(--f-lg);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.phd #filtBtn{height:30px;border-radius:7px}
+/* בחירה פעילה = צהוב «מדף». זה השימוש היחיד שלו ברשימה. */
+tbody tr.sel,body:not(.dark) tbody tr.sel{background:var(--mark-bg)}
+body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
+/* «תצוגה» — ראש הבורר מחזיק את מתגי המדדים והצפיפות */
+.colspick .cpview{display:flex;gap:6px;padding:2px 12px 10px;flex-wrap:wrap}
+.colspick .cpview button{height:32px;border:1px solid var(--line)!important;border-radius:6px;padding:0 10px}
+
+/* ---------- רוחב ביניים: הכותרת נשברת לשתי שורות ולא נחתכת ----------
+   נמדד: ב-1024 וב-800 השורה האחת גלשה (החיפוש נדחק אל מחוץ למסך).
+   מתחת ל-1280 שם הדוח בשבב מתקצר; מתחת ל-1100 החיפוש יורד לשורה משלו
+   — כמו בטלפון, ובאותו סדר. */
+@media(max-width:1280px){.top .fchip .lbl{max-width:190px}}
+@media(max-width:1100px){
+ .top{height:auto;min-height:52px;flex-wrap:wrap;padding-block:8px;row-gap:8px}
+ .top .qwrap{order:10;flex:1 0 100%;min-width:0}
+}
+/* מתחת ל-900 הפעולות נשארות בשורה אחת: «⋯» ו«העלאה» יורדים לסמל,
+   השם המלא נשאר ב-aria-label וב-title */
+@media(max-width:900px){
+ .top .lc{flex-wrap:nowrap}
+ .top .lc .menuwrap>#helpBtn .lbl,.top .lc .menuwrap>#helpBtn>span[aria-hidden]:last-child,
+ .top .lc>label.btn.pri .lbp{display:none}
+}
+/* ---------- טלפון ---------- */
+@media(max-width:760px){
+ .top{height:auto;min-height:0;flex-wrap:wrap;padding:6px 10px 8px;gap:8px}
+ .top .brand .nm span{display:none}
+ .top .titleblock{display:none}
+ .top .lc{margin-inline-start:auto;gap:6px}
+ .top .lc .menuwrap>.btn .lbl,.top .lc .menuwrap>.btn>span[aria-hidden]:last-child{display:none}
+ .top .fchip .lbl{display:none!important}
+ .top .fchip{min-width:44px;justify-content:center}
+ .top .lc>label.btn.pri .lbp{display:none}
+ .top .qwrap{order:10;flex:1 0 100%;min-width:0}
+ .top .qbox{height:40px}
+ .top .qsearch{height:38px;font-size:16px}
+ .top .lc>.btn,.top .lc>label.btn,.top .lc .menuwrap>.btn{height:40px;min-width:44px}
+ .top .menu{inset-inline-start:auto;inset-inline-end:0}
+ /* נמדד ב-390: תפריט הקובץ (300px) נפתח משבב באמצע השורה ויצא מהמסך.
+    בטלפון כל תפריט בכותרת נפתח לרוחב המסך, מתחת לכותרת */
+ .top .lc,.top .lc .menuwrap{position:static}
+ .top .lc .menu{top:100%;inset-inline:8px;width:auto;min-width:0;max-height:calc(100dvh - 140px);overflow-y:auto}
+}
+/* אזור לחיצה 44px במגע בלי להגביה את הכותרת: הכפתור 40px (פער השורות
+   8px), סרגל הכלים 30px — ::after שקוף משלים, כמו בשאר הכלי */
+@media(pointer:coarse){
+ .top .lc>.btn,.top .lc>label.btn,.top .lc .menuwrap>.btn,.phd #filtBtn{position:relative}
+ .top .lc>.btn::after,.top .lc>label.btn::after,.top .lc .menuwrap>.btn::after{content:'';position:absolute;inset:-3px -1px}
+ .phd #filtBtn::after{content:'';position:absolute;inset:-8px -2px}
+}
 /* ============ TOPICS — התצוגה המצומצמת (index.html?topics) ============
    כל מה שאינו התצוגה, האבחון, הטעינה, ההדגמה וההודעות — מוסתר. הכלי
    המלא נשאר ב-DOM ועובד כרגיל מאחור: ממנו באים הקובץ, המנוע והתורים. */
@@ -3103,37 +3278,8 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
      דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
      בזה, ויש בדיקה ייעודית שטוענת *בלי* הפרמטר ובודקת את המספרים). -->
 <div class="top">
-  <div class="brand"><div class="mk">מ</div><div class="nm"><b>מרכז עבודה יומי</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
-  <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
-  <div class="lc">
-    <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button>
-    <!-- ============ «קבצים» ============
-         ארבעה קבצים שונים לגמרי — ייצוא התצוגה, שני קובצי העדכון ל-SAP
-         ודוח הזירוז — ישבו בשורה אחת עם «מצב כהה» ו«גיבוי», באותו משקל.
-         כאן הם תפריט אחד עם השם המלא של כל קובץ. -->
-    <div class="menuwrap" id="filesWrap"><button class="btn" id="filesBtn" aria-label="קבצים" aria-expanded="false" aria-controls="filesMenu"><span aria-hidden="true">⭳</span><span class="lbl"> קבצים</span> <span aria-hidden="true">▾</span></button>
-      <div class="menu wide" id="filesMenu">
-        <div class="mi act"><button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button></div>
-        <div class="mi act"><button class="btn" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button></div>
-        <div class="mi act"><button class="btn" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button></div>
-        <div class="mi act"><button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button></div>
-      </div></div>
-    <div class="menuwrap"><button class="btn" id="helpBtn" aria-label="עזרה" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">?</span><span class="lbl"> עזרה</span> <span aria-hidden="true">▾</span></button>
-      <!-- כפתורים ולא div: פריט תפריט שאי אפשר להגיע אליו ב-Tab
-           ולהפעיל ב-Enter אינו נגיש, וטבעת מיקוד אינה מתקנת את זה. -->
-      <div class="menu wide" id="helpMenu" role="menu">
-        <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
-        <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
-      </div></div>
-    <div class="menuwrap" id="moreWrap"><button class="btn" id="moreBtn" aria-label="עוד" aria-expanded="false" aria-controls="moreMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עוד</span> <span aria-hidden="true">▾</span></button>
-      <div class="menu wide" id="moreMenu">
-        <div class="mi act"><button class="btn" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button></div>
-        <div class="mi act"><button class="btn" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button></div>
-      </div></div>
-    <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
-    <input type="file" id="stFile" accept="application/json,.json" hidden>
-  </div>
-  <div class="fgroup qwrap" id="qwrap">
+  <div class="brand"><div class="mk">מ</div><div class="nm"><b>Inventory Planner</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
+<div class="fgroup qwrap" id="qwrap">
     <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
     <div class="qbox" id="qbox">
       <span class="qico">⌕</span>
@@ -3142,18 +3288,47 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
     </div>
     <div class="qstat" id="qstat"></div>
   </div>
-  <div class="sp">
-    <div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
-      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div>
-    <button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">⚠ <span id="dchipN">0</span><span class="dlbl"> אזהרות</span></button>
-    <!-- ============ שלושה תאריכים, שלושה דברים שונים ============
-         תאריך הדוח אינו מועד ההעלאה, ודוח ה-ETA אינו הדוח הזה. עד
-         כאן שלושתם הופיעו כמחרוזת אחת מופרדת בנקודות, בלי תוויות. -->
-    <span class="dstate"><span class="zchip" id="zchip" hidden></span><span class="updated" id="updated">לא נטען קובץ</span></span>
-    <button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button>
-    <button class="etachip stale" id="storechip" type="button" hidden></button>
-    <label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label>
-    <label class="btn pri" for="f"><span>⭱ <span class="lbp">העלאת קובץ </span>ZMRP</span><input type="file" id="f" accept=".xlsx,.xls"></label>
+  <div class="titleblock"><span class="ttl">מה דורש טיפול היום</span><span class="plannerGreeting" id="plannerGreeting">העלה דוח ZMRP כדי להתחיל</span></div>
+  <div class="lc">
+    <!-- ============ D1 «מדף» — שבב הקובץ ============
+         כל מה שנוגע לדוח עצמו — חודש הבסיס, תאריך הדוח, מועד הטעינה,
+         האזהרות ודוח ה-ETA — ישב בסרגל כשבעה פקדים נפרדים. הוא עובר
+         לתפריט אחד שהכפתור שלו אומר את המצב: איזה דוח, מתי, וכמה אזהרות.
+         אף פקד לא הוסר; כולם כאן עם אותם מזהים. -->
+    <div class="menuwrap" id="fileWrap"><button class="btn fchip" id="fchip" type="button" aria-expanded="false" aria-controls="fileMenu" aria-label="הדוח הטעון — חודש בסיס, אזהרות ודוח ETA"><span class="fdot" aria-hidden="true"></span><span class="lbl" id="fchipTx">לא נטען דוח</span><span class="fw" id="fchipW" hidden></span> <span aria-hidden="true">▾</span></button>
+      <div class="menu wide fmenu" id="fileMenu">
+        <div class="msec">הדוח הטעון</div>
+        <div class="mrow"><span class="dstate"><span class="zchip" id="zchip" hidden></span><span class="updated" id="updated">לא נטען קובץ</span></span></div>
+        <div class="mrow"><button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">⚠ <span id="dchipN">0</span><span class="dlbl"> אזהרות</span></button></div>
+        <div class="mrow rdrow"><div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
+      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div></div>
+        <div class="msec">דוח ETA</div>
+        <div class="mrow"><button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button> <button class="etachip stale" id="storechip" type="button" hidden></button></div>
+        <div class="mrow"><label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label></div>
+      </div></div>
+    <label class="btn pri" for="f" title="העלאת קובץ ZMRP"><span>⭱ <span class="lbp">העלאת קובץ </span>ZMRP</span><input type="file" id="f" accept=".xlsx,.xls" aria-label="העלאת קובץ ZMRP"></label>
+    <!-- ============ «⋯ עזרה ועוד» ============
+         שלושה תפריטים («קבצים», «עזרה», «עוד») הופכים לאחד, בחלוקה
+         לפי סוג: עזרה · קבצים · הגדרות. «עזרה» נשאר שמו של הכפתור,
+         ושתי כניסות העזרה הן עדיין שני פריטי התפריט הראשונים. -->
+    <div class="menuwrap"><button class="btn" id="helpBtn" aria-label="עזרה ועוד — קבצים, מצב כהה, גיבוי" aria-expanded="false" aria-controls="helpMenu"><span aria-hidden="true">⋯</span><span class="lbl"> עזרה ועוד</span> <span aria-hidden="true">▾</span></button>
+      <!-- כפתורים ולא div: פריט תפריט שאי אפשר להגיע אליו ב-Tab
+           ולהפעיל ב-Enter אינו נגיש, וטבעת מיקוד אינה מתקנת את זה. -->
+      <div class="menu wide" id="helpMenu" role="menu">
+        <div class="msec" role="presentation">עזרה</div>
+        <button type="button" class="mi" role="menuitem" data-help="tour"><span aria-hidden="true">🧭</span> היכרות עם הכלי</button>
+        <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
+        <div class="msec" role="presentation">קבצים</div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button></div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button></div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button></div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button></div>
+        <div class="msec" role="presentation">הגדרות</div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button></div>
+        <div class="mi act" role="none"><button class="btn" role="menuitem" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button></div>
+      </div></div>
+    <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
+    <input type="file" id="stFile" accept="application/json,.json" hidden>
   </div>
 </div>
 <div class="tour" id="tour" hidden role="dialog" aria-labelledby="tourTtl">
@@ -3223,11 +3398,11 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
           <span class="chips inline" id="chipsTop"></span>
-          <button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
+          <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button><button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> פתח <b>D</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
-          <span class="gseg" id="gseg" hidden><button data-gb="decision">לפי החלטה</button><button data-gb="supplier">לפי ספק</button></span>
+          <span class="gseg" id="gseg" role="radiogroup" aria-label="קיבוץ הרשימה" hidden><button type="button" role="radio" data-gb="decision">לפי החלטה</button><button type="button" role="radio" data-gb="supplier">לפי ספק</button></span>
           <span class="doors" id="doors"><button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP"><span class="di">✔</span><span class="fn" id="apN">0</span><span class="dl"> יושמו ב-SAP</span><span class="lbl" id="apV"></span></button>
           <button class="btn" id="custBtn" hidden title="הזמנת לקוח שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים — כולל את מי שאין לו רכש כלל"><span class="di">👤</span><span class="fn" id="custN">0</span><span class="dl"> לקוח ממתין ללא כיסוי</span><span class="lbl" id="custV"></span></button>
           <button class="btn" id="floorBtn" hidden title="פריטים שהרצפה שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית"><span class="di">▲</span><span class="fn" id="floorN">0</span><span class="dl"> מעל רצפת הביטחון</span><span class="lbl" id="floorV"></span></button>
@@ -3280,19 +3455,19 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
         <!-- ============ קובץ SAP מתוך בחירה — עיצוב שלב 6ב ============
              הכפתור בתפריט «קבצים» מוריד את כל מה שבתצוגה. כאן — רק מה
              שסימנת, באותו פורמט ובאותם כללים בדיוק (doSapMass). -->
-        <div class="sapbar" id="sapbar" hidden><b><span id="sapbarN">0</span> נבחרו</b>
-          <button type="button" class="btn" id="sapbarAll" hidden></button>
+        <div class="sapbar" id="sapbar" data-bulk="bar" hidden><b><span id="sapbarN">0</span> נבחרו</b>
+          <button type="button" class="btn" id="sapbarAll" data-bulk="select-all" hidden></button>
           <span class="sapbarInfo" id="sapbarInfo" role="status" aria-live="polite"></span>
           <span class="sapbarOut" id="sapbarOut" hidden><span id="sapbarOutN"></span>
             <button type="button" class="btn" id="sapbarOutClr">בטל אותם</button></span>
-          <button type="button" class="btn pri" id="sapbarGo" title="רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»">⇪ קובץ SAP לנבחרים</button>
-          <button type="button" class="btn" id="sapbarClr">נקה בחירה</button></div>
+          <button type="button" class="btn pri" id="sapbarGo" data-bulk="sap-file" title="רק השורות שסימנת, באותו פורמט כמו «עדכון ל-SAP»">⇪ קובץ SAP לנבחרים</button>
+          <button type="button" class="btn" id="sapbarClr" data-bulk="clear">נקה בחירה</button></div>
         <div class="pager"><span><span id="pgL"></span><button type="button" id="capAll" class="capall" data-capall="1" hidden></button><button type="button" id="selAll" class="capall" hidden></button></span><span id="pgR"></span></div>
       </div>
     </div></div>
     <div class="rz" data-rz="queue" title="שינוי גודל"></div>
   </section>
-  <section class="widget wdetail" id="w_detail" data-w="detail">
+  <section class="widget wdetail" id="w_detail" data-w="detail" data-panel="item">
     <div class="whead"><span class="hnd">⠿</span><span class="wt">פרטי פריט</span><span class="wsp"><span class="wx" data-hide="detail" title="הסתר">✕</span></span></div>
     <button class="dclose" id="dclose" type="button" title="סגירה (Esc)">✕</button>
     <div class="wbody"><div class="detail" id="detail"><div class="empty">בחר מק״ט מהרשימה</div></div></div>
@@ -3313,7 +3488,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 </div>
 </div><!-- /shell -->
 <div class="colpop" id="colpop"></div>
-<div class="colspick" id="colspick" role="dialog" aria-label="בחירת עמודות"></div>
+<div class="colspick" id="colspick" role="dialog" aria-label="תצוגה — צפיפות, מדדים ועמודות"></div>
 <div class="qsug" id="qsug"></div>
 <div class="modalwrap" id="modalwrap"><div class="modal"><div class="mhd"><b id="mtitle">מאחורי החישוב</b><span class="x" id="mclose">✕</span></div><div class="mbody" id="mbody"></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -5961,23 +6136,40 @@ function colsBtnEl(){return document.getElementById(cur==='moves'?'colsBtnM':'co
 function colsOpen(on){
  const b=colsBtnEl(),pk=document.getElementById('colspick');
  if(!b||!pk)return;
- if(!on){pk.classList.remove('open');b.classList.remove('on');
-  b.setAttribute('aria-expanded','false');return}
+ if(!on){const back=pk.classList.contains('open')&&pk.contains(document.activeElement);
+  pk.classList.remove('open');b.classList.remove('on');
+  b.setAttribute('aria-expanded','false');
+  /* סגירה כשהמיקוד בתוך הבורר מחזירה אותו לכפתור — לא ל-body */
+  if(back)b.focus();return}
  const v=colViewKey(),vis=visCols();
  const why=k=>SCOL[k].eta?'דורש דוח ETA':SCOL[k].noeta?'רק בלי דוח ETA':'';
- pk.innerHTML=`<p class="cph">עמודות הטבלה</p>
+ /* D1 — «תצוגה»: מה שקובע איך הרשימה נראית יושב במקום אחד. «מדדים»
+    ו«צפיפות» עוברים מהשורה שמעל הטבלה אל ראש הבורר, עם אותם מזהים
+    ואותם מטפלים — הם האלמנטים עצמם ולא העתק. מסך שאין בו בורר עמודות
+    (colReg כבוי) מציג רק אותם. */
+ /* הבורר נבנה מחדש אחרי כל שינוי. מי שעבד בו במקלדת לא מאבד את מקומו:
+    המיקוד חוזר לאותו פקד (לפי מזהה או data-ck) אחרי הבנייה */
+ const fa=pk.contains(document.activeElement)?document.activeElement:null;
+ const fKey=fa&&(fa.id?'#'+fa.id:fa.dataset.ck?`input[data-ck="${fa.dataset.ck}"]`:fa.dataset.cpa?`[data-cpa="${fa.dataset.cpa}"]`:null);
+ const keep=['kpiTog','denTog'].map(id=>document.getElementById(id)).filter(Boolean);
+ keep.forEach(x=>x.remove());
+ const reg=colReg();
+ pk.innerHTML=`<p class="cph">תצוגה</p><div class="cpview"></div>
+  ${reg?`<p class="cph">עמודות הטבלה</p>
   <p class="cpn">${esc(colViewName(v))} — הבחירה נשמרת לתצוגה הזאת בנפרד.</p>
   <div class="cplist">${colChoices(v).map(k=>{const ok=colUsable(k);
     return `<label class="${ok?'':'off'}"><input type="checkbox" data-ck="${k}"
       ${vis.includes(k)?'checked':''} ${ok?'':'disabled'}><span>${esc(SCOL[k].t)}</span>
-      ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`}).join('')}</div>
-  <div class="cpa"><button type="button" data-cpa="reset">חזרה לברירת המחדל</button>
+      ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`}).join('')}</div>`:''}
+  <div class="cpa">${reg?'<button type="button" data-cpa="reset">חזרה לברירת המחדל</button>':''}
    <button type="button" class="ok" data-cpa="close">סגור</button></div>`;
+ const cv=pk.querySelector('.cpview');keep.forEach(x=>cv.appendChild(x));
  const r=b.getBoundingClientRect();
  pk.style.insetBlockStart=Math.round(r.bottom+6)+'px';
  pk.style.insetInlineStart='';pk.style.insetInlineEnd='';
  pk.style.left=Math.round(Math.min(Math.max(8,r.left),innerWidth-258))+'px';
  pk.classList.add('open');b.classList.add('on');b.setAttribute('aria-expanded','true');
+ if(fKey){const f=pk.querySelector(fKey);if(f&&document.activeElement!==f)f.focus()}
  pk.querySelectorAll('input[data-ck]').forEach(cb=>cb.onchange=()=>{
    const picked=[...pk.querySelectorAll('input[data-ck]:checked')].map(x=>x.dataset.ck);
    /* מק״ט אינו ניתן להסרה: בלעדיו השורה אינה מזוהה. שתי הגרסאות
@@ -6007,10 +6199,19 @@ function phdSubWire(){
  if(b&&!b.__w){b.__w=1;b.onclick=tog}
  if(e&&!e.__w){e.__w=1;e.style.cursor='pointer';e.onclick=tog}}
 function colsWire(){
+ /* D1 — «מדדים» ו«צפיפות» גרים בתוך «תצוגה» מההתחלה, לא רק אחרי
+    הפתיחה הראשונה. העברה של אותו אלמנט, ולכן אידמפוטנטית. */
+ {const pk=document.getElementById('colspick');
+  if(pk)['kpiTog','denTog'].forEach(id=>{const x=document.getElementById(id);if(x&&!pk.contains(x))pk.appendChild(x)})}
  ['colsBtn','colsBtnM'].forEach(id=>{const b=document.getElementById(id);
   if(!b||b.__w)return;b.__w=1;
   b.onclick=e=>{e.stopPropagation();
-    colsOpen(!document.getElementById('colspick').classList.contains('open'))}});
+    const open=!document.getElementById('colspick').classList.contains('open');colsOpen(open);
+    /* D1: הבורר יושב מחוץ לסדר ה-Tab של הסרגל (position:fixed בסוף הדף).
+       פתיחה במקלדת (Enter/רווח → click עם detail=0) מעבירה את המיקוד
+       לפקד הראשון בו — «מדדים» — כדי ש«מדדים», «צפיפות» והעמודות יהיו
+       נגישים בלי עכבר, כמו כשהיו בשורה */
+    if(open&&e.detail===0){const f=document.querySelector('#colspick button,#colspick input:not([disabled])');if(f)f.focus()}}});
  /* הסינון «נלחץ בחוץ» נעשה על המכולה עצמה ולא בהשוואה ל-e.target:
     לחיצה בתוך הבורר מרנדרת אותו מחדש, ועד שהאירוע מגיע ל-document
     היעד המקורי כבר מנותק מה-DOM — contains() מחזיר false, והבורר
@@ -6032,7 +6233,10 @@ function colsWire(){
  const pk0=document.getElementById('colspick');
  if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
  document.addEventListener('click',()=>colsOpen(false));
- document.addEventListener('keydown',e=>{if(e.key==='Escape')colsOpen(false)})}
+ /* בשלב הלכידה: מנוע המקשים הכללי עושה blur לכל input ב-Escape, ואם הוא
+    רץ קודם, תיבת עמודה שבמיקוד מאבדת אותו לפני שהבורר מחזיר אותו לכפתור */
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;
+  colsOpen(false)},true)}
 /* שם התצוגה בבורר: מה שהמעתד רואה במסילה, ולא מפתח פנימי. */
 function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
@@ -6048,12 +6252,14 @@ function colViewName(v){
 function colsSync(){
  const b=document.getElementById('colsBtn');if(!b)return;
  const on=colReg();
- b.hidden=!on;
- if(!on)colsOpen(false);
+ /* D1 — הכפתור הוא «תצוגה» ולא רק «עמודות»: הוא גם הדלת לצפיפות
+    ולרצועת המדדים, ולכן אינו נעלם במסך שאין בו בורר עמודות. */
+ b.hidden=false;b.dataset.cols=on?'1':'0';
+ if(!on){b.classList.remove('on');b.textContent='▦ תצוגה';b.title='צפיפות השורות ורצועת המדדים'}
  else{const v=colViewKey();
   const custom=!!colSaved()[v];
   b.classList.toggle('on',custom&&!document.getElementById('colspick').classList.contains('open'));
-  b.textContent=custom?`▦ עמודות · ${visCols().length}`:'▦ עמודות';
+  b.textContent=custom?`▦ תצוגה · ${visCols().length} עמודות`:'▦ תצוגה';
   b.title=`אילו עמודות מוצגות ב${colViewName(v)}`
    +`. הבחירה נשמרת לתצוגה הזאת בנפרד${custom?' · פריסה מותאמת פעילה':''}`}}
 function prefsLbl(){
@@ -7533,9 +7739,9 @@ function tiles(){
   const {n,hot}=navCount(k);
   const on=(k==='moves')?(cur==='moves'):(mode===k&&cur!=='moves');
   return `<button type="button" class="tab mode navtab ${cls||''} ${on?'sel':''}${hot?' alert':''}"
-   style="--c:${c}" data-m="${k}" data-xp="nav-${k}" aria-pressed="${on?'true':'false'}"
+   style="--c:${c}" data-m="${k}" data-nav="${k}" data-nav-level="main" data-xp="nav-${k}" aria-pressed="${on?'true':'false'}"
    title="${esc(name)} — ${esc(NAV_WHAT[k]||'')}${sub(k)?' · '+esc(sub(k)):''}"><span class="nico">${ico}</span><span class="t">${esc(name)}</span>
-   <span class="bdg${n?'':' zero'}">${k==='moves'?'▤':n.toLocaleString('he-IL')}</span>
+   <span class="bdg${n?'':' zero'}" data-count="${n}">${k==='moves'?'▤':n.toLocaleString('he-IL')}</span>
    <span class="m what">${esc(NAV_WHAT[k]||'')}</span>${sub(k)?`<span class="m stat">${esc(sub(k))}</span>`:''}</button>`};
  t.innerHTML=NAV.map(a=>ent(a[0],a[1],a[2],a[3])).join('');
  /* דלתות המשנה של התחום הפעיל — כל מסלול ותיק נשאר נגיש */
@@ -7546,9 +7752,9 @@ function tiles(){
   sb.innerHTML=subs.length?`<div class="railsect">בתוך ${esc((NAV.find(x=>x[0]===area)||[,''])[1])}</div>`
    +subs.map(([k,nm])=>{const {n}=navCount(k);
     const on=(k==='moves')?(cur==='moves'):(mode===k&&cur!=='moves');
-    return `<button type="button" class="railsub2 ${on?'sel':''}" data-m="${k}"
+    return `<button type="button" class="railsub2 ${on?'sel':''}" data-m="${k}" data-nav="${k}" data-nav-level="sub"
      data-xp="nav-${k}" title="${esc(nm)} — ${esc(NAV_WHAT[k]||'')}"><span class="t">${esc(nm)}</span>
-     <span class="bdg${n?'':' zero'}">${k==='moves'?'▤':n.toLocaleString('he-IL')}</span></button>`}).join(''):'';
+     <span class="bdg${n?'':' zero'}" data-count="${n}">${k==='moves'?'▤':n.toLocaleString('he-IL')}</span></button>`}).join(''):'';
  }
  {const dt=document.getElementById('denTog');
   if(dt&&!dt.__w){dt.__w=1;
@@ -8610,7 +8816,7 @@ const SCOL={
     ולכן העמודה אינה ממוינת, אינה מסוננת ואינה מיוצאת. */
  sel:{t:'',ttl:'בחירה לקובץ SAP',head:()=>`<input type="checkbox" class="sapall" aria-label="בחר את השורות שעל המסך — «בחר את כל» הרשימה נמצא בפס הבחירה" title="השורות שעל המסך · לכל הרשימה — «בחר את כל» בפס הבחירה">`,
   cell:r=>sapUsableBase(r)
-   ?`<td class="selc"><input type="checkbox" class="sapsel" data-pn="${esc(r.pn)}"${SAPSEL.has(r.pn)?' checked':''} aria-label="בחר ${esc(r.pn)} לקובץ SAP"></td>`
+   ?`<td class="selc"><input type="checkbox" class="sapsel" data-bulk="pick" data-pn="${esc(r.pn)}"${SAPSEL.has(r.pn)?' checked':''} aria-label="בחר ${esc(r.pn)} לקובץ SAP"></td>`
    :'<td class="selc"></td>'},
  /* ============ פס הכיסוי — עיצוב שלב 5 ============
     השאלה בכל שורה של החוסרים: האם מה שיש יספיק החודש. התשובה נכתבה
@@ -9175,7 +9381,7 @@ function decisionHead(){const cols=FIXLIKE()
    הסדרה החודשית לא נגע. niceTop/niceTicks ירדו איתו — הם שימשו
    אותו בלבד. */
 function custRow(r,i){
- return `<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+ return `<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
   +colRowHTML(r,{dlen:36})+'</tr>'}
 /* ============ AGENDA_GROUPS — שלוש השורות בבוקר ============
    מסך הנחיתה הציג 52 שורות בלי אף כותרת ביניהן (נמדד: 0
@@ -9438,7 +9644,7 @@ function renderAgenda(rows){
       :'אין פריטים'}</span></td></tr>`});
   if(coll||!list.length)continue;
   for(const r of list){const i=idx++;
-   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+   ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
     +colRowHTML(r,{dlen:30})+'</tr>'})}}
  /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
     הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
@@ -9518,7 +9724,7 @@ function renderApplied(rows){
    <span class="gn">${list.length}</span><span class="gs">${esc(sub)}</span></td></tr>`});
   if(coll||!list.length)continue;
   for(const r of list){const i=idx++;
-   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+   ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
     +colRowHTML(r,{dlen:34})+'</tr>'})}}
  const view=[];for(const [k] of AP_G)if(!GCOLL.has('ap:'+k))view.push(...rows.filter(r=>r.apStatus===k));
  vlist('tbl',ents,{view,ncol:NCOL(),wire:vwire(view),
@@ -9583,7 +9789,7 @@ function renderDecisions(rows){
      <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
    if(coll)continue;
    for(const r of list){const i=idx++;
-    ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
      +colRowHTML(r,{dlen:40})+'</tr>'})}}
  }
  else if(grouped){let idx=0;
@@ -9606,7 +9812,7 @@ function renderDecisions(rows){
        <b>${esc(curName(blk))}</b><span class="gn">${inBlk.length}</span>
        <span class="gs">דירוג בתוך המטבע — אין המרה ואין השוואה בין מטבעות</span>
        <span class="gu">${money(inBlk.reduce((t,x)=>t+(x.unsVal||0),0),blk)}</span></td></tr>`)}
-    ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+    ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
      +colRowHTML(r,{dlen:24,maj})+'</tr>'})}}
  }
  else view.forEach((r,i)=>{
@@ -9616,7 +9822,7 @@ function renderDecisions(rows){
      מטבע וקו ה-80% — שיושב אחרי הענף הזה. הוא מרונדר מהרישום
      בהמשך, באותה colRowHTML. */
   if(colReg()&&!k){
-   ents.push({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
+   ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
     +colRowHTML(r,{dlen:34})+'</tr>'});
    return}
   /* האחוז המצטבר וקו ה-80% נמדדים בתוך המטבע של השורה בלבד. הרשימה
@@ -9632,7 +9838,7 @@ function renderDecisions(rows){
    acc+=r[k]||0;blkI++}
   const cb=k&&c.byCur?c.byCur[curKey(r)]:null;
   const pct=(cb&&cb.total)?Math.round(acc/cb.total*100):0,above=cb?blkI<=cb.n:false;
-  ents.push({k:'i',i,h:()=>`<tr data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>`
+  ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}"${above||!k?'':' class="below"'}><td><span class="rank${above?' hi':''}">${i+1}</span></td>`
    +colRowHTML(r,{dlen:30,pct})+'</tr>'});
   if(cb&&above&&blkI===cb.n){const ck=curKey(r);
    G(`<tr class="cutrow"><td colspan="${NCOL()}">קו ה-80% ב${esc(curName(ck))} · ${cb.n.toLocaleString('he-IL')} הפריטים שמעל מרכזים ${money(cb.cut,ck)} מתוך ${money(cb.total,ck)} — כל ${(cb.count-cb.n).toLocaleString('he-IL')} הנותרים יחד שווים ${money(cb.total-cb.cut,ck)}</td></tr>`)}});
@@ -9859,7 +10065,7 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
  /* D2A — כל 7,990, לא 500: רק החלון שבגלילה מצויר (vlist) */
  const view=rows;
  LAST_VIEW=rows;                               /* VIEW_SHEET */
- vlist('tbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>'})),
+ vlist('tbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}">`+colRowHTML(r)+'</tr>'})),
   {view,ncol:visCols().length,wire:vwire(view),
    empty:`<tr><td colspan="${visCols().length}" class="empty">אין פריטים — ${Object.keys(colFilters).length||FDEF.some(([k])=>SEL[k].size)?'ייתכן שהסינון הוא הסיבה':'רשימה ריקה'}</td></tr>`});
  document.getElementById('pgL').textContent=pgTxt(view.length,rows.length);
@@ -9910,7 +10116,7 @@ function renderMoves(){const mt=document.getElementById('movtabs');if(!mt)return
  const mv='mv_'+movTab;
  document.querySelector('#movtbl thead').innerHTML='<tr>'+colHeadHTML(mv)+'</tr>';
  const ncol=visCols(mv).length;
- vlist('movtbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-mi="${i}">`+colRowHTML(r,{dlen:26},mv)+'</tr>'})),
+ vlist('movtbl',view.map((r,i)=>({k:'i',i,h:()=>`<tr data-row data-mi="${i}">`+colRowHTML(r,{dlen:26},mv)+'</tr>'})),
   {view,ncol,empty:`<tr><td colspan="${ncol}" class="empty">אין תנועות בקטגוריה זו${(cS+cE)===0?' — ודא שעמודות CF/CG מכילות תאריכים':''}</td></tr>`,
    wire:()=>{document.querySelectorAll('#movtbl tbody tr[data-mi]').forEach(tr=>tr.onclick=()=>vpick(tr,view[+tr.dataset.mi]));
     wireCopy(document.getElementById('movtbl'))}});
@@ -11251,6 +11457,15 @@ document.querySelectorAll('.wx[data-hide]').forEach(x=>x.onclick=e=>{
  e.stopPropagation();hideWidget(x.dataset.hide)});
 document.getElementById('gseg').querySelectorAll('button').forEach(b=>
  b.onclick=()=>setGroupBy(b.dataset.gb));
+/* D1 · מתג הקיבוץ הוא בחירה אחת משתיים, ולכן קבוצת רדיו אחת: עצירת
+   Tab אחת, והחצים עוברים בין האפשרויות — כמו כל מתג מקטעים תקני.
+   מעל הרשימה הוא פקד אחד, לא שניים. */
+document.getElementById('gseg').addEventListener('keydown',e=>{
+ if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;
+ const bs=[...e.currentTarget.querySelectorAll('button')],i=bs.indexOf(document.activeElement);if(i<0)return;
+ e.preventDefault();e.stopPropagation();
+ const n=e.key==='Home'?0:e.key==='End'?bs.length-1:(i+1)%bs.length;
+ setGroupBy(bs[n].dataset.gb);bs[n].focus()});
 /* שורת המצב של ההרצה. מוצגת רק מההעלאה השנייה ואילך — בהעלאה
    ראשונה אין מול מה להשוות, ו"48 חדשים" היה מטעה. */
 function syncHistChip(){const c=document.getElementById('histChip');if(!c)return;
@@ -11275,7 +11490,8 @@ function syncHistChip(){const c=document.getElementById('histChip');if(!c)return
  c.title=`השוואה להעלאה הקודמת · ${HRUN.runs} העלאות בזיכרון`}
 function syncGseg(){const g=document.getElementById('gseg');if(!g)return;
  g.hidden=!(mode==='today'&&QF);
- g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.gb===groupBy))}
+ g.querySelectorAll('button').forEach(b=>{const on=b.dataset.gb===groupBy;
+  b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.tabIndex=on?0:-1})}
 document.getElementById('filtBtn').onclick=()=>{toggleWidget('filters');syncFiltBtn()};
 /* שלוש דרכים לסגור את מגירת הסינון בטלפון, ושלושתן אותה פעולה בדיוק
    כמו הכפתור «סינון» — hideWidget — כך שהמצב נשמר כמו קודם. */
@@ -11979,7 +12195,24 @@ function fitTop(){
    רכש ואספקות · תכנון ו-MRP · בריאות המלאי · קטלוג פריטים), והדלתות
    שהרמז הצביע עליהן יושבות בה בשמן. תיקון שאין מה לתקן הוא רק גובה
    שנלקח מהרשימה. */
-function moreWire(){menuWire('moreBtn','moreMenu');menuWire('filesBtn','filesMenu')}
+function moreWire(){menuWire('moreBtn','moreMenu');menuWire('filesBtn','filesMenu');menuWire('fchip','fileMenu');fchipWire()}
+/* ============ D1 — שבב הקובץ אומר את המצב ============
+   הכפתור מציג את מה שהתפריט מחזיק: איזה דוח (zchip), מתי נטען
+   (updated) וכמה אזהרות (dchipN). הוא אינו מחשב כלום — הוא קורא את
+   אותם שלושה אלמנטים שהכלי כבר מעדכן, ולכן אינו יכול לסתור אותם. */
+function fchipSync(){
+ const tx=document.getElementById('fchipTx'),w=document.getElementById('fchipW');if(!tx)return;
+ const z=document.getElementById('zchip'),u=document.getElementById('updated'),d=document.getElementById('dchip');
+ const zt=z&&!z.hidden?z.textContent.trim():'',ut=u?u.textContent.trim():'';
+ tx.textContent=zt?zt+(ut&&!/^לא נטען/.test(ut)?' · '+ut.replace(/^נטען\s*/,''):''):(ut||'לא נטען דוח');
+ const n=d&&!d.hidden?+(document.getElementById('dchipN')||{}).textContent||0:0;
+ if(w){w.hidden=!n;w.textContent=n?`⚠ ${n}`:''}
+ const b=document.getElementById('fchip');if(b)b.classList.toggle('warn',!!n)}
+function fchipWire(){
+ const ids=['zchip','updated','dchip','dchipN'];fchipSync();
+ if(!window.MutationObserver)return;
+ const mo=new MutationObserver(fchipSync);
+ ids.forEach(id=>{const e=document.getElementById(id);if(e)mo.observe(e,{attributes:true,childList:true,characterData:true,subtree:true})})}
 /* כפתור תפריט עוצר את ה-click כדי שלא ייסגר מיד, ולכן הוא גם לא סגר
    את התפריט השכן: «עזרה» ו«עוד» נשארו פתוחים יחד, אחד על השני. פתיחה
    של תפריט סוגרת את כל השאר בסרגל. */
@@ -11996,7 +12229,11 @@ function menuWire(bid,mid){
   mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
  document.addEventListener('click',e=>{if(!mm.contains(e.target)&&e.target!==mb){
   mm.classList.remove('open');mb.setAttribute('aria-expanded','false')}});
- document.addEventListener('keydown',e=>{if(e.key==='Escape')mm.classList.remove('open')})}
+ document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!mm.classList.contains('open'))return;
+  /* D1: נמדד — Escape סגר את התפריט אבל השאיר aria-expanded=true, והמיקוד
+     נשאר על אלמנט מוסתר (נפל ל-body). עכשיו חוזר לכפתור שפתח */
+  const inside=mm.contains(document.activeElement);
+  mm.classList.remove('open');mb.setAttribute('aria-expanded','false');if(inside)mb.focus()})}
 function helpWire(){
  const hb=document.getElementById('helpBtn'),hm=document.getElementById('helpMenu');
  if(!hb||!hm)return;
@@ -12013,6 +12250,11 @@ function helpWire(){
  const items=()=>[...hm.querySelectorAll('button.mi')];
  const shut=back=>{hm.classList.remove('open');hb.setAttribute('aria-expanded','false');
   if(back)hb.focus()};
+ /* D1 — התפריט מחזיק עכשיו גם את הקבצים וההגדרות. החצים עוברים על
+    כל הפריטים, ולחיצה על כל אחד סוגרת את התפריט; ה-onclick של
+    הייצואים, מצב כהה והגיבוי נשאר שלהם ואינו נדרס כאן. */
+ const navItems=()=>[...hm.querySelectorAll('button.mi, .mi .btn')];
+ hm.addEventListener('click',e=>{if(e.target.closest('.mi .btn'))shut(false)});
  items().forEach(mi=>mi.onclick=()=>{
   shut(false);
   const k=mi.dataset.help;
@@ -12024,9 +12266,9 @@ function helpWire(){
  hb.addEventListener('keydown',e=>{
   if(e.key!=='ArrowDown')return;         /* Enter/רווח מטופלים ב-click */
   e.preventDefault();hm.classList.add('open');hb.setAttribute('aria-expanded','true');
-  const it=items();if(it.length)it[0].focus()});
+  const it=navItems();if(it.length)it[0].focus()});
  hm.addEventListener('keydown',e=>{
-  const it=items(),i=it.indexOf(document.activeElement);
+  const it=navItems(),i=it.indexOf(document.activeElement);
   if(e.key==='Escape'){e.preventDefault();shut(true)}
   else if(e.key==='ArrowDown'){e.preventDefault();it[(i+1)%it.length].focus()}
   else if(e.key==='ArrowUp'){e.preventDefault();it[(i-1+it.length)%it.length].focus()}
