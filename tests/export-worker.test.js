@@ -30,6 +30,15 @@ const sig=wb=>JSON.stringify(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];
  const types=Object.keys(ws).filter(k=>k[0]!=='!').sort().map(k=>k+':'+ws[k].t).join(',');
  return [n,cells,types,(ws['!cols']||[]).map(c=>c&&c.wch)]}));
 const fileSig=f=>sig(XLSX.readFile(f,{cellDates:true}));
+/* שלב 2 הוסיף בכוונה שתי עמודות לייצוא. מול main משווים בלעדיהן: כל תא אחר — ערך,
+   סדר ורוחב — חייב להיות זהה, ושתי העמודות חייבות להיות קיימות בקובץ החדש */
+const NEW_COLS=['סטטוס המלצה','זמן אספקה מתוכנן ב-SAP (מקור)'];
+const sigLess=(f,drop)=>{const wb=XLSX.readFile(f,{cellDates:true});let found=0;
+ return {found:()=>found,s:JSON.stringify(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];
+  const cells=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  const hr=cells.find(r=>r.some(c=>drop.includes(c)))||[];const idx=new Set(hr.map((c,i)=>drop.includes(c)?i:-1).filter(i=>i>=0));found+=idx.size;
+  const keep=(r)=>r.filter((_,i)=>!idx.has(i));
+  return [n,cells.map(keep),keep(ws['!cols']||[]).map(c=>c&&c.wch)]}))}};
 const sheetsOf=f=>{const wb=XLSX.readFile(f);return wb.SheetNames.map(n=>`${n}:${XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1}).length}`).join(' · ')};
 const HTML='file://'+path.join(SD,'..','index.html')+'?nobrief=1';
 async function open(b,W,H,html){const ctx=await b.newContext({viewport:{width:W,height:H},acceptDownloads:true});
@@ -85,7 +94,10 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
    const t=Date.now();while(!files.length&&Date.now()-t<120000)await m.p.waitForTimeout(200);
    if(files.length){mainF=path.join(TMP,'main.xlsx');await files[0].saveAs(mainF)}await m.ctx.close()}catch(_){}
   if(mainF){const sm=fs.statSync(mainF).size,sn=fs.statSync(w1.f).size;
-   ok('מחשב · זהה תא בתא לקובץ של main — והקובץ אינו גדול יותר',fileSig(mainF)===fileSig(w1.f)&&sn<=sm,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
+   const a=sigLess(mainF,NEW_COLS),b=sigLess(w1.f,NEW_COLS),sa=a.s,sb=b.s;
+   ok('מחשב · זהה תא בתא לקובץ של main, חוץ משתי העמודות החדשות של שלב 2 — והן קיימות',sa===sb&&a.found()===0&&b.found()>0,`עמודות חדשות שנמצאו: ${b.found()}`);
+   /* הגודל: «לא גדול יותר» אינו אפשרי כשנוספו עמודות. נשאר: הגידול מוגבל (≤10%) והקובץ דחוס */
+   ok('מחשב · הקובץ גדל רק בגלל העמודות החדשות (≤10%) ונשאר דחוס',sn<=sm*1.10,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
   else ok(mainSame?'מחשב · השוואה ל-main דולגה — main הוא כבר הגרסה הזו (נעשית ב-PR, מול main הקודם)'
    :'מחשב · השוואה ל-main דולגה (origin/main לא זמין בצ׳קאאוט הזה)',true);
   /* 4 — תמונת מצב: סינון ומעבר מסך באמצע הייצוא לא משנים את הקובץ */
