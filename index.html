@@ -10986,7 +10986,7 @@ window.addEventListener('resize',()=>{if(qEl('qsug').classList.contains('open'))
 /* שלושת הכפתורים האלה ירדו עם הגרירה; החיווט שלהם נשאר והתייחס
    לאלמנטים שנמחקו מיד אחרי העלייה. */
 document.getElementById('darkToggle').onclick=()=>{DARKON=!DARKON;try{localStorage.setItem(DARK_KEY,DARKON?'1':'0')}catch(_){}applyDark(DARKON)};
-const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
+const XCOLS=[['מק״ט',r=>r.pn],['תאור',r=>r.desc],['דגם',r=>r.model],['מותג',r=>r.brand],['מעתד',r=>r.planner],['ספק',r=>r.supplier],
  ['קבוצת שיווק',r=>r.mkt1],['גיל מלאי',r=>ageLabel(r.ageTier)],['צריכה 3 שנים',r=>r.has3y?r.cons3y:''],['ימים מכניסה אחרונה',r=>r.entAge==null?'':r.entAge],['סוג MRP',r=>r.mrp],['ABC',r=>r.abc],['דפוס',r=>r.A.pattern],['סטטוס',r=>r.cat],['מפתח סימון',r=>markKey(r)],['רמת שירות חסרה',r=>r.srvMissing?'כן':''],['מחיר FOB חסר',r=>r.priceMissing?'כן':''],['מטבע FOB',r=>r.currency||''],
  ['מלאי פנוי',r=>r.free],['סה״כ מלאי',r=>r.stock],['הזמנות לקוח',r=>r.cust],['הזמנות חסומות',r=>r.custBlockedKnown?r.blockedCust:'—'],['רכש פתוח',r=>r.po],
  /* ============ ETA_IN_EXPORT ============
