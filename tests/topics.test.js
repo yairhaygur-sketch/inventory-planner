@@ -159,12 +159,6 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   await p.click('#lite th[data-tp-sort="rop"]');
   const u=await p.evaluate(()=>TP.shown.map(r=>r.sugROP));
   ok('לחיצה שנייה — עולה',u.every((x,i)=>!i||u[i-1]<=x),u.slice(0,5).join(','))}
- {await p.click('#lite tr.r');
-  const d=await p.evaluate(()=>{const det=document.querySelector('#lite tr.det');const r=TP.shown[0];
-   return {open:!!det,txt:det?det.textContent:'',why:(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w[1]:w)}});
-  ok('לחיצה על שורה פותחת את ההסבר של המנוע',d.open&&d.why.length>0&&d.why.every(w=>d.txt.includes(w)),String(d.why.length));
-  await p.click('#lite tr.r');
-  ok('לחיצה שנייה סוגרת',await p.evaluate(()=>!document.querySelector('#lite tr.det')))}
  {const pn=await p.evaluate(()=>TP.shown[1].pn);
   await p.fill('#lite [data-tp="q"]',pn);await p.waitForTimeout(600);
   const r=await p.evaluate(()=>({n:TP.shown.length,pn:TP.shown.map(x=>x.pn),focus:document.activeElement&&document.activeElement.dataset.tp}));
@@ -176,6 +170,90 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
    lab:+String(document.querySelector('#lite .bar .mini').textContent).replace(/[^\d]/g,'')}),pl);
   ok('סינון מתכנן = השורות של אותו מתכנן',r.all===r.lab,`${r.lab} · ${r.all}`);
   await p.selectOption('#lite [data-tp="pl"]','')}
+
+ /* ---- 5א. כרטיס הפריט (מגירה) ----
+    הכרטיס נפתח בצד, והרשימה מתחתיו לא מצוירת מחדש: גלילה, סינון, מיון
+    ושורה נבחרת נשמרים. כל מספר בו הוא שדה של המנוע. */
+ {await p.click('[data-tp-tab="fix"]');
+  const tagT=await p.evaluate(()=>{const t=document.querySelector('#lite table');t.__keep=1;return 1});
+  await p.click('#lite tr.r');
+  const d=await p.evaluate(()=>{const el=document.getElementById('tpd'),r=TP.shown[0];
+   const why=(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w[1]:w),act=(r.act||[]).filter(Boolean);
+   return {open:!el.hidden,pn:el.querySelector('#tpdT').textContent===r.pn,txt:el.textContent,why,act,
+    sameTable:document.querySelector('#lite table').__keep===1,on:document.querySelector('#lite tr.r.on')===document.querySelector('#lite tr.r[data-tp-row="0"]'),
+    q3:['מה הבעיה','למה זה חשוב','מה לעשות'].every(h=>el.querySelector('.q3').textContent.includes(h))}});
+  ok('לחיצה על שורה פותחת כרטיס בצד, בלי לצייר את הרשימה מחדש',d.open&&d.pn&&d.sameTable&&d.on,JSON.stringify({open:d.open,pn:d.pn,same:d.sameTable,on:d.on}));
+  ok('הכרטיס עונה על שלוש השאלות, ומכיל את ההסבר והפעולות של המנוע מילה במילה',
+   d.q3&&d.why.every(w=>d.txt.includes(w))&&d.act.length>0&&d.act.every(a=>d.txt.includes(a)),`why ${d.why.length} · act ${d.act.length}`);
+  await p.click('#lite tr.r');
+  ok('לחיצה שנייה על אותה שורה סוגרת',await p.evaluate(()=>document.getElementById('tpd').hidden&&!document.querySelector('#lite tr.r.on')))}
+ /* שימור מיקום: מסנן, מיון וגלילה — פתיחה, מעבר בין פריטים וסגירה */
+ {await p.click('[data-tp-tab="trend"]');await p.click('#lite .tile[data-tp-cat="up"]');
+  await p.click('#lite th[data-tp-sort="tRec"]');
+  await p.evaluate(()=>{const tr=document.querySelector('#lite tr.r[data-tp-row="25"]');window.scrollTo(0,tr.getBoundingClientRect().top+scrollY-300)});
+  await p.waitForTimeout(100);
+  const s0=await p.evaluate(()=>({y:Math.round(scrollY),sort:JSON.stringify(TP.sort[TP.tab]),cat:TP.cat[TP.tab],tab:TP.tab,n:TP.list.length}));
+  await p.click('#lite tr.r[data-tp-row="25"]');
+  const s1=await p.evaluate(()=>({y:Math.round(scrollY),pos:document.querySelector('#tpd .pos').textContent,pn:TP.open.pn,want:TP.list[25].pn}));
+  ok('פתיחה: הגלילה לא זזה, והמיקום «26 מתוך N» נכון',s1.y===s0.y&&s1.pn===s1.want&&s1.pos.startsWith('26 '),JSON.stringify({y0:s0.y,y1:s1.y,pos:s1.pos}));
+  await p.keyboard.press('ArrowDown');
+  const s2=await p.evaluate(()=>({pn:TP.open.pn,want:TP.list[26].pn,on:document.querySelector('#lite tr.r.on').dataset.tpRow}));
+  await p.keyboard.press('ArrowUp');
+  const s3=await p.evaluate(()=>({pn:TP.open.pn,want:TP.list[25].pn}));
+  ok('↓ ו-↑ עוברים לפריט הבא והקודם ברשימה המסוננת, והשורה המסומנת עוברת איתם',s2.pn===s2.want&&s2.on==='26'&&s3.pn===s3.want,JSON.stringify(s2));
+  await p.click('#tpd [data-tpd="next"]');
+  ok('כפתור «הבא» עובר לפריט הבא',await p.evaluate(()=>TP.open===TP.list[26]));
+  await p.click('#tpd [data-tpd="prev"]');
+  await p.keyboard.press('Escape');
+  const s4=await p.evaluate(()=>({y:Math.round(scrollY),sort:JSON.stringify(TP.sort[TP.tab]),cat:TP.cat[TP.tab],tab:TP.tab,n:TP.list.length,
+   closed:document.getElementById('tpd').hidden,focus:document.activeElement&&document.activeElement.dataset.tpRow}));
+  ok('Esc סוגר וחוזר בדיוק לאותו מקום: גלילה, מסנן, מיון, לשונית, והמיקוד על השורה',
+   s4.closed&&s4.y===s0.y&&s4.sort===s0.sort&&s4.cat===s0.cat&&s4.tab===s0.tab&&s4.n===s0.n&&s4.focus==='25',JSON.stringify({s0,s4}));
+  await p.keyboard.press('Enter');
+  ok('Enter על השורה הממוקדת פותח אותה שוב',await p.evaluate(()=>!document.getElementById('tpd').hidden&&TP.open===TP.list[25]));
+  /* שינוי סינון כשהכרטיס פתוח: הכרטיס נשאר, והמיקום מתעדכן */
+  await p.click('#lite .tile[data-tp-cat=""]');
+  const s5=await p.evaluate(()=>({open:!document.getElementById('tpd').hidden,pos:document.querySelector('#tpd .pos').textContent,i:TP.list.indexOf(TP.open)}));
+  ok('שינוי סינון כשהכרטיס פתוח: הכרטיס נשאר על אותו פריט, והמיקום מתעדכן',s5.open&&s5.pos.startsWith((s5.i+1).toLocaleString('he-IL')+' '),JSON.stringify(s5));
+  await p.click('[data-tp-tab="cust"]');
+  ok('מעבר לשונית סוגר את הכרטיס',await p.evaluate(()=>document.getElementById('tpd').hidden&&!TP.open));
+  await p.click('#lite th[data-tp-sort="tRec"]').catch(()=>{});
+  await p.evaluate(()=>{TP.sort={};TP.cat={t1:'',t2:'alert',t3:'open',t4:'all'};window.scrollTo(0,0)})}
+ /* הערכים: SAP מול המלצה — שניהם תמיד כשהם שונים; זמן אספקה ב-SAP בלבד; גרף רק כשיש נתון */
+ for(const t of ['fix','trend','cust','short']){
+  await p.click(`[data-tp-tab="${t}"]`);await p.waitForTimeout(50);
+  const n=await p.evaluate(()=>Math.min(TP.shown.length,25));const bad3=[];
+  for(let i=0;i<n;i++){
+   await p.evaluate(i=>tpdShow(TP.shown[i]),i);
+   const e=await p.evaluate(()=>{const r=TP.open,el=document.getElementById('tpd'),rows=[...el.querySelectorAll('table')[0].querySelectorAll('tbody tr')];
+    const cell=(l,k)=>{const tr=rows.find(x=>x.querySelector('th').textContent===l);return tr?tr.children[k].textContent.trim():null};
+    const num=s=>s==null?null:+String(s).replace(/[^\d.\-]/g,'');
+    const nr=!!(r.isOD||r.noStock);
+    const cons=(r.months||[]).some(v=>v>0)||(r.curMonth||0)>0;
+    const canv=[...el.querySelectorAll('canvas[data-ch="bar"]')];
+    return {pn:r.pn,nr,ropS:num(cell('נקודת הזמנה',1)),ropR:nr?null:num(cell('נקודת הזמנה',2)),ssS:num(cell('מלאי ביטחון',1)),ssR:nr?null:num(cell('מלאי ביטחון',2)),
+     rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,lt:num(cell('זמן אספקה מתוכנן',1)),ltD:r.ltD,ltRec:cell('זמן אספקה מתוכנן',2),
+     diffShown:(r.rop===r.sugROP||nr||el.querySelectorAll('td.v.diff').length>0),cons,bar:canv.length,
+     painted:canv.every(c=>{const x=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let s=0;for(let i=3;i<x.length;i+=40)s+=x[i];return s>0}),
+     cover:/הזמנת הלקוח מול הכיסוי/.test(el.textContent),
+     srcs:['sap','calc','rec'].every(k=>el.querySelector('.src.'+k))}});
+   if(e.ropS!==e.rop||e.ssS!==e.ss||(!e.nr&&(e.ropR!==e.sugROP||e.ssR!==e.sugSS)))bad3.push(`${e.pn}: ערכים`);
+   if(!e.diffShown)bad3.push(`${e.pn}: הפרש מוסתר`);
+   if(e.lt!==e.ltD||!/אין המלצה/.test(e.ltRec||''))bad3.push(`${e.pn}: זמן אספקה`);
+   /* בהזמנות לקוח הגרף הוא הכיסוי, לא הצריכה — בשאר הנושאים: גרף צריכה אם ורק אם יש צריכה */
+   const wantBar=t==='cust'?0:(e.cons?1:0);
+   if(e.bar!==wantBar||(e.bar&&!e.painted))bad3.push(`${e.pn}: גרף צריכה ${e.cons}/${e.bar}`);
+   if(t==='cust'&&!e.cover)bad3.push(`${e.pn}: אין גרף כיסוי`);
+   if(!e.srcs)bad3.push(`${e.pn}: תוויות מקור`)}
+  ok(`${t}: בכרטיס — SAP והמלצה כמו במנוע (שניהם כשהם שונים), זמן אספקה מ-SAP בלי המלצה, גרף רק כשיש לו נתון (${n} פריטים)`,!bad3.length,bad3.slice(0,3).join(' · '));
+  await p.evaluate(()=>tpdClose())}
+ {await p.click('[data-tp-tab="fix"]');await p.click('#lite tr.r');
+  await p.click('#tpd [data-tpd="explain"]');await p.waitForTimeout(200);
+  const m1=await p.evaluate(()=>({open:document.getElementById('modalwrap').classList.contains('open'),vis:getComputedStyle(document.getElementById('modalwrap')).display!=='none',t:document.getElementById('mtitle').textContent}));
+  await p.keyboard.press('Escape');
+  const m2=await p.evaluate(()=>({modal:document.getElementById('modalwrap').classList.contains('open'),drawer:!document.getElementById('tpd').hidden}));
+  ok('«מאחורי החישוב» נפתח מהכרטיס; Esc סוגר אותו קודם, והכרטיס נשאר',m1.open&&m1.vis&&/מאחורי החישוב/.test(m1.t)&&!m2.modal&&m2.drawer,JSON.stringify({m1,m2}));
+  await p.keyboard.press('Escape')}
 
  /* ---- 6. הייצוא הוא התצוגה ---- */
  const parse=l=>{const o=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];
@@ -222,14 +300,14 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
 
  /* ---- 9. בהיר וכהה: ניגודיות ו-RTL ----
     התצוגה מיועדת למחשב בלבד (החלטת המעתד, 27.10.2026) — אין כאן מדידות טלפון. */
- for(const [w,h] of [[1366,768],[1920,1080]])for(const dark of [false,true]){
+ for(const [w,h] of [[1366,768],[1440,900],[1920,1080]])for(const dark of [false,true]){
   const q=await page(w,h,'?topics');await load(q);await q.waitForSelector('#lite table');
   if(dark!==await q.evaluate(()=>document.body.classList.contains('dark')))await q.click('#lite [data-tp="dark"]');
   /* החלפת ערכת הצבעים מונפשת — מודדים אחרי שהמעבר הסתיים, לא באמצעו */
   await q.waitForTimeout(1500);
   const tag=`${w}px ${dark?'כהה':'בהיר'}`,low=[];
-  for(const t of ['fix','trend','cust','short']){await q.click(`[data-tp-tab="${t}"]`);await q.click('#lite tr.r');
-   for(const c of await q.evaluate(CONTRAST,'#lite h1,#lite .src,#lite nav button,#lite .lead,#lite th,#lite td,#lite .p,#lite .tile div,#lite .mini,#lite .tph .btn,#lite tr.det li'))
+  for(const t of ['fix','trend','cust','short']){await q.click(`[data-tp-tab="${t}"]`);await q.click('#lite tr.r');await q.waitForTimeout(150);
+   for(const c of await q.evaluate(CONTRAST,'#lite h1,#lite .src,#lite nav button,#lite .lead,#lite th,#lite td,#lite .p,#lite .tile div,#lite .mini,#lite .tph .btn,#tpd .pos,#tpd bdi,#tpd h2,#tpd h3,#tpd .chip,#tpd .p,#tpd .big,#tpd li,#tpd .imp b,#tpd .imp i,#tpd .src,#tpd th,#tpd td,#tpd .note,#tpd .key span,#tpd .lb,#tpd button'))
     if(c.r<4.5)low.push(`${t} ${c.sel} «${c.t}» ${c.r}`)}
   ok(`${tag}: ניגודיות טקסט ≥ 4.5 בכל ארבעת הנושאים`,!low.length,[...new Set(low)].slice(0,3).join(' · '));
   const r=await q.evaluate(()=>{const ths=[...document.querySelectorAll('#lite th')];
@@ -237,6 +315,12 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     first:ths[0].textContent.trim(),right:ths[0].getBoundingClientRect().right>=ths[1].getBoundingClientRect().right,
     page:document.documentElement.scrollWidth-innerWidth}});
   ok(`${tag}: RTL — העמודה הראשונה (מק״ט) בצד ימין, ואין גלילה אופקית`,r.dir==='rtl'&&/מק/.test(r.first)&&r.right&&r.page<=0,JSON.stringify(r));
+  /* הכרטיס: ברוחב שהוגדר לכל מסך, בצד שמאל, ובראשו ההחלטה */
+  const dw=await q.evaluate(()=>{const d=document.getElementById('tpd').getBoundingClientRect(),q3=document.querySelector('#tpd .q3').getBoundingClientRect();
+   return {w:Math.round(d.width),left:Math.round(d.left),dir:getComputedStyle(document.getElementById('tpd')).direction,q3top:Math.round(q3.top),h:innerHeight,
+    act:document.querySelector('#tpd .qa.act').getBoundingClientRect().top<innerHeight}});
+  const want={1366:520,1440:580,1920:640}[w];
+  ok(`${tag}: הכרטיס ${want}px בצד שמאל, RTL, ו«מה הבעיה» בראש הכרטיס`,dw.w===want&&dw.left===0&&dw.dir==='rtl'&&dw.q3top<200,JSON.stringify(dw));
   await q.context().close()}
 
  /* ---- 10. מק״ט עם גרש, מירכאות ו-HTML — לא שובר את הלחיצה ולא מוזרק ---- */
@@ -253,8 +337,8 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   const r0=await q.evaluate(PN=>{const tr=[...document.querySelectorAll('#lite tr.r')].find(t=>t.firstElementChild.textContent===PN);
    return {found:!!tr,injected:!!document.querySelector('#lite td b b')}},PN);
   await q.click('#lite tr.r');
-  const r1=await q.evaluate(()=>!!document.querySelector('#lite tr.det'));
-  ok('מק״ט עם גרש/מירכאות/HTML: מוצג כטקסט, ולחיצה פותחת את ההסבר',r0.found&&!r0.injected&&r1,JSON.stringify({...r0,open:r1}));
+  const r1=await q.evaluate(PN=>{const el=document.getElementById('tpd');return !el.hidden&&el.querySelector('#tpdT').textContent===PN&&!el.querySelector('#tpdT b')},PN);
+  ok('מק״ט עם גרש/מירכאות/HTML: מוצג כטקסט, ולחיצה פותחת את הכרטיס',r0.found&&!r0.injected&&r1,JSON.stringify({...r0,open:r1}));
   await q.context().close();fs.rmSync(tmp,{recursive:true,force:true})}
 
  ok('אפס שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));

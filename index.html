@@ -3223,7 +3223,7 @@ body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
    כל מה שאינו התצוגה, האבחון, הטעינה, ההדגמה וההודעות — מוסתר. הכלי
    המלא נשאר ב-DOM ועובד כרגיל מאחור: ממנו באים הקובץ, המנוע והתורים. */
 #lite{display:none}
-html.lite body>:not(#lite):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(script){display:none!important}
+html.lite body>:not(#lite):not(#tpd):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(#modalwrap):not(script){display:none!important}
 html.lite body{overflow:auto;background:var(--paper)}
 html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-height:1.5}
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
@@ -3257,13 +3257,71 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite td.n{white-space:nowrap}
 #lite td.d{min-width:160px;max-width:300px;white-space:normal}
 #lite tr.r{cursor:pointer} #lite tr.r:hover td{background:var(--accent-bg)}
-#lite tr.det td{background:var(--surface-2);padding:10px 16px}
-#lite tr.det ul{margin:0;padding-inline-start:18px}
-#lite tr.det li.err{color:var(--critical)} #lite tr.det li.warn{color:var(--high)}
+#lite tr.r.on td{background:var(--accent-bg)} #lite tr.r.on td:first-child{box-shadow:inset -3px 0 0 var(--accent)}
+#lite tr.r:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+/* ============ TPD — כרטיס הפריט בתצוגת 4 הנושאים ============
+   מגירה צפה בצד השמאלי (סוף השורה ב-RTL). אינה דוחפת את הטבלה ואינה
+   מצוירת מחדש איתה — לכן הגלילה, הסינון, המיון והשורה הנבחרת נשמרים. */
+#tpd{display:none}
+html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;top:0;bottom:0;inset-inline-end:0;width:520px;z-index:40;
+ background:var(--surface);color:var(--ink);border-inline-start:1px solid var(--line);box-shadow:var(--shadowH);font-size:var(--f-base);line-height:1.5}
+@media(min-width:1440px){html.lite #tpd:not([hidden]){width:580px}}
+@media(min-width:1920px){html.lite #tpd:not([hidden]){width:640px}}
+#tpd .dh{padding:10px 18px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+#tpd .dnav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
+#tpd button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-ctl);padding:3px 10px;cursor:pointer}
+#tpd button:hover{border-color:var(--accent)} #tpd button:disabled{opacity:.45;cursor:default}
+#tpd .dpn{display:flex;align-items:center;gap:8px}
+#tpd .dpn bdi{font-size:var(--f-lg);font-weight:800;font-variant-numeric:tabular-nums}
+#tpd h2{font-size:var(--f-md);font-weight:600;margin:2px 0 0;color:var(--ink-2)}
+#tpd .chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:8px}
+#tpd .chip{font-size:var(--f-sm);padding:0 8px;border-radius:10px;background:var(--calm-bg);color:var(--calm);white-space:nowrap}
+#tpd .db{overflow-y:auto;padding:12px 18px 28px;flex:1}
+#tpd section{margin:0 0 16px}
+#tpd h3{font-size:var(--f-md);margin:0 0 6px;font-weight:700}
+#tpd .q3{border:1px solid var(--line);border-inline-start:4px solid var(--accent);padding:10px 14px;background:var(--surface)}
+#tpd .q3.red{border-inline-start-color:var(--critical)} #tpd .q3.amb{border-inline-start-color:var(--high)}
+#tpd .qa{padding:6px 0} #tpd .qa+.qa{border-top:1px solid var(--line-soft)}
+#tpd .qa h3{font-size:var(--f-sm);color:var(--ink-3);text-transform:none;margin:0 0 2px}
+#tpd .qa .big{font-size:var(--f-lg);font-weight:700;line-height:1.35}
+#tpd .qa ul,#tpd .qa ol{margin:4px 0 0;padding-inline-start:20px}
+#tpd .qa li.err{color:var(--critical)} #tpd .qa li.warn{color:var(--high)}
+#tpd .qa.act li{font-weight:700}
+#tpd .imp{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+#tpd .imp>div{border:1px solid var(--line);padding:4px 10px}
+#tpd .imp b{display:block;font-size:var(--f-lg);font-variant-numeric:tabular-nums}
+#tpd .imp i{font-style:normal;font-size:var(--f-sm);color:var(--ink-3)}
+/* שלושה סוגי מספרים — מקור, חישוב, המלצה — ותווית לכל אחד */
+#tpd .src{display:inline-block;font-size:var(--f-sm);font-weight:700;padding:0 6px;border-radius:4px;margin-inline-start:4px;vertical-align:middle}
+#tpd .src.sap{background:var(--calm-bg);color:var(--calm)}
+#tpd .src.calc{background:var(--trend-bg);color:var(--trend)}
+#tpd .src.rec{background:var(--accent-bg);color:var(--accent-ink)}
+#tpd table{border-collapse:collapse;width:100%}
+#tpd th,#tpd td{padding:5px 8px;border-bottom:1px solid var(--line-soft);text-align:start;vertical-align:top;white-space:normal}
+#tpd th{font-size:var(--f-sm);color:var(--ink-3);font-weight:600;background:none;position:static}
+#tpd td.v{font-variant-numeric:tabular-nums;white-space:nowrap}
+#tpd td.v.rec b{color:var(--accent-ink)} #tpd td.v.diff{background:var(--accent-bg)}
+#tpd .note{color:var(--ink-3);font-size:var(--f-sm)}
+#tpd .bars{display:grid;grid-template-columns:110px 1fr;gap:8px 10px;align-items:center}
+#tpd .bars .lb{font-size:var(--f-sm);color:var(--ink-2);display:flex;align-items:center;gap:6px}
+#tpd .bars .lb .src{margin:0} #tpd .bars .lb b{font-size:var(--f-md);color:var(--ink)}
+#tpd .bar{display:flex;height:26px;background:var(--surface-2);border:1px solid var(--line-soft)}
+#tpd .bar span{display:flex;align-items:center;justify-content:center;font-size:var(--f-sm);font-weight:700;color:var(--on-fill);overflow:hidden;white-space:nowrap;min-width:0}
+#tpd .bar .s-sap{background:var(--calm)} #tpd .bar .s-sap2{background:var(--calm);opacity:.6}
+#tpd .bar .s-dlt{background:var(--trend)} #tpd .bar .s-ss{background:var(--accent)} #tpd .bar .s-adj{background:var(--high)}
+#tpd .bar .s-free{background:var(--capital)} #tpd .bar .s-po{background:var(--steady)} #tpd .bar .s-tr{background:var(--calm)}
+#tpd .bar .s-cust{background:var(--critical)} #tpd .bar .s-gap{background:repeating-linear-gradient(45deg,var(--critical-bg),var(--critical-bg) 6px,transparent 6px,transparent 12px);color:var(--critical)}
+#tpd .key{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:var(--f-sm);color:var(--ink-3)}
+#tpd .key i{display:inline-block;width:10px;height:10px;margin-inline-end:4px;vertical-align:middle}
+#tpd canvas{display:block;width:100%}
+#tpd .cstrip{margin:0}
+#tpd .eta li{font-variant-numeric:tabular-nums}
+#tpd .miss{margin:0;padding-inline-start:18px;color:var(--ink-3);font-size:var(--f-sm)}
 #lite .old{color:var(--ink-3);text-decoration:line-through}
-#lite .p{display:inline-block;padding:0 8px;border-radius:10px;font-size:var(--f-sm);white-space:nowrap}
-#lite .p.red{background:var(--critical-bg);color:var(--critical)} #lite .p.amb{background:var(--high-bg);color:var(--high)}
-#lite .p.blu{background:var(--steady-bg);color:var(--steady)} #lite .p.gry{background:var(--calm-bg);color:var(--calm)}
+#lite .p,#tpd .p{display:inline-block;padding:0 8px;border-radius:10px;font-size:var(--f-sm);white-space:nowrap}
+#lite .p.red,#tpd .p.red{background:var(--critical-bg);color:var(--critical)} #lite .p.amb,#tpd .p.amb{background:var(--high-bg);color:var(--high)}
+#lite .p.blu,#tpd .p.blu{background:var(--steady-bg);color:var(--steady)} #lite .p.gry,#tpd .p.gry{background:var(--calm-bg);color:var(--calm)}
 #lite .empty{background:var(--surface);border:1px solid var(--line);padding:24px;max-width:720px}
 #lite .more{margin:10px 0;display:flex;gap:10px;align-items:center}
 @media(max-width:760px){#lite .tph,#lite nav,#lite main{padding-inline:16px}
@@ -3273,6 +3331,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 <body>
 <script>if(/[?&]topics(=|&|$)/.test(location.search))document.documentElement.classList.add('lite')</script>
 <div id="lite" dir="rtl"></div>
+<aside id="tpd" dir="rtl" hidden role="dialog" aria-modal="false" aria-labelledby="tpdT"></aside>
 <!-- ============ תדריך פתיחה ============
      מופיע רק כשיש משהו חדש מאז ההרצה הקודמת. אחרת — ישר לטבלה, עם פס
      דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
@@ -13042,12 +13101,172 @@ function tpSorted(t,list){const s=TP.sort[t];if(!s)return list;
  return list.slice().sort((a,b)=>{const x=col.v(a),y=col.v(b);
   if(x==null||y==null)return (x==null)-(y==null);
   return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),'he'))*s.dir})}
-function tpDetail(r){
+/* ============ TPD — כרטיס הפריט ============
+   עונה על שלוש שאלות, בסדר הזה: מה הבעיה · למה זה חשוב · מה לעשות.
+   אין כאן חישוב חדש. כל מספר הוא שדה שהמנוע כבר חישב, או חשבון
+   פשוט על שדות כאלה (פער, ימים עד אפס) — ואז הוא מסומן «מחושב».
+   שלוש תוויות מבדילות בין סוגי המספרים: SAP (נתון מקור מהדוח) ·
+   מחושב · המלצה. כשערך SAP שונה מההמלצה — שניהם מוצגים, תמיד.
+   זמן אספקה: הערך ב-SAP בלבד. זמן אספקה בפועל אינו בדוח, ואין
+   כאן הערכה שלו ולא המלצה לשנות אותו.
+   הגרפים: רק מה שיש לו נתון. barChart ו-projChart הם של הכלי המלא,
+   כפי שהם; שני הגרפים החדשים (בניית נק׳ ההזמנה, עמודת כיסוי) מציירים
+   שדות קיימים בלבד. */
+const TPD_SRC={sap:'<span class="src sap">SAP</span>',calc:'<span class="src calc">מחושב</span>',rec:'<span class="src rec">המלצה</span>'};
+const tpdGap=r=>Math.max(0,(r.cust||0)-Math.max(0,r.free||0)-Math.max(0,r.po||0));
+const tpdNoRec=r=>!!(r.isOD||r.noStock);
+const tpdDays=r=>(r.free>0&&r.rate>0&&!r.rateFrom3y)?Math.round(r.free/r.rate*30):null;
+const tpdHasCons=r=>(r.months||[]).some(v=>v>0)||(r.curMonth||0)>0;
+const tpdDate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?`${m[3]}.${m[2]}.${m[1]}`:esc(s||'—')};
+/* מה הבעיה — משפט אחד לפי הנושא, ממספרי המנוע */
+function tpdProblem(t,r){const N=tpN;
+ if(t==='fix'){
+  if(r.sugROP>r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) נמוכה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
+  if(r.sugROP<r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) גבוהה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
+  return `מלאי הביטחון ב-SAP (${N(r.ss)}) שונה מזה שהמנוע מחשב (${N(r.sugSS)}).`}
+ if(t==='trend'){const p=r.tRatio==null?null:Math.round((r.tRatio-1)*100);
+  if(r.cat===TP_DROP&&!(riseGap(r)>0)&&!(trendGap(r)>0)){
+   const d=(r.A&&r.A.drops||[]).map(x=>LABELS[x.i-1]&&LABELS[x.i-1].name).filter(Boolean);
+   return `ייתכן שהמלאי אזל ולא נרשם${d.length?' ב'+d.join(', '):''} — צריכה נמוכה מאוד בין חודשים תקינים. זה חוסר מלאי, לא ירידה בביקוש.`}
+  if(riseGap(r)>0)return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) גבוהה ב-${p}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`;
+  return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) נמוכה ב-${Math.abs(p)}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`}
+ if(t==='cust'){
+  if(r.burn)return `לקוח ממתין ל-${N(r.cust)} יח׳. במלאי הפנוי ${N(Math.max(0,r.free))}, ואין הזמנת רכש פתוחה.`;
+  if(r.custGap)return `לקוח ממתין ל-${N(r.cust)} יח׳. מלאי פנוי ${N(Math.max(0,r.free))} ורכש פתוח ${N(r.po)} — חסרות ${N(tpdGap(r))} יח׳.`;
+  return `המדף ריק והלקוח ממתין ל-${N(r.cust)} יח׳. הרכש הפתוח (${N(r.po)}) מכסה בכמות${r.etaHas&&r.etaFirst?`, אספקה ראשונה ${tpdDate(r.etaFirst)}`:', אבל אין לו תאריך הגעה בדוח'}.`}
+ if(shelfQty(r)<=0)return `אין מלאי פנוי (${N(r.free)}). קצב הצריכה ${N(r.rate)} יח׳ לחודש.`;
+ if(isM1(r)&&!(r.unsQty>0))return `צריכה של ${N(r.c3)} יח׳ ב-3 החודשים האחרונים (${N(r.r3)} לחודש), ומלאי פנוי ${N(r.free)} — לא מכסה חודש.`;
+ return `מלאי פנוי ${N(r.free)} מול קצב ${N(r.rate)} יח׳ לחודש — ${N(Math.ceil(r.unsQty||0))} יח׳ לא יסופקו החודש.`}
+/* למה זה חשוב — מספרים בלבד, וכל אחד מסומן במקורו */
+function tpdImpact(t,r){const out=[],N=tpN,add=(v,l,s)=>out.push(`<div><b>${v}</b><i>${l}${TPD_SRC[s]}</i></div>`);
+ if(r.cust>0)add(N(r.cust),'יח׳ בהזמנת לקוח','sap');
+ const g=tpdGap(r);if(r.cust>0&&g>0)add(N(g),'חסר מול מלאי ורכש','calc');
+ /* «לא יסופק החודש» הוא שאלה על מלאי — הכלי המלא אינו מציג אותה ל-PD, ל«לפי דרישה» ול-04/14 (inToday), וגם לא כאן */
+ if((r.unsQty||0)>0&&!r.isPDItem&&!tpdNoRec(r)){add(N(Math.ceil(r.unsQty)),'יח׳ לא יסופקו החודש','calc');
+  if(!r.priceMissing&&r.unsVal>0)add(money(r.unsVal,r.currency),'שווי החוסר החודש','calc')}
+ const d=tpdDays(r);if(d!=null&&(t==='short'||t==='trend'||t==='fix'))add('כ-'+N(d),'ימים עד מלאי 0, לפי הקצב','calc');
+ if((t==='short'||t==='cust'||d!=null)&&r.ltD>0)add(N(r.ltD),'ימי אספקה מתוכננים','sap');
+ if(t==='fix'&&r.sugROP!==r.rop){add((r.sugROP>r.rop?'+':'−')+N(Math.abs(r.sugROP-r.rop)),'יח׳ שינוי בנק׳ ההזמנה','rec');
+  const v=tpVal(r.sugROP-r.rop,r);if(v!=null&&v!==0)add((v>0?'+':'−')+money(Math.abs(v),r.currency),'שווי השינוי','calc')}
+ if(t==='trend'){const p=r.tRatio==null?null:Math.round((r.tRatio-1)*100);
+  if(p!=null)add((p>0?'+':'')+N(p)+'%','3 ח׳ מול 3 קודמים','calc');
+  if(riseGap(r)>0)add(N(r.sugROPU),'נק׳ הזמנה לפי המגמה (מייעץ)','calc');
+  else if(trendGap(r)>0)add(N(r.sugROPT),'נק׳ הזמנה לפי המגמה (מייעץ)','calc')}
+ if(r.expCap>0)add(money(r.expCap,r.currency),'כסף תקוע','calc');
+ return out.length?`<div class="imp">${out.join('')}</div>`:'<div class="note">אין חשיפה מכומתת לפריט הזה.</div>'}
+/* SAP מול המלצה. נק׳ הזמנה ומלאי ביטחון — שני הערכים תמיד; השאר — SAP בלבד */
+function tpdParams(r){const N=tpN,nr=tpdNoRec(r);
+ const rec=(sap,v)=>nr?`<td class="v note">אין המלצת מלאי — ${r.isOD?'לפי דרישה':'סטטוס 04/14'}</td>`
+   :`<td class="v rec${sap!==v?' diff':''}"><b>${N(v)}</b>${sap===v?' <span class="note">זהה</span>':''}</td>`;
+ const row=(l,sap,recTd)=>`<tr><th scope="row">${l}</th><td class="v">${sap}</td>${recTd}</tr>`;
+ const na='<td class="v note">—</td>';
+ const ssMinNote=(!nr&&r.ssMinEff!==r.ssMin)?` <span class="note">(לא חל)</span>`:'';
+ return `<table><thead><tr><th></th><th>${TPD_SRC.sap}</th><th>${TPD_SRC.rec}</th></tr></thead><tbody>
+  ${row('נקודת הזמנה',N(r.rop),rec(r.rop,r.sugROP))}
+  ${row('מלאי ביטחון',N(r.ss),rec(r.ss,r.sugSS))}
+  ${row('מלאי ביטחון מינימלי',N(r.ssMin)+ssMinNote,na)}
+  ${row('רמת שירות',r.srvMissing?'<span class="note">חסרה</span>':N(r.srv)+'%',na)}
+  ${row('זמן אספקה מתוכנן',N(r.ltD)+' ימים',`<td class="v note">אין המלצה · זמן בפועל אינו בדוח</td>`)}
+  ${row('סוג MRP',esc(r.mrp||'—'),na)}</tbody></table>
+  <table style="margin-top:8px"><thead><tr><th>חישוב המנוע ${TPD_SRC.calc}</th><th></th></tr></thead><tbody>
+  ${row('קצב צריכה לחודש',N(r.rate)+(r.rateFrom3y?' <span class="note">(חלון 3 שנים)</span>':''),'')}
+  ${nr?'':row('ביקוש בזמן האספקה',N(r.dLT),'')}
+  ${nr?'':row('מלאי ביטחון סטטיסטי',N(r.ssStat),'')}
+  ${nr?'':row('מה קבע את מלאי הביטחון',esc(TP_SRC[r.ssSrc]||'—'),'')}</tbody></table>`}
+/* גרף חדש: איך נבנית נקודת ההזמנה — SAP מול המלצה, באותו קנה מידה */
+function tpdRopBars(r){if(tpdNoRec(r))return '';
+ const dlt=Math.max(0,r.dLT||0),ss=Math.max(0,r.sugSS||0),adj=Math.max(0,(r.sugROP||0)-(dlt+ss));
+ const mx=Math.max(r.rop||0,r.sugROP||0,dlt+ss,1),w=v=>(v/mx*100).toFixed(2)+'%',N=tpN;
+ const sapSS=Math.min(Math.max(0,r.ss||0),Math.max(0,r.rop||0)),sapRest=Math.max(0,(r.rop||0)-sapSS);
+ const seg=(cls,v,l)=>v>0?`<span class="${cls}" style="width:${w(v)}" title="${esc(l)} ${N(v)}">${v/mx>.08?N(v):''}</span>`:'';
+ return `<section><h3>איך נבנית נקודת ההזמנה</h3><div class="bars">
+  <span class="lb">${TPD_SRC.sap} <b><bdi>${N(r.rop)}</bdi></b></span><div class="bar">${seg('s-sap',sapSS,'מלאי ביטחון ב-SAP')}${seg('s-sap2',sapRest,'מעל מלאי הביטחון')}</div>
+  <span class="lb">${TPD_SRC.rec} <b><bdi>${N(r.sugROP)}</bdi></b></span><div class="bar">${seg('s-dlt',dlt,'ביקוש בזמן האספקה')}${seg('s-ss',ss,'מלאי ביטחון מוצע')}${seg('s-adj',adj,'עיגול ומדיניות')}</div></div>
+  <div class="key"><span><i style="background:var(--calm)"></i>מלאי ביטחון ב-SAP</span><span><i style="background:var(--trend)"></i>ביקוש בזמן האספקה ${N(dlt)}</span>
+   <span><i style="background:var(--accent)"></i>מלאי ביטחון מוצע ${N(ss)} — ${esc(TP_SRC[r.ssSrc]||'—')}</span>${adj>=.5?`<span><i style="background:var(--high)"></i>עיגול כלפי מעלה ומדיניות ${N(adj)}</span>`:''}</div></section>`}
+/* גרף חדש: הזמנת הלקוח מול מה שמכסה אותה */
+function tpdCoverBars(r){const N=tpN,c=Math.max(0,r.cust||0),f=Math.max(0,r.free||0),p=Math.max(0,r.po||0),tr=Math.max(0,r.transfer||0),g=tpdGap(r);
+ const mx=Math.max(c,f+p+tr,1),w=v=>(v/mx*100).toFixed(2)+'%';
+ const seg=(cls,v,l)=>v>0?`<span class="${cls}" style="width:${w(v)}" title="${esc(l)} ${N(v)}">${v/mx>.08?N(v):''}</span>`:'';
+ return `<section><h3>הזמנת הלקוח מול הכיסוי</h3><div class="bars">
+  <span class="lb">הזמנת לקוח ${TPD_SRC.sap}</span><div class="bar">${seg('s-cust',c,'הזמנת לקוח')}</div>
+  <span class="lb">כיסוי ${TPD_SRC.sap}</span><div class="bar">${seg('s-free',f,'מלאי פנוי')}${seg('s-po',p,'רכש פתוח')}${seg('s-tr',tr,'בהעברה')}${seg('s-gap',g,'חסר')}</div></div>
+  <div class="key"><span><i style="background:var(--capital)"></i>מלאי פנוי ${N(f)}</span><span><i style="background:var(--steady)"></i>רכש פתוח ${N(p)}</span>
+   ${r.transferKnown?`<span><i style="background:var(--calm)"></i>בהעברה ${N(tr)} (אינו נספר בפער)</span>`:'<span>בהעברה: לא ידוע</span>'}${g>0?`<span><i style="background:var(--critical-bg)"></i>חסר ${N(g)} ${TPD_SRC.calc}</span>`:''}</div></section>`}
+function tpdEta(r){
+ if(!(r.po>0)&&!r.etaHas)return '';
+ if(!ETA)return `<p class="note">רכש פתוח ${tpN(r.po)} — אין תאריך הגעה בדוח ZMRP. תאריכים מגיעים מדוח ETA, שנטען בכלי המלא.</p>`;
+ const ls=(ETA.byPn&&ETA.byPn[etaKey(r.pn)])||[];
+ if(!ls.length)return `<p class="note">רכש פתוח ${tpN(r.po)} — לפריט אין שורות בדוח ה-ETA שנטען.</p>`;
+ const t=etaToday();
+ return `<ul class="eta">${ls.slice().sort((a,b)=>String(a[1]).localeCompare(String(b[1]))).map(([q,d])=>
+  `<li>${tpdDate(d)} · ${tpN(q)} יח׳${d<t?' <span class="note">— תאריך שעבר, לבדוק אם נקלט</span>':''}</li>`).join('')}</ul>`}
+function tpdMissing(r){const m=['זמן אספקה בפועל — אין בדוח קבלות; מוצג זמן האספקה המתוכנן ב-SAP בלבד'];
+ if(r.po>0&&!r.etaHas)m.push('תאריכי הגעה לרכש הפתוח');
+ if(r.cust>0)m.push('תאריך הזמנת הלקוח וגילה');
+ m.push('צריכה חודשית לפני 11 החודשים שבדוח');
+ if(r.priceMissing)m.push('מחיר FOB — אין שווי כספי');
+ if(r.srvMissing)m.push('רמת שירות ב-SAP');
+ if(!r.transferKnown)m.push('מלאי בהעברה (אין עמודה בדוח)');
+ return `<ul class="miss">${m.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`}
+function tpdBody(t,r){
  const why=(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w:['info',String(w)]);
  const act=(r.act||[]).filter(Boolean);
- return `<ul>${why.map(([c,t])=>`<li class="${esc(c)}">${esc(t)}</li>`).join('')}
-  ${act.map(a=>`<li><b>לעשות:</b> ${esc(a)}</li>`).join('')}
-  <li class="mini">סיווג במנוע: ${esc(r.cat||'—')} · סוג MRP ${esc(r.mrp||'—')} · זמן אספקה ${tpN(r.ltD)} ימים · מחיר FOB ${r.priceMissing?'חסר':money(r.price,r.currency)}</li></ul>`}
+ const k=tpKind(r),tone=k[2]==='red'?'red':k[2]==='amb'?'amb':'';
+ const cons=tpdHasCons(r)?`<section><h3>צריכה חודשית — 11 חודשים ${TPD_SRC.sap}</h3><canvas data-ch="bar"></canvas>
+   <div class="key"><span style="color:var(--high)">● פיק</span><span style="color:var(--trend)">● חשד אזילה</span><span>‒ ‒ חציון</span>${r.curMonth!=null?'<span>▢ החודש הנוכחי — חלקי, אינו נכלל בחישוב</span>':''}</div></section>`
+   :`<section><h3>צריכה חודשית</h3><p class="note">אין צריכה ב-11 החודשים שבדוח${r.has3y?` · צריכה ב-3 שנים: ${tpN(r.cons3y)} יח׳`:''}.</p></section>`;
+ const proj=(r.free>0&&r.rate>0&&!r.rateFrom3y)?`<section><h3>מלאי פנוי ב-12 השבועות הבאים, לפי הקצב ${TPD_SRC.calc}</h3><canvas data-ch="proj"></canvas>
+   <div class="key"><span>בלי קליטת רכש פתוח${ETA?'':' (לא נטען דוח ETA)'}</span><span>‒ ‒ נקודת ההזמנה ב-SAP ${tpN(r.rop)}</span></div></section>`:'';
+ const charts=t==='fix'?tpdRopBars(r)+cons
+   :t==='trend'?cons
+   :t==='cust'?tpdCoverBars(r)
+   :(proj||(r.cust>0?tpdCoverBars(r):''))+cons;
+ const supply=(r.po>0||r.etaHas)?`<section><h3>אספקות</h3>${tpdEta(r)}</section>`:'';
+ return `<section class="q3 ${tone}">
+   <div class="qa"><h3>מה הבעיה</h3><div class="big">${tpdProblem(t,r)}</div>
+    ${why.length?`<ul>${why.map(([c,m])=>`<li class="${esc(c)}">${esc(m)}</li>`).join('')}</ul>`:''}</div>
+   <div class="qa"><h3>למה זה חשוב</h3>${tpdImpact(t,r)}</div>
+   <div class="qa act"><h3>מה לעשות ${TPD_SRC.rec}</h3>${act.length?`<ol>${act.map(a=>`<li>${esc(a)}</li>`).join('')}</ol>`:'<p class="note">המנוע לא נתן פעולה לפריט הזה.</p>'}
+    <p class="note">המלצת המנוע של הכלי המלא — לשיקול המתכנן. דבר לא משתנה ב-SAP מכאן.</p></div></section>
+  <section><h3>SAP מול המלצה <button type="button" data-tpd="explain">🔍 מאחורי החישוב</button></h3>${tpdParams(r)}</section>
+  ${charts}${supply}
+  <section><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
+   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p>
+   ${movePanel(r)}</section>
+  <section><h3>מה אין בדוח</h3>${tpdMissing(r)}</section>`}
+function tpdPos(){const L=TP.list||[],i=L.indexOf(TP.open);
+ return {i,n:L.length,txt:i>=0?`${(i+1).toLocaleString('he-IL')} מתוך ${L.length.toLocaleString('he-IL')}`:'לא בסינון הנוכחי'}}
+function tpdShow(r,keepFocus){const el=document.getElementById('tpd');if(!el)return;TP.open=r;
+ const t=TP.tab,p=tpdPos();
+ el.innerHTML=`<div class="dh"><div class="dnav"><span class="pos" aria-live="polite">${p.txt}</span>
+   <button type="button" data-tpd="prev" ${p.i<=0?'disabled':''} title="הקודם (↑)">▲ הקודם</button>
+   <button type="button" data-tpd="next" ${p.i>=0&&p.i>=p.n-1?'disabled':''} title="הבא (↓)">▼ הבא</button>
+   <button type="button" data-tpd="close" aria-label="סגירה (Esc)" title="סגירה (Esc)">✕</button></div>
+  <div class="dpn"><bdi id="tpdT" tabindex="-1">${esc(r.pn)}</bdi><button type="button" data-tpd="copy">העתק</button></div>
+  <h2>${esc(r.desc)}${(r.desc2&&r.desc2!==r.desc)?` · <bdi>${esc(r.desc2)}</bdi>`:''}</h2>
+  <div class="chips">${tpP(tpKind(r)[2],tpKind(r)[1])}<span class="chip">${esc(r.mrp||'—')}</span><span class="chip">${esc(r.planner||'—')}</span>
+   <span class="chip">${esc(r.supplier||'—')}</span><span class="chip" title="הסיווג שהמנוע נתן לפריט">${esc(r.cat||'—')}</span></div></div>
+  <div class="db">${tpdBody(t,r)}</div>`;
+ el.hidden=false;
+ el.querySelectorAll('canvas[data-ch]').forEach(cv=>(cv.dataset.ch==='bar'?barChart:projChart)(cv,r));
+ tpMarkRow();
+ if(!keepFocus){const h=document.getElementById('tpdT');if(h)h.focus({preventScroll:true})}}
+function tpdClose(){const el=document.getElementById('tpd');const r=TP.open;TP.open=null;
+ if(el){el.hidden=true;el.innerHTML=''}
+ tpMarkRow();
+ /* המיקוד חוזר לשורה, בלי לגלול — הרשימה נשארת בדיוק איפה שהייתה */
+ const i=(TP.shown||[]).indexOf(r);const tr=i>=0?document.querySelector(`#lite tr.r[data-tp-row="${i}"]`):null;
+ if(tr)tr.focus({preventScroll:true})}
+function tpMarkRow(){const i=(TP.shown||[]).indexOf(TP.open);
+ document.querySelectorAll('#lite tr.r.on').forEach(x=>x.classList.remove('on'));
+ const tr=i>=0?document.querySelector(`#lite tr.r[data-tp-row="${i}"]`):null;if(tr)tr.classList.add('on');return tr}
+function tpdStep(d){const L=TP.list||[];if(!L.length)return;let i=L.indexOf(TP.open);
+ const j=i<0?(d>0?0:L.length-1):Math.min(L.length-1,Math.max(0,i+d));if(j===i)return;
+ /* פריט מעבר ל-200 השורות שצוירו — מציירים עוד, ואז מסמנים */
+ if(j>=TP.lim){TP.lim=Math.ceil((j+1)/200)*200;tpRender()}
+ tpdShow(L[j],true);
+ const tr=tpMarkRow();if(tr)tr.scrollIntoView({block:'nearest'})}
 function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const src=(document.getElementById('updated')||{}).textContent||'';
  const head=`<header class="tph"><h1>תכנון מלאי — 4 נושאים</h1><span class="src">${esc(src)}</span>
@@ -13066,9 +13285,10 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}"><div>${esc(l)}</div><div class="v">${all.filter(f).length.toLocaleString('he-IL')}</div></button>`).join('');
  const shown=list.slice(0,TP.lim);
  const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
- const body=shown.map((r,i)=>{const open=TP.open===r;
-  return `<tr class="r" data-tp-row="${i}">${cols.map(c=>`<td class="${c.n?'n':''} ${c.c||''}">${c.h?c.h(r):(c.n?tpN(c.v(r)):esc(c.v(r)==null?'—':c.v(r)))}</td>`).join('')}</tr>`
-   +(open?`<tr class="det"><td colspan="${cols.length}">${tpDetail(r)}</td></tr>`:'')}).join('');
+ /* דוח חדש נטען — האובייקטים התחלפו, והכרטיס הפתוח שייך לדוח הקודם */
+ if(TP.open&&!(QF.all||[]).includes(TP.open))tpdClose();
+ const body=shown.map((r,i)=>
+  `<tr class="r${TP.open===r?' on':''}" tabindex="0" data-tp-row="${i}">${cols.map(c=>`<td class="${c.n?'n':''} ${c.c||''}">${c.h?c.h(r):(c.n?tpN(c.v(r)):esc(c.v(r)==null?'—':c.v(r)))}</td>`).join('')}</tr>`).join('');
  el.innerHTML=head+`<nav aria-label="נושאים">${nav}</nav><main>
   <p class="lead">${esc(T.lead)}</p>
   <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
@@ -13077,8 +13297,12 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   <div class="tiles">${tiles}</div>
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
   ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
-  <p class="mini">לחיצה על שורה פותחת את ההסבר מהמנוע. מיון — לחיצה על כותרת העמודה.</p></main>`;
- TP.shown=shown}
+  <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
+ TP.shown=shown;TP.list=list;
+ /* הכרטיס נשאר פתוח מעל רשימה שהסינון או המיון שינו — רק המיקום שלו מתעדכן */
+ if(TP.open){const p=document.querySelector('#tpd .pos');if(p)p.textContent=tpdPos().txt;
+  const pv=document.querySelector('#tpd [data-tpd="prev"]'),nx=document.querySelector('#tpd [data-tpd="next"]'),q=tpdPos();
+  if(pv)pv.disabled=q.i<=0;if(nx)nx.disabled=q.i>=q.n-1}}
 function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
  const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]);
  const lines=[xs.map(x=>q(x[0])).join(',')];
@@ -13095,18 +13319,41 @@ if(LITE){
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
   else if(a.tp==='more'){TP.lim+=200;tpRender()}
-  else if(a.tpTab){TP.tab=a.tpTab;TP.lim=200;TP.open=null;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
-  else if(a.tpCat!=null){TP.cat[TP.tab]=a.tpCat;TP.lim=200;TP.open=null;tpRender()}
+  /* לשונית אחרת — נושא אחר, ולכן כרטיס אחר: הפתוח נסגר */
+  else if(a.tpTab){if(TP.open)tpdClose();TP.tab=a.tpTab;TP.lim=200;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
+  else if(a.tpCat!=null){TP.cat[TP.tab]=a.tpCat;TP.lim=200;tpRender()}
   else if(a.tpSort){const s=TP.sort[TP.tab],col=TOPICS[TP.tab].cols.concat(TP_HEAD).find(c=>c.k===a.tpSort);
    TP.sort[TP.tab]=s&&s.k===a.tpSort?{k:a.tpSort,dir:-s.dir}:{k:a.tpSort,dir:col&&col.n?-1:1};tpRender()}
-  else if(a.tpRow!=null){const r=(TP.shown||[])[+a.tpRow];TP.open=TP.open===r?null:r;tpRender()}});
+  /* פתיחת כרטיס אינה מציירת את הרשימה מחדש */
+  else if(a.tpRow!=null){const r=(TP.shown||[])[+a.tpRow];if(!r)return;if(TP.open===r)tpdClose();else tpdShow(r)}});
+ const dr=document.getElementById('tpd');
+ dr.addEventListener('click',e=>{const b=e.target.closest('[data-tpd]');if(!b||b.disabled)return;const k=b.dataset.tpd;
+  if(k==='close')tpdClose();
+  else if(k==='prev')tpdStep(-1);
+  else if(k==='next')tpdStep(1);
+  else if(k==='explain'&&TP.open)explain(TP.open);
+  else if(k==='copy'&&TP.open){const t=TP.open.pn;
+   if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
+   else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}});
  el.addEventListener('change',e=>{if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}});
  let qt=null;
  el.addEventListener('input',e=>{if(e.target.dataset.tp!=='q')return;TP.q=e.target.value;clearTimeout(qt);
   qt=setTimeout(()=>{tpRender();const i=el.querySelector('[data-tp="q"]');if(i){i.focus();i.setSelectionRange(TP.q.length,TP.q.length)}},250)});
- /* קיצורי המקלדת של הכלי המלא פועלים על מסך מוסתר — כאן הם כבויים */
+ /* קיצורי המקלדת של הכלי המלא פועלים על מסך מוסתר — כאן הם כבויים.
+    במקומם: Enter על שורה פותח · ↑↓ מעבר בין פריטים כשהכרטיס פתוח ·
+    Esc סוגר את «מאחורי החישוב» אם פתוח, ואחרת את הכרטיס. */
  document.addEventListener('keydown',e=>{const tag=(e.target.tagName||'').toLowerCase();
-  if(tag!=='input'&&tag!=='select'&&tag!=='textarea')e.stopImmediatePropagation()},true);
+  if(tag==='input'||tag==='select'||tag==='textarea')return;
+  e.stopImmediatePropagation();
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const mw=document.getElementById('modalwrap');
+  if(e.key==='Escape'){if(mw&&mw.classList.contains('open')){mw.classList.remove('open');e.preventDefault()}
+   else if(TP.open){tpdClose();e.preventDefault()}return}
+  if(mw&&mw.classList.contains('open'))return;
+  if(e.key==='Enter'&&e.target.matches&&e.target.matches('#lite tr.r')){const r=(TP.shown||[])[+e.target.dataset.tpRow];if(r){tpdShow(r);e.preventDefault()}return}
+  if(TP.open&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+   tpdStep(e.key==='ArrowDown'?1:-1);e.preventDefault()}},true);
  /* התאריך שבכותרת מתעדכן גם כשהדוח נדחה (QF נשאר null) */
  new MutationObserver(()=>{if(!QF)tpRender()}).observe(document.getElementById('updated'),{childList:true,characterData:true,subtree:true});
  tpRender()}
