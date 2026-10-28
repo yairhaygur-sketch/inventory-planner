@@ -19,6 +19,7 @@ const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js'
  'selectall.test.js',
  'colsearch.test.js',
  'worker-load.test.js',
+ 'export-base.test.js',
  'export-worker.test.js',
  'profile-sim.test.js',
  'hooks.test.js',

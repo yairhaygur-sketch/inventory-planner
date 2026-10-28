@@ -8,8 +8,50 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # ============ PR-A · מול איזה main משווים את ייצוא האקסל ============
+    # export-worker.test משווה את הקובץ שיורד מהכלי לקובץ של main, תא בתא.
+    # עד כאן ה-checkout הוריד commit אחד בלבד, `git show origin/main` נכשל,
+    # והבדיקה בלעה את השגיאה ורשמה PASS — ב-CI ההשוואה לא רצה אף פעם.
+    # required: ב-PR ההשוואה חייבת לרוץ, וכל דרך שבה היא לא רצה היא FAIL.
+    # push: ריצת push (כולל main) — דילוג מפורש; ההשוואה שייכת ל-PR.
+    # (tests/lib/export-base.js; CI בלי המשתנה הזה נכשל גם הוא.)
+    env:
+      EXPORT_BASE: ${{ github.event_name == 'pull_request' && 'required' || 'push' }}
     steps:
+      # ב-pull_request ה-checkout הוא merge commit של ה-PR לתוך main.
+      # depth 2 מביא גם את שני ההורים שלו: HEAD^1 = ה-main שאליו ה-PR מוזג,
+      # HEAD^2 = ראש ה-PR.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      # ============ גרסת הבסיס — ורק היא ============
+      # מוודאים שה-merge commit בנוי בדיוק על בסיס ה-PR ועל ראש ה-PR שבאירוע.
+      # אי-התאמה מכשילה את ה-job לפני שבדיקה אחת רצה: אין השוואה מול commit
+      # אחר, ואין fallback. התיקון: push חדש לענף או מיזוג main לתוכו.
+      - name: הכנת גרסת הבסיס להשוואת הייצוא
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          parents=$(git rev-list --parents -n 1 HEAD | wc -w)
+          if [ "$parents" -ne 3 ]; then
+            echo "::error::ה-commit שנבדק אינו merge commit של ה-PR (הורים: $((parents-1))) — אין השוואה אמינה"; exit 1; fi
+          b1=$(git rev-parse HEAD^1); b2=$(git rev-parse HEAD^2)
+          echo "HEAD    $(git rev-parse HEAD)"
+          echo "HEAD^1  $b1   (בסיס ה-PR באירוע: $PR_BASE)"
+          echo "HEAD^2  $b2   (ראש ה-PR באירוע: $PR_HEAD)"
+          if [ "$b1" != "$PR_BASE" ]; then
+            echo "::error::ה-merge commit אינו בנוי על בסיס ה-PR ($b1 ≠ $PR_BASE) — אין השוואה אמינה. push חדש לענף או מיזוג main לתוכו"; exit 1; fi
+          if [ "$b2" != "$PR_HEAD" ]; then
+            echo "::error::ה-merge commit אינו של ראש ה-PR ($b2 ≠ $PR_HEAD) — אין השוואה אמינה"; exit 1; fi
+          git show HEAD^1:index.html > "$RUNNER_TEMP/base-index.html"
+          test -s "$RUNNER_TEMP/base-index.html" || { echo "::error::index.html של הבסיס ריק"; exit 1; }
+          echo "EXPORT_BASE_HTML=$RUNNER_TEMP/base-index.html" >> "$GITHUB_ENV"
+          echo "EXPORT_BASE_SHA=$b1" >> "$GITHUB_ENV"
+          echo "גרסת הבסיס: $b1 · $(wc -c < "$RUNNER_TEMP/base-index.html") בתים"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
