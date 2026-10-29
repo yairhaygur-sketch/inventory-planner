@@ -26,12 +26,15 @@ const os=require('os'),XLSX=require('xlsx');
    בכלי המלא משתמשים בהם, ואותם שדות שהתצוגה מציגה או מייצאת. */
 const ENGINE=()=>{const uni=(...ls)=>[...new Set(ls.flat())];
  const pick=r=>({pn:r.pn,desc:r.desc,planner:r.planner,mrp:r.mrp,rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,
-  ssSrc:r.ssSrc,ltD:r.ltD,srv:r.srvMissing?null:r.srv,rate:r.rate,price:r.priceMissing?null:r.price,currency:r.currency,
+  ssSrc:r.ssSrc,ltD:r.ltD,ltRaw:r.ltRaw,
+  /* שלב 2: ההמלצה כפי שמקורות המנוע המשותפים אומרים — ריק כשאין */
+  recROP:pdUpgrade(r)?(typeof profSimVal(r,'rop')==='number'?profSimVal(r,'rop'):''):(recNA(r)||r.isOD||r.noStock?'':r.sugROP),
+  recSS:pdUpgrade(r)?(typeof profSimVal(r,'ss')==='number'?profSimVal(r,'ss'):''):(recNA(r)||r.isOD||r.noStock?'':r.sugSS),srv:r.srvMissing?null:r.srv,rate:r.rate,price:r.priceMissing?null:r.price,currency:r.currency,
   tRec:r.tRec,tPre:r.tPre,tRatio:r.tRatio,sugROPT:r.sugROPT,sugROPU:r.sugROPU,cust:r.cust,free:r.free,po:r.po,
   unsQty:r.unsQty,burn:!!r.burn,custGap:!!r.custGap,cat:r.cat,sev:r.sev,act:(r.act||[])[0]||'',
   why:(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w[1]:String(w))});
  const by=l=>Object.fromEntries(l.map(r=>[r.pn,pick(r)]));
- return {fix:by(decisionList('fix')),
+ return {fix:by(uni(decisionList('fix'),QF.all.filter(r=>pdUpgrade(r)||(r.ltBad&&!r.noStock)))),
   trend:by(uni(riseRows(),trendRows(),QF.all.filter(r=>r.cat==='ייתכן שאזל ולא נרשם'))),
   cust:by(QF.all.filter(r=>isT1(r)||r.custGap)),
   short:by(uni(decisionList('short'),decisionList('m1')))}};
@@ -106,7 +109,8 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  const eng=await p.evaluate(()=>{const ids=l=>l.map(r=>r.pn).sort();
   const uni=(...ls)=>[...new Set(ls.flat())].sort();
   return {
-   fix:ids(decisionList('fix')),
+   /* שלב 2: נושא 1 = שורות קובץ ה-SAP ∪ PD←ZM-C ∪ זמן אספקה חסר */
+   fix:uni(ids(decisionList('fix')),ids(QF.all.filter(r=>pdUpgrade(r)||(r.ltBad&&!r.noStock)))),
    trend:uni(ids(riseRows()),ids(trendRows()),ids(QF.all.filter(r=>r.cat==='ייתכן שאזל ולא נרשם'))),
    cust:ids(QF.all.filter(r=>isT1(r)||r.custGap)),
    short:uni(ids(decisionList('short')),ids(decisionList('m1'))),
@@ -148,16 +152,17 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
    const ki=TP_HEAD.concat(TOPICS.fix.cols).findIndex(c=>c.k==='val');
    const wrong=[];TP.shown.forEach((row,i)=>{const t=cells[i][ki].textContent.trim();
     if(t!=='—'&&!t.includes(curSym(row.currency).trim()))wrong.push(row.pn+':'+t)});
-   return {same:rows.filter(r=>r.sugROP===r.rop&&r.sugSS===r.ss).length,wrong}});
-  ok('טיוב נתונים: אין שורה שבה ROP ו-SS זהים ל-SAP',r.same===0,String(r.same));
+   return {same:rows.filter(r=>tpInFix(r)&&r.sugROP===r.rop&&r.sugSS===r.ss).length,wrong}});
+  ok('טיוב נתונים: אין שורת קובץ-SAP שבה ROP ו-SS זהים ל-SAP',r.same===0,String(r.same));
   ok('שווי השינוי מוצג במטבע של הפריט עצמו',!r.wrong.length,r.wrong.slice(0,3).join(', '))}
 
  /* ---- 5. מיון, פירוט, חיפוש, מתכנן ---- */
  {await p.click('#lite th[data-tp-sort="rop"]');
-  const v=await p.evaluate(()=>TP.shown.map(r=>r.sugROP));
+  /* שלב 2: הערך המוצג (tpRec) — לשורות PD זו הסימולציה; «אין» בסוף */
+  const v=await p.evaluate(()=>TP.shown.map(r=>tpRec(r).rop).filter(x=>x!=null));
   ok('מיון לפי נקודת הזמנה — יורד בלחיצה ראשונה',v.every((x,i)=>!i||v[i-1]>=x),v.slice(0,5).join(','));
   await p.click('#lite th[data-tp-sort="rop"]');
-  const u=await p.evaluate(()=>TP.shown.map(r=>r.sugROP));
+  const u=await p.evaluate(()=>TP.shown.map(r=>tpRec(r).rop).filter(x=>x!=null));
   ok('לחיצה שנייה — עולה',u.every((x,i)=>!i||u[i-1]<=x),u.slice(0,5).join(','))}
  {const pn=await p.evaluate(()=>TP.shown[1].pn);
   await p.fill('#lite [data-tp="q"]',pn);await p.waitForTimeout(600);
@@ -232,7 +237,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     const cons=(r.months||[]).some(v=>v>0)||(r.curMonth||0)>0;
     const canv=[...el.querySelectorAll('canvas[data-ch="bar"]')];
     return {pn:r.pn,nr,ropS:num(cell('נקודת הזמנה',1)),ropR:nr?null:num(cell('נקודת הזמנה',2)),ssS:num(cell('מלאי ביטחון',1)),ssR:nr?null:num(cell('מלאי ביטחון',2)),
-     rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,lt:num(cell('זמן אספקה מתוכנן',1)),ltD:r.ltD,ltRec:cell('זמן אספקה מתוכנן',2),
+     rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,lt:num(cell('זמן אספקה מתוכנן',1)),ltD:r.ltRaw,ltRec:cell('זמן אספקה מתוכנן',2),
      diffShown:(r.rop===r.sugROP||nr||el.querySelectorAll('td.v.diff').length>0),cons,bar:canv.length,
      painted:canv.every(c=>{const x=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let s=0;for(let i=3;i<x.length;i+=40)s+=x[i];return s>0}),
      cover:/הזמנת הלקוח מול הכיסוי/.test(el.textContent),
@@ -260,8 +265,9 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   if(q){if(ch==='"'&&l[i+1]==='"'){c+='"';i++}else if(ch==='"')q=false;else c+=ch}
   else if(ch==='"')q=true;else if(ch===','){o.push(c);c=''}else c+=ch}o.push(c);return o};
  /* עמודות ה-CSV שנבדקות מול הכלי המלא: כותרת → שדה */
- const CSVF={'מק״ט':'pn','נק הזמנה SAP':'rop','נק הזמנה מוצעת':'sugROP','מלאי ביטחון SAP':'ss','מלאי ביטחון מוצע':'sugSS',
-  'הזמנת לקוח':'cust','מלאי פנוי':'free','רכש פתוח':'po','3 ח׳ אחרונים':'tRec','3 ח׳ קודמים':'tPre','נק׳ הזמנה מוצעת':'sugROP',
+ const CSVF={'מק״ט':'pn','נק הזמנה SAP':'rop','נק הזמנה מוצעת':'recROP','מלאי ביטחון SAP':'ss','מלאי ביטחון מוצע':'recSS',
+  'זמן אספקה מתוכנן ב-SAP (מקור)':'ltRaw',
+  'הזמנת לקוח':'cust','מלאי פנוי':'free','רכש פתוח':'po','3 ח׳ אחרונים':'tRec','3 ח׳ קודמים':'tPre','נק׳ הזמנה מוצעת':'recROP',
   'מטבע':'currency','פעולה':'act','מתכנן':'planner','סוג MRP':'mrp'};
  for(const t of ['fix','trend','cust','short']){
   await p.click(`[data-tp-tab="${t}"]`);
