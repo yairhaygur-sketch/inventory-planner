@@ -193,7 +193,7 @@ async function open(b,file,W,H){
  /* ---------------- VFULL=10, חלון של 5: גם רשימה קצרה במסלול הווירטואלי ---------------- */
  const src=fs.readFileSync(HTML,'utf8');
  const tmp=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'vfull-')),'index.html');
- const patched=src.replace('const VL={},VFULL=200,VCHUNK=40,VOVER=900,','const VL={},VFULL=10,VCHUNK=5,VOVER=0,');
+ const patched=src.replace('const VL={},VFULL=200,VCHUNK=44,VOVER=900,','const VL={},VFULL=10,VCHUNK=5,VOVER=0,');
  ok('העותק עם VFULL=10 נוצר',patched!==src);
  fs.writeFileSync(tmp,patched);
  {const {ctx,p,errs}=await open(b,tmp,1440,900);

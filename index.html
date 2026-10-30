@@ -3326,6 +3326,66 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 #lite .more{margin:10px 0;display:flex;gap:10px;align-items:center}
 @media(max-width:760px){#lite .tph,#lite nav,#lite main{padding-inline:16px}
  #lite .tile{padding:6px 10px} #lite .tile .v{font-size:var(--f-lg)}}
+
+/* ======================================================================
+   D2 · «מדף» — מבנה השורה (מחשב)
+   שכבה אחרונה לשלב הזה. היא לא מוסיפה ולא מורידה עמודה, לא משנה סדר,
+   טקסט, סיווג או מספר — רק כמה גבוהה שורה, ומה בולט בה.
+
+   הגובה: נמדד ב-1440, השורה 30–31px, ולא בגלל הטקסט (13px, line-height
+   ‎14.6px‎) אלא בגלל שלושה אלמנטים של 20px בכל שורה — מספר השורה, תג
+   הדגמים (‎⧉‎) וכפתורי השורה (העתק · ✓ טופל, שקופים עד ריחוף אבל תופסים
+   גובה) — ובמסכי החוסרים גם «שווי» ב-19px (‎21px‎ שורה). 18px לשלושה,
+   16px לשווי וריפוד 4px מחזירים ~27px, בלי להקטין אף טקסט.
+   ====================================================================== */
+#tbl tbody tr[data-i] td,#movtbl tbody tr[data-mi] td{padding-block:4px}
+/* 28px בדיוק — רצפת הקריאות שנעולה ב-ui.test («שורה צפופה — 28-36px»,
+   החלטת המעתד). הצפיפות באה מהאלמנטים שהגביהו את השורה, לא מתחת לרצפה.
+   מתג «צפיפות» (body.dense) הוא בחירה מפורשת של המשתמש לשורה צפופה יותר,
+   ולכן הרצפה לא חלה עליו — אחרת המתג לא היה מוסיף שורה (ui.test). */
+body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi]{height:28px}
+#tbl tbody .rank{height:18px;min-width:18px;line-height:18px}
+#tbl tbody .xd{line-height:16px}
+#tbl tbody td .cp,#tbl tbody td .dn,#movtbl tbody td .cp,#movtbl tbody td .dn{height:18px;line-height:16px;padding-block:0}
+#tbl[data-track="short"] td.val,#tbl[data-track="line"] td.val{font-size:16px;line-height:1.1}
+/* גלולות בשורה (סיווג, תג) — 17px במקום 19.5px: הטקסט באותו גודל, הריפוד
+   האנכי יורד. ושורות הקבוצה: 28→21px, ובלוק המטבע שבתוכן 19px — הן
+   כותרות, לא שורות נתונים (טקסט 12–13px), ובמסכי התור יש שש מהן על המסך. */
+#tbl td .ocat,#tbl td .badge,#movtbl td .badge{padding-block:0;line-height:17px}
+#tbl tr.grp>td{height:21px}
+#tbl tr.grp.cur>td{height:19px;padding-block:0}
+/* «רכש ואספקות»: הרצועה השחורה מעל הטבלה נשארת כפי שהיא, גם בריפוד שלה
+   (eta.test משווה מקופלת לפתוחה) — רק המרווחים סביבה מתהדקים, 7+6 → 4+3px.
+   נמדד ב-1440: בשורה של 28px — רצפת הקריאות — השורה ה-19 נחתכה ב-17px. */
+#w_queue .line{padding-top:4px}
+#w_queue .lband{margin-block-end:3px}
+#tbl tr.grp>td>*{line-height:1.1}
+/* «הפעולה הבאה» — דיו מלא ולא אפור: זה המשפט שהשורה קיימת בשבילו.
+   הגודל לא משתנה, כי ב-1366 אין לעמודה פיקסל פנוי ושורה שנשברת היא
+   שורה שלמה פחות על המסך. */
+#tbl td.act1{color:var(--ink)}
+/* ---------- מידע שחוזר על עצמו: נשאר, בלי לצעוק ----------
+   «מצב טיפול» בלי סימון אומר «חדש» (החלטה קיימת, ui.test) — הטקסט נשאר,
+   הגלולה יורדת. כך סימון אמיתי (בבדיקה · לספק · הוזמן) הוא הגלולה היחידה
+   בעמודה, ונראה מרחוק. */
+.wchip.new{border-color:transparent;background:none;color:var(--ink-3);font-weight:400;padding-inline:0}
+/* סיווג שזהה לכותרת הקבוצה — אותן מילים, בלי גלולה צבעונית */
+#tbl td.note .ocat.same{background:none!important;border-color:transparent!important;color:var(--ink-3)!important;
+ font-weight:400;margin-inline:0;padding-inline:0}
+
+/* ---------- שלושה מצבים, שלושה סימנים ----------
+   נבחר (הפריט שבכרטיס, ושהמקלדת עליו): צהוב «מדף» — מלא, על כל השורה.
+   מאז D1 כלל על התאים (‎tr.sel>td‎ כחלחל) כיסה את הצהוב של השורה; כאן
+   הצהוב חוזר לתאים עצמם.
+   מסומן לקובץ SAP (בחירה מרובה): פס כחול בקצה השורה וגוון כחול קל —
+   אפשר שורה מסומנת שגם נבחרה: הצהוב גובר על הגוון, הפס נשאר.
+   פוקוס מקלדת על פקד בשורה: טבעת הפוקוס של D1, כמו שהיא. */
+#tbl tbody tr.sel>td,body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
+#tbl tbody tr:has(.sapsel:checked)>td{background:color-mix(in srgb,var(--steady) 9%,var(--panel))}
+#tbl tbody tr.sel:has(.sapsel:checked)>td{background:var(--mark-bg)}
+#tbl tbody tr:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
+#tbl tbody tr.sel>td:first-child{box-shadow:inset -3px 0 0 var(--mark-line)}
+#tbl tbody tr.sel:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
 </style>
 </head>
 <body>
@@ -8931,8 +8991,14 @@ const SCOL={
   cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
  act:{t:'הפעולה הבאה',val:r=>String((r.act||[])[0]||''),ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
   cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(actShort(r)||'—')}</td>`},
+ /* D2 — כשהסיווג זהה לסיווג השולט בקבוצה (x.maj), כותרת הקבוצה כבר אומרת
+    אותו: הוא נשאר בשורה כטקסט שקט, באותן מילים, וגלולה צבעונית נשארת רק
+    לשורה שהסיווג שלה *שונה* מהקבוצה — שם היא אומרת משהו. מפתח נפרד מ-x.maj
+    של התיאור: שם הוא מוסיף גלולה לתיאור, וכאן יש לסיווג עמודה משלו. */
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
-  cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+  cell:(r,x)=>(x&&x.gmaj&&r.cat===x.gmaj)
+   ?`<td class="note"><span class="ocat same" title="${esc(r.cat)} — כמו כותרת הקבוצה">${esc(r.cat)}</span></td>`
+   :`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
  /* ============ משפחת הפרמטרים ============
     ROP ו-SS קיים מול מוצע, הדרישה הסטטיסטית, זמן האספקה והפערים.
     כל אלה היו תבניות HTML נפרדות לכל מסלול; כאן הם עמודות ככל
@@ -9504,7 +9570,11 @@ const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
    ב-on…= ולכן ציור חוזר אינו מכפיל אותם. הבחירה נשמרת כאינדקס ברשימה
    (sel) ולא כשורה ב-DOM, ולכן היא שורדת יציאה מהחלון, והמקלדת עוברת על
    הרשימה כולה וגוללת אל השורה (vgo). */
-const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSHRINK=120,VMAIN=500;
+/* D2 — VCHUNK 40→44: החלון נמדד בשורות, והשורה ירדה מ-31 ל-28px. 44 שורות
+   הן אותו גובה בפיקסלים כמו 40 של פעם (1,240px), ולכן הציור מחדש בגלילה
+   חוזר לתדירות שלו: נמדד על הדוח האמיתי, קטלוג 7,990, גלגלת 100px —
+   פריימים ארוכים (>50ms) 19–21 ב-main, 34–35 עם 40, 24 עם 44. */
+const VL={},VFULL=200,VCHUNK=44,VOVER=900,VSHRINK=120,VMAIN=500;
 function vh(st,j){return st.hs[j]||st.est[st.ents[j].k]||30}
 function vsum(st,a,b){let t=0;for(let j=a;j<b;j++)t+=vh(st,j);return t}
 function vspc(st,h){return `<tr class="vsp${st.g?' g':''}" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
@@ -9705,9 +9775,10 @@ function renderAgenda(rows){
       ?`${aUnits(g,list).toLocaleString('he-IL')} יח׳ · ${moneyMix(list,aVal(g))}${noPriceTxt(list)}`
       :'אין פריטים'}</span></td></tr>`});
   if(coll||!list.length)continue;
+  const maj=majorCat(list);
   for(const r of list){const i=idx++;
    ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-    +colRowHTML(r,{dlen:30})+'</tr>'})}}
+    +colRowHTML(r,{dlen:30,gmaj:maj})+'</tr>'})}}
  /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
     הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
  const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
