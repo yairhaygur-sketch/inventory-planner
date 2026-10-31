@@ -184,6 +184,10 @@ Changes to these areas require explicit business approval.
   official, SAP-applicable recommendation. A reduction potential for stale
   SAP floors may be shown separately, never as a second recommendation.
 
+- **2026-10-31 · Two-tab safety (PR #146).** Item marks and decision
+  memory are no longer lost when the tool is open in two browser tabs. No
+  change to calculations or exports.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
