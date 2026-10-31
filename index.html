@@ -3785,19 +3785,23 @@ const RATE_DECAY=0.25,RATE_HALF=4;
      מהם עם אפס בכל 11 החודשים המלאים ו-2, 10 ו-12 יח׳ החודש.
    · העמודות אינן מתיישבות: צריכת השנה הנוכחית אמורה להיות בדיוק
      החודשים שלה שבחלון ועוד החודש הנוכחי (בסכום חיובי, או נטו עם
-     החזרות), וצריכת השנה הקודמת — לפחות החודשים שלה שבחלון. נמדד:
-     7,976 מתוך 7,990 פריטים מתיישבים; ב-14 הנותרים הפער אינו מוסבר,
-     והכלל לא חל עליהם — החישוב הקיים נשאר.
+     החזרות — גם בחודש הנוכחי), וצריכת השנה הקודמת — לפחות החודשים שלה
+     שבחלון. נמדד: אין חודשים חסרים, ו-7,986 מתוך 7,990 פריטים מתיישבים.
+     ב-4 הנותרים צריכת 2025 קטנה מנובמבר-דצמבר שבחלון, בלי החזרה שמסבירה
+     זאת; אף אחד מהם אינו מועמד לדעיכה, והכלל לא היה חל עליהם ממילא.
    כשהחלון אינו מכיל את כל השנה הנוכחית (עוגן בדצמבר) אי אפשר לבדוק את
    השנה הנוכחית, ונבדקת רק השנה הקודמת. */
 function decayDataOK(months,y3,curMonth,anchorM){
  const raw=months.map(v=>+v||0),pos=raw.map(v=>Math.max(0,v));
- const nCur=Math.min(anchorM,11),cm=Math.max(0,+curMonth||0);
+ const nCur=Math.min(anchorM,11),cr=+curMonth||0;
  const sum=a=>a.reduce((x,y)=>x+y,0);
+ /* חיובי או נטו (החזרות) — בחודשים ובחודש הנוכחי; העמודה השנתית נקראת
+    כבר חתוכה ב-0, ולכן גם הסכום הצפוי נחתך */
  if(anchorM<=11){const sp=sum(pos.slice(0,nCur)),sr=sum(raw.slice(0,nCur));
-  if(!(Math.abs(y3[0]-sp-cm)<0.5||Math.abs(y3[0]-sr-cm)<0.5))return false}
- const prevIn=pos.slice(nCur,11);
- return y3[1]+0.5>=sum(prevIn)}
+  const fits=[sp+Math.max(0,cr),sp+cr,sr+Math.max(0,cr),sr+cr].some(v=>Math.abs(y3[0]-Math.max(0,v))<0.5);
+  if(!fits)return false}
+ /* השנה הקודמת: לפחות החודשים שלה שבחלון — בחיובי, או נטו עם החזרות */
+ return y3[1]+0.5>=Math.min(sum(pos.slice(nCur,11)),Math.max(0,sum(raw.slice(nCur,11))))}
 function recentRate(clean,months,y3,anchorM){
  const raw=months.map(v=>Math.max(0,v)),seq=[];
  /* חודשי השנה הקודמת שבתוך החלון — את השאר מפזרים שווה מהעמודה השנתית */
