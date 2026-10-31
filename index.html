@@ -3771,9 +3771,10 @@ const LOWDEM_MAX=3;
    ההחלפה חלה **רק** על ROP/SS: `rate` — ואיתו הכיסוי, הסיווג, המלאי
    האיטי והמגמה — נשאר בדיוק כמו קודם. רצפות ה-SS (ssMin, רצפת
    המדיניות) לא נוגעות: SS ≥ ssMin נשמר, ו-ssMin יוצא ל-SAP כמו שהוא.
-   נמדד על הדוח האמיתי מול main: 35 פריטים בנתיב הזה עומדים בתנאי;
-   ל-23 מהם ROP יורד (ל-12 האחרים אין המלצה ממילא — OD/PD/04-14).
-   PN-07: ROP 37 → 12, SS 11. מלאי יעד כ-‎-$6.7K ו-₪3.4K. בבדיקה
+   ההחלפה חלה רק כשהיא משנה את ה-ROP המוצע; אחרת הפריט — כולל «ביקוש
+   בזמן האספקה» שבייצוא — נשאר כמו קודם. נמדד על הדוח האמיתי מול main:
+   35 פריטים עומדים בתנאי הדעיכה, ב-23 מהם ה-ROP משתנה, ורק הם זזים.
+   SS, rate והכיסוי — 0 שינויים. PN-07: ROP 37 → 12, SS 11. מלאי יעד כ-‎-$6.7K ו-₪3.4K. בבדיקה
    לאחור (4 חלונות של 3 חודשים) Fill 92.3% → 92.2%. */
 const RATE_DECAY=0.25,RATE_HALF=4;
 function recentRate(clean,months,y3,anchorM){
@@ -4752,10 +4753,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        החלון הארוך אומר עליו «אין מספיק». LOWDEM_MAX נשאר המקור
        היחיד למספר. */
     const rate=d12<=3?((has3y&&rate3y>LOWDEM_MAX/11)?rate3y:0):clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
-    /* RATE_DECAY — ראה שם. רק בנתיב 3 השנים, ורק ל-ROP/SS. */
+    /* RATE_DECAY — ראה שם. רק בנתיב 3 השנים; ההחלפה עצמה ליד sugROP. */
     const rateRecent=(d12<=3&&has3y&&rate3y>LOWDEM_MAX/11)?recentRate(clean,months,y3,ANCHOR.getMonth()+1):null;
-    const rateDecay=rateRecent!==null&&rateRecent<RATE_DECAY*rate3y;
-    const rateROP=rateDecay?rateRecent:rate;
+    const decayed=rateRecent!==null&&rateRecent<RATE_DECAY*rate3y;
     /* ============ RATE_3Y — איזה סרגל שופט קצב תלת-שנתי ============
        המדידה השנייה חשפה שהתיקון מגריל עוד משהו, ולא במתכוון.
        `cov` נגזר מ-`rate`, וענף «עודף מלאי» מחזיק 12 חודשי כיסוי.
@@ -4794,7 +4794,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const mtRaw=m.matType>=0?CLEAN(r[m.matType]):'';
     const matType=MATTYPE[mtRaw]||(mtRaw||'ללא');
     const mrp=CLEAN(r[m.mrp]);
-    const z=srvMissing?0:zFor(srv),dLT=rateROP*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
+    let dLT=rate*ltM;
+    const z=srvMissing?0:zFor(srv),sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
     /* החלק הסטטי בלבד. הסימון הידני נקרא ב-classify, כי הוא משתנה בלי
        בנייה מחדש של ALL — ושם גם מתאפסות ההמלצות. */
@@ -4837,12 +4838,21 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        מנוהל. לכן הם מטופלים כאן בדיוק כמו «לפי דרישה»: אין מספר.
        המלאי עצמו נשאר גלוי — קטלוג, כסף תקוע, וכרטיס הפריט. */
     const noRec=isODStatic||noStock;
-    const ssStat=(rateROP>0&&!noRec)?Math.ceil(z*sdLT):0;
+    const ssStat=(rate>0&&!noRec)?Math.ceil(z*sdLT):0;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=noRec?0:lowDemFloor(d12,price,currency);
     const lowBand=lowFloor?lowDemBand(price,currency):null;
     const ssMinEff=noRec?0:ssMin;
     let sugSS=noRec?0:Math.max(ssStat,ssMinEff,lowFloor);
+    /* RATE_DECAY: הקצב העדכני מחליף את קצב 3 השנים רק כשהוא משנה את
+       ההמלצה — פריט בלי המלצה (OD/PD/04-14), או פריט שה-ROP שלו יוצא
+       זהה, נשאר בדיוק כמו קודם, כולל «ביקוש בזמן האספקה» שבייצוא. SS לא
+       זז: ssStat ורצפות ה-SS נשארים על הנתונים הקיימים. כשההחלפה חלה —
+       rateROP, dLT ו-sugROP נגזרים כולם מאותו קצב. */
+    const ropDecay=(decayed&&!noRec)?Math.ceil(rateRecent*ltM+sugSS):null;
+    const rateDecay=ropDecay!==null&&ropDecay!==Math.ceil(dLT+sugSS);
+    const rateROP=rateDecay?rateRecent:rate;
+    if(rateDecay)dLT=rateRecent*ltM;
     let sugROP=noRec?0:Math.ceil(dLT+sugSS);
     /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
     const ssSrc=isODStatic?'od':noStock?'nostock':sugSS<=0?'none'
