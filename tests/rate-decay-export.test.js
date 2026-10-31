@@ -31,7 +31,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
 
  /* 1 · המנוע */
  const E=await p.evaluate(pns=>Object.fromEntries(ALL.filter(x=>pns.includes(x.pn)).map(x=>[x.pn,
-  {rop:x.sugROP,ss:x.sugSS,ssMin:x.ssMin,dec:x.rateDecay,rate:x.rate,rateROP:x.rateROP,dLT:x.dLT,ltM:x.ltM,paramFix:!!x.paramFix,cat:x.cat}])),ITEMS.map(i=>i.pn));
+  {rop:x.sugROP,ss:x.sugSS,ssMin:x.ssMin,dec:!!x.rateDecay,rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,dLT:x.dLT,ltM:x.ltM,paramFix:!!x.paramFix,cat:x.cat}])),ITEMS.map(i=>i.pn));
  ok('ארבעת הפריטים נטענו',ITEMS.every(i=>E[i.pn]),Object.keys(E).join(', '));
  for(const i of ITEMS){const e=E[i.pn];if(!e)continue;
   if(i.decay)ok(`${i.pn}: דעיכה — ROP ${i.expROP}, SS ${i.expSS}`,e.dec===true&&e.rop===i.expROP&&e.ss===i.expSS,

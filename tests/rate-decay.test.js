@@ -64,7 +64,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   const st04=one('B-04',{...base,y:[1,6,202],st:'04'});
   /* צריכה סדירה — d12>3 */
   const reg=one('B-REG',{ss:4,ssMin:4,rop:12,m:Array(11).fill(2),y:[18,30,30],free:30});
-  const pick=x=>x&&{rate:x.rate,rateROP:x.rateROP,rateDecay:x.rateDecay,rateRecent:x.rateRecent,rate3y:x.rate3y,
+  const pick=x=>x&&{rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,rateDecay:!!x.rateDecay,rateRecent:x.rateRecent==null?null:x.rateRecent,rate3y:x.rate3y,
    dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,ssStat:x.ssStat,ssMin:x.ssMin,cov:x.cov,free:x.free,rateFrom3y:x.rateFrom3y,has3y:x.has3y};
   return {ref:pick(ref),below:pick(below),above:pick(above),no3y:pick(no3y),st04:pick(st04),reg:pick(reg),lam}});
  const {ref,below,above,no3y,st04,reg}=B;

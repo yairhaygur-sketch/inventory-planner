@@ -4979,7 +4979,10 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',
       site:CLEAN(r[m.site]),pGroup:CLEAN(r[m.pGroup]),isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rateROP,rateDecay,rateRecent,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      /* RATE_DECAY: השדות קיימים רק בפריט שההחלפה חלה עליו — כל פריט אחר
+         נשאר זהה לחלוטין, כולל טביעת האצבע של business-golden */
+      ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -10998,7 +11001,7 @@ function explain(r){const A=r.A;
   :`<tr><td>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</td><td>${r.rate.toFixed(2)}${r.rateFrom3y?` <span style="color:#7c3aed">(${r.cons3y} יח׳ ב-3 שנים · החלון הקצר ${r.d12} יח׳ ב-11 חודשים)</span>`:(r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:'')}</td></tr>
     ${r.rateDecay?`<tr><td>קצב ל-ROP · קצב עדכני</td><td>${r.rateROP.toFixed(2)} <span style="color:#7c3aed">(הביקוש דעך: הקצב העדכני הוא ${Math.round(100*r.rateROP/r.rate3y)}% מקצב 3 השנים, פחות מ-${Math.round(100*RATE_DECAY)}% — ROP ו-SS מחושבים עליו. הסיווג והכיסוי נשארים על קצב 3 השנים)</span></td></tr>`:''}
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
-    <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':'קצב'} × LT</td><td>${r.rateROP.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
+    <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':'קצב'} × LT</td><td>${(r.rateDecay?r.rateROP:r.rate).toFixed(2)} × ${ltM} = ${dLT}</td></tr>
     <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
     <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${ropCalc}</td></tr>
     ${r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
