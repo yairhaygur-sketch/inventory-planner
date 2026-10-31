@@ -140,7 +140,8 @@
 |---|---|
 | `↑` `↓` | פריט הבא / הקודם |
 | `←` `→` | מעבר בין טאבים |
-| `Enter` | סמן כטופל והמשך לבא |
+| `Enter` | פותח את כרטיס הפריט |
+| `D` | סמן כטופל (עם «בטל» ל-6 שניות) · רווח לא מסמן |
 | `/` או `Ctrl+K` | חיפוש · `Esc` סגירה |
 | `Esc` | סוגר את כרטיס הפריט |
 
@@ -175,7 +176,10 @@
 | [`docs/BUSINESS-DECISIONS.md`](docs/BUSINESS-DECISIONS.md) | **למה** שדה נמצא בשימוש. BZ הוא מקור האמת הפיננסי, BX אינו בשימוש |
 | [`docs/DATA-MAPPING.md`](docs/DATA-MAPPING.md) | **מאיפה** כל שדה מגיע. מאומת מול 114 עמודות הייצוא בפועל |
 | [`docs/DECISION-RULES.md`](docs/DECISION-RULES.md) | **איך** הכלי מחליט, ואילו ליקויים תוקנו ולמה |
+| [`docs/SAP-EXPORT.md`](docs/SAP-EXPORT.md) | **מה** נכתב לקובץ העדכון ל-SAP, ומה אסור לכתוב בו |
+| [`docs/PROJECT-STATUS.md`](docs/PROJECT-STATUS.md) | **איפה** הפרויקט עומד: הושלם, אושר, ממתין |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | הכללים שאסור לשבור בעריכת הקוד |
+| [`CLAUDE.md`](CLAUDE.md) | ההוראות הקבועות ל-Claude Code (נטען בכל סשן) |
 
 ---
 
@@ -185,12 +189,11 @@
 |---|---|
 | `index.html` | **האפליקציה כולה** — קובץ יחיד, ללא שלב בנייה |
 | `tests/` | בדיקות דפדפן |
-| `design/` | מוקאפים ששימשו בסיס לעיצוב |
 
 ## בדיקות
 
 ```bash
-npm install
+npm ci
 npx playwright install chromium
 npm test
 ```

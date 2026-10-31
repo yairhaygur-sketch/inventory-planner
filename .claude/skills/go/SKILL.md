@@ -15,7 +15,7 @@ description: תהליך הסיום המלא של משימת פיתוח ב-ZMRP �
 ```
 index.html          קובץ יחיד — CSS + HTML + JavaScript + SheetJS מוטמע
                     אין build · אין שרת · אין dev server · פותחים בדפדפן
-npm test            npm run fixture && node tests/run-all.js   (25 קבצים)
+npm test            npm run fixture && node tests/run-all.js   (כ-40 קבצים)
 ```
 
 **אין בפרויקט eslint, אין prettier ואין tsconfig.** אל תדווח «Lint עבר» ואל תמציא
@@ -27,11 +27,11 @@ npm test            npm run fixture && node tests/run-all.js   (25 קבצים)
 
 ### Chromium בקונטיינר
 
-הפרויקט נועל `playwright@1.62.1` שמחפש build 1234, ובקונטיינר יש 1194. הבדיקות
-מכבדות `CHROMIUM_PATH`:
+הפרויקט נועל `playwright@1.62.1`, והגרסה המותקנת מראש בקונטיינר יכולה להיות אחרת
+(ב-31.10.2026: ‏build 1243 תחת `/opt/pw-browsers`). הבדיקות מכבדות `CHROMIUM_PATH`:
 
 ```bash
-export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+export CHROMIUM_PATH=/opt/pw-browsers/chromium
 ```
 
 אם הבדיקות נופלות כולן על שגיאת דפדפן — זה זה, ולא הקוד. ב-CI אין בעיה
@@ -66,7 +66,7 @@ export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
 לא «הבדיקות עברו». לפתוח את הכלי, להזין דוח, ללחוץ, להסתכל.
 
 ```bash
-export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+export CHROMIUM_PATH=/opt/pw-browsers/chromium
 S=<scratchpad>; V=.claude/skills/go/verify
 node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 ```
@@ -78,9 +78,9 @@ node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 - [ ] **אפס שגיאות קונסולה.** אחת היא כשל.
 - [ ] המסך שנגעת בו — נפתח, מציג, ומגיב ללחיצה.
 - [ ] צילום מסך של המצב החדש, ומבט בו. `page.screenshot({path})`.
-- [ ] שלושה רוחבי מסך + מובייל צר: **1366 · 1440 · 1920** ועוד ~390 לרוחב.
-      **חריג — תצוגת 4 הנושאים (`?topics`): מחשב בלבד.** 1366 · 1440 · 1920, בלי
-      בדיקות טלפון ובלי שיפורי טלפון, אלא אם המעתד ביקש במפורש. תמיכת הטלפון
+- [ ] שלושה רוחבי מסך: **1366 · 1440 · 1920.** **מחשב בלבד — בכל הכלי** (החלטת
+      המעתד, 30.10.2026; קודם זה חל רק על `?topics`). בלי בדיקות טלפון ובלי שיפורי
+      טלפון, אלא אם המעתד ביקש במפורש. תמיכת הטלפון
       הקיימת נשארת — לא מוחקים אותה, רק לא משקיעים בה. עדיפות: דיוק החישוב
       והכללים, חוויית מחשב, ביצועים, טבלאות/סינון/ייצוא ברורים, רגרסיה.
       אין גלישה אופקית, אין טקסט חתוך, הכותרת הדביקה והעמודות הקפואות עובדות.
@@ -90,12 +90,12 @@ node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 ## 3 · להריץ Tests, Lint ו-Type Check רלוונטיים
 
 ```bash
-npm test                              # 19 קבצים · ~20 דקות · הכול, לא תת-קבוצה
+npm test                              # כל הקבצים · ~20–30 דקות · הכול, לא תת-קבוצה
 node $V/syntax-check.js .             # תחליף ל-lint/tsc שאינם קיימים
 node $V/data-leak-check.js $S/incoming/zt.xlsx .
 ```
 
-- [ ] **25/25 קבצים, אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
+- [ ] **כל הקבצים (40/40 ב-31.10.2026), אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
       קרא את הסיכום בסוף, לא רק את הקובץ הראשון.
 - [ ] `syntax-check` נקי.
 - [ ] **`data-leak-check` מחזיר 0 מק״טים ו-0 ספקים.** הריפו ציבורי ומגיש
@@ -181,7 +181,7 @@ git diff --stat
 
 לא דילוג. פישוט שובר דברים.
 
-- [ ] `npm test` — שוב, 25/25.
+- [ ] `npm test` — שוב, כל הקבצים.
 - [ ] `syntax-check` · `data-leak-check` — שוב.
 - [ ] `engine-snapshot` + `engine-diff` — **שוב, מול אותו בסיס.** הפישוט חייב
       להיות 0 זזו מול המצב שלפניו.
@@ -195,11 +195,11 @@ git diff --stat
 
 **הראיות** — מספרים, לא הבטחות:
 ```
-25/25 קבצים · 0 FAIL
+40/40 קבצים · 0 FAIL
 business-guard: 7,990 פריטים · 26 מסכים · 0 הבדלים
 7,990 פריטים · 0 זזו · 0 תורים · 0 דלתות · 0 כסף בכל מטבע
 data-leak: 0 מק״טים · 0 ספקים
-דפדפן: 1366/1440/1920 + מובייל · 0 שגיאות קונסולה
+דפדפן: 1366/1440/1920 · 0 שגיאות קונסולה
 ```
 
 **מה שנותר** — וזה החלק שאסור לדלג עליו:
