@@ -168,6 +168,8 @@ The following business logic remains unchanged:
 - Shortage prevention logic
 - PD item handling
 - Warranty analysis
+- Classifications, thresholds and screen counters
+- Excel and SAP exports (columns, filters, values — see `docs/SAP-EXPORT.md`)
 
 Changes to these areas require explicit business approval.
 
@@ -188,7 +190,32 @@ Changes to these areas require explicit business approval.
   memory are no longer lost when the tool is open in two browser tabs. No
   change to calculations or exports.
 
+## Approved but not implemented
+
+- **ROP/SS stage 2 — reduction potential.** Shown only in the item card,
+  never as a second recommendation and never in any export. To be planned
+  together with D3 (item card), not before (order set 2026-10-31).
+- **ZM-C PR2.** Items needing review show as «לבדוק» (no automatic PD);
+  downgrades and pending items in a separate tab; check what
+  `ss_zero_rate3y` means before renaming it; the export change is limited to
+  the «התצוגה» sheet of the MRP-profile screen, and the column list and order
+  are shown to the owner before implementation.
+
+## Proposed — NOT approved
+
+- **Stale SAP floor threshold ($250).** Flag a floor as stale when demand
+  has decayed and the extra stock the floor creates exceeds $250
+  (ILS×0.27, EUR×1.08). Tested in simulation only. It measures a lower
+  target stock, not immediate savings. Must not be implemented as a rule
+  without explicit approval.
+
+## Tested and rejected
+
+- **EWMA as the rate for all items, with broad floor removal (v2).**
+  Service level fell and ILS inventory rose.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
+SAP file rules: `docs/SAP-EXPORT.md`.
 
 ---
 
