@@ -4602,13 +4602,18 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
 /* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
    לפי חודש הבסיס של הדוח. העלאה חוזרת של אותו חודש דורסת את אותו
    מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
-function profRecord(items){const ym=dsigYM(),next={};
+function profLoad(track=true){try{const v=JSON.parse(stateRaw(PROF_KEY,track));PROFH=(v&&typeof v==='object')?v:{}}catch(_){PROFH={}}}
+function profRecord(items){
+ if(!DEMO)profLoad();
+ profRecordCore(items);
+ statePersist(PROF_KEY,()=>storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם'),()=>{profLoad();profRecordCore(items)})}
+function profRecordCore(items){const ym=dsigYM(),next={};
  for(const r of items){const cur=profCur(r);if(!cur)continue;const t=profTgt(profH(r));
   if(PROF_RANK[t]>=PROF_RANK[cur])continue;
   const h=Object.assign({},PROFH[r.pn]||{});h[ym]=t;
   const ks=Object.keys(h).sort((a,b)=>{const p=k=>k.split('-').map(Number);const[x1,x2]=p(a),[y1,y2]=p(b);return x1-y1||x2-y2});
   for(const k of ks.slice(0,-3))delete h[k];next[r.pn]=h}
- PROFH=next;storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם')}
+ PROFH=next}
 function staleRows(){if(!QF||!QF.all)return [];
  return QF.all.filter(r=>(r.etaPast||0)>0&&passColFilters(r))
   .sort((a,b)=>staleDays(b)-staleDays(a)||(b.etaPast||0)-(a.etaPast||0))}
@@ -4643,6 +4648,46 @@ function storeSet(key,val,label){
  catch(e){
   const quota=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014);
   STORE_FAIL={key,label,quota,when:Date.now()};storeChip();return false}}
+/* ============ TABS — שתי לשוניות, אחסון אחד ============
+   localStorage משותף לכל הלשוניות של הכלי, וכל מבנה החלטות (סימונים,
+   זיכרון הרצות, פרמטרים, פנקס, פרופיל) נקרא פעם אחת בעלייה ונכתב
+   בשלמותו. לשונית שנפתחה קודם החזיקה עותק ישן, ושמירה שלה מחקה את מה
+   שלשונית אחרת שמרה בינתיים — נמדד: סימון בלשונית A נעלם ברגע שלשונית
+   B סימנה פריט אחר, גם אחרי רענון.
+
+   מכאן: כל כתיבה של החלטות עוברת ב-stateTxn — נעילה בלעדית בין
+   הלשוניות (Web Locks), ובתוכה קריאה מחדש, מיזוג רק של מה שהשתנה
+   כאן, וכתיבה. שתי לשוניות שכותבות באותו רגע ממתינות זו לזו, ואף אחת
+   אינה כותבת על בסיס ישן.
+
+   בלי Web Locks (דפדפן ישן): אין דרך לנעול, ולכן אין כתיבה כשלשונית
+   אחרת של הכלי פתוחה — ההחלטות נשמרות בזיכרון הלשונית, ושבב האחסון
+   אומר שלא נשמרו ולמה. לשונית יחידה כותבת כרגיל. «פתוחה» נקבע לפי
+   פעימה במפתח planner_tabs_v1, שמתעדכן רק במצב הזה. */
+const TAB_ID=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const LOCKS=!!(typeof navigator!=='undefined'&&navigator.locks&&navigator.locks.request);
+const TABS_KEY='planner_tabs_v1',TAB_BEAT=2000,TAB_DEAD=7000;
+let TXN_BLOCKED=false;
+function otherTabAlive(){try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+ return Object.keys(o).some(id=>id!==TAB_ID&&now-o[id]<TAB_DEAD)}catch(_){return false}}
+if(!LOCKS){const beat=()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+  for(const id of Object.keys(o))if(now-o[id]>=TAB_DEAD)delete o[id];
+  o[TAB_ID]=now;localStorage.setItem(TABS_KEY,JSON.stringify(o))}catch(_){}};
+ beat();setInterval(beat,TAB_BEAT);
+ addEventListener('pagehide',()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{};
+  delete o[TAB_ID];localStorage.setItem(TABS_KEY,JSON.stringify(o))}catch(_){}})}
+/* fn רץ בלעדית: אין לשונית אחרת בתוך stateTxn באותו זמן. מחזיר Promise
+   של true אם נכתב, false אם לא (הדגמה, או חסימה בלי נעילה). */
+function stateTxn(fn){
+ if(DEMO)return Promise.resolve(false);
+ /* ההשהיה בתוך הנעילה: עדכון מלשונית אחרת שעוד בדרך נקלט לפני הקריאה.
+    נמדד: 120 עדכונים חופפים תחת עומס — 118 בלי השהיה, 120 איתה */
+ if(LOCKS)return navigator.locks.request('planner-state',async()=>{await new Promise(r=>setTimeout(r,30));fn();return true});
+ if(otherTabAlive()){
+  if(!TXN_BLOCKED){TXN_BLOCKED=true;STORE_FAIL={key:'',label:'ההחלטות',tabs:true,when:Date.now()};storeChip()}
+  return Promise.resolve(false)}
+ if(TXN_BLOCKED){TXN_BLOCKED=false;if(STORE_FAIL&&STORE_FAIL.tabs){STORE_FAIL=null;storeChip()}}
+ fn();return Promise.resolve(true)}
 function storeBytes(){let t=0;
  try{for(const k in localStorage)if(localStorage.hasOwnProperty(k))t+=(localStorage[k]||'').length}catch(_){}
  return t}
@@ -4664,6 +4709,11 @@ function storeChip(){const el=document.getElementById('storechip');if(!el)return
   return}
  el.hidden=false;
  el.textContent=`⚠ ${STORE_FAIL.label} לא נשמר`;
+ if(STORE_FAIL.tabs){
+  el.title='הכלי פתוח בלשונית נוספת, והדפדפן הזה אינו תומך בנעילה בין לשוניות (Web Locks). '
+   +'כדי לא לדרוס את מה שנשמר שם, ההחלטות שלך נשארות בלשונית הזו ואינן נכתבות לאחסון.\n\n'
+   +'מה לעשות: סגור את הלשונית הנוספת — הכתיבה הבאה תישמר. או עבוד בדפדפן עדכני (Chrome, Edge, Firefox).';
+  el.onclick=()=>toast('סגור את הלשונית הנוספת של הכלי, ואז סמן שוב');return}
  el.title=(STORE_FAIL.quota
    ?`אחסון הדפדפן מלא (${kb.toLocaleString('he-IL')}KB). `
    :'הדפדפן דחה את הכתיבה. ')
@@ -5859,8 +5909,124 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
  return Q}
 const MK_KEY='planner_marks_v1';
 let MARKS={};
-try{MARKS=JSON.parse(localStorage.getItem(MK_KEY)||'{}')}catch(_){MARKS={}}
-function saveMarks(){storeSet(MK_KEY,JSON.stringify(MARKS),'הסימונים')}
+const mkRead=()=>{try{return JSON.parse(localStorage.getItem(MK_KEY)||'{}')||{}}catch(_){return {}}};
+MARKS=mkRead();
+/* ============ TABS · סימונים: יומן לכל לשונית — אף לשונית אינה כותבת על אחרת ============
+   נעילה לבדה אינה מספיקה: נמדד שתחת עומס (ציור מחדש אחרי כל סימון)
+   לשונית קוראת מ-localStorage ערך ישן גם בתוך הנעילה — עדכון מלשונית
+   אחרת עוד לא הגיע אליה. 120 סימונים חופפים, 102 נשמרו.
+
+   לכן כל לשונית כותבת רק למפתח משלה: planner_marksj_v1:<מזהה לשונית>,
+   יומן {מפתח פריט: {v ערך או null למחיקה, ts}}. התצוגה = planner_marks_v1
+   (המבנה הקיים) ומעליו כל היומנים, ולכל פריט מנצחת הפעולה המאוחרת. אין
+   כתיבה שיכולה למחוק פעולה של לשונית אחרת, גם אם הלשונית רואה אחסון
+   ישן — הפעולה יושבת במפתח שרק בעליה כותב אליו.
+
+   planner_marks_v1 ממשיך להיכתב בכל פעולה (תמונת התצוגה המאוחדת) —
+   למבנה הקיים, לגיבוי ולשחזור. אם נכתב מתמונה ישנה, היומנים מתקנים
+   אותו בתצוגה ובכתיבה הבאה. יומן של לשונית שנסגרה מתמזג לתוכו ונמחק
+   כשלשונית נפתחת, רק אחרי שהתמזג.
+
+   · before — מה שהלשונית ראתה כשהמשתמש פעל. אם התצוגה המאוחדת שונה,
+     לשונית אחרת שינתה את הפריט בינתיים: פעולת משתמש מתבצעת אבל לא
+     בשקט — הודעה עם «בטל»; ביטול (cond) אינו מתבצע.
+   · לשונית שהפעולה שלה הוחלפה אחר כך על ידי פעולה מאוחרת בלשונית אחרת
+     מקבלת הודעה על כך כשהסנכרון מגיע. */
+const MKJ_PFX='planner_marksj_v1:',MK_EPOCH='planner_marks_epoch_v1';
+const mkSame=(a,b)=>JSON.stringify(a||null)===JSON.stringify(b||null);
+const mkEpoch=()=>{try{return localStorage.getItem(MK_EPOCH)||''}catch(_){return ''}};
+let MKJ={e:mkEpoch(),ops:{}},MK_LAST_TS=0,MK_TOLD={};
+const mkNextTs=()=>{const t=Math.max(Date.now(),MK_LAST_TS+1);MK_LAST_TS=t;return t};
+function mkJournals(){const out=[],ep=mkEpoch();
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+  if(!k||!k.startsWith(MKJ_PFX))continue;
+  try{const j=JSON.parse(localStorage.getItem(k));if(j&&j.ops&&(j.e||'')===ep)out.push({key:k,tab:k.slice(MKJ_PFX.length),ops:j.ops})}catch(_){}}}catch(_){}
+ return out}
+/* התצוגה המאוחדת, ולכל פריט — מי קבע אותו */
+function mkView(){const m=mkRead(),who={},best={};
+ for(const k in m)best[k]=(m[k]&&m[k].ts)||0;
+ for(const j of mkJournals())for(const k in j.ops){const o=j.ops[k];if(!o)continue;
+  const t=Math.max(o.ts||0,(o.v&&o.v.ts)||0);
+  /* שוויון מול planner_marks_v1 — היומן הוא המקור (הקובץ הוא תמונה שלו);
+     שוויון בין שני יומנים — מכריע מזהה הלשונית, כדי שכולן יכריעו אותו דבר */
+  if(!(k in best)||t>best[k]||(t===best[k]&&(!who[k]||j.tab>who[k]))){
+   best[k]=t;who[k]=j.tab;if(o.v==null)delete m[k];else m[k]=o.v}}
+ for(const k in best)MK_LAST_TS=Math.max(MK_LAST_TS,best[k]);
+ return {m,who}}
+function marksSync(){const {m,who}=mkView(),same=mkSame(m,MARKS);
+ /* פעולה שלי שפעולה מאוחרת בלשונית אחרת החליפה — לא בשקט */
+ const lost=[];
+ for(const k in MKJ.ops){const o=MKJ.ops[k];
+  if(who[k]&&who[k]!==TAB_ID&&!mkSame(m[k],o.v)&&!MK_TOLD[k+'@'+o.ts]){MK_TOLD[k+'@'+o.ts]=1;lost.push(k)}}
+ MARKS=m;
+ if(lost.length)toast(lost.length===1
+  ?`${lost[0].split('|').pop()} סומן אחרי כן בלשונית אחרת כ${mkName(m[lost[0]])} — הסימון שלך הוחלף`
+  :`${lost.length.toLocaleString('he-IL')} פריטים שסימנת סומנו אחרי כן בלשונית אחרת — הסימון שלך הוחלף בהם`);
+ if(!same&&typeof ALL!=='undefined'&&ALL&&ALL.length)apply();return !same}
+const mkName=v=>v&&v.t?'«'+(MARK_LABEL[v.t]||v.t)+'»':'ללא סימון';
+function marksCommit(changes){
+ if(DEMO){for(const k in changes){const c=changes[k];if(c.after==null)delete MARKS[k];else MARKS[k]=c.after}return null}
+ const {m:cur}=mkView(),clash=[],skipped=[];
+ if((MKJ.e||'')!==mkEpoch())MKJ={e:mkEpoch(),ops:{}};
+ for(const k in changes){const c=changes[k];
+  if(!mkSame(cur[k],c.before)){
+   if(c.cond){skipped.push(k);continue}
+   clash.push({k,other:cur[k]||null,mine:c.after||null})}
+  const ts=Math.max(mkNextTs(),(c.after&&c.after.ts)||0);MK_LAST_TS=ts;
+  MKJ.ops[k]={v:c.after==null?null:c.after,ts};
+  if(c.after==null)delete cur[k];else cur[k]=c.after}
+ storeSet(MKJ_PFX+TAB_ID,JSON.stringify(MKJ),'הסימונים');
+ storeSet(MK_KEY,JSON.stringify(cur),'הסימונים');
+ MARKS=cur;
+ if(skipped.length)toast(`הביטול לא בוצע ל-${skipped.length.toLocaleString('he-IL')} `
+  +`${skipped.length===1?'פריט':'פריטים'}: לשונית אחרת שינתה ${skipped.length===1?'אותו':'אותם'} מאז — השינוי החדש נשאר`);
+ else if(clash.length){const c=clash[0],pn=c.k.split('|').pop();
+  toast(clash.length===1
+    ?`${pn} סומן בינתיים בלשונית אחרת כ${mkName(c.other)} — הסימון שלך (${mkName(c.mine)}) החליף אותו`
+    :`${clash.length.toLocaleString('he-IL')} פריטים סומנו בינתיים בלשונית אחרת — הסימון שלך החליף אותם`,
+   {label:'בטל',ms:UNDO_MS,run:()=>{const back={};
+    for(const x of clash)back[x.k]={before:x.mine,after:x.other,cond:true};
+    marksCommit(back);apply()}})}
+ return {clash,skipped}}
+/* יומנים של לשוניות שנסגרו: מתמזגים לתוך planner_marks_v1 ונמחקים. «נסגרה»
+   — אין לה נעילת חיים (Web Locks), או שלא פעמה (בלי Web Locks). המחיקה
+   באה אחרי הכתיבה, וכתיבות של לשונית אחת מגיעות לאחרות לפי הסדר. */
+function mkReapOrphans(){if(DEMO)return;
+ const live=LOCKS?navigator.locks.query().then(q=>new Set((q.held||[]).map(h=>h.name).filter(n=>n.startsWith('planner-tab:')).map(n=>n.slice(12))))
+  :Promise.resolve((()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+     return new Set(Object.keys(o).filter(id=>now-o[id]<TAB_DEAD))}catch(_){return new Set()}})());
+ live.then(alive=>{if(DEMO)return;alive.add(TAB_ID);
+  const dead=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+   if(k&&k.startsWith(MKJ_PFX)&&!alive.has(k.slice(MKJ_PFX.length)))dead.push(k)}}catch(_){}
+  if(!dead.length)return;
+  const {m}=mkView();
+  if(!storeSet(MK_KEY,JSON.stringify(m),'הסימונים'))return;
+  for(const k of dead)try{localStorage.removeItem(k)}catch(_){}})}
+if(LOCKS)navigator.locks.request('planner-tab:'+TAB_ID,()=>new Promise(()=>{}));
+setTimeout(mkReapOrphans,1500);
+MARKS=mkView().m;
+let MK_SYNC_T=0;
+addEventListener('storage',e=>{if(DEMO||e.storageArea!==localStorage)return;
+ if(e.key===MK_EPOCH&&(MKJ.e||'')!==mkEpoch())MKJ={e:mkEpoch(),ops:{}};
+ if(e.key===null||e.key===MK_KEY||e.key===MK_EPOCH||String(e.key).startsWith(MKJ_PFX)){
+  if(marksSync()&&Date.now()-MK_SYNC_T>4000){MK_SYNC_T=Date.now();toast('הסימונים עודכנו מלשונית אחרת')}}
+ if(e.key===null||STATE_SYNC[e.key])(STATE_SYNC[e.key]?[e.key]:Object.keys(STATE_SYNC)).forEach(k=>STATE_SYNC[k]())});
+/* שאר מבני ההחלטות — נקראים מחדש בזיכרון כשלשונית אחרת כתבה. הם
+   מוצגים רק בטעינה הבאה, ונכתבים מחדש רק אחרי קריאה טרייה (ראה
+   statePersist), ולכן מספיק לעדכן את המשתנה. */
+const STATE_SYNC={};
+/* קריאה טרייה לפני חישוב, ושמירה תחת נעילה: אם בין הקריאה לנעילה
+   לשונית אחרת כתבה, redo() קורא שוב ומחשב מחדש על הבסיס שלה — כך
+   הרצה שנרשמה שם אינה נמחקת בשמירה מכאן. */
+const STATE_SEEN={};
+/* track=false — קריאה לסנכרון בלבד. «הבסיס שנראה» מתעדכן רק כשהלשונית
+   עצמה קוראת כדי לחשב, אחרת סנכרון היה מסתיר שינוי ש-statePersist
+   חייב לזהות (נתפס בבדיקה: שתי טעינות חופפות, הרצה אחת נמחקה) */
+function stateRaw(key,track=true){let raw=null;try{raw=localStorage.getItem(key)}catch(_){}if(track)STATE_SEEN[key]=raw;return raw}
+function statePersist(key,write,redo){
+ return stateTxn(()=>{let raw=null;try{raw=localStorage.getItem(key)}catch(_){}
+  if(raw!==STATE_SEEN[key])redo();write();try{STATE_SEEN[key]=localStorage.getItem(key)}catch(_){}})}
+STATE_SYNC[PROF_KEY]=()=>{if(!DEMO)profLoad(false)};
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
 /* סימון קבוצתי — פעולה על הרשימה המסוננת כולה.
@@ -5869,19 +6035,23 @@ function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(
 let BULK_UNDO=null;
 function setMarks(items,t,note){
  if(!items||!items.length)return 0;
- const prev={};
+ const ch={},ts=Date.now();
  for(const it of items){const k=markKey(it);
-  prev[k]=MARKS[k]?{...MARKS[k]}:null;
-  if(!t)delete MARKS[k];else MARKS[k]={t,note:note||'',ts:Date.now()}}
- BULK_UNDO={prev,n:items.length};
- saveMarks();apply();return items.length}
+  ch[k]={before:MARKS[k]?{...MARKS[k]}:null,after:t?{t,note:note||'',ts}:null}}
+ BULK_UNDO={ch,n:items.length};
+ marksCommit(ch);apply();return items.length}
+/* הביטול מותנה: פריט שלשונית אחרת שינתה מאז אינו מוחזר (ראה marksCommit) */
 function undoBulk(){
  if(!BULK_UNDO)return;
- for(const k in BULK_UNDO.prev){const v=BULK_UNDO.prev[k];
-  if(v==null)delete MARKS[k];else MARKS[k]=v}
+ const back={};
+ for(const k in BULK_UNDO.ch){const c=BULK_UNDO.ch[k];back[k]={before:c.after,after:c.before,cond:true}}
  const n=BULK_UNDO.n;BULK_UNDO=null;
- saveMarks();apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
-function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;if(!t){delete MARKS[key];if(it)delete MARKS[it.pn]}else{MARKS[key]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
+ marksCommit(back);apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
+function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;
+ const ch={[key]:{before:MARKS[key]?{...MARKS[key]}:null,after:t?{t,note:note||'',ts:Date.now()}:null}};
+ /* ביטול סימון מוחק גם מפתח ישן לפי מק״ט, כמו קודם */
+ if(!t&&it&&it.pn!==key&&MARKS[it.pn])ch[it.pn]={before:{...MARKS[it.pn]},after:null};
+ marksCommit(ch);apply()}
 const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
 const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
@@ -7287,8 +7457,9 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
    19KB ליום על הדוח האמיתי (836 פריטים), ולכן 180 יום ≈ 3.4MB. */
 const LEDG_KEY='planner_ledger_v1', LEDG_DAYS=180;
 let LEDGER={v:1,days:{},etas:{}};
-try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
- if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
+function ledgLoad(track=true){try{const o=JSON.parse(stateRaw(LEDG_KEY,track));
+ LEDGER=(o&&o.days&&o.etas)?o:{v:1,days:{},etas:{}}}catch(_){LEDGER={v:1,days:{},etas:{}}}}
+ledgLoad();STATE_SYNC[LEDG_KEY]=()=>{if(!DEMO)ledgLoad(false)};
 function ledgerSave(){
  if(DEMO)return;
  try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
@@ -7317,9 +7488,11 @@ function ledgerRecord(items){
  for(const r of items){
   if(!((r.po||0)>0||has[etaKey(r.pn)]||(r.cust||0)>0))continue;
   it[r.pn]=[r.po|0,Math.max(0,r.free||0)|0]}
- LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
- if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
- ledgerPrune();ledgerSave();
+ const put=()=>{LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
+  if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
+  ledgerPrune()};
+ if(!DEMO)ledgLoad();
+ put();statePersist(LEDG_KEY,ledgerSave,()=>{ledgLoad();put()});
  return {days:Object.keys(LEDGER.days).length}}
 const ledgerDays=()=>Object.keys(LEDGER.days).sort();
 /* ============ הבטחה מול ביצוע ============
@@ -7533,8 +7706,9 @@ function sigState(last,sig){
  return {repeat:last.sig===sig,migrated:false}}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
-try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
- if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
+function histLoad(track=true){try{const h=JSON.parse(stateRaw(HIST_KEY,track));
+ HIST=(h&&Array.isArray(h.runs)&&h.items)?h:{runs:[],items:{}}}catch(_){HIST={runs:[],items:{}}}}
+histLoad();STATE_SYNC[HIST_KEY]=()=>{if(!DEMO)histLoad(false)};
 function saveHist(){storeSet(HIST_KEY,JSON.stringify(HIST),'ההיסטוריה בין ההרצות')}
 /* ============ RUNSIG_BLIND — ההיסטוריה של התיקון הזה ============
    בגרסה הראשונה «אותו קובץ שוב» נקבע לפי חודש · מספר פריטים · סכום
@@ -7551,6 +7725,11 @@ function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs
    אחרי build, ולכן שתי הדרכים נותנות אותו מספר. */
 function recordRun(items,Qs,sig){
  if(typeof sig!=='string')sig=dataSig(items);
+ if(!DEMO)histLoad();
+ const r=recordRunCore(items,Qs,sig);
+ statePersist(HIST_KEY,saveHist,()=>{histLoad();recordRunCore(items,Qs,sig)});
+ return r}
+function recordRunCore(items,Qs,sig){
  const now=Date.now();
  const last=HIST.runs[HIST.runs.length-1];
  const stt=sigState(last,sig);
@@ -7566,7 +7745,6 @@ function recordRun(items,Qs,sig){
  /* פריטים שיצאו מהתור — נספרים כנפתרו בהרצה הזאת ואז נשכחים */
  let resolved=0;for(const pn of Object.keys(prev))if(!inQ.has(pn))resolved++;
  HIST.items=next;HIST.lastResolved=repeat?(HIST.lastResolved||0):resolved;
- saveHist();
  /* הצמדה לפריטים עצמם, כדי שהתצוגה לא תיגע ב-localStorage */
  for(const x of items){const h=next[x.pn];
   if(!h){x.hSeen=0;x.hNew=false;x.hDays=0;x.hWorse=false;continue}
@@ -7596,8 +7774,9 @@ function histReset(){HIST={runs:[],items:{}};saveHist()}
    זיכרון התור לא ייפגע. */
 const PAR_KEY='planner_params_v1', PAR_RUNS=4;
 let PARAMS={runs:[]};
-try{const q=JSON.parse(localStorage.getItem(PAR_KEY));
- if(q&&Array.isArray(q.runs))PARAMS=q}catch(_){}
+function parLoad(track=true){try{const q=JSON.parse(stateRaw(PAR_KEY,track));
+ PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}catch(_){PARAMS={runs:[]}}}
+parLoad();STATE_SYNC[PAR_KEY]=()=>{if(!DEMO)parLoad(false)};
 function saveParams(){if(DEMO)return;try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
   /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
   if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);
@@ -7668,17 +7847,19 @@ function recordParams(items,Qs,sig){
  const SQ=shortSet(Qs);
  if(typeof sig!=='string')sig=dataSig(items);
  const now=Date.now();
- const last=PARAMS.runs[PARAMS.runs.length-1];
- const stt=sigState(last,sig);
+ if(!DEMO)parLoad();
+ const push=()=>{const last=PARAMS.runs[PARAMS.runs.length-1],st=sigState(last,sig);
+  if(st.repeat)last.ts=now;
+  else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
+   if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
+  return st};
+ const stt=push();
  const repeat=stt.repeat;
+ statePersist(PAR_KEY,saveParams,()=>{parLoad();push()});
  /* העלאה חוזרת של אותו קובץ לא יוצרת תמונה חדשה — אחרת היינו משווים
     קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. וההפך חמור לא פחות:
     דוח שבו עודכנו ROP ו-SS *חייב* לייצר תמונה, אחרת היישום שבדיוק
     התבצע נבלע. זה היה הבאג — ראה DSIG. */
- if(repeat)last.ts=now;
- else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
-  if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
- saveParams();
  const prev=PARAMS.runs[PARAMS.runs.length-2];
  for(const x of items){x.apStatus=null;x.apPrev=null;x.apDrift=null}
  /* אין תמונה קודמת — אין מה להשוות, וממשיכים להחזיר null בדיוק כמו
@@ -7794,6 +7975,8 @@ const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','p
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
+ /* הגיבוי הוא התצוגה המאוחדת — כולל יומנים של לשוניות פתוחות */
+ if(!DEMO)keys[MK_KEY]=JSON.stringify(mkView().m);
  return {app:'inventory-planner',kind:'work-state',v:STATE_V,ts:Date.now(),keys}}
 function stateStats(blob){const k=blob&&blob.keys||{};
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
@@ -7838,13 +8021,14 @@ function stateMergeMarks(blob){
  if(DEMO){toast('⚠ מיזוג אינו זמין במצב הדגמה — צא ממנו קודם');return {added:0,updated:0,kept:0}}
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
  const inc=j((blob.keys||{})['planner_marks_v1'])||{};
- let added=0,updated=0,kept=0;
+ let added=0,updated=0,kept=0;const ch={};
  for(const key in inc){const a=inc[key],b=MARKS[key];
   if(!a||typeof a!=='object'||!a.t)continue;
-  if(!b){MARKS[key]=a;added++}
-  else if((a.ts||0)>(b.ts||0)){MARKS[key]=a;updated++}
+  if(!b){ch[key]={before:null,after:a,cond:true};added++}
+  else if((a.ts||0)>(b.ts||0)){ch[key]={before:{...b},after:a,cond:true};updated++}
   else kept++}
- saveMarks();return {added,updated,kept}}
+ /* מותנה: פריט שלשונית אחרת שינתה בזמן המיזוג אינו נדרס */
+ marksCommit(ch);return {added,updated,kept}}
 /* «שחזור מלא» כותב ומוחק ישירות, ולכן עקף את הגנת ההדגמה לגמרי:
    קובץ גיבוי שנטען בתוך הדגמה היה דורס סימונים והיסטוריה אמיתיים.
    שחזור הוא החלטה על העבודה האמיתית, ואין לו מובן בתוך הדגמה. */
@@ -7852,6 +8036,12 @@ function stateRestoreAll(blob){
  if(DEMO){toast('⚠ שחזור אינו זמין במצב הדגמה — צא ממנו קודם');return false}
  for(const k of STATE_KEYS){const v=(blob.keys||{})[k];
   try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){}}
+ /* שחזור מחליף את הסימונים כולם: יומני הלשוניות שייכים לעידן הקודם —
+    עידן חדש, והיומנים (כאן ובלשוניות הפתוחות) אינם נקראים עוד */
+ try{localStorage.setItem(MK_EPOCH,String(Date.now()));
+  const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(MKJ_PFX))old.push(k)}
+  old.forEach(k=>localStorage.removeItem(k))}catch(_){}
+ MKJ={e:mkEpoch(),ops:{}};MARKS=mkView().m;
  return true}
 function appliedRows(){return (QF&&QF.all?QF.all:[]).filter(r=>r.apStatus&&passColFilters(r))}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
@@ -8954,9 +9144,12 @@ const UNDO_MS=6000;
 function markHandled(k,after){const it=markItem(k),key=it?markKey(it):String(k||'');if(!key)return;
  const pn=it?it.pn:key,prev=MARKS[key]?{...MARKS[key]}:null;
  setMark(k,'handled','');
+ const set=MARKS[key]?{...MARKS[key]}:null;
  toast('✓ '+pn+' — סומן כטופל',{label:'בטל',ms:UNDO_MS,run:()=>{
-  if(prev)MARKS[key]=prev;else delete MARKS[key];
-  saveMarks();apply();toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה');
+  /* מותנה: אם לשונית אחרת שינתה את הפריט מאז, הביטול אינו דורס אותה */
+  if(!mkSame(MARKS[key],set)){toast(`↺ הביטול לא בוצע: ${pn} שונה בלשונית אחרת — השינוי החדש נשאר`);if(after)after();return}
+  marksCommit({[key]:{before:set,after:prev,cond:true}});apply();
+  toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה');
   if(after)after()}})}
 function wireMarkBtns(){
  wireSapSel();
@@ -12269,7 +12462,7 @@ function demoExit(){
  if(!DEMO)return false;
  DEMO=false;
  const j=(k,f)=>{try{const o=JSON.parse(localStorage.getItem(k));return o==null?f:o}catch(_){return f}};
- MARKS=j(MK_KEY,{})||{};
+ MARKS=mkView().m;
  {const h=j(HIST_KEY,null);HIST=(h&&Array.isArray(h.runs)&&h.items)?h:{runs:[],items:{}}}
  {const q=j(PAR_KEY,null);PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}
  {const l=j(LEDG_KEY,null);LEDGER=(l&&l.days&&l.etas)?l:{v:1,days:{},etas:{}}}
@@ -12870,7 +13063,9 @@ function briefToggle(v){
  if(c)c.hidden=!v}
 function showBrief(h){
  const box=document.getElementById('brief');if(!box)return;
- HIST.lastDiag=diagSig();saveHist();
+ /* דרך הנעילה, כמו recordRun — שמירה ישירה כאן כתבה את כל HIST מחוץ
+    לנעילה, ונתפסה: שתי טעינות חופפות השאירו הרצה כפולה */
+ {const d=diagSig();HIST.lastDiag=d;statePersist(HIST_KEY,saveHist,()=>{histLoad();HIST.lastDiag=d})}
  if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
   box.hidden=true;document.body.classList.remove('briefing');return}
  const sub=document.getElementById('briefSub');
