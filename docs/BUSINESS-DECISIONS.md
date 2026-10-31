@@ -171,6 +171,21 @@ The following business logic remains unchanged:
 
 Changes to these areas require explicit business approval.
 
+## Approved changes (log)
+
+- **2026-10-31 · ROP/SS policy A′, stage 1 (PR #145).** For items on the
+  three-year-rate path, when the recent rate (EWMA, 4-month half-life) is
+  below 25% of the three-year rate, the Reorder Point is calculated on the
+  recent rate. Applied only when it changes the suggested ROP, not when there
+  is a sale in the current month, and not when annual and monthly columns
+  are inconsistent. Safety Stock, SAP `ssMin`, `rate`, coverage and the SAP
+  field mapping are unchanged. Every SAP file row keeps SS ≥ ssMin.
+- **2026-10-31 · SAP ssMin is not changed by the tool.** The tool shows one
+  official, SAP-applicable recommendation. A reduction potential for stale
+  SAP floors may be shown separately, never as a second recommendation.
+
+Details, numbers and open items: `docs/PROJECT-STATUS.md`.
+
 ---
 
 # Summary
