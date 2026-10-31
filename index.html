@@ -4604,7 +4604,7 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
    מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
 function profLoad(track=true){try{const v=JSON.parse(stateRaw(PROF_KEY,track));PROFH=(v&&typeof v==='object')?v:{}}catch(_){PROFH={}}}
 function profRecord(items){
- if(!DEMO)profLoad();
+ if(!DEMO&&stateChanged(PROF_KEY))profLoad();
  profRecordCore(items);
  statePersist(PROF_KEY,()=>storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם'),()=>{profLoad();profRecordCore(items)})}
 function profRecordCore(items){const ym=dsigYM(),next={};
@@ -4643,6 +4643,8 @@ let STORE_FAIL=null,STORE_TRIM=null;
 function storeSet(key,val,label){
  if(DEMO)return true;                       /* מצב הדגמה — לא נכתב דבר */
  try{localStorage.setItem(key,val);
+  /* מה שהלשונית עצמה כתבה הוא «הבסיס שנראה» — ראה stateChanged */
+  if(typeof STATE_SEEN!=='undefined')STATE_SEEN[key]=val;
   if(STORE_FAIL&&STORE_FAIL.key===key){STORE_FAIL=null;storeChip()}
   return true}
  catch(e){
@@ -5988,6 +5990,16 @@ function marksCommit(changes){
     for(const x of clash)back[x.k]={before:x.mine,after:x.other,cond:true};
     marksCommit(back);apply()}})}
  return {clash,skipped}}
+/* saveMarks — הממשק הישן: «שמור את MARKS כפי שהוא בזיכרון». נשאר לקוד
+   ולבדיקות שמשנים את MARKS ישירות. הוא כותב דרך marksCommit רק את
+   המפתחות שבזיכרון שונים מהתצוגה המאוחדת — ולכן גם הוא אינו מוחק סימון
+   של לשונית אחרת שהלשונית הזו לא נגעה בו. */
+function saveMarks(){if(DEMO)return;
+ const mem=MARKS,{m:view}=mkView(),ch={};
+ for(const k of new Set([...Object.keys(mem),...Object.keys(view)]))
+  if(!mkSame(mem[k],view[k]))ch[k]={before:view[k]||null,after:mem[k]||null};
+ if(Object.keys(ch).length)marksCommit(ch);
+ else{storeSet(MKJ_PFX+TAB_ID,JSON.stringify(MKJ),'הסימונים');storeSet(MK_KEY,JSON.stringify(view),'הסימונים')}}
 /* יומנים של לשוניות שנסגרו: מתמזגים לתוך planner_marks_v1 ונמחקים. «נסגרה»
    — אין לה נעילת חיים (Web Locks), או שלא פעמה (בלי Web Locks). המחיקה
    באה אחרי הכתיבה, וכתיבות של לשונית אחת מגיעות לאחרות לפי הסדר. */
@@ -6023,6 +6035,9 @@ const STATE_SEEN={};
    עצמה קוראת כדי לחשב, אחרת סנכרון היה מסתיר שינוי ש-statePersist
    חייב לזהות (נתפס בבדיקה: שתי טעינות חופפות, הרצה אחת נמחקה) */
 function stateRaw(key,track=true){let raw=null;try{raw=localStorage.getItem(key)}catch(_){}if(track)STATE_SEEN[key]=raw;return raw}
+/* האם לשונית אחרת כתבה מאז שהלשונית הזו קראה או כתבה. רק אז קוראים
+   מחדש לפני חישוב — שינוי מקומי בזיכרון (גם של בדיקה) אינו נמחק */
+function stateChanged(key){let raw=null;try{raw=localStorage.getItem(key)}catch(_){}return raw!==STATE_SEEN[key]}
 function statePersist(key,write,redo){
  return stateTxn(()=>{let raw=null;try{raw=localStorage.getItem(key)}catch(_){}
   if(raw!==STATE_SEEN[key])redo();write();try{STATE_SEEN[key]=localStorage.getItem(key)}catch(_){}})}
@@ -7462,7 +7477,7 @@ function ledgLoad(track=true){try{const o=JSON.parse(stateRaw(LEDG_KEY,track));
 ledgLoad();STATE_SYNC[LEDG_KEY]=()=>{if(!DEMO)ledgLoad(false)};
 function ledgerSave(){
  if(DEMO)return;
- try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
+ try{const v=JSON.stringify(LEDGER);localStorage.setItem(LEDG_KEY,v);STATE_SEEN[LEDG_KEY]=v}
  catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס.
     זו התנהגות נכונה, אבל היא הייתה שקטה: הפנקס מתקצר מאחור ואיש
     אינו יודע. עכשיו זה נאמר, כי «כמה זמן אחורה הפנקס מגיע» הוא
@@ -7491,7 +7506,7 @@ function ledgerRecord(items){
  const put=()=>{LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
   if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
   ledgerPrune()};
- if(!DEMO)ledgLoad();
+ if(!DEMO&&stateChanged(LEDG_KEY))ledgLoad();
  put();statePersist(LEDG_KEY,ledgerSave,()=>{ledgLoad();put()});
  return {days:Object.keys(LEDGER.days).length}}
 const ledgerDays=()=>Object.keys(LEDGER.days).sort();
@@ -7725,7 +7740,7 @@ function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs
    אחרי build, ולכן שתי הדרכים נותנות אותו מספר. */
 function recordRun(items,Qs,sig){
  if(typeof sig!=='string')sig=dataSig(items);
- if(!DEMO)histLoad();
+ if(!DEMO&&stateChanged(HIST_KEY))histLoad();
  const r=recordRunCore(items,Qs,sig);
  statePersist(HIST_KEY,saveHist,()=>{histLoad();recordRunCore(items,Qs,sig)});
  return r}
@@ -7777,7 +7792,7 @@ let PARAMS={runs:[]};
 function parLoad(track=true){try{const q=JSON.parse(stateRaw(PAR_KEY,track));
  PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}catch(_){PARAMS={runs:[]}}}
 parLoad();STATE_SYNC[PAR_KEY]=()=>{if(!DEMO)parLoad(false)};
-function saveParams(){if(DEMO)return;try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
+function saveParams(){if(DEMO)return;try{const v=JSON.stringify(PARAMS);localStorage.setItem(PAR_KEY,v);STATE_SEEN[PAR_KEY]=v}catch(_){
   /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
   if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);
    STORE_TRIM={what:'זיכרון הפרמטרים',left:PARAMS.runs.length};storeChip();
@@ -7847,7 +7862,7 @@ function recordParams(items,Qs,sig){
  const SQ=shortSet(Qs);
  if(typeof sig!=='string')sig=dataSig(items);
  const now=Date.now();
- if(!DEMO)parLoad();
+ if(!DEMO&&stateChanged(PAR_KEY))parLoad();
  const push=()=>{const last=PARAMS.runs[PARAMS.runs.length-1],st=sigState(last,sig);
   if(st.repeat)last.ts=now;
   else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
