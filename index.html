@@ -3777,6 +3777,27 @@ const LOWDEM_MAX=3;
    SS, rate והכיסוי — 0 שינויים. PN-07: ROP 37 → 12, SS 11. מלאי יעד כ-‎-$6.7K ו-₪3.4K. בבדיקה
    לאחור (4 חלונות של 3 חודשים) Fill 92.3% → 92.2%. */
 const RATE_DECAY=0.25,RATE_HALF=4;
+/* ============ RATE_DECAY — מתי אסור לקבוע דעיכה ============
+   λ נבנה מהחודשים המלאים ומהעמודה השנתית. «אפס» שבא מנתון חסר או סותר
+   אינו אפס ביקוש, ולכן לפני שקובעים דעיכה:
+   · מכירה בחודש הנוכחי (שעוד לא נסגר ולכן אינו בחלון) — הביקוש חי
+     עכשיו. נמדד על הדוח האמיתי: 4 מתוך 23 הפריטים שהיו יורדים, שלושה
+     מהם עם אפס בכל 11 החודשים המלאים ו-2, 10 ו-12 יח׳ החודש.
+   · העמודות אינן מתיישבות: צריכת השנה הנוכחית אמורה להיות בדיוק
+     החודשים שלה שבחלון ועוד החודש הנוכחי (בסכום חיובי, או נטו עם
+     החזרות), וצריכת השנה הקודמת — לפחות החודשים שלה שבחלון. נמדד:
+     7,976 מתוך 7,990 פריטים מתיישבים; ב-14 הנותרים הפער אינו מוסבר,
+     והכלל לא חל עליהם — החישוב הקיים נשאר.
+   כשהחלון אינו מכיל את כל השנה הנוכחית (עוגן בדצמבר) אי אפשר לבדוק את
+   השנה הנוכחית, ונבדקת רק השנה הקודמת. */
+function decayDataOK(months,y3,curMonth,anchorM){
+ const raw=months.map(v=>+v||0),pos=raw.map(v=>Math.max(0,v));
+ const nCur=Math.min(anchorM,11),cm=Math.max(0,+curMonth||0);
+ const sum=a=>a.reduce((x,y)=>x+y,0);
+ if(anchorM<=11){const sp=sum(pos.slice(0,nCur)),sr=sum(raw.slice(0,nCur));
+  if(!(Math.abs(y3[0]-sp-cm)<0.5||Math.abs(y3[0]-sr-cm)<0.5))return false}
+ const prevIn=pos.slice(nCur,11);
+ return y3[1]+0.5>=sum(prevIn)}
 function recentRate(clean,months,y3,anchorM){
  const raw=months.map(v=>Math.max(0,v)),seq=[];
  /* חודשי השנה הקודמת שבתוך החלון — את השאר מפזרים שווה מהעמודה השנתית */
@@ -4755,7 +4776,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rate=d12<=3?((has3y&&rate3y>LOWDEM_MAX/11)?rate3y:0):clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
     /* RATE_DECAY — ראה שם. רק בנתיב 3 השנים; ההחלפה עצמה ליד sugROP. */
     const rateRecent=(d12<=3&&has3y&&rate3y>LOWDEM_MAX/11)?recentRate(clean,months,y3,ANCHOR.getMonth()+1):null;
-    const decayed=rateRecent!==null&&rateRecent<RATE_DECAY*rate3y;
+    const decayed=rateRecent!==null&&rateRecent<RATE_DECAY*rate3y
+      &&!(curMonth>0)&&decayDataOK(months,y3,curMonth,ANCHOR.getMonth()+1);
     /* ============ RATE_3Y — איזה סרגל שופט קצב תלת-שנתי ============
        המדידה השנייה חשפה שהתיקון מגריל עוד משהו, ולא במתכוון.
        `cov` נגזר מ-`rate`, וענף «עודף מלאי» מחזיק 12 חודשי כיסוי.

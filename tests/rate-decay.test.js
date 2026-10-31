@@ -47,6 +47,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
    m.months.forEach((ix,k)=>set(ix,(o.m||[])[k]||0));
    [m.y0,m.y1,m.y2].forEach((ix,k)=>set(ix,o.y[k]));
    if(o.st!=null)set(m.status,o.st);
+   if(m.curMonth>=0)set(m.curMonth,o.cm||0);
    return r};
   const one=(pn,o,h)=>build([mk(pn,o)],h||hdr)[0];
   /* פריט בסיס: 1 יח׳ בחודש 4, 2025 = 6. λ אינו תלוי ב-2024, ולכן y2 קובע
@@ -62,12 +63,18 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   const no3y=one('B-NO3Y',{...base,y:[1,6,202]},hdrNo);
   /* 04 — אין המלצה בכלל, גם כשהקצב דעך */
   const st04=one('B-04',{...base,y:[1,6,202],st:'04'});
+  /* מכירה בחודש הנוכחי (שאינו בחלון) — הביקוש חי, אין דעיכה */
+  const curm=one('B-CURM',{...base,m:[],y:[2,6,202],cm:2});
+  /* «צר.השנה» גדולה מהחודשים שלה ואין מכירה בחודש הנוכחי — לא מתיישב */
+  const badY0=one('B-BAD',{...base,y:[5,6,202]});
+  /* «צר.שנה-1» קטנה מהחודשים שלה שבחלון — לא מתיישב */
+  const badY1=one('B-BAD1',{...base,m:[0,0,0,1,0,0,0,0,0,2,0],y:[1,1,202]});
   /* צריכה סדירה — d12>3 */
   const reg=one('B-REG',{ss:4,ssMin:4,rop:12,m:Array(11).fill(2),y:[18,30,30],free:30});
   const pick=x=>x&&{rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,rateDecay:!!x.rateDecay,rateRecent:x.rateRecent==null?null:x.rateRecent,rate3y:x.rate3y,
    dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,ssStat:x.ssStat,ssMin:x.ssMin,cov:x.cov,free:x.free,rateFrom3y:x.rateFrom3y,has3y:x.has3y};
-  return {ref:pick(ref),below:pick(below),above:pick(above),no3y:pick(no3y),st04:pick(st04),reg:pick(reg),lam}});
- const {ref,below,above,no3y,st04,reg}=B;
+  return {ref:pick(ref),below:pick(below),above:pick(above),no3y:pick(no3y),st04:pick(st04),reg:pick(reg),curm:pick(curm),badY0:pick(badY0),badY1:pick(badY1),lam,anchor:ANCHOR.getMonth()+1}});
+ const {ref,below,above,no3y,st04,reg,curm,badY0,badY1}=B;
  const near=(a,b)=>Math.abs(a-b)<1e-9;
  ok('המבנה של PN-07: הביקוש דעך — ROP 12, SS 11 (היה 37)',ref.rateDecay&&ref.sugROP===12&&ref.sugSS===11,
    `λ ${ref.rateRecent.toFixed(3)} · קצב 3 שנים ${ref.rate3y.toFixed(2)} · ROP ${ref.sugROP} · SS ${ref.sugSS}`);
@@ -80,6 +87,9 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
    `יחס ${(above.rateRecent/above.rate3y).toFixed(4)}`);
  ok('עמודה שנתית חסרה — אין נתיב 3 שנים ואין דעיכה',no3y.has3y===false&&no3y.rateDecay===false&&no3y.rateRecent===null);
  ok('סטטוס 04 — אין המלצה, גם כשהקצב דעך',st04.sugROP===0&&st04.sugSS===0);
+ ok('מכירה בחודש הנוכחי — אין דעיכה, ROP על קצב 3 השנים',curm.rateDecay===false&&near(curm.dLT,curm.rate*curm.ltM),`ROP ${curm.sugROP}`);
+ ok('«צר.השנה» שאינה מתיישבת עם החודשים — הכלל לא חל',B.anchor>11||(badY0.rateDecay===false&&near(badY0.dLT,badY0.rate*badY0.ltM)),`עוגן ${B.anchor} · ROP ${badY0.sugROP}`);
+ ok('«צר.שנה-1» קטנה מהחודשים שלה שבחלון — הכלל לא חל',badY1.rateDecay===false&&near(badY1.dLT,badY1.rate*badY1.ltM),`ROP ${badY1.sugROP}`);
  ok('צריכה סדירה — הנתיב אינו פעיל, הנוסחה כמו קודם',reg.rateRecent===null&&reg.rateDecay===false&&near(reg.dLT,reg.rate*reg.ltM)&&reg.sugROP===Math.ceil(reg.dLT+reg.sugSS),
    `ROP ${reg.sugROP}`);
 
