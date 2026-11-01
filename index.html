@@ -9548,10 +9548,10 @@ const SCOL={
     מה המנוע יחשב אחרי מעבר PD → ZM-C — אותו build() על עותק השורה (ראה
     PROF_SIM). מידע בלבד: אינו שורת עדכון ל-SAP ואינו משנה פרופיל. בלי זמן
     אספקה — «לא ניתן לחשב — LT חסר», והתא בייצוא ריק. */
- profSimRop:{t:'ROP אחרי ZM-C',ttl:'סימולציה בלבד — נקודת ההזמנה שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינה עדכון ל-SAP',
+ profSimRop:{noX:1,t:'ROP אחרי ZM-C',ttl:'סימולציה בלבד — נקודת ההזמנה שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינה עדכון ל-SAP',
   val:r=>{const v=profSimVal(r,'rop');return typeof v==='number'?v:-1},xval:r=>{const v=profSimVal(r,'rop');return typeof v==='number'?v:''},
   cell:r=>profSimCell(r,'rop')},
- profSimSs:{t:'SS אחרי ZM-C',ttl:'סימולציה בלבד — מלאי הביטחון שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינו עדכון ל-SAP',
+ profSimSs:{noX:1,t:'SS אחרי ZM-C',ttl:'סימולציה בלבד — מלאי הביטחון שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינו עדכון ל-SAP',
   val:r=>{const v=profSimVal(r,'ss');return typeof v==='number'?v:-1},xval:r=>{const v=profSimVal(r,'ss');return typeof v==='number'?v:''},
   cell:r=>profSimCell(r,'ss')},
  /* ============ בחירה לקובץ SAP — עיצוב שלב 6ב ============
@@ -11770,7 +11770,9 @@ function viewExportRows(){
     הייצוא לא ייצג את מה שעל המסך. התנאי הוא עכשיו «יש רישום
     עמודות», וזה בדיוק מה שהגיליון צריך. */
  if(!colReg())return null;
- const keys=visCols().filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&k!=='spark');
+ /* noX — עמודת מידע במסך בלבד (שלב 2: ROP/SS אחרי ZM-C). כותרות הייצוא נעולות
+    מול main (PR-B), והחלטת המעתד 1.11: בלי עמודות חדשות באקסל של הכלי המלא */
+ const keys=visCols().filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&k!=='spark'&&!SCOL[k].noX);
  if(!keys.length)return null;
  const rows=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.val)(r)}catch(_){return ''}};

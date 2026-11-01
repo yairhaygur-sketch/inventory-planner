@@ -189,6 +189,10 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
   ok('כרטיס הכלי המלא: אזהרה, «קיימים…», ערכי SAP «קיים», ובתיבות ההמלצה «לא ניתן לחשב — LT חסר»',
    d.t.includes(C.LT_MSG)&&d.t.includes(C.LT_EXIST)&&/ב-SAP \(קיים\)/.test(d.t)&&d.boxes.length>=2&&d.boxes.slice(0,2).every(x=>x===C.LT_NA),JSON.stringify(d.boxes));
   ok('«מאחורי החישוב» בלי זמן אספקה: הודעה, בלי טבלת מרכיבים',d.m.includes(C.LT_MSG)&&!/⌈Z/.test(d.m))}
+ /* מסך שינוי הפרופיל: ROP/SS אחרי ZM-C מוצגים במסך, ואינם נכנסים לגיליון «התצוגה» באקסל (PR-B, 1.11) */
+ {const pv=await p.evaluate(()=>{setMode('prof');const v=viewExportRows();
+   return {vis:visCols().filter(k=>/^profSim/.test(k)),keys:v?v.keys:null,head:v?v.aoa[0]:null}});
+  ok('מסך הפרופילים: «ROP/SS אחרי ZM-C» במסך, ולא בגיליון «התצוגה» באקסל',pv.vis.length===2&&!!pv.keys&&!pv.keys.some(k=>/^profSim/.test(k))&&!pv.head.some(h=>/אחרי ZM-C/.test(h)),JSON.stringify(pv.head))}
  await p.context().close();
 
  /* ================= ?topics — אותן החלטות ================= */

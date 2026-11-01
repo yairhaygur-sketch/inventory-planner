@@ -213,6 +213,34 @@ Changes to these areas require explicit business approval.
     30.9 instead of the load day; 5 items move from «מלאי מת» to «נמכר פעם,
     לא זז מאז». Details: `docs/DECISION-RULES.md` section 5ת3.
 
+- **2026-10-28 · Phase 2 — PD→ZM-C and missing lead time (shared engine, both
+  tools).** Approved in the minimal-tool conversation. PR #139 merged into
+  #138's branch after #138 itself was merged, so it never reached main; it is
+  brought onto main in the minimal-tool PR of 2026-11-01.
+  - PD→ZM-C when net consumption over 12 calendar months (11 full + the
+    current month, returns included) is ≥ 3 units. 04/14 excluded by code
+    and text; a missing monthly column means no recommendation (not zero);
+    tools/accessories get the recommendation with a manual-review warning.
+  - ZM-A/B/C downgrades keep the H rules, waiting period and safeguards; the
+    lowest target is ZM-C. No downgrade to PD.
+  - Missing planned LT (`אספ.מתוכנ.` blank or 0): «חסר זמן אספקה — יש לעדכן
+    ב-SAP». No SS/ROP recommendation (not zero, not a SAP value); no
+    replacement LT. Slow stock is marked as an estimate; tied-up money goes to
+    «אין מה לשנות».
+  - SAP file «זמן אספקה מתוכנן» = the planned LT only, not planned + GR.
+  - `ssMin||0` in the SAP file is **not changed** — open until the SAP import
+    semantics of a blank cell are verified.
+  - Full-tool Excel: no new columns (headers locked by PR-B); the profile
+    screen shows ROP/SS after ZM-C on screen only.
+- **2026-11-01 · Minimal tool (4 topics) — structure and ETA.** Each
+  subcategory is a shared-engine selector, no new rule or threshold:
+  customer orders without coverage (no purchase / partial — demand vs. free
+  stock + open PO); consumption change (rising / falling — the full tool's
+  trend doors); stock 0 now / expected to run out this month (the full tool's
+  shortage list, including dated ETA arriving by month end); data cleanup
+  (MRP profile change / SS-ROP update / missing LT). The ETA report loads in
+  the minimal tool through the full tool's own loader.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
