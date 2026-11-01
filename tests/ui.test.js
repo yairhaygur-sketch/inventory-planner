@@ -565,7 +565,8 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  const hSame=await p.evaluate(()=>HRUN.runs);
  ok('העלאה חוזרת של אותו קובץ אינה נספרת כהרצה',hSame===h0.runs,`${h0.runs} → ${hSame}`);
  /* הרצה חדשה נכפית ע"י שינוי חתימת ההרצה האחרונה */
- const bump=async()=>{await p.evaluate(()=>{HIST.runs[HIST.runs.length-1].sig='X'+Math.random();saveHist()});
+ /* BASE_MONTH: רשומת הרצה נושאת גם חתימת תוכן (cs) — «דוח אחר» הוא שתיהן */
+ const bump=async()=>{await p.evaluate(()=>{const l=HIST.runs[HIST.runs.length-1],x='X'+Math.random();l.sig=x;if(l.cs)l.cs=x;saveHist()});
    await reload()};
  await bump();
  const h2=await p.evaluate(()=>({runs:HRUN.runs,newN:HRUN.newN,backN:HRUN.backN,

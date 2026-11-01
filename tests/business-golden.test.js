@@ -34,6 +34,8 @@ const H=v=>crypto.createHash('sha1').update(JSON.stringify(v)).digest('hex').sli
 /* ---- 1. הדוח הסינתטי, בשעון מקובע ---- */
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'golden-'));
 fs.copyFileSync(path.join(__dirname,'make-fixture.js'),path.join(tmp,'make-fixture.js'));
+/* BASE_MONTH: תאריך המצב הקבוע של הדוח הסינתטי — אותו 23.10.2026 של השעון המקובע כאן */
+fs.mkdirSync(path.join(tmp,'lib'),{recursive:true});fs.copyFileSync(path.join(__dirname,'lib','fixture-date.js'),path.join(tmp,'lib','fixture-date.js'));
 fs.writeFileSync(path.join(tmp,'freeze.js'),
  `const F=Date.parse(${JSON.stringify(NOW)}),RD=Date;
   global.Date=class extends RD{constructor(...a){a.length?super(...a):super(F)}static now(){return F}};`);

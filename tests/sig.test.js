@@ -25,7 +25,9 @@ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','ש
 const C={ss:hdr.indexOf('מלאי בטחון'),rop:hdr.indexOf('נק.הז.מחדש'),
  free:hdr.indexOf('מלאי פנוי'),stock:hdr.indexOf('סה"כ מלאי'),
  m1:hdr.indexOf('צר.חודש-1'),m2:hdr.indexOf('צר.חודש-2')};
-const DAY=864e5,now=Date.now();
+/* BASE_MONTH: תאריכים קבועים מתאריך המצב של הדוחות הסינתטיים, לא מיום ההרצה */
+const {FIXTURE_NOW,FIXTURE_HEAD}=require('./lib/fixture-date.js');
+const DAY=864e5,now=FIXTURE_NOW;
 const dstr=d=>{const x=new Date(d);
  return `${String(x.getDate()).padStart(2,'0')}.${String(x.getMonth()+1).padStart(2,'0')}.${x.getFullYear()}`};
 /* דוח דטרמיניסטי לחלוטין — בלי הגרלה. פריט שמתנהג רגיל ושיש לו
@@ -56,7 +58,7 @@ function base(){const r=[];
  return r}
 function write(f,rows){const w=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet(
-  [['דוח ZMRP — תכנון מלאי'],[],hdr,...rows]),'ZMRP');
+  [FIXTURE_HEAD(),[],hdr,...rows]),'ZMRP');
  XLSX.writeFile(w,f);return f}
 const at=(rows,pn)=>rows.find(r=>r[0]===pn);
 const clone=rows=>rows.map(r=>r.slice());
