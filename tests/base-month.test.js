@@ -258,6 +258,79 @@ const baseOf=p=>p.evaluate(()=>BASE&&{y:BASE.y,m:BASE.m,src:BASE.src,ver:BASE.ve
   ok('ההדגמה מאומתת: חודש הבסיס אוקטובר 2026, תאריך המצב היום',d.ver&&d.ym==='2026-10'&&d.state==='2026-11-01'&&!d.warn.length,JSON.stringify(d));
   ok('אין שגיאות JS',!errs.length,errs[0]);await ctx.close()}
 
+ /* ===== 9 · היסטוריית הפרופיל: קובץ אחד, חודש אחד ===== */
+ const HD=['דוח ZMRP — תכנון מלאי','תאריך מצב: 23.10.2026'];
+ const FA=variant({head:HD});                                   /* ספטמבר, מהכותרת */
+ const FB=variant({head:HD,mut:R=>{for(const r of R.slice(0,300))for(let i=5;i<11;i++)r[H(MON[i])]=0}});
+ const PH=p=>p.evaluate(()=>{const o={},src=PROFH['\u0000src']||{};
+  for(const [pn,h] of Object.entries(PROFH))if(pn!=='\u0000src')o[pn]=h;
+  const by={};for(const h of Object.values(o))for(const k of Object.keys(h))by[k]=(by[k]||0)+1;
+  return {items:o,by,src:JSON.parse(JSON.stringify(src)),cs:BASE&&BASE.cs}});
+ const pick=(P,ym)=>Object.fromEntries(Object.entries(P.items).filter(([k,h])=>h[ym]!=null).map(([k,h])=>[k,h[ym]]));
+ const choose=async(p,ym)=>{await p.evaluate(v=>{const rd=document.getElementById('rd');rd.value=v;rd.onchange({target:rd})},ym);await p.waitForTimeout(500)};
+ {const {ctx,p,errs}=await page(b,'2026-11-01T08:00:00+02:00');
+  await load(p,FA);await p.waitForTimeout(400);
+  /* סימון משתמש — לא אמור לזוז בשום שלב */
+  await p.evaluate(()=>{setMarks([currentRows()[0]],'done','בדיקת היסטוריה');window.__mk=JSON.stringify(MARKS);window.__sug=JSON.stringify(ALL.map(x=>[x.pn,x.sugROP,x.sugSS]))});
+  const p0=await PH(p);
+  ok('אחרי טעינה: רשום רק תחת ספטמבר, והכותב הוא תוכן הקובץ',Object.keys(p0.by).join()==='2026-9'&&!!(p0.src['2026-9']&&p0.src['2026-9'].cs===p0.cs),JSON.stringify(p0.by));
+  await choose(p,'2026-08');const p1=await PH(p);
+  ok('ספטמבר → אוגוסט: רשום רק תחת אוגוסט, ואין כפילות',Object.keys(p1.by).join()==='2026-8'&&!p1.src['2026-9'],JSON.stringify(p1.by));
+  await choose(p,'2026-09');const p2=await PH(p);
+  ok('אוגוסט → ספטמבר: רשום רק תחת ספטמבר — ובדיוק כמו בטעינה',Object.keys(p2.by).join()==='2026-9'&&JSON.stringify(pick(p2,'2026-9'))===JSON.stringify(pick(p0,'2026-9')),JSON.stringify(p2.by));
+  const keep=await p.evaluate(()=>({mk:JSON.stringify(MARKS)===window.__mk,sug:JSON.stringify(ALL.map(x=>[x.pn,x.sugROP,x.sugSS]))===window.__sug,
+   stored:JSON.stringify(JSON.parse(localStorage.getItem('planner_profile_v1')))===JSON.stringify(PROFH)}));
+  ok('הסימונים לא זזו, ו-ROP/SS חזרו בדיוק אחרי ספטמבר → אוגוסט → ספטמבר',keep.mk&&keep.sug,JSON.stringify(keep));
+  ok('מה שבזיכרון הוא מה שנשמר',keep.stored);
+  ok('אין שגיאות JS',!errs.length,errs[0]);await ctx.close()}
+
+ /* ===== 9ב · שני קבצים באותו חודש, ואחד מהם עובר חודש ===== */
+ {const {ctx,p,errs}=await page(b,'2026-11-01T08:00:00+02:00');
+  await load(p,FA);await p.waitForTimeout(400);const a=await PH(p);const aSep=pick(a,'2026-9');
+  await load(p,FB);await p.waitForTimeout(400);const bb=await PH(p);const bSep=pick(bb,'2026-9');
+  const differ=Object.keys(aSep).filter(k=>aSep[k]!==bSep[k]).length+Object.keys(bSep).filter(k=>!(k in aSep)).length;
+  ok('שני הקבצים שונים בהמלצות של ספטמבר (אחרת הבדיקה אינה בודקת דבר)',differ>0,`${differ} פריטים שונים`);
+  ok('הקובץ השני נרשם לספטמבר, ומה שדרס של הראשון נשמר בצד',!!(bb.src['2026-9']&&bb.src['2026-9'].cs===bb.cs&&bb.src['2026-9'].prev&&bb.src['2026-9'].prev.cs===a.cs));
+  await choose(p,'2026-08');const c=await PH(p);
+  const cSep=pick(c,'2026-9');
+  const wrong=Object.entries(cSep).filter(([k,v])=>aSep[k]!==v).length;
+  const backB=Object.keys(bSep).filter(k=>!(k in aSep)&&(k in cSep)).length;
+  ok('הקובץ השני עבר לאוגוסט: ספטמבר מחזיק את ההמלצות של הקובץ הראשון, לא של השני',Object.keys(cSep).length>0&&wrong===0&&backB===0,`${Object.keys(cSep).length} פריטים · שגויים ${wrong}`);
+  ok('והכותב של ספטמבר חזר להיות הקובץ הראשון; אוגוסט שייך לשני',c.src['2026-9']&&c.src['2026-9'].cs===a.cs&&c.src['2026-8']&&c.src['2026-8'].cs===c.cs);
+  ok('אין שגיאות JS',!errs.length,errs[0]);await ctx.close()}
+
+ /* ===== 9ג · רישום ישן, שכותבו לא ידוע, אינו נמחק ===== */
+ {let pn,OLDV;{const {ctx,p}=await page(b,'2026-11-01T08:00:00+02:00');await load(p,FA);await p.waitForTimeout(400);
+   const m=pick(await PH(p),'2026-9');pn=Object.keys(m)[0];
+   /* ערך ישן ששונה ממה שהקובץ עצמו כותב — אחרת «חזר» לא מוכיח דבר */
+   OLDV=m[pn]==='A'?'B':'A';await ctx.close()}
+  /* מצב «לפני התיקון»: רישום של ספטמבר בלי רישום מקור, בדפדפן נקי */
+  const {ctx,p}=await page(b,'2026-11-01T08:00:00+02:00');
+  await p.evaluate(a=>localStorage.setItem('planner_profile_v1',JSON.stringify({[a[0]]:{'2026-9':a[1]}})),[pn,OLDV]);
+  await load(p,FA);await p.waitForTimeout(400);const l1=await PH(p);
+  ok('רישום ישן בספטמבר — נשמר בצד כשהקובץ נרשם על אותו חודש (כותב לא ידוע)',!!(l1.src['2026-9']&&l1.src['2026-9'].prev&&l1.src['2026-9'].prev.cs===null&&l1.src['2026-9'].prev.v[pn]===OLDV));
+  await choose(p,'2026-08');const l2=await PH(p);
+  ok('והקובץ עבר לאוגוסט — הרישום הישן חזר לספטמבר כמו שהיה',!!(l2.items[pn]&&l2.items[pn]['2026-9']===OLDV),JSON.stringify(l2.items[pn]));
+  await ctx.close()}
+
+ /* ===== 9ד · שתי לשוניות לא דורסות זו את זו ===== */
+ {const ctx=await b.newContext({viewport:{width:1440,height:900},timezoneId:'Asia/Jerusalem'});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const t1=await ctx.newPage(),t2=await ctx.newPage();
+  for(const t of [t1,t2]){await t.clock.setFixedTime(new Date('2026-11-01T08:00:00+02:00'));await t.goto('file://'+path.join(SD,'..','index.html')+'?nobrief=1')}
+  await Promise.all([load(t1,FA),load(t2,FB)]);await t1.waitForTimeout(800);
+  const st=await t1.evaluate(()=>JSON.parse(localStorage.getItem('planner_profile_v1')||'{}')['\u0000src']);
+  const csA=await t1.evaluate(()=>BASE.cs),csB=await t2.evaluate(()=>BASE.cs);
+  const e=st&&st['2026-9'];
+  ok('שתי לשוניות, שני קבצים באותו חודש: הכותב האחרון רשום, ומה שדרס של השני שמור — שום רישום לא אבד',
+   !!e&&((e.cs===csA&&e.prev&&e.prev.cs===csB)||(e.cs===csB&&e.prev&&e.prev.cs===csA)),JSON.stringify(e&&{cs:e.cs===csA?'A':e.cs===csB?'B':'?',prev:e.prev&&(e.prev.cs===csA?'A':e.prev.cs===csB?'B':'?')}));
+  /* הלשונית של הכותב האחרון עוברת חודש — השנייה מקבלת את הרישום שלה בחזרה */
+  const last=e&&e.cs===csA?t1:t2,other=last===t1?csB:csA;
+  await choose(last,'2026-08');await last.waitForTimeout(500);
+  const st2=await t1.evaluate(()=>JSON.parse(localStorage.getItem('planner_profile_v1')||'{}')['\u0000src']);
+  ok('הלשונית שעברה חודש מחזירה את ספטמבר ללשונית השנייה',st2&&st2['2026-9']&&st2['2026-9'].cs===other&&st2['2026-8']);
+  await ctx.close()}
+
  await b.close();
  console.log(out.join('\n'));console.log(`\n${out.length-bad} עברו · ${bad} נכשלו`);
  process.exit(bad?1:0)})().catch(e=>{console.error(e);process.exit(1)});

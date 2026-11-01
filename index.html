@@ -4754,16 +4754,48 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
    לפי חודש הבסיס של הדוח. העלאה חוזרת של אותו חודש דורסת את אותו
    מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
 function profLoad(track=true){try{const v=JSON.parse(stateRaw(PROF_KEY,track));PROFH=(v&&typeof v==='object')?v:{}}catch(_){PROFH={}}}
-function profRecord(items){
+/* ============ BASE_MONTH · מי רשם כל חודש ============
+   חודש בסיס שנבחר ידנית מחשב מחדש ורושם שוב. בלי הרישום הזה, אותו
+   קובץ נשאר רשום תחת שני חודשים (נמדד: 165 פריטים תחת ספטמבר וגם
+   תחת אוגוסט, אחרי מעבר ידני אחד).
+
+   `PROFH[PROF_SRC][ym] = {cs, prev}` — חתימת התוכן של מי שרשם את החודש
+   אחרון, ו-`prev` — מה שהוא דרס כשנכנס לחודש שמישהו אחר (או רישום
+   ישן שכותבו לא ידוע) כבר רשם. כשאותו תוכן עובר לחודש אחר:
+     · מוסרים מהחודש הקודם רק את מה שהוא עצמו רשם — ורק אם הוא הכותב
+       האחרון של אותו חודש. אחרת שום דבר לא נמחק;
+     · מה שהוא דרס שם (`prev`) חוזר, כולל רישום ישן שכותבו לא ידוע.
+   רמה אחת: שלישי שנכנס לאותו חודש שומר את מה שדרס הוא, לא את קודמו.
+   ההיסטוריה עצמה לא השתנתה: היא של פריטים שמתחת לפרופיל *בדוח הנוכחי*
+   (פריט שיצא ממנה נשמט, כמו קודם). המפתח השמור אינו מק״ט, ולכן
+   `profPrevBelow` אינו פוגש אותו; הגיבוי והשחזור נושאים אותו עם השאר. */
+const PROF_SRC='\u0000src';
+function profRecord(items,cs){
  if(!DEMO&&stateChanged(PROF_KEY))profLoad();
- profRecordCore(items);
- statePersist(PROF_KEY,()=>storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם'),()=>{profLoad();profRecordCore(items)})}
-function profRecordCore(items){const ym=dsigYM(),next={};
+ profRecordCore(items,cs);
+ statePersist(PROF_KEY,()=>storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם'),()=>{profLoad();profRecordCore(items,cs)})}
+function profRecordCore(items,cs){const ym=dsigYM(),next={};
+ const s0=PROFH[PROF_SRC],src=(s0&&typeof s0==='object')?JSON.parse(JSON.stringify(s0)):{};
+ const base={};for(const pn of Object.keys(PROFH))if(pn!==PROF_SRC)base[pn]=Object.assign({},PROFH[pn]);
+ if(cs){
+  /* אותו תוכן, רשום תחת חודש אחר כותב אחרון — הרישום שלו שם יורד, ומה שדרס חוזר */
+  for(const k of Object.keys(src)){const e=src[k];if(k===ym||!e||e.cs!==cs)continue;
+   for(const pn of Object.keys(base))delete base[pn][k];
+   if(e.prev&&e.prev.v){for(const [pn,t] of Object.entries(e.prev.v))(base[pn]=base[pn]||{})[k]=t;src[k]={cs:e.prev.cs,prev:null}}
+   else delete src[k]}
+  /* נכנסים לחודש שמישהו אחר רשם (או רישום ישן) — שומרים את מה שנדרס */
+  const e=src[ym];
+  if(!e||e.cs!==cs){const v={};for(const pn of Object.keys(base))if(base[pn][ym]!=null)v[pn]=base[pn][ym];
+   src[ym]={cs,prev:Object.keys(v).length?{cs:e?e.cs:null,v}:null}}}
  for(const r of items){const cur=profCur(r);if(!cur)continue;const t=profTgt(profH(r));
   if(PROF_RANK[t]>=PROF_RANK[cur])continue;
-  const h=Object.assign({},PROFH[r.pn]||{});h[ym]=t;
+  const h=Object.assign({},base[r.pn]||{});h[ym]=t;
   const ks=Object.keys(h).sort((a,b)=>{const p=k=>k.split('-').map(Number);const[x1,x2]=p(a),[y1,y2]=p(b);return x1-y1||x2-y2});
   for(const k of ks.slice(0,-3))delete h[k];next[r.pn]=h}
+ /* רישום המקור — רק לחודשים שעדיין יש בהם משהו, או שיש להם מה להחזיר */
+ if(Object.keys(src).length){const live=new Set([ym]);for(const h of Object.values(next))for(const k of Object.keys(h))live.add(k);
+  for(const k of Object.keys(src))if(!live.has(k)&&!(src[k]&&src[k].prev))delete src[k];
+  next[PROF_SRC]=src}
  PROFH=next}
 function staleRows(){if(!QF||!QF.all)return [];
  return QF.all.filter(r=>(r.etaPast||0)>0&&passColFilters(r))
@@ -12496,7 +12528,7 @@ function bmRecord(sig){
   /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
      כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
      התוצאה של הטעינה הזאת. */
-  profRecord(ALL)}
+  profRecord(ALL,BASE.cs)}
  else{HRUN=null;APPLIED=null;bmNeutral(ALL)}}
 let BM_DIAG=[];
 function bmDiag(){
