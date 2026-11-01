@@ -34,10 +34,11 @@ const ENGINE=()=>{const uni=(...ls)=>[...new Set(ls.flat())];
   unsQty:r.unsQty,burn:!!r.burn,custGap:!!r.custGap,cat:r.cat,sev:r.sev,act:(r.act||[])[0]||'',
   why:(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w[1]:String(w))});
  const by=l=>Object.fromEntries(l.map(r=>[r.pn,pick(r)]));
- return {fix:by(uni(decisionList('fix'),QF.all.filter(r=>pdUpgrade(r)||(r.ltBad&&!r.noStock)))),
-  trend:by(uni(riseRows(),trendRows(),QF.all.filter(r=>r.cat==='ייתכן שאזל ולא נרשם'))),
-  cust:by(QF.all.filter(r=>isT1(r)||r.custGap)),
-  short:by(uni(decisionList('short'),decisionList('m1')))}};
+ /* המבנה שהמעתד קבע (1.11) — כל נושא הוא בורר של המנוע המשותף */
+ return {cust:by(QF.all.filter(r=>r.custGap)),
+  trend:by(uni(riseRows(),trendRows())),
+  short:by(decisionList('short')),
+  fix:by(uni(profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),QF.all.filter(r=>r.ltBad&&!r.noStock)))}};
 /* יחס ניגודיות WCAG בין צבע הטקסט לרקע האפקטיבי (עולים בעץ עד רקע אטום) */
 const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  const lum=([r,g,b])=>{const f=c=>{c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};return .2126*f(r)+.7152*f(g)+.0722*f(b)};
@@ -109,11 +110,12 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  const eng=await p.evaluate(()=>{const ids=l=>l.map(r=>r.pn).sort();
   const uni=(...ls)=>[...new Set(ls.flat())].sort();
   return {
-   /* שלב 2: נושא 1 = שורות קובץ ה-SAP ∪ PD←ZM-C ∪ זמן אספקה חסר */
-   fix:uni(ids(decisionList('fix')),ids(QF.all.filter(r=>pdUpgrade(r)||(r.ltBad&&!r.noStock)))),
-   trend:uni(ids(riseRows()),ids(trendRows()),ids(QF.all.filter(r=>r.cat==='ייתכן שאזל ולא נרשם'))),
-   cust:ids(QF.all.filter(r=>isT1(r)||r.custGap)),
-   short:uni(ids(decisionList('short')),ids(decisionList('m1'))),
+   /* 1.11: טיוב נתונים = שינוי פרופיל (מונה המסילה) ∪ שורות קובץ ה-SAP עם המלצה ∪ זמן אספקה חסר */
+   fix:uni(ids(profRows().filter(profActive)),ids(decisionList('fix').filter(r=>!recNA(r))),ids(QF.all.filter(r=>r.ltBad&&!r.noStock))),
+   trend:uni(ids(riseRows()),ids(trendRows())),
+   cust:ids(QF.all.filter(r=>r.custGap)),
+   short:ids(decisionList('short')),
+   prof:navCount('prof').n,
    nav:{burn:navCount('burn').n,trend:navCount('trend').n,rise:navCount('rise').n},
    custGap:QF.all.filter(r=>r.custGap).length}});
  const T={};
@@ -139,11 +141,36 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   ok(`${t}: כל אריח פותח את המספר שעליו`,!miss.length,miss.join(', '))}
  /* המונים של התצוגה ושל המסילה בכלי המלא — אותו מספר */
  {const tl=(t,k)=>(T[t].tiles.find(x=>x.k===k)||{}).n;
-  ok('«לקוח ממתין · אין רכש» = «אין רכש כלל» בכלי המלא',tl('cust','burn')===eng.nav.burn,`${tl('cust','burn')} · ${eng.nav.burn}`);
+  ok('«אין רכש כלל» = הדלת «לקוח ממתין ללא רכש» בכלי המלא',tl('cust','none')===eng.nav.burn,`${tl('cust','none')} · ${eng.nav.burn}`);
+  ok('«שינוי פרופיל MRP» = המונה של «שינוי פרופיל» במסילת הכלי המלא',tl('fix','prof')===eng.prof,`${tl('fix','prof')} · ${eng.prof}`);
   ok('«ביקוש יורד» = הדלת בכלי המלא',tl('trend','down')===eng.nav.trend,`${tl('trend','down')} · ${eng.nav.trend}`);
   ok('«ביקוש עולה» = הדלת בכלי המלא',tl('trend','up')===eng.nav.rise,`${tl('trend','up')} · ${eng.nav.rise}`);
-  ok('אין רכש + ההזמנה גדולה = כל ההזמנות שהמנוע סימן כלא מכוסות',
-   tl('cust','burn')+tl('cust','gap')===eng.custGap,`${tl('cust','burn')}+${tl('cust','gap')} · ${eng.custGap}`)}
+  ok('אין רכש כלל + כיסוי חלקי = כל ההזמנות שהמנוע סימן כלא מכוסות',
+   tl('cust','none')+tl('cust','part')===eng.custGap,`${tl('cust','none')}+${tl('cust','part')} · ${eng.custGap}`)}
+ /* ---- 3ב. תתי-הקטגוריות לפי ההגדרות שאושרו (1.11), פריט אחר פריט ---- */
+ {const r=await p.evaluate(()=>{const cat=(t,k)=>TOPICS[t].rows().filter(TOPICS[t].cats.find(c=>c[0]===k)[3]);
+   const none=cat('cust','none'),part=cat('cust','part'),zero=cat('short','zero'),month=cat('short','month'),up=cat('trend','up'),down=cat('trend','down');
+   const gap=r=>r.cust-(Math.max(0,r.free)+Math.max(0,r.po));
+   return {order:Object.keys(TOPICS),tabs:[...document.querySelectorAll('#lite nav button')].map(b=>b.dataset.tpTab),
+    cats:Object.fromEntries(Object.keys(TOPICS).map(t=>[t,TOPICS[t].cats.map(c=>c[1])])),
+    none:none.length,noneBad:none.filter(r=>!(r.po<=0&&gap(r)>0)).map(r=>r.pn),
+    part:part.length,partBad:part.filter(r=>!(r.po>0&&gap(r)>0)).map(r=>r.pn),
+    custN:TOPICS.cust.rows().length,custCovered:TOPICS.cust.rows().filter(r=>gap(r)<=0).map(r=>r.pn),
+    zero:zero.length,zeroBad:zero.filter(r=>shelfQty(r)>0).map(r=>r.pn),
+    month:month.length,monthBad:month.filter(r=>!(shelfQty(r)>0&&r.unsQty>0)).map(r=>r.pn),
+    shortN:TOPICS.short.rows().length,shortSame:JSON.stringify(TOPICS.short.rows().map(r=>r.pn).sort())===JSON.stringify(QF.all.filter(inToday).map(r=>r.pn).sort()),
+    both:up.filter(r=>down.includes(r)).map(r=>r.pn)}});
+  ok('ארבעת הנושאים בסדר שנקבע: הזמנות לקוח · חריגת צריכה · מלאי 0/צפוי להיגמר · טיוב נתונים',
+   JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify(r.order),r.tabs.join(','));
+  ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד'],
+   short:['מלאי 0 עכשיו','צפוי להיגמר החודש'],fix:['שינוי פרופיל MRP','עדכון SS ו-ROP','נתונים שבורים']}),JSON.stringify(r.cats));
+  ok(`«אין רכש כלל» (${r.none}): בכל שורה אין רכש פתוח, ומלאי + רכש קטנים מההזמנה`,r.none>0&&!r.noneBad.length,r.noneBad.join(','));
+  ok(`«כיסוי חלקי» (${r.part}): בכל שורה יש רכש, ומלאי + רכש יחד קטנים מההזמנה`,r.part>0&&!r.partBad.length,r.partBad.join(','));
+  ok('אין בנושא 1 הזמנה שמלאי + רכש מכסים, ושתי הקטגוריות מכסות את כל הנושא',!r.custCovered.length&&r.none+r.part===r.custN,`${r.custCovered.length} · ${r.none}+${r.part}/${r.custN}`);
+  ok(`«מלאי 0 עכשיו» (${r.zero}): המדף ריק בכל שורה`,r.zero>0&&!r.zeroBad.length,r.zeroBad.join(','));
+  ok(`«צפוי להיגמר החודש» (${r.month}): יש מלאי, ו«לא יסופק החודש» > 0 בכל שורה`,r.month>0&&!r.monthBad.length,r.monthBad.join(','));
+  ok('נושא 3 = רשימת «חוסר» של הכלי המלא (inToday), ושתי הקטגוריות מכסות אותה בלי חפיפה',r.shortSame&&r.zero+r.month===r.shortN,`${r.zero}+${r.month}/${r.shortN}`);
+  ok('פריט אינו גם «ביקוש עולה» וגם «ביקוש יורד»',!r.both.length,r.both.join(','))}
 
  /* ---- 4. טיוב נתונים: בכל שורה משהו שונה מ-SAP, וכסף במטבע של הפריט ---- */
  await p.click('[data-tp-tab="fix"]');

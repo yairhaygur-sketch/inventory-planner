@@ -158,18 +158,20 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
  const xbad=[];
  for(const pn of ZMNOLT){const x=F.x[pn];
   if(x['ROP מוצע']!==''||x['SS מוצע']!==''||x['SS סטטיסטי']!==''||x['ביקוש בזמן האספקה']!=='')xbad.push(pn+': מספר בהמלצה');
-  if(!String(x['סטטוס המלצה']).includes(F.LT_NA))xbad.push(pn+': אין סטטוס');
+  if(!String(x['סטטוס']||'').trim())xbad.push(pn+': «סטטוס» ריק');
+  if(!F.why[pn].includes(F.LT_MSG))xbad.push(pn+': אין הסבר LT בנימוק');
   if(typeof x['ROP בSAP']!=='number'||typeof x['SS בSAP']!=='number')xbad.push(pn+': ערכי SAP');}
- ok('אקסל: «ROP/SS מוצע», «SS סטטיסטי» ו«ביקוש בזמן אספקה» ריקים; הסבר בשדה «סטטוס המלצה»; ערכי SAP בעמודות שלהם',!xbad.length,xbad.join(' · '));
- ok('אקסל: «זמן אספקה מתוכנן ב-SAP (מקור)» — ריק נשאר ריק, 0 נשאר 0',F.x['PD-NOLT']['זמן אספקה מתוכנן ב-SAP (מקור)']===''&&F.x['PD-LT0']['זמן אספקה מתוכנן ב-SAP (מקור)']===0&&F.x['ZM-VALID']['זמן אספקה מתוכנן ב-SAP (מקור)']===30);
- ok('אקסל: לפריט תקין — ההמלצה מספר, והסטטוס ריק',typeof F.x['ZM-VALID']['ROP מוצע']==='number'&&F.x['ZM-VALID']['סטטוס המלצה']==='');
- ok('אקסל: PD ← ZM-C בלי זמן אספקה — המלצת הפרופיל והאזהרה בסטטוס',/PD ← ZM-C/.test(F.x['PD-NOLT']['סטטוס המלצה'])&&F.x['PD-NOLT']['סטטוס המלצה'].includes(F.LT_NA));
- /* ---- מלאי איטי, כסף תקוע, דלתות ---- */
+ ok('אקסל: «ROP/SS מוצע», «SS סטטיסטי» ו«ביקוש בזמן אספקה» ריקים; ההסבר בעמודה הקיימת «סטטוס» ובנימוק; ערכי SAP בעמודות שלהם',!xbad.length,xbad.join(' · '));
+ /* החלטת המעתד 1.11: בלי עמודות חדשות באקסל של הכלי המלא — הכותרות נעולות מול main (PR-B).
+    שתי העמודות נשארות ב-CSV של התצוגה המצומצמת (נבדק למטה) */
+ ok('אקסל: אין עמודות חדשות — «סטטוס המלצה» ו«זמן אספקה מתוכנן ב-SAP (מקור)» אינן בכלי המלא',!('סטטוס המלצה' in F.x['ZM-VALID'])&&!('זמן אספקה מתוכנן ב-SAP (מקור)' in F.x['ZM-VALID']),Object.keys(F.x['ZM-VALID']).length+' עמודות');
+ ok('אקסל: לפריט תקין — ההמלצה מספר',typeof F.x['ZM-VALID']['ROP מוצע']==='number'&&typeof F.x['ZM-VALID']['SS מוצע']==='number');
+  /* ---- מלאי איטי, כסף תקוע, דלתות ---- */
  ok('שדות שלב 2 רק בפריט שהם חלים עליו: פריט ZM תקין בלי ltBad/ltRaw/sugSSCalc/net12/slowEst, וזמן אספקה מתוכנן = 30 (בלי 2 ימי קבלה)',
   !F.sparse.ltBad&&!F.sparse.ltRaw&&!F.sparse.sugSSCalc&&!F.sparse.net12&&!F.sparse.slowEst&&F.sparse.plan===30&&F.sparse.raw===30&&F.sparse.ltPlanned===30,JSON.stringify(F.sparse));
  ok('LT=0 עם 2 ימי קבלה: ltBad, ltRaw=0, ltPlanned=0 שמור במפורש (ltD=2)',F.sparseBad.ltBad===true&&F.sparseBad.ltRaw===0&&F.sparseBad.ltPlanned===0&&F.sparseBad.plan===0,JSON.stringify(F.sparseBad));
- ok('מלאי איטי בלי זמן אספקה: החישוב נשאר, מסומן «אומדן» — בנימוק, בעמודה ובאקסל',
-  F.slowEst===true&&F.slowExp>0&&F.why['ZM-SLOW-NOLT'].includes(F.SLOW_EST)&&/אומדן/.test(F.capCell)&&F.x['ZM-SLOW-NOLT']['סטטוס המלצה'].includes(F.SLOW_EST),
+ ok('מלאי איטי בלי זמן אספקה: החישוב נשאר, מסומן «אומדן» — בנימוק ובעמודה',
+  F.slowEst===true&&F.slowExp>0&&F.why['ZM-SLOW-NOLT'].includes(F.SLOW_EST)&&/אומדן/.test(F.capCell),
   `cat=${F.cat['ZM-SLOW-NOLT']} exp=${F.slowExp}`);
  ok('כסף תקוע: בלי זמן אספקה → «אין מה לשנות», לא «להפסיק להזמין»',F.cap==='capNone',F.cap);
  ok('«מלאי ביטחון ידני» ודלתות ה-ROP אינן כוללות פריט בלי זמן אספקה',!F.floorHas.length&&!F.ropHas.length,`${F.floorHas} · ${F.ropHas}`);
@@ -192,14 +194,18 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
  /* ================= ?topics — אותן החלטות ================= */
  const q=await page('?topics');await load(q,F1);await q.waitForSelector('#lite table');
  const L=await q.evaluate(()=>{const T=TOPICS.fix,rows=T.rows(),cat=k=>rows.filter(T.cats.find(c=>c[0]===k)[3]).map(r=>r.pn).sort();
-  return {pd:cat('pd'),lt:cat('lt'),both:rows.filter(r=>pdUpgrade(r)&&tpLtMissing(r)).map(r=>r.pn).sort()}});
- ok('?topics: «PD ← ZM-C» = אותם פריטים כמו בכלי המלא',JSON.stringify(L.pd)===JSON.stringify(F.up),L.pd.join(','));
- ok('?topics: «זמן אספקה חסר» = כל ltBad בלי 04/14, כולל PD בלי צריכה',
+  /* «שינוי פרופיל MRP» (1.11) = מה שמסך הפרופילים בכלי המלא מסמן לפעולה — PD ← ZM-C והורדות ZM */
+  return {pd:rows.filter(T.cats.find(c=>c[0]==='prof')[3]).filter(pdUpgrade).map(r=>r.pn).sort(),
+   prof:cat('prof'),profFull:profRows().filter(profActive).map(r=>r.pn).sort(),
+   lt:cat('data'),both:rows.filter(r=>pdUpgrade(r)&&tpLtMissing(r)).map(r=>r.pn).sort()}});
+ ok('?topics: «שינוי פרופיל MRP» = בדיוק הפריטים שמסך הפרופילים בכלי המלא מסמן לפעולה',L.prof.length>0&&JSON.stringify(L.prof)===JSON.stringify(L.profFull),L.prof.join(','));
+ ok('?topics: ובתוכה — PD ← ZM-C = אותם פריטים כמו בכלי המלא',JSON.stringify(L.pd)===JSON.stringify(F.up),L.pd.join(','));
+ ok('?topics: «נתונים שבורים» = כל ltBad בלי 04/14, כולל PD בלי צריכה',
   JSON.stringify(L.lt)===JSON.stringify([...LTBAD].sort())&&L.lt.includes('PD-ZERO-NOLT'),L.lt.join(','));
  ok('?topics: פריט יכול להיות בשתי הקטגוריות',JSON.stringify(L.both)===JSON.stringify(['PD-LT0','PD-LT0GR','PD-NOLT']),L.both.join(','));
- await q.click('[data-tp-tab="fix"]');await q.click('#lite .tile[data-tp-cat="lt"]');
+ await q.click('[data-tp-tab="fix"]');await q.click('#lite .tile[data-tp-cat="data"]');
  const ord=await q.evaluate(()=>TP.shown.map(r=>[r.pn,tpLtPrio(r)]));
- ok('?topics: סדר «זמן אספקה חסר» — לקוח ממתין, אחר כך חוסר, אחר כך השאר',ord.length>0&&ord[0][0]==='ZM-NOLT-CUST'&&ord.every((x,i)=>!i||ord[i-1][1]<=x[1]),JSON.stringify(ord));
+ ok('?topics: סדר «נתונים שבורים» — לקוח ממתין, אחר כך חוסר, אחר כך השאר',ord.length>0&&ord[0][0]==='ZM-NOLT-CUST'&&ord.every((x,i)=>!i||ord[i-1][1]<=x[1]),JSON.stringify(ord));
  /* CSV של נושא 1, שדה בשדה */
  await q.click('#lite .tile[data-tp-cat=""]');
  const [dl]=await Promise.all([q.waitForEvent('download'),q.click('#lite [data-tp="csv"]')]);
@@ -215,6 +221,7 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
  const rv=row('PD-VALID'),rn=row('PD-NOLT');
  ok('?topics CSV: PD ← ZM-C — ערכי הסימולציה כשזמן האספקה תקין, ריק כשחסר',!!rv&&rv['נק הזמנה מוצעת']!==''&&+rv['נק הזמנה מוצעת']===F.sim['PD-VALID'].rop&&!!rn&&rn['נק הזמנה מוצעת']===''&&/PD ← ZM-C/.test(rn['סטטוס המלצה']));
  ok('?topics CSV: זמן אספקה מתוכנן מקורי — ריק ריק, 0 אפס',row('PD-NOLT')['זמן אספקה מתוכנן ב-SAP (מקור)']===''&&row('PD-LT0')['זמן אספקה מתוכנן ב-SAP (מקור)']==='0');
+ ok('?topics CSV: PD ← ZM-C בלי זמן אספקה — המלצת הפרופיל והאזהרה ב«סטטוס המלצה»',/PD ← ZM-C/.test(row('PD-NOLT')['סטטוס המלצה'])&&row('PD-NOLT')['סטטוס המלצה'].includes(C.LT_NA),row('PD-NOLT')['סטטוס המלצה']);
  /* כרטיס הפריט — שתי הבעיות, בנפרד */
  {await q.evaluate(()=>tpdShow(TOPICS.fix.rows().find(r=>r.pn==='PD-NOLT')));
   const d=await q.evaluate(()=>{const el=document.getElementById('tpd');

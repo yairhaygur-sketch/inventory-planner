@@ -3238,6 +3238,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
 #lite .tph h1{font-size:var(--f-lg);margin:0;font-weight:700}
 #lite .tph .src{color:var(--shell-dim);flex:1;min-width:200px}
+#lite .tph .src.eta{flex:0 0 auto;min-width:0} #lite .tph .src.eta.warn{color:var(--shell-warn,#F0B35A)}
 #lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
 #lite .tph .btn:hover{background:var(--shell-btn-h)}
 #lite .tph .btn.pri{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
@@ -11734,8 +11735,8 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['יח׳ ברכש בלי תאריך',r=>ETA?(r.stuck||0):''],
  ['יח׳ שתאריכן כבר עבר',r=>ETA?(r.etaPast||0):''],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>recX(r,'sugROP')],['SS בSAP',r=>r.ss],['SS מוצע',r=>recX(r,'sugSS')],
- /* שלב 2: המספרים ריקים כשאין המלצה, וההסבר כאן — לא בתוך תא מספרי */
- ['סטטוס המלצה',r=>recStatus(r)],['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)],
+ /* שלב 2: המספרים ריקים כשאין המלצה. ההסבר — בעמודות הקיימות: «סטטוס» כאן,
+    ו«למה»/«פעולה» בגיליון «התצוגה». בלי עמודות חדשות: הכותרות של הייצוא נעולות מול main (PR-B), החלטת המעתד 1.11 */
  ['ביקוש בזמן האספקה',r=>recNA(r)?'':+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>recNA(r)?'':(r.ssStat||0)],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  /* ============ RATE_3Y — הגיליון חייב לומר מאיזה חלון ============
@@ -12562,7 +12563,7 @@ document.getElementById('fe').onchange=e=>{const file=e.target.files[0];if(!file
    const hit=ALL.filter(r=>r.etaHas).length;
    toast('✓ דוח ETA — '+res.parts.toLocaleString('he-IL')+' מק״טים, '+hit.toLocaleString('he-IL')+' מהם בקטלוג');
    if(hit===0)toast('⚠ אף מק״ט מדוח ה-ETA לא נמצא בקטלוג — ודא שזה אותו מפעל');}
-  else toast('✓ דוח ETA נשמר — יצטרף ברגע שתעלה דוח ZMRP');
+  else{toast('✓ דוח ETA נשמר — יצטרף ברגע שתעלה דוח ZMRP');if(LITE)tpRender()}
   e.target.value=''};
  rd.readAsArrayBuffer(file)};
 etaChip();
@@ -13816,7 +13817,7 @@ applyLayout();
    הם בכלי המלא, והקישור «לכלי המלא» פותח אותו על אותו דוח (הדוח
    נטען מחדש — אין שיתוף זיכרון בין לשוניות).
    כסף: לפריט בלבד, במטבע שלו (money). אין סכום על פני פריטים. */
-const TP={tab:'fix',cat:{},q:'',pl:'',sort:{},lim:200,open:null};
+const TP={tab:'cust',cat:{},q:'',pl:'',sort:{},lim:200,open:null};
 try{const h=location.hash.slice(1);if(['fix','trend','cust','short'].includes(h))TP.tab=h}catch(_){}
 const TP_SRC={stat:'סטטיסטי',sap:'מינימום מ-SAP',policy:'מינימום לפי מחיר',none:'—',od:'לפי דרישה',nostock:'לא לחידוש'};
 const tpN=v=>v==null||v===''||isNaN(v)?'—':(+v).toLocaleString('he-IL',{maximumFractionDigits:1});
@@ -13825,7 +13826,6 @@ const tpP=(c,t)=>`<span class="p ${c}">${esc(t)}</span>`;
 const tpAct=r=>(r.act&&r.act[0])||'';
 const tpUniq=lists=>{const s=new Set(),out=[];for(const l of lists)for(const r of l)if(!s.has(r)){s.add(r);out.push(r)}return out};
 const tpVal=(n,r)=>r.priceMissing?null:n*(r.price||0);
-const TP_DROP='ייתכן שאזל ולא נרשם';
 /* ============ TP_REC — מקור אחד להמלצת SS/ROP בתצוגה המצומצמת (שלב 2) ============
    engine — מה שהמנוע חישב · sim — PD שמומלץ ל-ZM-C: אותו build() על עותק
    (profSplit / PROF_SIM) · na — אין המלצה: 'lt' בלי זמן אספקה, 'od' לפריט
@@ -13855,32 +13855,32 @@ const TP_HEAD=[
  {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b>`},
  {k:'desc',l:'תיאור',v:r=>r.desc,c:'d'},
  {k:'planner',l:'מתכנן',v:r=>r.planner}];
+/* ============ ארבעת הנושאים — הסדר ותתי-הקטגוריות שהמעתד קבע (1.11) ============
+   כל תת-קטגוריה היא בורר של המנוע המשותף, בלי חישוב חדש ובלי סף חדש:
+     1 · הזמנות לקוח — burn / custGap מ-classify (פער = הזמנה − (מלאי פנוי + רכש פתוח))
+     2 · חריגת צריכה — riseGap / trendGap, הדלתות «ביקוש עולה/יורד» של הכלי המלא
+     3 · מלאי 0 / צפוי להיגמר — inToday (הדלת «חוסר» של הכלי המלא); unsQty כבר
+         מקזז אספקה מדוח ETA שתגיע עד סוף החודש (etaApply)
+     4 · טיוב נתונים — profActive (מונה המסילה של «שינוי פרופיל»), שורות קובץ
+         העדכון ל-SAP עם המלצה תקפה, וזמן אספקה חסר */
 const TOPICS={
- fix:{t:'טיוב נתוני תכנון',
-  lead:'נקודת הזמנה ומלאי ביטחון — הערך ב-SAP מול המוצע (השורות של קובץ העדכון ל-SAP), ועוד שתי קטגוריות: «PD ← ZM-C» — צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים, ו«זמן אספקה חסר» — «אספ.מתוכנ.» ריק או 0 ב-SAP. פריט יכול להופיע בשתיהן. בלי זמן אספקה אין המלצת מלאי ביטחון ונקודת הזמנה. הכול המלצה לשיקול המתכנן — דבר לא משתנה ב-SAP מכאן.',
-  rows:()=>tpUniq([decisionList('fix'),((QF&&QF.all)||[]).filter(r=>pdUpgrade(r)||tpLtMissing(r))]),
-  /* «העלאה/הפחתה/SS בלבד» הן שורות קובץ ה-SAP שיש להן המלצת מספר; שתי הקטגוריות החדשות נבדלות מהן */
-  cats:[['up','העלאת נקודת הזמנה','amb',r=>tpInFix(r)&&!recNA(r)&&r.sugROP>r.rop],['down','הפחתת נקודת הזמנה','blu',r=>tpInFix(r)&&!recNA(r)&&r.sugROP<r.rop],
-   ['ss','מלאי ביטחון בלבד','gry',r=>tpInFix(r)&&!recNA(r)&&r.sugROP===r.rop],
-   ['pd','PD ← ZM-C','blu',r=>pdUpgrade(r)],['lt','זמן אספקה חסר','red',r=>tpLtMissing(r)]],
+ cust:{t:'הזמנות לקוח ללא כיסוי',
+  lead:'הזמנת לקוח פתוחה (בניכוי כמות חסומה למשלוח) שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים — אותו פער שהכלי המלא מחשב. «אין רכש כלל»: אין הזמנת רכש פתוחה. «כיסוי חלקי»: יש רכש, אבל מלאי ורכש יחד קטנים מההזמנה. PD נכלל; 04/14 מטופלים בנפרד בכלי המלא.',
+  rows:()=>((QF&&QF.all)||[]).filter(r=>r.custGap),
+  cats:[['none','אין רכש כלל','red',r=>!!r.burn],['part','כיסוי חלקי','amb',r=>r.custGap&&!r.burn]],
   cols:[
-   {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(pdUpgrade(r)?' '+tpP('blu','← ZM-C'):'')},
-   {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
-   {k:'ss',l:'מלאי ביטחון',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
-   {k:'src',l:'מה קבע את מלאי הביטחון',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
-   {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>{const x=ltRawOf(r);return x===''?null:x},
-    h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(ltRawOf(r)),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)]]},
-   {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
-   {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
-   {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpRecVal(r),
-    h:r=>{const v=tpRecVal(r);return v==null?'—':(v>0?'+':v<0?'−':'')+money(Math.abs(v),r.currency)},
-    x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
+   {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'mrp',l:'סוג MRP',v:r=>r.mrp},
+   {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust},
+   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
+   {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po>0?tpN(r.po):'—'},
+   {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>r.miss||0,h:r=>r.miss>0?`<b>${tpN(r.miss)}</b>`:'—'},
+   {k:'eta',l:'אספקה ראשונה (ETA)',v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
  trend:{t:'חריגת צריכה',
-  lead:'3 החודשים האחרונים מול 3 שלפניהם, על סדרת הצריכה אחרי ניקוי: פיק נחתך, וחודש שבו כנראה אזל המלאי מוחלף בחציון. המגמה היא מספר מייעץ ואינה משנה את נקודת ההזמנה המוצעת — פריטים שזינקו חזרו בממוצע לכ-58% מהשיא. «ייתכן שאזל ולא נרשם» הוא רצף חודשים נמוכים בין חודשים תקינים: חסר מלאי, לא ירידה בביקוש.',
-  rows:()=>tpUniq([riseRows(),trendRows(),((QF&&QF.all)||[]).filter(r=>r.cat===TP_DROP)]),
-  cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0],
-   ['drop',TP_DROP,'red',r=>r.cat===TP_DROP]],
+  lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים האחרונים מול 3 שלפניהם, על סדרת הצריכה אחרי ניקוי, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. המגמה היא מספר מייעץ ואינה משנה את נקודת ההזמנה המוצעת.',
+  rows:()=>tpUniq([riseRows(),trendRows()]),
+  cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0]],
   cols:[
    {k:'kind',l:'סוג',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    {k:'tRec',l:'3 ח׳ אחרונים',n:1,v:r=>r.tRec,h:r=>tpN(r.tRec)},
@@ -13892,32 +13892,40 @@ const TOPICS={
    {k:'adv',l:'לפי המגמה (מייעץ)',n:1,v:r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
- cust:{t:'הזמנות לקוח ללא כיסוי',
-  lead:'הזמנת לקוח פתוחה (בניכוי כמות חסומה למשלוח) שהמלאי הפנוי אינו מכסה. PD נכלל — הזמנת לקוח היא בדיוק הסיבה להזמין פריט לפי דרישה. רכש פתוח מוצג בנפרד: בלי תאריך הגעה הוא מכסה כמות, לא את המדף.',
-  rows:()=>((QF&&QF.all)||[]).filter(r=>isT1(r)||r.custGap),
-  cats:[['burn','לקוח ממתין · אין רכש','red',r=>!!r.burn],['gap','ההזמנה גדולה מהמלאי והרכש','amb',r=>r.custGap&&!r.burn],
-   ['po','מדף ריק · הרכש מכסה בכמות','blu',r=>!r.custGap]],
+ short:{t:'מלאי 0 / צפוי להיגמר',
+  lead:'אותה רשימת «חוסר» של הכלי המלא — פריטים מנוהלי מלאי. «מלאי 0 עכשיו»: המדף ריק, ויש לקוח ממתין או צריכה שלא תכוסה החודש. «צפוי להיגמר החודש»: יש מלאי, אבל הקצב החודשי גדול מהמלאי הפנוי ומהאספקה המתוארכת שתגיע עד סוף החודש. רכש בלי תאריך אינו נספר.',
+  rows:()=>decisionList('short'),
+  cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0],['month','צפוי להיגמר החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0]],
   cols:[
    {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
-   {k:'mrp',l:'סוג MRP',v:r=>r.mrp},
-   {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust},
-   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
-   {k:'po',l:'רכש פתוח',n:1,v:r=>r.po},
-   {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>Math.max(0,r.cust-Math.max(0,r.free)-Math.max(0,r.po)),h:r=>{const g=Math.max(0,r.cust-Math.max(0,r.free)-Math.max(0,r.po));return g?`<b>${tpN(g)}</b>`:'—'}},
-   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
- short:{t:'מלאי 0 או צפוי להיגמר',
-  lead:'פריטים מנוהלי מלאי שהמדף שלהם ריק, או שהקצב החודשי גדול ממה שיהיה זמין החודש. «אוזל החודש»: צריכה של 10+ יח׳ ב-3 החודשים האחרונים, ומלאי פנוי שאינו מכסה חודש אחד. רכש בלי תאריך אינו נספר; דוח ETA שנטען בכלי המלא מקזז אספקה מתוארכת לחודש. PD, «לפי דרישה» וסטטוס 04/14 — לא כאן.',
-  rows:()=>tpUniq([decisionList('short'),decisionList('m1')]),
-  cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0],['month','לא יכסה את החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0],
-   ['m1','אוזל החודש','amb',r=>isM1(r)]],
-  cols:[
-   {k:'kind',l:'מצב',v:r=>r.cat,h:r=>tpP(r.sev===3?'red':r.sev===2?'amb':'gry',r.cat)},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
+   {k:'etaM',l:'אספקה עד סוף החודש (ETA)',n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
    {k:'uns',l:'לא יסופק החודש',n:1,v:r=>Math.ceil(r.unsQty||0),h:r=>r.unsQty>0?`<b>${tpN(Math.ceil(r.unsQty))}</b>`:'—'},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
    {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
+   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
+ fix:{t:'טיוב נתונים',
+  lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP — בלי זמן אספקה אין המלצת SS/ROP. פריט יכול להופיע ביותר מקטגוריה אחת.',
+  rows:()=>tpUniq([profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),((QF&&QF.all)||[]).filter(tpLtMissing)]),
+  cats:[['prof','שינוי פרופיל MRP','blu',r=>profActive(r)],['param','עדכון SS ו-ROP','amb',r=>tpInFix(r)&&!recNA(r)],
+   ['data','נתונים שבורים','red',r=>tpLtMissing(r)]],
+  cols:[
+   {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
+   {k:'prof',l:'שינוי פרופיל',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
+    h:r=>{const i=profActive(r)?profInfo(r):null;return i?`<span title="${esc(i.why||'')}">${esc(PROF_ST[i.state][0])}</span>`:'—'},
+    x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${PROF_ST[i.state][0]}`:''}]]},
+   {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
+   {k:'ss',l:'מלאי ביטחון',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
+   {k:'src',l:'מה קבע את מלאי הביטחון',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
+   {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>{const x=ltRawOf(r);return x===''?null:x},
+    h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(ltRawOf(r)),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)]]},
+   {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
+   {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
+   {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpRecVal(r),
+    h:r=>{const v=tpRecVal(r);return v==null?'—':(v>0?'+':v<0?'−':'')+money(Math.abs(v),r.currency)},
+    x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]}};
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
@@ -13926,7 +13934,7 @@ function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.t
  return T.rows().filter(r=>(!TP.pl||r.planner===TP.pl)
   &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
 function tpSorted(t,list){const s=TP.sort[t];
- if(!s){if(t==='fix'&&TP.cat.fix==='lt')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);return list}
+ if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);return list}
  const col=TOPICS[t].cols.concat(TP_HEAD).find(c=>c.k===s.k);if(!col)return list;
  /* «—» (null) תמיד בסוף, בשני הכיוונים */
  return list.slice().sort((a,b)=>{const x=col.v(a),y=col.v(b);
@@ -13954,13 +13962,12 @@ function tpdProblem(t,r){const N=tpN;
  if(t==='fix'){
   if(pdUpgrade(r))return r.ltBad?PD_LT_MSG:`מומלץ לשנות פרופיל מ-PD ל-ZM-C בעקבות צריכה של ${N(r.net12)} יח׳ נטו ב-12 החודשים האחרונים.`;
   if(r.ltBad)return `${LT_MSG}. ${LT_NA}.`;
+  /* הורדת פרופיל ZM (עד ZM-C) — אותו profInfo שמסך שינוי הפרופיל בכלי המלא מציג */
+  if(profActive(r)&&!tpInFix(r)){const i=profInfo(r);return `מומלץ לשנות פרופיל מ-${PROF_NAME[i.cur]||i.cur} ל-${PROF_NAME[i.tgt]} — ${PROF_ST[i.state][0]}. ${i.why||''}`}
   if(r.sugROP>r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) נמוכה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
   if(r.sugROP<r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) גבוהה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
   return `מלאי הביטחון ב-SAP (${N(r.ss)}) שונה מזה שהמנוע מחשב (${N(r.sugSS)}).`}
  if(t==='trend'){const p=r.tRatio==null?null:Math.round((r.tRatio-1)*100);
-  if(r.cat===TP_DROP&&!(riseGap(r)>0)&&!(trendGap(r)>0)){
-   const d=(r.A&&r.A.drops||[]).map(x=>LABELS[x.i-1]&&LABELS[x.i-1].name).filter(Boolean);
-   return `ייתכן שהמלאי אזל ולא נרשם${d.length?' ב'+d.join(', '):''} — צריכה נמוכה מאוד בין חודשים תקינים. זה חוסר מלאי, לא ירידה בביקוש.`}
   if(riseGap(r)>0)return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) גבוהה ב-${p}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`;
   return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) נמוכה ב-${Math.abs(p)}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`}
  if(t==='cust'){
@@ -14081,6 +14088,8 @@ function tpdIssues(r){const out=[];
   <p>צריכה נטו ${tpN(r.net12)} יח׳ ב-12 החודשים האחרונים (כולל החודש הנוכחי). רמת שירות ב-ZM-C: 80%.</p>
   ${OD_GROUPS.has(r.mkt1)?'<p><b style="color:var(--high)">לבדיקה ידנית:</b> קבוצת כלי עבודה / אביזרים («לפי דרישה») — לא לעדכן פרופיל אוטומטית.</p>':''}
   ${r.ltBad?`<p>${esc(PD_LT_MSG)}</p>`:''}</div></section>`);
+ else if(profActive(r)){const i=profInfo(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
+  <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p></div></section>`)}
  if(tpLtMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>אזהרת זמן אספקה</h3><div class="big">${esc(LT_MSG)}</div>
   <p>«אספ.מתוכנ.» ב-SAP: <b>${r.ltRaw===''?'ריק':'0'}</b>${r.ltD>0?` (זמן עיבוד הקבלה ${tpN(r.ltD)} ימים אינו זמן אספקה)`:''}. מלאי ביטחון ונקודת הזמנה: ${LT_NA}.</p>
   <p>${esc(ltValuesMsg(r))} ב-SAP (קיים): נקודת הזמנה ${tpN(r.rop)} · מלאי ביטחון ${tpN(r.ss)}.</p>
@@ -14119,10 +14128,18 @@ function tpdStep(d){const L=TP.list||[];if(!L.length)return;let i=L.indexOf(TP.o
  if(j>=TP.lim){TP.lim=Math.ceil((j+1)/200)*200;tpRender()}
  tpdShow(L[j],true);
  const tr=tpMarkRow();if(tr)tr.scrollIntoView({block:'nearest'})}
+/* ============ ETA בתצוגה המצומצמת ============
+   אותו <input id="fe"> ואותו מטפל של הכלי המלא: etaParse → etaSave → etaApply
+   → apply(), שמצייר את התצוגה מחדש. כאן רק הכפתור ומצב הדוח, מתוך etaChip */
+function tpEtaState(){if(!ETA)return '<span class="src eta">אין דוח ETA</span>';
+ const c=document.getElementById('etachip'),t=(c&&c.textContent)||('ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים');
+ return `<span class="src eta${/⚠/.test(t)?' warn':''}">${esc(t)}</span>`}
 function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const src=(document.getElementById('updated')||{}).textContent||'';
  const head=`<header class="tph"><h1>תכנון מלאי — 4 נושאים</h1><span class="src">${esc(src)}</span>
   <button class="btn pri" type="button" data-tp="load">⭱ העלאת קובץ ZMRP</button>
+  <label class="btn" for="fe" title="דוח אספקות מתוכננות — אותו קובץ ואותה קריאה כמו בכלי המלא. נשמר בין העלאות">⭱ דוח ETA</label>
+  ${tpEtaState()}
   ${QF?'':'<button class="btn" type="button" data-tp="demo">נתוני הדגמה</button>'}
   <button class="btn" type="button" data-tp="dark">מצב כהה / בהיר</button>
   <a class="btn" href="${esc(location.pathname)}">לכלי המלא</a></header>`;
