@@ -17,7 +17,10 @@ const rnd=()=>{_s=(_s+0x6D2B79F5)>>>0;let t=_s;t=Math.imul(t^t>>>15,t|1);
  t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296};
 const R=(a,b)=>a+rnd()*(b-a), I=(a,b)=>Math.round(R(a,b));
 const dstr=d=>{const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')}.${String(x.getMonth()+1).padStart(2,'0')}.${x.getFullYear()}`};
-const now=Date.now(),DAY=864e5;
+/* BASE_MONTH: התאריכים בדוח נגזרים מתאריך מצב קבוע (tests/lib/fixture-date.js),
+   לא מיום ההרצה. ה-ETA בלבד — תפעולי — נבנה מהיום (etaNow, למטה). */
+const {FIXTURE_NOW,FIXTURE_STATE_DAY2,FIXTURE_HEAD}=require('./lib/fixture-date.js');
+const now=FIXTURE_NOW,DAY=864e5;
 const rows=[];
 for(let i=0;i<900;i++){
  const kind=rnd();
@@ -65,7 +68,7 @@ for(let i=0;i<900;i++){
   y0,y1,y2,I(0,10),...months,
   dstr(now-saleAgo*DAY),dstr(now-entAgo*DAY)]);
 }
-const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — תכנון מלאי'],[],hdr,...rows]);
+const ws=XLSX.utils.aoa_to_sheet([FIXTURE_HEAD(),[],hdr,...rows]);
 const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ZMRP');
 XLSX.writeFile(wb,__dirname+'/zmrp-demo.xlsx');
 
@@ -98,7 +101,7 @@ for(let i=0;i<8;i++){const src=rows[i%rows.length].slice();
  day2.push(src)}
 XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet(
-  [['דוח ZMRP — תכנון מלאי'],[],hdr,...day2]),'ZMRP');return w})(),
+  [FIXTURE_HEAD(FIXTURE_STATE_DAY2),[],hdr,...day2]),'ZMRP');return w})(),
  __dirname+'/zmrp-demo-day2.xlsx');
 
 /* דוח ETA תואם, נגזר מאותם מק״טים. בלעדיו בודק הניגודיות לעולם אינו
@@ -108,7 +111,8 @@ XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
 const PO=hdr.indexOf('הז. רכש');
 const withPo=rows.filter(r=>+r[PO]>0).slice(0,60);
 const RLM=x=>'\u200e'+x+'\u200f';
-const day=n=>{const d=new Date(now+n*DAY);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
+const etaNow=Date.now();
+const day=n=>{const d=new Date(etaNow+n*DAY);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
 const erows=[];
 withPo.forEach((r,i)=>{const q=+r[PO];
  const mode=i%3;                       // 0 מלא · 1 חלקי · 2 עבר

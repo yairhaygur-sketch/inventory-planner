@@ -78,6 +78,11 @@ body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f
    במקביל. הצבע אינו הסימן היחיד: המספרים עצמם שונים בטקסט,
    ונוסף ⚠. */
 .zchip.rgap{color:var(--org);font-weight:800}
+/* BASE_MONTH: חודש בסיס לא מאומת — טקסט, לא רק צבע */
+.zchip.bmwarn{color:var(--org);font-weight:800}
+.bmrow{flex-wrap:wrap;gap:6px;align-items:center}
+.bminfo{font-size:12px;color:var(--dim);max-inline-size:340px;white-space:normal;line-height:1.4}
+.bminfo.warn{color:var(--org);font-weight:700}
 .dstate .updated{font-size:12px;color:var(--ink-3);white-space:nowrap}
 .etachip{font-size:12px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
@@ -3420,7 +3425,9 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
         <div class="mrow"><span class="dstate"><span class="zchip" id="zchip" hidden></span><span class="updated" id="updated">לא נטען קובץ</span></span></div>
         <div class="mrow"><button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">⚠ <span id="dchipN">0</span><span class="dlbl"> אזהרות</span></button></div>
         <div class="mrow rdrow"><div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
-      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div></div>
+      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שעמודות הצריכה מכסות. הכלי מזהה אותו מהנתונים («צר.השנה» מול חודשי הצריכה), ואחר כך מתאריך שמעל שורת הכותרות. בחירה כאן נשמרת לקובץ הזה בלבד."></div></div>
+        <!-- BASE_MONTH: מקור חודש הבסיס, תאריך הייחוס לגיל מלאי, ואישור כשהחודש לא זוהה -->
+        <div class="mrow bmrow"><span class="bminfo" id="bmInfo"></span><button class="btn pri" id="bmOk" type="button" hidden>אשר את חודש הבסיס</button></div>
         <div class="msec">דוח ETA</div>
         <div class="mrow"><button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button> <button class="etachip stale" id="storechip" type="button" hidden></button></div>
         <div class="mrow"><label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label></div>
@@ -3940,7 +3947,9 @@ function excelSerialToDate(n){return new Date(Math.round((n-25569)*86400000))}
 function fmtDate(d){return d.toLocaleDateString('he-IL')}
 function sameDay(a,b){return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function daysBetween(a,b){return Math.round((a-b)/86400000)}
-function isFutureDate(d){if(!d||isNaN(d))return false;const today=new Date();today.setHours(23,59,59,999);return d>today}
+/* BASE_MONTH: `lim` — הגבול שמעבר לו תאריך תנועה הוא שגוי ולא «פעילות
+   אחרי תאריך הייחוס». בלי `lim` — כמו קודם, מול היום (לשימושים תפעוליים). */
+function isFutureDate(d,lim){if(!d||isNaN(d))return false;if(lim)return d>lim;const today=new Date();today.setHours(23,59,59,999);return d>today}
 function movCell(v){
   if(v==null||v==='')return null;
   if(v instanceof Date&&!isNaN(v))return {date:v};
@@ -3953,6 +3962,148 @@ function movCell(v){
 function movText(o){if(!o)return '—';if(o.date)return fmtDate(o.date);if(o.num!=null)return String(o.num);return o.text||'—'}
 function lastFullMonth(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d}
 let ANCHOR=lastFullMonth();
+/* ============ BASE_MONTH — שלושה תאריכים, שלושה תפקידים ============
+   1. חודש הבסיס — החודש המלא האחרון שעמודות הצריכה מכסות. ממנו נגזרים
+      חלון 3 השנים (win3y), שמות החודשים, הדעיכה וחתימת הדוח.
+   2. תאריך הייחוס לגיל מלאי — ממנו נספרים ימים מאז מכירה וכניסה.
+      תאריך מצב מפורש ואמין בכותרת; אם אין כזה — סוף חודש הבסיס, וזו
+      *הנחת חישוב* שנאמרת על המסך. חודש בסיס שזוהה מהנתונים אינו מוכיח
+      את תאריך מצב המלאי.
+   3. היום — לפעולות תפעוליות בלבד: ETA, גיל סימון, מועד הטעינה.
+
+   היה: בלי תאריך מעל הכותרת (וכך בדוח האמיתי), חודש הבסיס היה החודש
+   המלא האחרון לפי *יום הטעינה*, בשקט, והגילים נספרו מיום הטעינה.
+   נמדד על הדוח האמיתי, אותו קובץ ואותו קוד: 31.10 מול 1.11 — 46 פריטים
+   שינו ROP/סיווג/סימון, הקצב של 2,439 פריטים, 10 מונים; ו-16.10 מול
+   31.10 — 4 פריטים עברו ל«מלאי מת» רק כי עברו הימים.
+
+   סדר הקביעה (החלטת המעתד, 1.11.2026):
+     1. בחירה ידנית שנשמרה לאותו *תוכן* קובץ (BM_KEY, לפי חתימת התוכן).
+     2. הנתונים: «צר.השנה» = סכום חודשי השנה הנוכחית שבחלון + «צר.החודש»,
+        ומספר החודשים האלה הוא מספר החודש של חודש הבסיס (0 = דצמבר).
+        בדוח האמיתי: 9 חודשים ב-1,891 מתוך 1,891 פריטים עם צריכה; כל
+        מספר אחר — 74% לכל היותר. הספים ב-BM_TH.
+        השנה נבדקת בנפרד: הפעילות האחרונה בקובץ חייבת ליפול בחודש הבסיס
+        או בחודש שאחריו, בשנה אחת בלבד. הפעילות האחרונה *אינה* תאריך
+        הדוח — היא גבול תחתון ובדיקת שנה, לא יותר.
+     3. תאריך מפורש בכותרת — רק אם הוא תאריך תקין, אינו בעתיד ואינו
+        מוקדם מהפעילות האחרונה בקובץ. כשהנתונים מזהים חודש אחר — הנתונים
+        קובעים, ונאמרת אזהרה שמבחינה בין תאריך ההפקה לחודש הבסיס.
+     4. אחרת — לא מאומת. החישוב זמני ומוצג, אבל לא נרשמת הרצה, לא נרשם
+        פרופיל ולא מעקב יישום, ואין קובץ SAP, עד שהמשתמש מאשר או בוחר. */
+const BM_KEY='planner_basemonth_v1',BM_MAX=60;
+const BM_TH={rate:0.95,min:30,second:0.80};
+const BM_SRC={data:'מהנתונים',header:'מהכותרת',manual:'נבחר ידנית',none:'לא מאומת'};
+let BASE=null,BMS=null;
+const bmYM=(y,m)=>`${y}-${String(m).padStart(2,'0')}`;
+const bmNext=(y,m)=>m===12?{y:y+1,m:1}:{y,m:m+1};
+const bmDay=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+/* תאריך הייחוס והגבול — גם כש-build נקרא בלי טעינה (בדיקות, שינוי ANCHOR
+   ידני): סוף חודש העוגן, אותו כלל, ולא היום. */
+function bmRef(){return BASE?BASE.ref:new Date(ANCHOR.getFullYear(),ANCHOR.getMonth()+1,0)}
+function bmLim(){if(BASE)return BASE.lim;const n=bmNext(ANCHOR.getFullYear(),ANCHOR.getMonth()+1);return new Date(n.y,n.m,0,23,59,59,999)}
+/* (2) הנתונים: לכל מועמד k=0..11 — בכמה פריטים «צר.השנה» שווה ל-k
+   החודשים האחרונים ועוד «צר.החודש». רק פריטים עם צריכה כלשהי בחלון
+   מבדילים בין המועמדים. */
+function bmFromData(rows,m){
+ if(m.y0<0||m.curMonth<0||m.months.some(i=>i<0))return {ok:false,inf:0,why:'אין בדוח את עמודות הצריכה הנדרשות'};
+ const hit=new Array(12).fill(0);let inf=0;const ms=new Array(11);
+ for(const r of rows){if(!CLEAN(r[m.pn]))continue;
+  let any=false;for(let i=0;i<11;i++){ms[i]=NUM(r[m.months[i]]);if(ms[i]!==0)any=true}
+  if(!any)continue;inf++;
+  const y0=NUM(r[m.y0]);let s=NUM(r[m.curMonth]);
+  if(Math.abs(s-y0)<1e-6)hit[0]++;
+  for(let k=1;k<=11;k++){s+=ms[k-1];if(Math.abs(s-y0)<1e-6)hit[k]++}}
+ if(inf<BM_TH.min)return {ok:false,inf,why:`רק ${inf} פריטים עם צריכה בחלון — מעט מדי לזיהוי`};
+ const ord=hit.map((h,k)=>[k,h/inf]).sort((a,b)=>b[1]-a[1]);
+ const k=ord[0][0],rate=ord[0][1],second=ord[1][1],hits=hit[k];
+ const res={inf,k,hits,rate,second,mon:k===0?12:k};
+ res.ok=rate>=BM_TH.rate&&second<=BM_TH.second;
+ if(!res.ok)res.why=rate<BM_TH.rate
+   ?`הקשר בין «צר.השנה» לחודשי הצריכה מתקיים ב-${Math.round(rate*100)}% מהפריטים בלבד`
+   :`שני חודשים מתאימים לנתונים כמעט באותה מידה`;
+ return res}
+/* תאריכי הפעילות בקובץ — מכירה וכניסה, ממוינים. משמשים לבדיקה בלבד: הם
+   אינם תאריך הדוח. בלי השוואה ל«היום» — אחרת אותו קובץ היה נבדק אחרת
+   בכל יום (נתפס בבדיקה: תאריך שגוי אחד, 15.12, «נכנס» לחישוב בינואר
+   והפיל את אימות השנה). תאריך שגוי בודד נסבל: עד BM_OUT מהתאריכים. */
+function bmDates(rows,m){const a=[];
+ for(const r of rows){if(!CLEAN(r[m.pn]))continue;
+  for(const i of [m.sales,m.entries]){if(i<0)continue;const c=movCell(r[i]);const x=c&&c.date;
+   if(x&&!isNaN(x))a.push(bmDay(x).getTime())}}
+ return a.sort((x,y)=>x-y)}
+const bmTol=n=>Math.max(2,Math.ceil(n*0.002));
+/* כמה תאריכים אחרי t (ds ממוין) */
+function bmAfter(ds,t){let lo=0,hi=ds.length;while(lo<hi){const mid=(lo+hi)>>1;if(ds[mid]<=t)lo=mid+1;else hi=mid}return ds.length-lo}
+/* השנה — בנפרד מהחודש: השנה המאוחרת ביותר שבה יש פעילות בחודש הבסיס או
+   בחודש שאחריו, ואחרי החודש שאחריו — רק תאריכים בודדים (שגויים). אין
+   שנה כזו — השנה אינה מאומתת. */
+function bmYear(mon,ds){if(!ds.length)return null;const tol=bmTol(ds.length),maxY=new Date(ds[ds.length-1]).getFullYear();
+ for(let y=maxY;y>=maxY-3;y--){const n=bmNext(y,mon),st=new Date(y,mon-1,1).getTime(),en=new Date(n.y,n.m,0).getTime();
+  const after=bmAfter(ds,en),inW=bmAfter(ds,st-1)-after;
+  if(inW>0&&after<=tol)return y}
+ return null}
+/* התאריך הראשון שמעל שורת הכותרות — אותו פענוח כמו קודם, ועכשיו גם נבדק */
+function bmHeader(pre){
+ for(const row of pre||[])for(const c of row||[]){
+  if(c instanceof Date&&!isNaN(c))return {d:bmDay(c)};
+  const s=CLEAN(c);const mm=s.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+  if(mm){let y=+mm[3];if(y<100)y+=2000;const d=new Date(y,(+mm[2])-1,+mm[1]);
+   if(isNaN(d)||d.getDate()!==+mm[1]||d.getMonth()!==(+mm[2])-1)return {bad:mm[0]};
+   return {d}}}
+ return null}
+function bmResolve(rows,hdr,pre,today){today=today||new Date();
+ const m=mapCols(hdr),W=[];
+ const data=bmFromData(rows,m),ds=bmDates(rows,m),tol=bmTol(ds.length);
+ const H=bmHeader(pre);let hd=null,hdOK=false;
+ /* «בעתיד» היא הבדיקה היחידה כאן מול היום: תאריך הפקה שעוד לא הגיע הוא
+    שגיאה בקובץ, לא מידע. */
+ const eod=new Date(today);eod.setHours(23,59,59,999);
+ if(H&&H.d){hd=H.d;const aft=bmAfter(ds,hd.getTime());
+  if(hd>eod)W.push(`התאריך שמעל הכותרת (${fmtDate(hd)}) הוא בעתיד — לא נעשה בו שימוש`);
+  else if(aft>tol)W.push(`התאריך שמעל הכותרת (${fmtDate(hd)}) מוקדם מהפעילות בקובץ (${aft.toLocaleString('he-IL')} תנועות מאוחרות ממנו) — לא נעשה בו שימוש`);
+  else hdOK=true}
+ else if(H&&H.bad)W.push(`מעל הכותרת כתוב «${H.bad}», שאינו תאריך תקין — לא נעשה בו שימוש`);
+ const hb=hdOK?(()=>{const d=new Date(hd.getFullYear(),hd.getMonth()-1,1);return {y:d.getFullYear(),m:d.getMonth()+1}})():null;
+ let B=null,state=null;
+ if(data.ok){const y=bmYear(data.mon,ds);
+  if(y!=null)B={y,m:data.mon,src:'data'};
+  else if(hb&&hb.m===data.mon)B={y:hb.y,m:data.mon,src:'data'};
+  else W.push(`הנתונים מראים חודש בסיס ${HEB[data.mon-1]}, אבל השנה לא אומתה: אין בקובץ פעילות בחודש הזה או בזה שאחריו שאחריה אין פעילות נוספת (הפעילות האחרונה: ${ds.length?fmtDate(new Date(ds[ds.length-1])):'אין'})`)}
+ if(B&&hb){
+  if(hb.y===B.y&&hb.m===B.m)state=hd;
+  else W.push(`תאריך ההפקה שמעל הכותרת (${fmtDate(hd)}) מתאים לחודש בסיס ${HEB[hb.m-1]} ${hb.y}, אבל הצריכה בדוח מכסה עד ${HEB[B.m-1]} ${B.y}. חודש הבסיס נקבע לפי הנתונים; תאריך ההפקה לא משמש לגיל מלאי`)}
+ else if(!B&&hb){B={y:hb.y,m:hb.m,src:'header'};state=hd}
+ if(!B){const d=new Date(today.getFullYear(),today.getMonth()-1,1);B={y:d.getFullYear(),m:d.getMonth()+1,src:'none'};
+  W.unshift(`חודש הבסיס לא זוהה${data.why?' — '+data.why:''}. החישוב זמני, לפי ${HEB[B.m-1]} ${B.y}`)}
+ return bmFinish(B,{state,hd,hdOK,hb,ds,data,warn:W})}
+function bmFinish(B,c){
+ const st=c.state||null,n=bmNext(B.y,B.m);
+ const ref=st?bmDay(st):new Date(B.y,B.m,0);
+ const lim=st?new Date(st.getFullYear(),st.getMonth(),st.getDate(),23,59,59,999):new Date(n.y,n.m,0,23,59,59,999);
+ /* הפעילות האחרונה — המאוחרת שעד הגבול; תאריך שמעבר לו שגוי ונאמר בנפרד */
+ const ds=c.ds||[],k=ds.length-bmAfter(ds,lim.getTime());
+ const last=k>0?new Date(ds[k-1]):null;
+ return {y:B.y,m:B.m,src:B.src,verified:B.src!=='none',state:st,ref,refAssumed:!st,lim,
+  hd:c.hd||null,hdOK:!!c.hdOK,hb:c.hb||null,ds,last,data:c.data||null,warn:c.warn||[],cs:c.cs||null,auto:c.auto||null}}
+/* בחירה ידנית: חודש הבסיס של המשתמש. תאריך המצב מהכותרת נשמר רק אם
+   הוא אמין ומתאים לחודש שנבחר. האזהרה «לא זוהה» כבר לא נכונה ויורדת. */
+function bmManual(b,ym){const [y,m]=String(ym).split('-').map(Number);
+ const st=(b.hdOK&&b.hb&&b.hb.y===y&&b.hb.m===m)?b.hd:null;
+ const auto=b.src==='manual'?b.auto:{y:b.y,m:b.m,src:b.src};
+ return bmFinish({y,m,src:'manual'},{state:st,hd:b.hd,hdOK:b.hdOK,hb:b.hb,ds:b.ds,data:b.data,cs:b.cs,auto,
+  warn:b.warn.filter(w=>!/^חודש הבסיס לא זוהה/.test(w))})}
+function bmAfterTxt(what,cell){const d=cell&&cell.date;
+ return `${what} האחרונה (${d?fmtDate(d):'—'}) אחרי תאריך הייחוס של הדוח (${fmtDate(bmRef())}). היא אמיתית ואינה שגיאה — הגיל נספר 0, ולכן הפריט אינו נחשב מת או איטי בגלל הגיל.`}
+function bmSet(b){BASE=b;ANCHOR=new Date(b.y,b.m-1,1);rebuildLabels();
+ const rd=document.getElementById('rd');if(rd)rd.value=bmYM(b.y,b.m)}
+/* הבחירה הידנית נשמרת לפי חתימת התוכן — קובץ אחר אינו מושפע */
+function bmLoad(track=true){try{const v=JSON.parse(stateRaw(BM_KEY,track));BMS=(v&&typeof v==='object'&&!Array.isArray(v))?v:{}}catch(_){BMS={}}}
+function bmGetManual(cs){if(!cs)return null;if(BMS===null||stateChanged(BM_KEY))bmLoad();const e=BMS[cs];return e&&typeof e.ym==='string'&&/^\d{4}-\d{2}$/.test(e.ym)?e.ym:null}
+function bmPutCore(cs,ym){if(BMS===null)bmLoad();BMS[cs]={ym,ts:Date.now()};
+ const ks=Object.keys(BMS);if(ks.length>BM_MAX)ks.sort((a,b)=>(BMS[a].ts||0)-(BMS[b].ts||0)).slice(0,ks.length-BM_MAX).forEach(k=>delete BMS[k])}
+function bmPut(cs,ym){if(!cs||DEMO)return;bmPutCore(cs,ym);
+ statePersist(BM_KEY,()=>storeSet(BM_KEY,JSON.stringify(BMS),'חודש הבסיס שנבחר לדוח'),()=>{bmLoad();bmPutCore(cs,ym)})}
 function monthLabel(back){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getMonth()-(back-1));
   return {name:HEB[d.getMonth()],short:HEB[d.getMonth()].slice(0,3),yy:String(d.getFullYear()).slice(2),m:d.getMonth()}}
 let LABELS=Array.from({length:11},(_,i)=>monthLabel(i+1));
@@ -5019,8 +5170,14 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       ?Math.min(TREND_CEIL,1+(tRatio-1)*TREND_DAMP):1;
     const rateU=rate*riseF;
     const sugROPU=riseF>1?Math.max(sugSS,Math.ceil(rateU*ltM+sugSS)):sugROP;
-    const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
-    const entFuture=isFutureDate(entries&&entries.date),saleFuture=isFutureDate(sales&&sales.date);
+    /* BASE_MONTH: הגיל נספר מתאריך הייחוס של הדוח, לא מיום הטעינה. תנועה
+       שאחרי תאריך הייחוס (למשל מכירה באוקטובר בדוח שחודש הבסיס שלו
+       ספטמבר) אינה שגויה ואינה «עתידית»: הגיל שלה 0, והיא מסומנת
+       (saleAfterRef/entAfterRef) כדי שאפשר יהיה להסביר אותה. רק תאריך
+       שמעבר ל-bmLim() — שגוי, כמו קודם. */
+    const NOW=bmRef(),LIM=bmLim(),AGE=d=>(d&&!isNaN(d))?Math.max(0,Math.round((NOW-d)/86400000)):null;
+    const entFuture=isFutureDate(entries&&entries.date,LIM),saleFuture=isFutureDate(sales&&sales.date,LIM);
+    const entAfter=!entFuture&&!!(entries&&entries.date&&entries.date>NOW),saleAfter=!saleFuture&&!!(sales&&sales.date&&sales.date>NOW);
     const entAge=entFuture?null:AGE(entries&&entries.date),saleAge=saleFuture?null:AGE(sales&&sales.date);
     const noCons3y=has3y?(cons3y===0&&d12===0):(d12===0);
     /* ============ שעון הגיל הוא הביקוש, לא הרכש ============
@@ -5061,6 +5218,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       /* RATE_DECAY: השדות קיימים רק בפריט שההחלפה חלה עליו — כל פריט אחר
          נשאר זהה לחלוטין, כולל טביעת האצבע של business-golden */
       ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
+      /* BASE_MONTH: רק בפריט שבו זה קרה — כמו RATE_DECAY */
+      ...(saleAfter?{saleAfterRef:true}:{}),...(entAfter?{entAfterRef:true}:{}),
       ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
@@ -7702,12 +7861,21 @@ function dsigBytes(s){
  return out}
 const dsigYM=()=>`${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}`;
 /* החתימה של דוח שנקלט. `items` הוא פלט `build()` — לפני סימונים וסיווג. */
-function dataSig(items){
+function dsigBody(items){
  const rows=new Array(items.length);
  for(let i=0;i<items.length;i++)rows[i]=dsigRow(items[i]);
  rows.sort();                      /* סדר השורות בגיליון אינו דוח חדש */
+ return rows.join('\u001e')}
+function dataSig(items,body){
  return 'v'+DSIG_V+':'+dsigHash(
-   `${DSIG_V}|${dsigYM()}|${items.length}\u001e`+rows.join('\u001e'))}
+   `${DSIG_V}|${dsigYM()}|${items.length}\u001e`+(body!=null?body:dsigBody(items)))}
+/* ============ BASE_MONTH · חתימת תוכן ============
+   אותה רשימת שדות בלי חודש הבסיס: «אותו קובץ» גם כשהחודש שלו נקבע
+   מחדש (בחירה ידנית). כל השדות ב-DSIG_FIELDS הם נתוני מקור שאינם תלויים
+   בחודש הבסיס או בתאריך הייחוס, ולכן החתימה זהה בכל build של אותו קובץ. */
+function contentSig(items,body){
+ return 'c'+DSIG_V+':'+dsigHash(
+   `${DSIG_V}|content|${items.length}\u001e`+(body!=null?body:dsigBody(items)))}
 /* ============ מעבר מפורמט החתימה הישן ============
    רשומה שנשמרה לפני השינוי נושאת sig בפורמט «חודש|מספרים» ואין בה v.
    אי אפשר להשוות אותה לחתימה החדשה, ואסור להכריז «אותו דוח» על סמך
@@ -7715,10 +7883,12 @@ function dataSig(items){
    מוחקים דבר, קובעים בסיס חדש, ואומרים את זה במפורש על המסך.
    התמונות עצמן (`PARAMS.runs[].it`) אינן תלויות בפורמט החתימה, ולכן
    ההשוואה מול התמונה הקודמת נשמרת ועובדת גם במעבר. */
-function sigState(last,sig){
+/* BASE_MONTH: אותו תוכן (cs) הוא אותו דוח גם כשחודש הבסיס שלו נקבע מחדש.
+   הרשומה מתעדכנת לחודש החדש במקום שתיווצר הרצה שנייה מאותו קובץ. */
+function sigState(last,sig,cs){
  if(!last)return {repeat:false,migrated:false};
  if(last.v!==DSIG_V||typeof last.sig!=='string')return {repeat:false,migrated:true};
- return {repeat:last.sig===sig,migrated:false}}
+ return {repeat:last.sig===sig||(!!cs&&last.cs===cs),migrated:false}}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
 function histLoad(track=true){try{const h=JSON.parse(stateRaw(HIST_KEY,track));
@@ -7738,21 +7908,21 @@ function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs
    etaApply, הסימונים ו-classify. קריאה בלי חתימה (בדיקות, כלי פנימי)
    מחשבת אותה כאן; רשימת השדות כוללת רק נתוני מקור שאיש אינו דורס
    אחרי build, ולכן שתי הדרכים נותנות אותו מספר. */
-function recordRun(items,Qs,sig){
+function recordRun(items,Qs,sig,cs){
  if(typeof sig!=='string')sig=dataSig(items);
  if(!DEMO&&stateChanged(HIST_KEY))histLoad();
- const r=recordRunCore(items,Qs,sig);
- statePersist(HIST_KEY,saveHist,()=>{histLoad();recordRunCore(items,Qs,sig)});
+ const r=recordRunCore(items,Qs,sig,cs);
+ statePersist(HIST_KEY,saveHist,()=>{histLoad();recordRunCore(items,Qs,sig,cs)});
  return r}
-function recordRunCore(items,Qs,sig){
+function recordRunCore(items,Qs,sig,cs){
  const now=Date.now();
  const last=HIST.runs[HIST.runs.length-1];
- const stt=sigState(last,sig);
+ const stt=sigState(last,sig,cs);
  const repeat=stt.repeat;                             /* אותו קובץ שוב */
  const q=histQueue(Qs), inQ=new Set(q.map(x=>x.pn));
- if(!repeat){HIST.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,n:items.length,q:q.length});
+ if(!repeat){HIST.runs.push(Object.assign({v:DSIG_V,sig,ym:dsigYM(),ts:now,n:items.length,q:q.length},cs?{cs}:{}));
   if(HIST.runs.length>HIST_RUNS)HIST.runs=HIST.runs.slice(-HIST_RUNS)}
- else{last.ts=now;last.q=q.length}
+ else{last.ts=now;last.q=q.length;if(cs){last.cs=cs;last.sig=sig;last.ym=dsigYM()}}
  const prev=HIST.items;const next={};
  for(const x of q){const p=prev[x.pn];
   next[x.pn]=p?{since:p.since,seen:repeat?p.seen:p.seen+1,miss:x.miss||0,prevMiss:repeat?p.prevMiss:p.miss,cat:x.cat}
@@ -7858,14 +8028,15 @@ function parState(then,sug,now){
  if(now===sug)return 'done';                /* יושם בדיוק */
  if(now!==then)return 'other';              /* שונה, אבל לא למספר שהוצע */
  return 'none'}                             /* לא נגעו */
-function recordParams(items,Qs,sig){
+function recordParams(items,Qs,sig,cs){
  const SQ=shortSet(Qs);
  if(typeof sig!=='string')sig=dataSig(items);
  const now=Date.now();
  if(!DEMO&&stateChanged(PAR_KEY))parLoad();
- const push=()=>{const last=PARAMS.runs[PARAMS.runs.length-1],st=sigState(last,sig);
-  if(st.repeat)last.ts=now;
-  else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
+ const push=()=>{const last=PARAMS.runs[PARAMS.runs.length-1],st=sigState(last,sig,cs);
+  /* אותו תוכן בחודש בסיס אחר — ההמלצה שנשמרה היא של החודש הקודם, ולכן מתחלפת */
+  if(st.repeat){last.ts=now;if(cs&&last.sig!==sig)last.it=paramSnap(items,SQ);if(cs){last.cs=cs;last.sig=sig;last.ym=dsigYM()}}
+  else{PARAMS.runs.push(Object.assign({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)},cs?{cs}:{}));
    if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
   return st};
  const stt=push();
@@ -10512,8 +10683,10 @@ function movList(tab,base){
    הייצוא — כדי שלא יתפצלו. */
 function movPrimDate(r){return movTab==='sales'
  ? ((r.sales&&r.sales.date)||null) : ((r.entries&&r.entries.date)||null)}
+/* BASE_MONTH: מתאריך הייחוס של הדוח, כמו גיל המלאי — לא מהיום. פעילות
+   שאחרי תאריך הייחוס נספרת 0, כמו ב-build. */
 function movDaysSince(r){const d=movPrimDate(r);if(!d)return null;
- const t=new Date();t.setHours(0,0,0,0);return daysBetween(t,d)}
+ return Math.max(0,daysBetween(bmRef(),bmDay(d)))}
 function movDelta(r){return (r.sales&&r.sales.date&&r.entries&&r.entries.date)
  ? daysBetween(r.sales.date,r.entries.date) : null}
 /* הרשימה שעל המסך — מסוננת, ואז ממוינת לפי העמודה שנלחצה אם
@@ -11058,8 +11231,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</span></div>${r.rateDecay?`<div class="box" title="הביקוש דעך — ROP ו-SS מחושבים על הקצב העדכני ולא על קצב 3 השנים"><b>${r.rateROP.toFixed(2)}</b><span>קצב ל-ROP · עדכני</span></div>`:''}
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
-    <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
-    <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
+    <div class="box"${r.entAfterRef?` title="${esc(bmAfterTxt('הכניסה',r.entries))}"`:''}><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה${r.entAfterRef?' · אחרי תאריך הייחוס':''}</span></div>
+    <div class="box"${r.saleAfterRef?` title="${esc(bmAfterTxt('המכירה',r.sales))}"`:''}><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה${r.saleAfterRef?' · אחרי תאריך הייחוס':''}</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
     <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
     <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
     <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>כסף תקוע</span></div></div>
@@ -11325,8 +11498,13 @@ document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')do
 document.getElementById('onlyTasks').onclick=function(){onlyTasks=!onlyTasks;this.classList.toggle('on',onlyTasks);render()};
 document.getElementById('fclr').onclick=()=>{FDEF.forEach(([k])=>SEL[k].clear());colFilters={};
  SQ=null;qEl('q').value='';qEl('qbox').classList.remove('has');closeSug();apply()};
-document.getElementById('rd').onchange=e=>{const v=e.target.value;if(!v)return;const[y,mo]=v.split('-').map(Number);
- ANCHOR=new Date(y,mo-1,1);rebuildLabels();if(QF&&ALL_RAW){ALL=build(ALL_RAW.rows,ALL_RAW.hdr);apply()}};
+/* BASE_MONTH: בחירה כאן היא בחירה ידנית — נשמרת לתוכן הקובץ הזה, מחשבת
+   מחדש ורושמת את ההרצה (מחליפה את הרשומה של אותו תוכן). */
+document.getElementById('rd').onchange=e=>{const v=e.target.value;if(!v)return;
+ const[y,mo]=v.split('-').map(Number);
+ if(QF&&ALL_RAW&&BASE){bmChoose(bmYM(y,mo));return}
+ ANCHOR=new Date(y,mo-1,1);rebuildLabels()};
+{const b=document.getElementById('bmOk');if(b)b.onclick=()=>{if(BASE)bmChoose(bmYM(BASE.y,BASE.m))}}
 /* ---- חיווט תיבת החיפוש ---- */
 let QT=null;
 qEl('q').oninput=()=>{clearTimeout(QT);QT=setTimeout(applyQuery,140)};
@@ -11486,13 +11664,18 @@ function sapPred(kind){return kind==='slow'?sapSlowUsable:(track==='tier'?sapTie
    הדפדפן לא מראה את ההסבר במעבר עכבר ולא מגיב בלחיצה. */
 const SAP_NO_LIST='«תנועות אחרונות» אינו רשימת פריטים — קובץ SAP יוצא ממסך של פריטים, למשל «תכנון ו-MRP» או «קטלוג פריטים»';
 function sapNoList(){return cur==='moves'}
-function sapBtnSync(){const off=sapNoList();
+/* BASE_MONTH: חודש בסיס לא מאומת — ההמלצות זמניות, ולכן אין קובץ שנכתב
+   ל-SAP. אותו מנגנון כמו SAP_NO_LIST: מסומן, ולחיצה אומרת למה ומה לעשות. */
+const SAP_NO_BASE='חודש הבסיס של הדוח לא אומת, ולכן ההמלצות זמניות ואין קובץ SAP. אשר או בחר חודש בסיס בתפריט הדוח שבסרגל העליון.';
+function sapNoBase(){return !!BASE&&!BASE.verified}
+function sapBtnSync(){const why=sapNoList()?SAP_NO_LIST:(sapNoBase()?SAP_NO_BASE:'');const off=!!why;
  for(const id of ['sapXls','sapSlowXls']){const b=document.getElementById(id);if(!b)continue;
   if(b.dataset.t0==null)b.dataset.t0=b.title;
   b.classList.toggle('na',off);b.setAttribute('aria-disabled',off?'true':'false');
-  b.title=off?SAP_NO_LIST:b.dataset.t0}}
+  b.title=off?why:b.dataset.t0}}
 function doSapMass(kind,onlyRows){
  if(sapNoList()){toast(SAP_NO_LIST);return}
+ if(sapNoBase()){toast(SAP_NO_BASE);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
@@ -11556,6 +11739,7 @@ function sapPlan(kind,view,pool){
  return {rows:aoa.length-1,total:(pool||view||[]).length,out,why}}
 function sapPreview(kind,sel){
  if(sapNoList()&&!sel){toast(SAP_NO_LIST);return}
+ if(sapNoBase()){toast(SAP_NO_BASE);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const view=sel?sapSelRows():currentRows();
  const pool=sel?sapSelAll():view;
@@ -12073,7 +12257,29 @@ function hhmm(t){const d=new Date(t);
  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function sameDayNow(t){const d=new Date(t),n=new Date();
  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()}
+/* BASE_MONTH · ההסבר המלא: מה חודש הבסיס ומאיפה, מה תאריך הייחוס ואם
+   הוא הנחה, ומה הפעילות האחרונה — ושהיא אינה תאריך הדוח. */
+function bmTitle(B){const N=n=>n.toLocaleString('he-IL');const L=[];
+ L.push(`חודש הבסיס: ${HEB[B.m-1]} ${B.y} — ${B.verified?BM_SRC[B.src]:'לא מאומת, חישוב זמני'}`);
+ if(B.src==='data'&&B.data)L.push(`זוהה מהנתונים: «צר.השנה» = ${B.data.k} החודשים האחרונים + «צר.החודש», ב-${N(B.data.hits)} מתוך ${N(B.data.inf)} פריטים עם צריכה`);
+ if(B.src==='manual'&&B.auto)L.push(`הזיהוי האוטומטי: ${HEB[B.auto.m-1]} ${B.auto.y} (${BM_SRC[B.auto.src]})`);
+ L.push(B.state?`תאריך מצב הדוח: ${fmtDate(B.state)} (מהכותרת)`:'תאריך מצב הדוח: לא ידוע — אין בקובץ תאריך אמין שמתאים לחודש הבסיס');
+ L.push(`גיל מלאי נספר מ-${fmtDate(B.ref)}${B.refAssumed?' — הנחת חישוב: סוף חודש הבסיס':''}`);
+ if(B.last)L.push(`הפעילות האחרונה בקובץ: ${fmtDate(B.last)} — זו אינה תאריך הדוח`);
+ const sa=(ALL||[]).filter(x=>x.saleAfterRef).length,ea=(ALL||[]).filter(x=>x.entAfterRef).length;
+ if(sa||ea)L.push(`אחרי תאריך הייחוס: ${N(sa)} פריטים עם מכירה, ${N(ea)} עם כניסה — הגיל שלהם נספר 0, והם אינם מלאי מת או איטי בגלל הגיל`);
+ for(const w of B.warn)L.push('⚠ '+w);
+ return L.join('\n')}
+function bmInfoSync(){const el=document.getElementById('bmInfo'),ok=document.getElementById('bmOk');if(!el)return;
+ const B=BASE;
+ if(!B||!ZN){el.textContent='';if(ok)ok.hidden=true;return}
+ el.textContent=B.verified
+   ?`${BM_SRC[B.src]} · גיל מלאי נספר מ-${fmtDate(B.ref)}${B.refAssumed?' (הנחה: סוף חודש הבסיס)':' (תאריך מצב הדוח)'}`
+   :`⚠ לא זוהה — החישוב זמני לפי ${HEB[B.m-1]} ${B.y}. אשר אותו או בחר חודש אחר. עד אז אין רישום היסטוריה ואין קובץ SAP.`;
+ el.classList.toggle('warn',!B.verified);el.title=bmTitle(B);
+ if(ok)ok.hidden=B.verified}
 function syncDataState(){
+ bmInfoSync();
  const z=document.getElementById('zchip'),u=document.getElementById('updated');
  /* מזהה הבנייה בהישג יד בלי להפיל כלום — «איזו גרסה אצלך» היא
     השאלה הראשונה בכל דיווח תקלה. */
@@ -12092,8 +12298,13 @@ function syncDataState(){
      ? ` · ${ROWS.used.toLocaleString('he-IL')} מ-${ROWS.read.toLocaleString('he-IL')} שורות`+(rgap?' ⚠':'')
      : '';
    z.classList.toggle('rgap',rgap>0);
-   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח')+req;
-   z.title=(ZDATE?`תאריך הדוח עצמו, כפי שהוא מופיע בקובץ: ${ZDATE.toLocaleDateString('he-IL')}.`
+   /* BASE_MONTH: השבב אומר את חודש הבסיס ואת המקור שלו — זה מה שקובע את
+      החישוב. תאריך ההפקה, תאריך הייחוס והפעילות האחרונה — בפירוט. */
+   const B=BASE;
+   z.classList.toggle('bmwarn',!!B&&!B.verified);
+   z.textContent='ZMRP · '+(B?(B.verified?`בסיס ${HEB[B.m-1]} ${B.y} · ${BM_SRC[B.src]}`:'⚠ חודש בסיס לא מאומת')
+     :(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח'))+req;
+   z.title=(B?bmTitle(B)+'\n\n':'')+(ZDATE?`התאריך שמעל שורת הכותרות: ${ZDATE.toLocaleDateString('he-IL')}.`
      :'בקובץ אין תאריך מעל שורת הכותרות, ולכן תאריך הדוח אינו ידוע.')
     +(ROWS.read?`\n\nחשבונאות הקליטה:`
       +`\nנקראו ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת`
@@ -12278,6 +12489,29 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   <div class="lbs">«${esc(String(o.n))}»${o.s?' · '+zSize(o.s):''} — הלשונית נסגרה או קרסה בזמן הטעינה. אם היא קרסה, הסיבה הסבירה היא שלדפדפן לא היה מספיק זיכרון לקובץ בגודל הזה. אפשר לסגור לשוניות ותוכנות אחרות ולנסות שוב.</div>
   <div class="lbr"><button type="button" class="btn" id="lbClose">סגור</button></div>`);
  const c=document.getElementById('lbClose');if(c)c.onclick=()=>zBox(null)})();
+/* ============ BASE_MONTH · רישום, אזהרות ובחירה ============ */
+function bmNeutral(items){for(const x of items){x.hSeen=0;x.hNew=false;x.hDays=0;x.hWorse=false;x.apStatus=null;x.apPrev=null;x.apDrift=null}}
+function bmRecord(sig){
+ if(BASE&&BASE.verified){HRUN=recordRun(ALL,Q,sig,BASE.cs);APPLIED=recordParams(ALL,Q,sig,BASE.cs);
+  /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
+     כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
+     התוצאה של הטעינה הזאת. */
+  profRecord(ALL)}
+ else{HRUN=null;APPLIED=null;bmNeutral(ALL)}}
+let BM_DIAG=[];
+function bmDiag(){
+ DIAG.warn=DIAG.warn.filter(w=>!BM_DIAG.includes(w));BM_DIAG=[];
+ if(!BASE)return;
+ BM_DIAG.push(...BASE.warn);
+ if(!BASE.verified)BM_DIAG.push('עד שתאשר או תבחר חודש בסיס (בתפריט הדוח שבסרגל העליון): לא נרשמת הרצה בהיסטוריה, לא נרשמים פרופיל ומעקב יישום, ואין קובץ SAP.');
+ DIAG.warn.push(...BM_DIAG)}
+function bmChoose(ym){if(!ALL_RAW||!BASE||!/^\d{4}-\d{2}$/.test(String(ym||'')))return;
+ const b=bmManual(BASE,ym);bmPut(BASE.cs,ym);bmSet(b);bmRerun();
+ toast(`חודש הבסיס: ${HEB[b.m-1]} ${b.y} — נשמר לקובץ הזה בלבד`)}
+/* אותו צינור כמו בטעינה, מ-build ועד הרישום — בלי לקרוא את הקובץ שוב */
+function bmRerun(){const keep=DIAG,keepR=Object.assign({},ROWS);ALL=build(ALL_RAW.rows,ALL_RAW.hdr);DIAG=keep;Object.assign(ROWS,keepR);
+ etaApply(ALL);Q=classify(ALL);etaOrphanSync();
+ bmRecord(dataSig(ALL));bmDiag();showDiag();syncDataState();apply()}
 function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
  /* ============ יציאה מפורשת מההדגמה ============
     כפתור ההעלאה נשאר פעיל בהדגמה, וזה נכון — אבל בלי השורה הזאת
@@ -12293,16 +12527,12 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
    const sheets=r.names.join(', ');
    const el=document.getElementById('diag');el.className='diag show err';
    el.textContent=`⛔ הקובץ נפתח, אבל לא נמצאה בו שורת כותרות עם «מק״ט מוביל». מחפשים ב-30 השורות הראשונות של כל גיליון, ודורשים שבשורה יהיו לפחות 11 תאים מלאים. גיליונות שנסרקו: ${sheets}. אם זה ייצוא חדש מ-SAP — ייתכן שהכותרת ירדה נמוך יותר או שהעמודות השתנו. · בנייה ${BUILD}`;return}
-  let detected=null;
-  for(const row of best.pre){for(const c of row){
-    if(c instanceof Date&&!isNaN(c)){detected=c;break}
-    const s=CLEAN(c);const mm=s.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
-    if(mm){let y=+mm[3];if(y<100)y+=2000;detected=new Date(y,(+mm[2])-1,+mm[1]);break}}
-   if(detected)break}
-  if(detected){const d=new Date(detected);d.setDate(1);d.setMonth(d.getMonth()-1);ANCHOR=d}else ANCHOR=lastFullMonth();
-  rebuildLabels();
-  document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
-  ALL_RAW={rows:best.rows,hdr:best.hdr};
+  /* BASE_MONTH — חודש הבסיס ותאריך הייחוס נקבעים לפני build, מהקובץ
+     עצמו. בחירה ידנית שנשמרה לאותו תוכן גוברת — וזה נבדק אחרי build,
+     כי חתימת התוכן נגזרת מהפריטים. */
+  let bm=bmResolve(best.rows,best.hdr,best.pre,new Date());
+  bmSet(bm);
+  ALL_RAW={rows:best.rows,hdr:best.hdr,pre:best.pre};
   ALL=build(best.rows,best.hdr);
   /* ============ החתימה נלקחת כאן, ולא מאוחר יותר ============
      מיד אחרי build ולפני etaApply, לפני הסימונים ולפני classify —
@@ -12310,7 +12540,13 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
      ולא גלובלי: שתי העלאות עוקבות אינן יכולות להחליף חתימות זו עם
      זו, כי לכל טעינה יש משלה. החישוב סינכרוני, ולכן גם אין חלון
      שבו טעינה שנייה תספיק להידחף באמצע. */
-  const runSig_=dataSig(ALL);
+  const sigBody=dsigBody(ALL);
+  bm.cs=contentSig(ALL,sigBody);
+  {const man=DEMO?null:bmGetManual(bm.cs);
+   if(man){const was=bmYM(bm.y,bm.m);bm=bmManual(bm,man);bmSet(bm);
+    if(man!==was)ALL=build(best.rows,best.hdr)}}
+  const runSig_=dataSig(ALL,sigBody);
+  bmDiag();
   /* ============ ROW_AUDIT ============
      המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
      כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
@@ -12344,11 +12580,9 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
   etaOrphanSync();
-  HRUN=recordRun(ALL,Q,runSig_);APPLIED=recordParams(ALL,Q,runSig_);
-  /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
-     כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
-     התוצאה של הטעינה הזאת. */
-  profRecord(ALL);
+  /* BASE_MONTH: חודש לא מאומת — החישוב מוצג, אבל לא נרשם דבר: לא הרצה,
+     לא מעקב יישום ולא פרופיל. הרישום קורה כשהמשתמש מאשר או בוחר חודש. */
+  bmRecord(runSig_);
   /* ============ הכותרת אומרת את מה שהיא סופרת ============
      היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
      6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
@@ -12361,7 +12595,7 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
   /* S3: המספרים עצמם נכתבים ב-greetSync, מהמונים של המסילה — ראה שם */
   GREET_WHO=planner?planner[0]:'';
-  ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
+  ZDATE=BASE.hd?new Date(BASE.hd):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
   /* חזרה למסך שבו עבדת; בפתיחה ראשונה — מרכז העבודה.
      setMode נקרא תמיד ולא רק כשיש מה לשחזר: `let mode` קובע את
@@ -12420,9 +12654,12 @@ function demoRows(){
   ['תיקון פרמטרים',     8,i=>({m:()=>I(3,12),free:I(10,40),cust:I(0,2),po:I(0,6),lt:120,pr:I(25,500),ss:I(0,1),rop:I(0,2),sale:I(5,40),ent:I(40,160)})],
   ['לפי דרישה (PD)',    6,i=>({m:()=>I(0,4),free:I(0,8),cust:I(0,3),po:I(0,4),lt:150,pr:I(100,2000),ss:0,rop:0,pd:true,sale:I(10,90),ent:I(80,320)})]];
  let n=0;
+ /* BASE_MONTH: «צר.השנה» הוא חודשי השנה הנוכחית שבחלון — כמו בדוח האמיתי.
+    היה: סכום כל 11 החודשים, והנתונים «הראו» חודש בסיס נובמבר בכל חודש. */
+ const bmK=(()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return (d.getMonth()+1)%12})();
  for(const [lbl,cnt,gen] of fam)for(let i=0;i<cnt;i++){
   const c=gen(i);const mon=Array.from({length:11},c.m);
-  const y=mon.reduce((a,b)=>a+b,0);
+  const y=mon.reduce((a,b)=>a+b,0),y0=mon.slice(0,bmK).reduce((a,b)=>a+b,0);
   const gp=GRP[n%GRP.length],md=MDL[n%MDL.length];
   const pn=`DEMO-${String(1000+n)}`;n++;
   rows.push([pn,`${gp} ${md} — ${lbl}`,`Demo ${gp} ${n}`,SUP[n%SUP.length],'01','פעיל',
@@ -12431,8 +12668,9 @@ function demoRows(){
    c.free,c.free,0,c.po,0,0,c.cust,n%3?'Z001':'Z004',
    gp,'ZT','מתכנן הדגמה','12 חודשים',md,gp,
    '100','ZT','200',md,'300',gp,
-   y,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
- return {hdr,rows}}
+   y0,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
+ /* ההדגמה נבנית היום, ולכן תאריך המצב שלה הוא היום — במפורש, מעל הכותרת */
+ return {hdr,rows,state:D(0)}}
 /* ============ DEMO_ISOLATION ============
    היציאה קוראת את האמת מחדש מ-localStorage, שלא נגענו בו לכל אורך
    ההדגמה. לכן היא לא דורשת רענון — וזה מה שמאפשר מעבר מפורש גם
@@ -12487,7 +12725,7 @@ function demoExit(){
  etaChip();return true}
 function demoStart(){
  if(typeof XLSX==='undefined'){toast('⚠ ספריית האקסל עוד נטענת — נסה שוב בעוד רגע');return}
- const {hdr,rows}=demoRows();
+ const {hdr,rows,state}=demoRows();
  /* (ב) — הזיכרון שבזיכרון מתאפס, כדי שהדוגמה לא תרשת סימונים אמיתיים */
  DEMO=true;DEMO_LOADING=true;
  Object.keys(MARKS).forEach(k=>delete MARKS[k]);
@@ -12498,7 +12736,7 @@ function demoStart(){
  ETA=null;etaChip();
  document.getElementById('demobar').hidden=false;
  document.body.classList.add('demo');
- const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה'],[],hdr,...rows]);
+ const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה',`מצב המלאי: ${state}`],[],hdr,...rows]);
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ZMRP');
  const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
  const file=new File([buf],'הדגמה-ZMRP.xlsx',
@@ -12635,7 +12873,7 @@ function fchipSync(){
  tx.textContent=zt?zt+(ut&&!/^לא נטען/.test(ut)?' · '+ut.replace(/^נטען\s*/,''):''):(ut||'לא נטען דוח');
  const n=d&&!d.hidden?+(document.getElementById('dchipN')||{}).textContent||0:0;
  if(w){w.hidden=!n;w.textContent=n?`⚠ ${n}`:''}
- const b=document.getElementById('fchip');if(b)b.classList.toggle('warn',!!n)}
+ const b=document.getElementById('fchip');if(b)b.classList.toggle('warn',!!n||(!!z&&z.classList.contains('bmwarn')))}
 function fchipWire(){
  const ids=['zchip','updated','dchip','dchipN'];fchipSync();
  if(!window.MutationObserver)return;
@@ -12714,7 +12952,7 @@ function welWire(){
  if(ex)ex.onclick=()=>{
   if(!confirm('לצאת ממצב ההדגמה? נתוני הדוגמה יימחקו מהמסך והעבודה האמיתית תחזור.'))return;
   demoExit();ALL=[];Q=QF=null;
-  ZDATE=null;ZLOAD=null;ZN=null;syncDataState();
+  ZDATE=null;ZLOAD=null;ZN=null;BASE=null;syncDataState();
   document.getElementById('plannerGreeting').textContent='העלה דוח ZMRP כדי להתחיל';
   welToggle();render();toast('חזרת לעבודה האמיתית')};
  welToggle()}
@@ -13080,7 +13318,8 @@ function showBrief(h){
  const box=document.getElementById('brief');if(!box)return;
  /* דרך הנעילה, כמו recordRun — שמירה ישירה כאן כתבה את כל HIST מחוץ
     לנעילה, ונתפסה: שתי טעינות חופפות השאירו הרצה כפולה */
- {const d=diagSig();HIST.lastDiag=d;statePersist(HIST_KEY,saveHist,()=>{histLoad();HIST.lastDiag=d})}
+ /* BASE_MONTH: חודש לא מאומת — גם זה רישום בהיסטוריה, ולכן לא נכתב */
+ if(!BASE||BASE.verified){const d=diagSig();HIST.lastDiag=d;statePersist(HIST_KEY,saveHist,()=>{histLoad();HIST.lastDiag=d})}
  if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
   box.hidden=true;document.body.classList.remove('briefing');return}
  const sub=document.getElementById('briefSub');
