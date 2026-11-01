@@ -90,7 +90,7 @@ node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 ## 3 · להריץ Tests, Lint ו-Type Check רלוונטיים
 
 ```bash
-npm test                              # כל הקבצים (40 ב-31.10.2026) · ~25 דקות · הכול, לא תת-קבוצה
+npm test                              # כל הקבצים (41 ב-1.11.2026) · ~25 דקות · הכול, לא תת-קבוצה
 node $V/syntax-check.js .             # תחליף ל-lint/tsc שאינם קיימים
 node $V/data-leak-check.js $S/incoming/zt.xlsx .
 ```

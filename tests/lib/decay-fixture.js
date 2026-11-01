@@ -9,6 +9,7 @@
    1 יח׳ ב-11 חודשים, 6 ב-2025, 202 ב-2024, LT 120 יום, רמת שירות 80,
    SS ו-ssMin 11 — ולכן ההמלצה הצפויה ROP 12, SS 11 (היה 37). */
 const XLSX=require('xlsx'),path=require('path'),fs=require('fs'),os=require('os');
+const {FIXTURE_NOW}=require('./fixture-date.js');
 const SD=path.join(__dirname,'..');
 const MON=Array.from({length:11},(_,i)=>'צר.חודש-'+(i+1));
 const dstr=d=>{const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')}.${String(x.getMonth()+1).padStart(2,'0')}.${x.getFullYear()}`};
@@ -25,7 +26,7 @@ function item(hdr,tpl,o){
  set('הז. רכש',0);set('בהעברה',0);set('אספקות פת.',0);set('כמות בהז.פ',0);
  set('צר.השנה',o.y[0]);set('צר.שנה-1',o.y[1]);set('צר.שנה-2',o.y[2]);set('צר.החודש',0);
  MON.forEach((k,i)=>set(k,o.m[i]||0));
- set("תאר' מכירה",dstr(Date.now()-o.saleAgo*DAY));set("תאר' כניסה",dstr(Date.now()-900*DAY));
+ set("תאר' מכירה",dstr(FIXTURE_NOW-o.saleAgo*DAY));set("תאר' כניסה",dstr(FIXTURE_NOW-900*DAY));
  return r}
 /* הפריטים והתוצאה הצפויה. «decay» = האם RATE_DECAY אמור לפעול */
 const ITEMS=[

@@ -44,8 +44,14 @@ function firstDiff(fa,fb){const A=XLSX.readFile(fa,{cellDates:true}),B=XLSX.read
  return ''}
 const sheetsOf=f=>{const wb=XLSX.readFile(f);return wb.SheetNames.map(n=>`${n}:${XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1}).length}`).join(' · ')};
 const HTML='file://'+path.join(SD,'..','index.html')+'?nobrief=1';
+/* BASE_MONTH: השעון של הדף מקובע לתאריך המצב של הדוח הסינתטי. ה-main
+   שלפני BASE_MONTH סופר גיל מלאי מהיום, והגרסה הנוכחית מתאריך מצב הדוח —
+   בלי שעון משותף, ההשוואה תא-בתא הייתה מודדת את יום ההרצה ולא את הקוד, וכל
+   יום הייתה נותנת main אחר. ההשוואה עצמה לא השתנתה: כל תא, כל גיליון. */
+const {FIXTURE_NOW}=require('./lib/fixture-date.js');
 async function open(b,W,H,html){const ctx=await b.newContext({viewport:{width:W,height:H},acceptDownloads:true});
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.clock.setFixedTime(FIXTURE_NOW);
  await p.goto(html||HTML);await p.waitForTimeout(500);
  await p.setInputFiles('#f',XL);
  await p.waitForFunction(()=>typeof LOADMS!=='undefined'&&LOADMS>0&&(typeof LOADJOB==='undefined'||!LOADJOB),null,{timeout:300000,polling:200});

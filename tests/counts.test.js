@@ -27,6 +27,8 @@ const gn=s=>s==null?0:+String(s).replace(/,/g,'');
 /* דוח שני — אותו מחולל, זרע אחר, בתיקייה זמנית */
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'counts-'));
 fs.copyFileSync(path.join(SD,'make-fixture.js'),path.join(tmp,'make-fixture.js'));
+/* BASE_MONTH: תאריך המצב הקבוע של הדוח הסינתטי */
+fs.mkdirSync(path.join(tmp,'lib'),{recursive:true});fs.copyFileSync(path.join(SD,'lib','fixture-date.js'),path.join(tmp,'lib','fixture-date.js'));
 execFileSync(process.execPath,[path.join(tmp,'make-fixture.js')],
  {cwd:tmp,env:{...process.env,NODE_PATH:path.join(ROOT,'node_modules'),FIXTURE_SEED:'7'},stdio:'pipe'});
 const XL2=path.join(tmp,'zmrp-demo.xlsx');
