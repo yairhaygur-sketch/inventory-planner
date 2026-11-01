@@ -164,6 +164,41 @@ const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''))
  ok('והתאמה בעמודה הראשונה אינה מוסיפה שורה שנייה',
    vis.primaryOnly===0||vis.primaryWord===null,
    `«${vis.primaryWord}» → ${vis.primaryOnly} שורות שניות`);
+ /* ============ UX1 · מק״ט מדויק אינו מרוקן את המסך ============
+    נמדד לפני התיקון: חיפוש מק״ט מתוך «מרכז עבודה» פתח את הכרטיס, אבל
+    הסינון נשאר — הטבלה התרוקנה (0 שורות) וכל מוני המסילה ירדו ל-0 או 1.
+    עכשיו: הכרטיס נפתח, והמסך, הרשימה והמונים נשארים כמו לפני החיפוש.
+    חיפוש טקסט חופשי ממשיך לסנן — זו יכולת, והיא נבדקת כאן גם. */
+ const railNums=()=>p.evaluate(()=>[...document.querySelectorAll('#tabs > *')].map(e=>e.innerText.replace(/\s+/g,' ').trim()).join(' | '));
+ await p.keyboard.press('Escape');await p.evaluate(()=>{clearQuery();setMode('home')});await p.waitForTimeout(400);
+ const before=await p.evaluate(()=>({mode,n:currentRows().length}));const railBefore=await railNums();
+ /* פריט שאינו במרכז העבודה — הכרטיס חייב להיפתח מעל המסך, לא להחליף אותו */
+ const pn=await p.evaluate(()=>{const inHome=new Set(currentRows().map(r=>r.pn));return ALL.find(r=>!inHome.has(r.pn)&&r.desc).pn});
+ await p.keyboard.press('/');await p.keyboard.type(pn);await p.waitForTimeout(450);
+ await p.keyboard.press('Enter');await p.waitForTimeout(500);
+ const after=await p.evaluate(pn=>({open:!!(CURRENT_DETAIL&&CURRENT_DETAIL.pn===pn),mode,n:currentRows().length,
+  q:document.getElementById('q').value,sq:SQ,trs:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+  recent:RECENTQ[0]}),pn);
+ const railAfter=await railNums();
+ ok('מק״ט מדויק: הכרטיס נפתח',after.open);
+ ok('ומרכז העבודה נשאר עם כל הרשימה',after.mode===before.mode&&after.n===before.n&&after.trs>0,`${before.n} → ${after.n} · ${after.trs} שורות מצוירות`);
+ ok('מוני המסילה לא השתנו',railAfter===railBefore,railAfter.slice(0,120));
+ ok('תיבת החיפוש התנקתה, והחיפוש נשמר באחרונים',after.q===''&&after.sq===null&&after.recent===pn,`q="${after.q}" · אחרון=${after.recent===pn}`);
+ await p.keyboard.press('Escape');await p.waitForTimeout(250);
+ /* טקסט חופשי עם כמה תוצאות — הסינון נשאר אחרי פתיחת הכרטיס, כמו קודם */
+ await p.evaluate(()=>setMode('catalog'));await p.waitForTimeout(300);
+ /* קידומת ספק — חיפוש אמיתי שמצמצם, ולא מונח שמופיע בכל הפריטים */
+ const sup=await p.evaluate(()=>'ספק:'+ALL.find(r=>r.supplier&&r.supplier!=='ללא ספק').supplier);
+ await p.click('#q');await p.fill('#q',sup);await p.waitForTimeout(450);
+ await p.keyboard.press('Enter');await p.waitForTimeout(450);
+ const ft=await p.evaluate(()=>({sq:!!SQ,q:document.getElementById('q').value,n:currentRows().length,all:ALL.length,open:!!CURRENT_DETAIL}));
+ ok('טקסט חופשי: הכרטיס נפתח והסינון נשאר — יכולת קיימת',ft.open&&ft.sq&&ft.q!==''&&ft.n<ft.all,`«${ft.q}» · ${ft.n} מתוך ${ft.all}`);
+ await p.click('#q');await p.keyboard.press('Escape');await p.waitForTimeout(250);
+ /* ============ UX1 · תת-כותרות שהיו של מסך אחר ============ */
+ const subs=await p.evaluate(()=>{const s=k=>{setMode(k);return document.getElementById('phdSub').textContent.trim()};
+  return {qual:s('qual'),cap:s('cap'),burn:s('burn'),catalog:s('catalog')}});
+ ok('«איכות נתונים» — תת-כותרת משלה, לא של «בריאות המלאי»',subs.qual!==subs.cap&&/פרמטרים ב-SAP/.test(subs.qual),subs.qual.slice(0,80));
+ ok('«אין רכש כלל» — תת-כותרת משלה, לא של הקטלוג',subs.burn!==subs.catalog&&/אין מולה שום הזמנת רכש/.test(subs.burn),subs.burn.slice(0,80));
  ok('אין שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));
  console.log(out.join('\n'));
  await p.screenshot({path:SD+'/07-search.png'});
