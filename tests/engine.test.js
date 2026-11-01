@@ -852,10 +852,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    const all=ALL||[];
    const pick=all.filter(r=>(r.ltD||0)>0&&!isPD(r.mrp)&&!r.isOD&&!r.noStock).slice(0,3);
    window.__lz={pns:pick.map(r=>r.pn),lt:pick.map(r=>r.ltD),
+     /* השדות של LT קיימים רק כשהם רלוונטיים — שומרים בדיוק מה שהיה, כולל היעדר */
+     raw:pick.map(r=>Object.fromEntries(['ltD','ltM','ltBad','ltRaw','ltPlanned'].filter(k=>k in r).map(k=>[k,r[k]]))),
      /* נמדד **לפני** השינוי. הגרסה הראשונה מדדה אחרי ההזרקה
         והשוותה 3===3 — בדיקה שעוברת בלי לבדוק כלום. */
      flaggedBefore:((QF&&QF.all)||[]).filter(r=>r.ltZero).length};
-   for(const r of pick)r.ltD=0,r.ltM=0;
+   /* שלב 2: «זמן אספקה חסר» נקבע מהשדה המקורי (ltBad) ולא מ-ltD — ההזרקה
+      מדמה «אספ.מתוכנ.» = 0, כמו ש-build היה מסמן אותו */
+   for(const r of pick)r.ltD=0,r.ltM=0,r.ltBad=true,r.ltRaw=0,r.ltPlanned=0;
    /* `apply()` הוא מסלול הקוד האמיתי: הוא מסנן, מסווג וממלא
       את `QF.all`. קריאה ל-`classify()` לבדה משאירה את `QF.all` ריק,
       והבדיקה הייתה מודדת מאגר ריק ומדווחת «עבר». */
@@ -865,16 +869,16 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      after:(QF.all||[]).filter(r=>r.ltZero).length}});
   const lz=await p.evaluate(()=>{
    const all=QF.all||[];
-   const lt0=all.filter(r=>(r.ltD||0)===0);
+   const lt0=all.filter(r=>r.ltBad);
    const flagged=all.filter(r=>r.ltZero);
-   const says=r=>(r.why||[]).some(w=>/אין זמן אספקה ב-SAP/.test(w[1]||''));
+   const says=r=>(r.why||[]).some(w=>/חסר זמן אספקה — יש לעדכן ב-SAP/.test((w&&w[1])||''));
    const actQ=new Set([].concat(QF.waiting,QF.immediate,QF.follow,QF.prevent));
    /* כל פריט שאין לו זמן אספקה והכלי ממליץ לו משהו — חייב לדעת */
    const inQueueMissing=lt0.filter(r=>actQ.has(r)&&!r.ltZero).length;
    return {lt0:lt0.length, flagged:flagged.length,
      allFlaggedSay:flagged.every(says),
      noneElseSays:all.filter(r=>!r.ltZero&&says(r)).length,
-     withLtSays:all.filter(r=>(r.ltD||0)>0&&says(r)).length,
+     withLtSays:all.filter(r=>!r.ltBad&&says(r)).length,
      inQueueMissing,
      /* הרונג הותיק לא נגע — הוא עדיין מותנה ב-rate>0 */
      ltMissingStill:all.filter(r=>r.ltMissing).length,
@@ -897,11 +901,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const lzBack=await p.evaluate(()=>{
    const by=new Map((ALL||[]).map(r=>[r.pn,r]));
    window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
-     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30}});
+     if(r){for(const k of ['ltD','ltM','ltBad','ltRaw','ltPlanned'])delete r[k];Object.assign(r,window.__lz.raw[i])}});
    apply();DL_CACHE={};XMAP=null;render();
-   const says=r=>(r.why||[]).some(w=>/אין זמן אספקה ב-SAP/.test(w[1]||''));
+   const says=r=>(r.why||[]).some(w=>/חסר זמן אספקה — יש לעדכן ב-SAP/.test((w&&w[1])||''));
    return {flagged:(QF.all||[]).filter(r=>r.ltZero).length,
-     lt0:(QF.all||[]).filter(r=>(r.ltD||0)===0).length,
+     lt0:(QF.all||[]).filter(r=>r.ltBad).length,
      says:(QF.all||[]).filter(says).length}});
   /* הדגל חייב להתאפס כשהנתון משתנה — `classify` רץ על אותם
      אובייקטים בכל סינון ובכל העלאה. זו הבדיקה שתפסה
@@ -918,12 +922,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      מחדש ולכן לא — וזה נעול כאן במקום להישאר הנחה. */
   const lzDup=await p.evaluate(()=>{
    const by=new Map((ALL||[]).map(r=>[r.pn,r]));
-   window.__lz.pns.forEach(pn=>{const r=by.get(pn);if(r)r.ltD=0,r.ltM=0});
+   window.__lz.pns.forEach(pn=>{const r=by.get(pn);if(r)r.ltD=0,r.ltM=0,r.ltBad=true,r.ltRaw=0,r.ltPlanned=0});
    apply();apply();apply();
    const f=(QF.all||[]).filter(r=>r.ltZero);
-   const per=f.map(r=>(r.why||[]).filter(w=>/אין זמן אספקה ב-SAP/.test(w[1]||'')).length);
+   const per=f.map(r=>(r.why||[]).filter(w=>/חסר זמן אספקה — יש לעדכן ב-SAP/.test((w&&w[1])||'')).length);
    window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
-     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30}});
+     if(r){for(const k of ['ltD','ltM','ltBad','ltRaw','ltPlanned'])delete r[k];Object.assign(r,window.__lz.raw[i])}});
    apply();
    return {n:f.length,max:per.length?Math.max(...per):0,min:per.length?Math.min(...per):0}});
   ok('והשורה אינה נערמת בסינונים חוזרים',

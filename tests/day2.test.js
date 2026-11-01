@@ -164,7 +164,8 @@ const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_histo
      ssMinKept:body.every(r=>{const x=byPn[r[0]];return !x||r[3]===(x.ssMin||0)}),
      ssIsSug:body.every(r=>{const x=byPn[r[0]];return !x||r[2]===x.sugSS}),
      ropIsSug:body.every(r=>{const x=byPn[r[0]];return !x||r[4]===x.sugROP}),
-     ltEcho:body.every(r=>{const x=byPn[r[0]];return !x||r[7]===x.ltD}),
+     /* שלב 2: זמן אספקה מתוכנן בלבד, בלי זמן קבלת טובין (ltD = מתוכנן + GR) */
+     ltEcho:body.every(r=>{const x=byPn[r[0]];return !x||r[7]===ltPlan(x)}),
      /* שורה שאינה שינוי אינה עדכון */
      noNoop:body.every(r=>{const x=byPn[r[0]];return !x||x.sugSS!==x.ss||x.sugROP!==x.rop}),
      noLT:body.every(r=>+r[7]>0),

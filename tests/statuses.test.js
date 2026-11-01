@@ -225,21 +225,29 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     const base={mrp:'ZM',abc:'C',cust:0,po:0,noCons3y:true,pn:'T-PROF'};
     return {no:t('PD-NOPRICE'),yes:t('PD-PRICED'),
       th:[11,9,8,5,4,2,1,0].map(profTgt).join(''),
-      up:profInfo({...base,mrp:'PD',abc:'D',months:m(10)}),
+      /* שלב 2: PD עולה לפי צריכה נטו ב-12 ח׳ (net12≥3), לא לפי תדירות */
+      up:profInfo({...base,mrp:'PD',abc:'D',months:m(10),net12:30}),
+      upLow:profInfo({...base,mrp:'PD',abc:'D',months:m(10),net12:2}),
+      cDown:profInfo({...base,months:m(0)}),
       cUp:profInfo({...base,months:m(10)}),
-      cust:profInfo({...base,months:m(0),cust:2}).state,
-      c3y:profInfo({...base,months:m(0),noCons3y:false}).state,
-      po:profInfo({...base,months:m(0),po:4}).state,
-      wait:profInfo({...base,months:m(0)}).state,
+      /* שלב 2: אין הורדה ל-PD, והיעד הנמוך הוא ZM-C — לכן ההגנות נבדקות על B שהיעד שלו לפי H הוא D */
+      cust:profInfo({...base,abc:'B',months:m(0),cust:2}).state,
+      c3y:profInfo({...base,abc:'B',months:m(0),noCons3y:false}).state,
+      po:profInfo({...base,abc:'B',months:m(0),po:4}).state,
+      wait:profInfo({...base,abc:'B',months:m(0)}).state,
+      waitTgt:profInfo({...base,abc:'B',months:m(0)}).tgt,
       same:profInfo({...base,months:m(3)})}});
   ok('מחיר חסר אינו חוסם ואינו מכריע את הפרופיל',pr.no.got===pr.no.exp,JSON.stringify(pr.no));
   ok('ופריט עם מחיר מקבל את אותו כלל בדיוק',pr.yes.got===pr.yes.exp,JSON.stringify(pr.yes));
   ok('ספי התדירות: 11/9→A · 8/5→B · 4/2→C · 1/0→D',pr.th==='AABBCCDD',pr.th);
   ok('העלאה — מיד, ומ-PD רק ל-ZM-C גם בתדירות של A',pr.up&&pr.up.state==='up'&&pr.up.tgt==='C',JSON.stringify(pr.up));
+  ok('PD עם צריכה נטו מתחת ל-3 — אין המלצה',pr.upLow===null,JSON.stringify(pr.upLow));
+  ok('ZM-C בלי צריכה — אין הורדה ל-PD',pr.cDown===null,JSON.stringify(pr.cDown));
+  ok('B בלי צריכה — היעד הוא ZM-C ולא PD',pr.waitTgt==='C',pr.waitTgt);
   ok('C→A / C→B אינם בדוח',pr.cUp===null,String(pr.cUp));
-  ok('הורדה ל-D עם הזמנת לקוח פתוחה — לא',pr.cust==='keep',pr.cust);
-  ok('הורדה ל-D כשהייתה צריכה ב-3 שנים — לא',pr.c3y==='keep',pr.c3y);
-  ok('הורדה ל-D עם רכש פתוח — «לבדוק»',pr.po==='check',pr.po);
+  ok('הורדה (B→C) עם הזמנת לקוח פתוחה — לא',pr.cust==='keep',pr.cust);
+  ok('הורדה (B→C) כשהייתה צריכה ב-3 שנים — לא',pr.c3y==='keep',pr.c3y);
+  ok('הורדה (B→C) עם רכש פתוח — «לבדוק»',pr.po==='check',pr.po);
   ok('הורדה בלי חודש קודם מתחת לסף — «בהמתנה»',pr.wait==='wait',pr.wait);
   ok('פרופיל שתואם את התדירות אינו ברשימה',pr.same===null,String(pr.same));
   await p.close()}
@@ -289,9 +297,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  /* ================= 7 · תוויות חלון הצריכה ================= */
  {const p=await load(SD+'/status-a.xlsx');
   const txt=await p.evaluate(()=>{
-    const all=ALL.map(r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])].join(' ')).join(' ');
+    /* שלב 2: PD_LT_MSG והמלצת PD→ZM-C («נטו ב-12 החודשים») מדברים על net12 — 11 חודשים מלאים + החודש הנוכחי, כלומר באמת 12 */
+    const all=ALL.map(r=>[...(r.why||[]).map(w=>w[1]),...(r.act||[])].join(' ')).join(' ').split(PD_LT_MSG).join(' ').replace(/נטו (לפחות )?ב-12 החודשים/g,'נטו');
     return all});
-  ok('אין טקסט שאומר «12 החודשים» על חלון של 11',!/ב-12 החודשים/.test(txt));
+  ok('אין טקסט שאומר «12 החודשים» על חלון של 11',!/ב-12 החודשים/.test(txt),(txt.match(/.{60}ב-12 החודשים.{30}/)||[''])[0]);
   ok('ואין «יח׳/שנה» על אותו חלון',!/יח׳\/שנה/.test(txt));
   await p.close()}
 

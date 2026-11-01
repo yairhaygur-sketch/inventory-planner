@@ -41,21 +41,26 @@ function write(file,rows,opt={}){let hdr=HDR.slice(),rr=rows.map(r=>r.slice());
 /* צריכה סדירה בלי פיק ובלי «חודש אזילה» — כדי שהבדיקה הידנית תוכל
    לחשב קצב ו-σ בלי לשחזר את ניקוי החודשים של analyze */
 const REG=[6,7,5,6,8,5,7,6,5,7,6];
-const LOW=[1,1,0,0,0,0,0,0,0,0,0];              /* 2 יח׳ ב-11 חודשים, 6 ב-3 שנים — מתחת לרף */
+/* שלב 2: ההעלאה מ-PD היא צריכה נטו ≥ 3 ב-12 חודשים, ולכן הפריט הדליל הוא
+   3 יח׳ (היה 2) — עדיין בלהקת הביקוש הזעום (d12 ≤ 3) ועדיין מתחת לרף
+   הקצב התלת-שנתי: y0=3 ושתי השנים הקודמות 0, כלומר 3 יח׳ ב-3 שנים. */
+const LOW=[1,1,1,0,0,0,0,0,0,0,0];
+const LOWY={y0:3,y1:0,y2:0};
 const CASES=[
  ['PF-REG',     {months:REG},                                   'ok',  []],
  ['PF-TOOL',    {months:REG,mkt1:'כלי עבודה'},                  'rev', ['od_group']],
  ['PF-ACC',     {months:REG,mkt1:'אביזרים'},                    'rev', ['od_group']],
- ['PF-S04',     {months:REG,status:'04',stx:'לא פעיל'},          'rev', ['inactive']],
- ['PF-S14',     {months:REG,status:'14',stx:'גמר המלאי'},        'rev', ['inactive']],
- ['PF-ACC04',   {months:REG,mkt1:'אביזרים',status:'04',stx:'לא פעיל'},'rev',['od_group','inactive']],
+ /* שלב 2: 04/14 אינם מועמדים כלל (pdUpgrade מחריג לפי קוד וטקסט) — null */
+ ['PF-S04',     {months:REG,status:'04',stx:'לא פעיל'},          null,  []],
+ ['PF-S14',     {months:REG,status:'14',stx:'גמר המלאי'},        null,  []],
+ ['PF-ACC04',   {months:REG,mkt1:'אביזרים',status:'04',stx:'לא פעיל'},null,[]],
  ['PF-MARK',    {months:REG},                                   'ok',  []],
- ['PF-LOWHI',   {months:LOW,price:500},                         'rev', ['zero_low']],
- ['PF-LOWCHEAP',{months:LOW,price:5},                           'ok',  []],
- ['PF-NOPRICE', {months:LOW,price:0},                           'rev', ['zero_noprice']],
+ ['PF-LOWHI',   {months:LOW,price:500,...LOWY},                 'rev', ['zero_low']],
+ ['PF-LOWCHEAP',{months:LOW,price:5,...LOWY},                   'ok',  []],
+ ['PF-NOPRICE', {months:LOW,price:0,...LOWY},                   'rev', ['zero_noprice']],
  ['PF-NOLT',    {months:REG,lt:0,ltAdd:0},                      'rev', ['no_lt']],
  ['PF-SSMIN7',  {months:[3,3,3,4,3,3,3,4,3,3,3],ssMin:7},       'ok',  []],
- ['PF-ROP1',    {months:LOW,price:500,rop:1,ss:0},              'rev', ['ss_zero']],
+ ['PF-ROP1',    {months:LOW,price:500,rop:1,ss:0,...LOWY},      'rev', ['ss_zero']],
  ['PF-FLAT',    {months:Array(11).fill(1),price:500},           'rev', ['ss_zero_rate3y']],
  ['PF-SILENT',  {months:[0,0,0,0,0,0,3,4,2,3,1]},               'rev', ['zero_silent']],
  ['PF-DUP',     {months:REG},                                   'rev', ['no_row']]];
@@ -95,25 +100,29 @@ const SNAP=()=>{
 
  /* ---- 1. בידוד: לפני ואחרי הקריאה הראשונה — הכול זהה ---- */
  const iso=await p.evaluate(SNAP=>{const snap=eval('('+SNAP+')');
-  const s0=snap(),d0=DIAG,pf0=PFSIM;const S=profSimAll();const s1=snap();
+  /* שלב 2: מסך הפרופילים מציג ROP/SS אחרי PD→ZM-C, ולכן הרינדור כבר קורא לסימולציה.
+     בודקים שהמטמון שייך לטעינה הנוכחית, ומאפסים אותו כדי לבדוק בידוד על חישוב טרי */
+  const pf0=PFSIM===null||(PFSIM.all===ALL&&PFSIM.raw===ALL_RAW);PFSIM=null;
+  const s0=snap(),d0=DIAG;const S=profSimAll();const s1=snap();
   const sp=ALL.map(profSplit);const s2=snap();
-  return {same1:s0===s1,same2:s0===s2,diagId:DIAG===d0,pf0:pf0===null,map:[...S.map.keys()].sort(),srvCol:S.srvCol}},SNAP.toString());
- ok('לפני הקריאה המטמון ריק — שום מסלול טעינה או רינדור לא הפעיל את הסימולציה',iso.pf0);
+  return {same1:s0===s1,same2:s0===s2,diagId:DIAG===d0,pf0,map:[...S.map.keys()].sort(),srvCol:S.srvCol}},SNAP.toString());
+ ok('המטמון שנבנה ברינדור מסך הפרופילים שייך לטעינה הנוכחית בלבד',iso.pf0);
  ok('profSimAll() לא שינה דבר: ALL, Q, QF, ROWS, DIAG, ALL_RAW, המסך, המונה, localStorage',iso.same1);
  ok('profSplit() על כל הפריטים לא שינה דבר',iso.same2);
  ok('DIAG הוא אותו אובייקט (mapCols יוצר חדש — הוחזר המקורי)',iso.diagId);
- const upPn=CASES.filter(c=>c[0]!=='PF-DUP').map(c=>c[0]).sort();
+ const upPn=CASES.filter(c=>c[0]!=='PF-DUP'&&c[2]!==null).map(c=>c[0]).sort();
  ok('הסימולציה רצה רק על פריטי «להעלות» — אף פריט מנוהל, אף PD שאינו מועמד',J(iso.map)===J(upPn),iso.map.join(','));
 
  /* ---- 2. החלוקה וקודי הסיבה, פריט אחר פריט ---- */
  const sp=await p.evaluate(()=>Object.fromEntries(ALL.map(r=>[r.pn+(r===ALL.find(x=>x.pn===r.pn)?'':'#2'),profSplit(r)])));
  for(const [pn,,grp,why] of CASES){const x=sp[pn];
+  if(grp===null){ok(`${pn} → אינו מועמד (04/14)`,x===null,x?x.grp:'null');continue}
   ok(`${pn} → ${grp} ${why.join('+')||'(ללא סיבה)'}`,!!x&&x.grp===grp&&J(x.reasons)===J(why)&&x.primary===(why[0]||null),
    x?`${x.grp} ${x.reasons.join('+')} ROP=${x.sim&&x.sim.rop} SS=${x.sim&&x.sim.ss}`:'null')}
  ok('PF-DUP — גם השורה הכפולה השנייה → no_row, בלי לבחור שורה',sp['PF-DUP#2']&&sp['PF-DUP#2'].grp==='rev'&&J(sp['PF-DUP#2'].reasons)===J(['no_row'])&&sp['PF-DUP#2'].sim===null);
- ok('חפיפה: PF-ACC04 נושא את שני הקודים, primary=od_group',J(sp['PF-ACC04'].reasons)===J(['od_group','inactive'])&&sp['PF-ACC04'].primary==='od_group');
+ ok('PF-ACC04 — אביזר בסטטוס 04 אינו מועמד, ולכן אין לו חלוקה',sp['PF-ACC04']===null);
  ok('פריט מנוהל ו-PD שאינו מועמד → null (אין להם חלוקה)',sp['BG-ZM']===null&&sp['BG-ND']===null&&sp['BG-PD1']===null);
- for(const pn of ['PF-TOOL','PF-ACC','PF-S04','PF-S14','PF-ACC04'])
+ for(const pn of ['PF-TOOL','PF-ACC'])
   ok(`${pn} — מוחרג, ולכן ROP=0 ו-SS=0`,sp[pn].sim.rop===0&&sp[pn].sim.ss===0);
  ok('PF-LOWCHEAP — רצפת מדרגה A: SS=3, ROP=3',sp['PF-LOWCHEAP'].sim.ss===3&&sp['PF-LOWCHEAP'].sim.rop===3,`${sp['PF-LOWCHEAP'].sim.ss}/${sp['PF-LOWCHEAP'].sim.rop}`);
  ok('PF-SSMIN7 — רצפת SAP נשמרת: SS=7',sp['PF-SSMIN7'].sim.ss===7&&sp['PF-SSMIN7'].sim.ssSrc==='sap',`${sp['PF-SSMIN7'].sim.ss} ${sp['PF-SSMIN7'].sim.ssSrc}`);
@@ -128,8 +137,8 @@ const SNAP=()=>{
  ok('PF-REG — SS = ⌈z·σ·√LT⌉ ו-ROP = ⌈קצב·LT + SS⌉, מחושב ידנית',reg.ss===ssX&&reg.rop===ropX&&ssX>0,`${reg.ss}/${reg.rop} מול ${ssX}/${ropX}`);
  /* ואותו build() על אותה שורה, כשמשנים את שלושת התאים ביד */
  const same=await p.evaluate(()=>{const m=mapCols(ALL_RAW.hdr);const r0=Object.assign({},ROWS),d0=DIAG;
-  try{const rows=ALL_RAW.rows.filter(row=>/^PF-/.test(CLEAN(row[m.pn]))&&CLEAN(row[m.pn])!=='PF-DUP').map(row=>{const c=row.slice();c[m.mrp]='ZM';c[m.srv]=80;c[m.abc]='C';return c});
-   return build(rows,ALL_RAW.hdr).every(it=>{const x=PFSIM.map.get(it.pn);return x&&x.rop===it.sugROP&&x.ss===it.sugSS})}
+  try{const rows=ALL_RAW.rows.filter(row=>PFSIM.map.has(CLEAN(row[m.pn]))&&CLEAN(row[m.pn])!=='PF-DUP').map(row=>{const c=row.slice();c[m.mrp]='ZM';c[m.srv]=80;c[m.abc]='C';return c});
+   const b=build(rows,ALL_RAW.hdr);return b.length===PFSIM.map.size&&b.every(it=>{const x=PFSIM.map.get(it.pn);return x&&x.rop===it.sugROP&&x.ss===it.sugSS})}
   finally{Object.assign(ROWS,r0);DIAG=d0}});
  ok('לכל פריט: ROP/SS זהים ל-build() על השורה כ-ZM/80/C',same);
 
@@ -148,17 +157,17 @@ const SNAP=()=>{
  ok('ביטול הסימון → חוזר ל-ok, בלי חישוב מחדש',mark.b.grp==='ok'&&!mark.b.reasons.length&&mark.cache);
 
  /* ---- 6. build() נכשל באמצע — ROWS ו-DIAG חוזרים, אין מטמון חלקי ---- */
- const fail=await p.evaluate(SNAP=>{const snap=eval('('+SNAP+')');
+ const fail=await p.evaluate(([SNAP,UPN])=>{const snap=eval('('+SNAP+')');
   PFSIM=null;const s0=snap(),r0=JSON.stringify(ROWS),d0=DIAG,a0=analyze;let n=0,threw=false;
   analyze=function(m){if(++n===3)throw new Error('כשל מכוון');return a0(m)};
   try{profSimAll()}catch(e){threw=e.message==='כשל מכוון'}finally{analyze=a0}
   const mid={rows:JSON.stringify(ROWS)===r0,diag:DIAG===d0,pf:PFSIM===null,same:snap()===s0,n};
   const sp=ALL.map(profSplit).filter(Boolean);
-  return {threw,...mid,after:sp.length===17&&profSplit(ALL.find(r=>r.pn==='PF-REG')).grp==='ok'}},SNAP.toString());
+  return {threw,...mid,len:sp.length,UPN,after:sp.length===UPN+2&&profSplit(ALL.find(r=>r.pn==='PF-REG')).grp==='ok'}},[SNAP.toString(),upPn.length]);
  ok('כשל בתוך build() — השגיאה עולה למי שקרא',fail.threw,`נכשל בקריאה ${fail.n}`);
  ok('אחרי הכשל: ROWS זהה, DIAG אותו אובייקט',fail.rows&&fail.diag);
  ok('אחרי הכשל: אין מטמון חלקי, וכל שאר המצב זהה',fail.pf&&fail.same);
- ok('ואחרי הכשל הקריאה הבאה עובדת',fail.after);
+ ok('ואחרי הכשל הקריאה הבאה עובדת',fail.after,`${fail.len} מול ${fail.UPN}+2 (שתי שורות PF-DUP)`);
 
  /* ---- 7. שורת מקור חסרה ---- */
  const miss=await p.evaluate(()=>{const R=ALL_RAW,m=mapCols(R.hdr);
@@ -183,7 +192,7 @@ const SNAP=()=>{
  ok('אין עמודת רמת שירות → לא רצה סימולציה בכלל',ns.col===false&&ns.map===0);
  ok('כל פריטי «להעלות» → rev + no_srv, וסיבות הפריט עצמו נשמרות',
   Object.keys(ns.sp).length===upPn.length&&Object.values(ns.sp).every(x=>x.grp==='rev'&&x.reasons.includes('no_srv')&&x.sim===null)
-  &&J(ns.sp['PF-ACC04'].reasons)===J(['od_group','inactive','no_srv'])&&J(ns.sp['PF-REG'].reasons)===J(['no_srv']));
+  &&J(ns.sp['PF-ACC'].reasons)===J(['od_group','no_srv'])&&J(ns.sp['PF-REG'].reasons)===J(['no_srv'])&&!ns.sp['PF-ACC04']);
 
  ok('אפס שגיאות JS',errs.length===0,errs.join(' | '));
  await b.close();fs.rmSync(tmp,{recursive:true,force:true});
