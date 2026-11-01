@@ -17,7 +17,7 @@ const mk=(pn,o={})=>{const m=o.months||Array(11).fill(0),y=m.reduce((a,b)=>a+b,0
   o.price!=null?o.price:100,o.cur||'USD',o.stock!=null?o.stock:(o.free||0),o.free||0,0,
   o.po||0,o.transfer||0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן',o.warranty!=null?o.warranty:0,
   'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
-  o.y0!=null?o.y0:y,o.y1!=null?o.y1:y,o.y2!=null?o.y2:y,0,...m,
+  o.y0!=null?o.y0:y,o.y1!=null?o.y1:y,o.y2!=null?o.y2:y,o.cm||0,...m,
   /* null ⇒ תא ריק. «אין תאריך» אינו «תאריך ישן», וזה בדיוק ההבדל
      שהענף «חדש — אין עדיין היסטוריה» טעה בו. */
   o.saleAgo===null?'':D(o.saleAgo!=null?o.saleAgo:10),
@@ -91,8 +91,19 @@ write(SD+'/status-f.xlsx',[
    הסף נגזר מ-LOWDEM_MAX ואינו מספר חדש: 3 יח׳ ב-11 חודשים. */
 const Y=n=>({y0:n,y1:0,y2:0}), Z11=Array(11).fill(0);
 write(SD+'/status-g.xlsx',[
- /* עובר את הסף בגדול — 60 יח׳ בשלוש שנים, אפס בחלון הקצר */
- mk('R3-FAT',  {...Y(60),months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* עובר את הסף בגדול — 60 יח׳ בשלוש שנים, אפס בחלון הקצר. הצריכה
+    ב-2025, ולכן אינה «דעוכה» (RATE_DECAY): λ ≈ 0.49 מקצב 3 השנים.
+    עד A′ הצריכה ישבה ב«צר.השנה» עם חלון ריק — נתון שאינו מתיישב
+    (ראה R3-BADDATA), ולכן הועברה לשנה שבה היא אפשרית. */
+ mk('R3-FAT',  {y0:0,y1:60,y2:0,months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* RATE_DECAY: אותה צריכה, אבל ב-2024 בלבד — שום דבר מאז. הביקוש דעך,
+    ו-ROP/SS מחושבים על הקצב העדכני (0). rate והכיסוי נשארים. */
+ mk('R3-DECAY',{y0:0,y1:0,y2:60,months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* אותו פריט דעוך — אבל נמכרו 2 יח׳ בחודש הנוכחי: הביקוש חי, אין דעיכה */
+ mk('R3-CURM', {y0:2,y1:0,y2:60,cm:2,months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
+ /* «צר.השנה» 60 כשהחודשים של השנה ריקים ואין צריכה בחודש הנוכחי — לא
+    מתיישב. אפס כזה אינו אפס ביקוש: הכלל לא חל, החישוב הקיים נשאר */
+ mk('R3-BADDATA',{...Y(60),months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
  /* יחידה אחת בשלוש שנים אינה קצב — היא רעש מחולק ב-34 */
  mk('R3-THIN', {...Y(1), months:Z11,free:5, stock:5, rop:1,ss:0,lt:60,price:100}),
  /* כיסוי 68 חודשים ⇒ הענף האיטי, בסרגל 24 — לא ענף העודף בסרגל 12 */
@@ -115,7 +126,7 @@ write(SD+'/status-g.xlsx',[
  /* «שני שעונים» על מלאי חסום: 30 יח׳ על המדף, אפס פנויות. הרונג
     האיטי מדווח כיסוי מהמלאי הכולל (34 ח׳), twoClocks מהפנוי (0 ח׳) —
     שני מספרים נכונים על שתי כמויות, ועד התיקון אף אחד לא אמר על איזו */
- mk('R3-TWOCLK',{...Y(30),months:Z11,free:0,stock:30,rop:2,ss:0,lt:120,price:100}),
+ mk('R3-TWOCLK',{y0:0,y1:30,y2:0,months:Z11,free:0,stock:30,rop:2,ss:0,lt:120,price:100}),
  /* הבקרה: ירידה אמיתית בחלון אמיתי חייבת להמשיך להתרסן */
  mk('R3-FALL', {y0:60,y1:60,y2:60,months:[3,3,3,9,9,9,0,0,0,0,0],free:30,stock:30,rop:6,ss:4,lt:120,price:100}),
  /* הבקרה: ביקוש אמיתי בחלון הקצר — ענף העודף בסרגל 12 חייב להמשיך לירות */
@@ -333,7 +344,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     tRatio:r.tRatio,trendF:+(r.trendF||0).toFixed(2),tgap:trendGap(r),
     why2:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
     cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
-    excess:r.excessQty||0,pf:!!r.paramFix,
+    excess:r.excessQty||0,pf:!!r.paramFix,dec:!!r.rateDecay,dLT:r.dLT,ltM:r.ltM,sugSS:r.sugSS,
     why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
     act:(r.act||[]).filter(Boolean).join(' ¦ ')};return o});
   ok('צריכה תלת-שנתית מעל הסף נותנת קצב, גם כשהחלון הקצר אפס',
@@ -341,6 +352,21 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('ונקודת ההזמנה המוצעת כבר אינה נשענת על רצפות בלבד',
     g['R3-FAT'].sugROP>g['R3-THIN'].sugROP,
     `FAT=${g['R3-FAT'].sugROP} THIN=${g['R3-THIN'].sugROP}`);
+  ok('ובלי דעיכה — ROP/SS על קצב 3 השנים (RATE_3Y נשמר)',
+    !g['R3-FAT'].dec&&Math.abs(g['R3-FAT'].dLT-g['R3-FAT'].rate*g['R3-FAT'].ltM)<0.01,
+    `dec=${g['R3-FAT'].dec} dLT=${g['R3-FAT'].dLT}`);
+  /* RATE_DECAY — רגרסיה מפורשת: אפס ב-11 חודשים, ביקוש היסטורי שדעך */
+  ok('דעיכה: אפס ב-11 חודשים וצריכה ב-2024 בלבד — ROP על הקצב העדכני',
+    g['R3-DECAY'].dec&&g['R3-DECAY'].sugROP===g['R3-THIN'].sugROP&&g['R3-DECAY'].sugROP<g['R3-FAT'].sugROP,
+    `DECAY=${g['R3-DECAY'].sugROP} THIN=${g['R3-THIN'].sugROP} FAT=${g['R3-FAT'].sugROP}`);
+  /* הסיווג עצמו נגזר מה-ROP (פער מ-SAP), ולכן אינו חלק מההשוואה */
+  ok('ו-rate והכיסוי נשארים על קצב 3 השנים',
+    g['R3-DECAY'].rate===g['R3-FAT'].rate&&g['R3-DECAY'].from3y&&g['R3-DECAY'].cov===g['R3-FAT'].cov,
+    `rate=${g['R3-DECAY'].rate} cov=${g['R3-DECAY'].cov} cat=${g['R3-DECAY'].cat}`);
+  ok('מכירה בחודש הנוכחי — אין דעיכה, ROP על קצב 3 השנים',
+    !g['R3-CURM'].dec&&g['R3-CURM'].sugROP>g['R3-THIN'].sugROP,`dec=${g['R3-CURM'].dec} ROP=${g['R3-CURM'].sugROP}`);
+  ok('נתונים שאינם מתיישבים — הכלל לא חל, החישוב הקיים נשאר',
+    !g['R3-BADDATA'].dec&&g['R3-BADDATA'].sugROP===g['R3-FAT'].sugROP,`dec=${g['R3-BADDATA'].dec} ROP=${g['R3-BADDATA'].sugROP}`);
   ok('יחידה אחת בשלוש שנים אינה קצב — הסף חוסם',
     g['R3-THIN'].rate===0&&!g['R3-THIN'].from3y,`rate=${g['R3-THIN'].rate}`);
   /* הרגרסיה שהמדידה תפסה: 45 פריטים עברו איטי→עודף בגלל הסרגל */

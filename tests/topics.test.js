@@ -26,7 +26,7 @@ const os=require('os'),XLSX=require('xlsx');
    בכלי המלא משתמשים בהם, ואותם שדות שהתצוגה מציגה או מייצאת. */
 const ENGINE=()=>{const uni=(...ls)=>[...new Set(ls.flat())];
  const pick=r=>({pn:r.pn,desc:r.desc,planner:r.planner,mrp:r.mrp,rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,
-  ssSrc:r.ssSrc,ltD:r.ltD,ltRaw:r.ltRaw,
+  ssSrc:r.ssSrc,ltD:r.ltD,ltRaw:ltRawOf(r),
   /* שלב 2: ההמלצה כפי שמקורות המנוע המשותפים אומרים — ריק כשאין */
   recROP:pdUpgrade(r)?(typeof profSimVal(r,'rop')==='number'?profSimVal(r,'rop'):''):(recNA(r)||r.isOD||r.noStock?'':r.sugROP),
   recSS:pdUpgrade(r)?(typeof profSimVal(r,'ss')==='number'?profSimVal(r,'ss'):''):(recNA(r)||r.isOD||r.noStock?'':r.sugSS),srv:r.srvMissing?null:r.srv,rate:r.rate,price:r.priceMissing?null:r.price,currency:r.currency,
@@ -237,7 +237,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     const cons=(r.months||[]).some(v=>v>0)||(r.curMonth||0)>0;
     const canv=[...el.querySelectorAll('canvas[data-ch="bar"]')];
     return {pn:r.pn,nr,ropS:num(cell('נקודת הזמנה',1)),ropR:nr?null:num(cell('נקודת הזמנה',2)),ssS:num(cell('מלאי ביטחון',1)),ssR:nr?null:num(cell('מלאי ביטחון',2)),
-     rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,lt:num(cell('זמן אספקה מתוכנן',1)),ltD:r.ltRaw,ltRec:cell('זמן אספקה מתוכנן',2),
+     rop:r.rop,sugROP:r.sugROP,ss:r.ss,sugSS:r.sugSS,lt:num(cell('זמן אספקה מתוכנן',1)),ltD:ltRawOf(r),ltRec:cell('זמן אספקה מתוכנן',2),
      diffShown:(r.rop===r.sugROP||nr||el.querySelectorAll('td.v.diff').length>0),cons,bar:canv.length,
      painted:canv.every(c=>{const x=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let s=0;for(let i=3;i<x.length;i+=40)s+=x[i];return s>0}),
      cover:/הזמנת הלקוח מול הכיסוי/.test(el.textContent),

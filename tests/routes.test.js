@@ -19,7 +19,9 @@ const hdr=['מק"ט מוביל','תיאור חומר','תיאור חומר2','ש
  'מלאי מרלוג','הז. רכש','בהעברה','אספקות פת.','כמות בהז.פ','סוג חומר','תיא.קבוצ.חומרים','קב.חו.חיצו','טקסט ארוך',
  'תב.אח.הש.','ת.היר.1 מח','ת.היר.2 מח','היררכייה1','היררכייה1','היררכייה2','היררכייה2','היררכייה3','היררכייה3',
  'צר.השנה','צר.שנה-1','צר.שנה-2','צר.החודש',...MON,"תאר' מכירה","תאר' כניסה"];
-const D=n=>{const d=new Date(Date.now()-n*864e5);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`};
+/* BASE_MONTH: תאריכים קבועים מתאריך המצב של הדוחות הסינתטיים, לא מיום ההרצה */
+const {FIXTURE_NOW,FIXTURE_HEAD}=require('./lib/fixture-date.js');
+const D=n=>{const d=new Date(FIXTURE_NOW-n*864e5);return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`};
 const mk=(pn,o)=>{const m=o.months;const y=m.reduce((a,b)=>a+b,0);
  /* !=null ולא ||: המבחן צריך דווקא אפס ברמת שירות ובזמן אספקה */
  return [pn,'פריט מבחן '+pn,'Test '+pn,o.sup||'ספק',o.status||'01',o.stx||'פעיל',o.mrp||'ND','A',o.srv!=null?o.srv:95,
@@ -84,7 +86,7 @@ const rows=[
  mk('FOLLOW-ROP-GAP',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:3,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60}),
  mk('FOLLOW-ROP-OK',{months:[2,2,2,2,2,2,2,2,2,2,2],free:5,po:10,rop:12,ss:2,ssMin:2,price:150,lt:120,saleAgo:20,entAgo:60})];
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([FIXTURE_HEAD(),[],hdr,...rows]),'ZMRP');return wb})(),
  SD+'/routes.xlsx');
 
 const out=[];let bad=0;
@@ -351,7 +353,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   const q=rows2.find(r=>r[0]==='QUIET'); q[iFree]=0; q[iTot]=0; q[iM1]=40;  /* נכנס לתור */
   const ps=rows2.find(r=>r[0]==='PLAIN-SHORT'); ps[iFree]=0; ps[iTot]=0;    /* החמיר */
   XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
-   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows2]),'ZMRP');return wb})(),
+   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([FIXTURE_HEAD(),[],hdr,...rows2]),'ZMRP');return wb})(),
    SD+'/routes-b.xlsx');
   await load(p,SD+'/routes-b.xlsx');
   const s2=await snap();

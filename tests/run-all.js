@@ -19,12 +19,18 @@ const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js'
  'selectall.test.js',
  'colsearch.test.js',
  'worker-load.test.js',
+ 'export-base.test.js',
+ 'export-expected.test.js',
  'export-worker.test.js',
  'profile-sim.test.js',
  'hooks.test.js',
  'shell-a11y.test.js',
  'shell-contrast.test.js',
  'topics.test.js',
+ 'rate-decay.test.js',
+ 'rate-decay-export.test.js',
+ 'tabs.test.js',
+ 'base-month.test.js',
  'pd-lt.test.js'];
 const SD=__dirname;const res=[];
 for(const f of FILES){

@@ -78,6 +78,11 @@ body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f
    במקביל. הצבע אינו הסימן היחיד: המספרים עצמם שונים בטקסט,
    ונוסף ⚠. */
 .zchip.rgap{color:var(--org);font-weight:800}
+/* BASE_MONTH: חודש בסיס לא מאומת — טקסט, לא רק צבע */
+.zchip.bmwarn{color:var(--org);font-weight:800}
+.bmrow{flex-wrap:wrap;gap:6px;align-items:center}
+.bminfo{font-size:12px;color:var(--dim);max-inline-size:340px;white-space:normal;line-height:1.4}
+.bminfo.warn{color:var(--org);font-weight:700}
 .dstate .updated{font-size:12px;color:var(--ink-3);white-space:nowrap}
 .etachip{font-size:12px;font-family:inherit;color:var(--accD);background:var(--accL);border:1px solid var(--accBorder);border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap}
 .etachip:hover{border-color:var(--acc)}
@@ -3330,6 +3335,66 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 #lite .more{margin:10px 0;display:flex;gap:10px;align-items:center}
 @media(max-width:760px){#lite .tph,#lite nav,#lite main{padding-inline:16px}
  #lite .tile{padding:6px 10px} #lite .tile .v{font-size:var(--f-lg)}}
+
+/* ======================================================================
+   D2 · «מדף» — מבנה השורה (מחשב)
+   שכבה אחרונה לשלב הזה. היא לא מוסיפה ולא מורידה עמודה, לא משנה סדר,
+   טקסט, סיווג או מספר — רק כמה גבוהה שורה, ומה בולט בה.
+
+   הגובה: נמדד ב-1440, השורה 30–31px, ולא בגלל הטקסט (13px, line-height
+   ‎14.6px‎) אלא בגלל שלושה אלמנטים של 20px בכל שורה — מספר השורה, תג
+   הדגמים (‎⧉‎) וכפתורי השורה (העתק · ✓ טופל, שקופים עד ריחוף אבל תופסים
+   גובה) — ובמסכי החוסרים גם «שווי» ב-19px (‎21px‎ שורה). 18px לשלושה,
+   16px לשווי וריפוד 4px מחזירים ~27px, בלי להקטין אף טקסט.
+   ====================================================================== */
+#tbl tbody tr[data-i] td,#movtbl tbody tr[data-mi] td{padding-block:4px}
+/* 28px בדיוק — רצפת הקריאות שנעולה ב-ui.test («שורה צפופה — 28-36px»,
+   החלטת המעתד). הצפיפות באה מהאלמנטים שהגביהו את השורה, לא מתחת לרצפה.
+   מתג «צפיפות» (body.dense) הוא בחירה מפורשת של המשתמש לשורה צפופה יותר,
+   ולכן הרצפה לא חלה עליו — אחרת המתג לא היה מוסיף שורה (ui.test). */
+body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi]{height:28px}
+#tbl tbody .rank{height:18px;min-width:18px;line-height:18px}
+#tbl tbody .xd{line-height:16px}
+#tbl tbody td .cp,#tbl tbody td .dn,#movtbl tbody td .cp,#movtbl tbody td .dn{height:18px;line-height:16px;padding-block:0}
+#tbl[data-track="short"] td.val,#tbl[data-track="line"] td.val{font-size:16px;line-height:1.1}
+/* גלולות בשורה (סיווג, תג) — 17px במקום 19.5px: הטקסט באותו גודל, הריפוד
+   האנכי יורד. ושורות הקבוצה: 28→21px, ובלוק המטבע שבתוכן 19px — הן
+   כותרות, לא שורות נתונים (טקסט 12–13px), ובמסכי התור יש שש מהן על המסך. */
+#tbl td .ocat,#tbl td .badge,#movtbl td .badge{padding-block:0;line-height:17px}
+#tbl tr.grp>td{height:21px}
+#tbl tr.grp.cur>td{height:19px;padding-block:0}
+/* «רכש ואספקות»: הרצועה השחורה מעל הטבלה נשארת כפי שהיא, גם בריפוד שלה
+   (eta.test משווה מקופלת לפתוחה) — רק המרווחים סביבה מתהדקים, 7+6 → 4+3px.
+   נמדד ב-1440: בשורה של 28px — רצפת הקריאות — השורה ה-19 נחתכה ב-17px. */
+#w_queue .line{padding-top:4px}
+#w_queue .lband{margin-block-end:3px}
+#tbl tr.grp>td>*{line-height:1.1}
+/* «הפעולה הבאה» — דיו מלא ולא אפור: זה המשפט שהשורה קיימת בשבילו.
+   הגודל לא משתנה, כי ב-1366 אין לעמודה פיקסל פנוי ושורה שנשברת היא
+   שורה שלמה פחות על המסך. */
+#tbl td.act1{color:var(--ink)}
+/* ---------- מידע שחוזר על עצמו: נשאר, בלי לצעוק ----------
+   «מצב טיפול» בלי סימון אומר «חדש» (החלטה קיימת, ui.test) — הטקסט נשאר,
+   הגלולה יורדת. כך סימון אמיתי (בבדיקה · לספק · הוזמן) הוא הגלולה היחידה
+   בעמודה, ונראה מרחוק. */
+.wchip.new{border-color:transparent;background:none;color:var(--ink-3);font-weight:400;padding-inline:0}
+/* סיווג שזהה לכותרת הקבוצה — אותן מילים, בלי גלולה צבעונית */
+#tbl td.note .ocat.same{background:none!important;border-color:transparent!important;color:var(--ink-3)!important;
+ font-weight:400;margin-inline:0;padding-inline:0}
+
+/* ---------- שלושה מצבים, שלושה סימנים ----------
+   נבחר (הפריט שבכרטיס, ושהמקלדת עליו): צהוב «מדף» — מלא, על כל השורה.
+   מאז D1 כלל על התאים (‎tr.sel>td‎ כחלחל) כיסה את הצהוב של השורה; כאן
+   הצהוב חוזר לתאים עצמם.
+   מסומן לקובץ SAP (בחירה מרובה): פס כחול בקצה השורה וגוון כחול קל —
+   אפשר שורה מסומנת שגם נבחרה: הצהוב גובר על הגוון, הפס נשאר.
+   פוקוס מקלדת על פקד בשורה: טבעת הפוקוס של D1, כמו שהיא. */
+#tbl tbody tr.sel>td,body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
+#tbl tbody tr:has(.sapsel:checked)>td{background:color-mix(in srgb,var(--steady) 9%,var(--panel))}
+#tbl tbody tr.sel:has(.sapsel:checked)>td{background:var(--mark-bg)}
+#tbl tbody tr:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
+#tbl tbody tr.sel>td:first-child{box-shadow:inset -3px 0 0 var(--mark-line)}
+#tbl tbody tr.sel:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
 </style>
 </head>
 <body>
@@ -3364,7 +3429,9 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
         <div class="mrow"><span class="dstate"><span class="zchip" id="zchip" hidden></span><span class="updated" id="updated">לא נטען קובץ</span></span></div>
         <div class="mrow"><button class="dchip" id="dchip" type="button" hidden title="לחץ לפירוט">⚠ <span id="dchipN">0</span><span class="dlbl"> אזהרות</span></button></div>
         <div class="mrow rdrow"><div class="rdwrap"><label class="tl" for="rd">חודש בסיס <span class="hint">· החודש המלא האחרון בדוח</span></label>
-      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שהדוח מכסה. הכלי מסיק אותו מתאריך שמעל שורת הכותרות; אם אין תאריך, הוא מניח את החודש המלא האחרון. אפשר לתקן כאן."></div></div>
+      <input type="month" id="rd" title="חודש הבסיס — החודש המלא האחרון שעמודות הצריכה מכסות. הכלי מזהה אותו מהנתונים («צר.השנה» מול חודשי הצריכה), ואחר כך מתאריך שמעל שורת הכותרות. בחירה כאן נשמרת לקובץ הזה בלבד."></div></div>
+        <!-- BASE_MONTH: מקור חודש הבסיס, תאריך הייחוס לגיל מלאי, ואישור כשהחודש לא זוהה -->
+        <div class="mrow bmrow"><span class="bminfo" id="bmInfo"></span><button class="btn pri" id="bmOk" type="button" hidden>אשר את חודש הבסיס</button></div>
         <div class="msec">דוח ETA</div>
         <div class="mrow"><button class="etachip" id="etachip" type="button" hidden title="לחץ להסרת דוח ה-ETA"></button> <button class="etachip stale" id="storechip" type="button" hidden></button></div>
         <div class="mrow"><label class="btn" for="fe" title="דוח אספקות מתוכננות. נטען בנפרד מ-ZMRP ונשמר בין העלאות — ZMRP כל בוקר, ETA פעם בשבוע">⭱ דוח ETA<input type="file" id="fe" accept=".xlsx,.xls"></label></div>
@@ -3701,6 +3768,65 @@ const ROP_MIN_ACT=1;
    איפוס» מתרככות ל«הורד ל-1», ו-60 פריטים שב-SAP יושב עליהם 0 מקבלים
    שורה חדשה «העלה ל-1» — מהם 8 יבשים היום עם לקוח ממתין. */
 const LOWDEM_MAX=3;
+/* ============ RATE_DECAY — קצב 3 השנים רק כשהביקוש לא דעך ============
+   הנתיב של RATE_3Y (ראה למטה) נותן לפריט דליל את קצב שלוש השנים. זה
+   נכון כשהחלון הקצר פשוט לא תפס צריכה קבועה — ושגוי כשהצריכה נעלמה.
+   פריט המבחן PN-07: 1 יח׳ ב-11 חודשים, 6 ב-2025, 202 ב-2024. קצב 3
+   השנים 6.33 יח׳/חודש, ולכן ROP מוצע 37 — כשהביקוש בפועל כמעט אפס.
+
+   λ = ממוצע נע מעריכי, מחצית חיים RATE_HALF חודשים: החודשים שלפני
+   החלון (מהעמודות השנתיות, מפוזרים שווה) ואחריהם 11 החודשים המנוקים
+   (`clean`). אם λ < RATE_DECAY × קצב 3 השנים — הביקוש דעך, ו-ROP/SS
+   מחושבים על λ (`rateROP`).
+
+   ההחלפה חלה **רק** על ROP/SS: `rate` — ואיתו הכיסוי, הסיווג, המלאי
+   האיטי והמגמה — נשאר בדיוק כמו קודם. רצפות ה-SS (ssMin, רצפת
+   המדיניות) לא נוגעות: SS ≥ ssMin נשמר, ו-ssMin יוצא ל-SAP כמו שהוא.
+   ההחלפה חלה רק כשהיא משנה את ה-ROP המוצע; אחרת הפריט — כולל «ביקוש
+   בזמן האספקה» שבייצוא — נשאר כמו קודם. נמדד על הדוח האמיתי מול main,
+   אחרי השערים שלמטה (מכירה בחודש הנוכחי, עמודות שאינן מתיישבות): 19
+   פריטים זזים, כולם בגלל שינוי ROP; SS, ssMin, rate והכיסוי — 0
+   שינויים. PN-07: ROP 37 → 12, SS 11. מלאי יעד כ-‎-$6.3K ו-₪3.4K.
+   בבדיקה לאחור (4 חלונות של 3 חודשים) Fill 92.3% → 92.2%. */
+const RATE_DECAY=0.25,RATE_HALF=4;
+/* ============ RATE_DECAY — מתי אסור לקבוע דעיכה ============
+   λ נבנה מהחודשים המלאים ומהעמודה השנתית. «אפס» שבא מנתון חסר או סותר
+   אינו אפס ביקוש, ולכן לפני שקובעים דעיכה:
+   · מכירה בחודש הנוכחי (שעוד לא נסגר ולכן אינו בחלון) — הביקוש חי
+     עכשיו. נמדד על הדוח האמיתי: 4 מתוך 23 הפריטים שהיו יורדים, שלושה
+     מהם עם אפס בכל 11 החודשים המלאים ו-2, 10 ו-12 יח׳ החודש.
+   · העמודות אינן מתיישבות: צריכת השנה הנוכחית אמורה להיות בדיוק
+     החודשים שלה שבחלון ועוד החודש הנוכחי (בסכום חיובי, או נטו עם
+     החזרות — גם בחודש הנוכחי), וצריכת השנה הקודמת — לפחות החודשים שלה
+     שבחלון. נמדד: אין חודשים חסרים, ו-7,986 מתוך 7,990 פריטים מתיישבים.
+     ב-4 הנותרים צריכת 2025 קטנה מנובמבר-דצמבר שבחלון, בלי החזרה שמסבירה
+     זאת; אף אחד מהם אינו מועמד לדעיכה, והכלל לא היה חל עליהם ממילא.
+   כשהחלון אינו מכיל את כל השנה הנוכחית (עוגן בדצמבר) אי אפשר לבדוק את
+   השנה הנוכחית, ונבדקת רק השנה הקודמת. */
+function decayDataOK(months,y3,curMonth,anchorM){
+ const raw=months.map(v=>+v||0),pos=raw.map(v=>Math.max(0,v));
+ const nCur=Math.min(anchorM,11),cr=+curMonth||0;
+ const sum=a=>a.reduce((x,y)=>x+y,0);
+ /* חיובי או נטו (החזרות) — בחודשים ובחודש הנוכחי; העמודה השנתית נקראת
+    כבר חתוכה ב-0, ולכן גם הסכום הצפוי נחתך */
+ if(anchorM<=11){const sp=sum(pos.slice(0,nCur)),sr=sum(raw.slice(0,nCur));
+  const fits=[sp+Math.max(0,cr),sp+cr,sr+Math.max(0,cr),sr+cr].some(v=>Math.abs(y3[0]-Math.max(0,v))<0.5);
+  if(!fits)return false}
+ /* השנה הקודמת: לפחות החודשים שלה שבחלון — בחיובי, או נטו עם החזרות */
+ return y3[1]+0.5>=Math.min(sum(pos.slice(nCur,11)),Math.max(0,sum(raw.slice(nCur,11))))}
+function recentRate(clean,months,y3,anchorM){
+ const raw=months.map(v=>Math.max(0,v)),seq=[];
+ /* חודשי השנה הקודמת שבתוך החלון — את השאר מפזרים שווה מהעמודה השנתית */
+ const inPrev=Math.max(0,11-anchorM);
+ if(inPrev>0){const outN=12-inPrev,prevIn=raw.slice(11-inPrev).reduce((a,b)=>a+b,0);
+  const v=Math.max(0,y3[1]-prevIn)/outN;for(let k=0;k<outN;k++)seq.push(v)}
+ else{const curOut=anchorM-11,curIn=raw.reduce((a,b)=>a+b,0);
+  for(let k=0;k<12;k++)seq.push(y3[1]/12);
+  const v=curOut>0?Math.max(0,y3[0]-curIn)/curOut:0;for(let k=0;k<curOut;k++)seq.push(v)}
+ for(let i=clean.length-1;i>=0;i--)seq.push(clean[i]);   /* מהישן לחדש */
+ const a=1-Math.pow(0.5,1/RATE_HALF);let L=null;
+ for(const v of seq){if(L===null)L=v;L=L+a*(v-L)}
+ return L||0}
 /* ============ LOWDEM_TIERS — מדרגות זמינות לפי מחיר ============
    הכלל הקודם היה בינארי: מתחת ל-50$ → רצפה 1, אחרת 0. הוא ענה על
    השאלה «להחזיק או לא» ולא על «כמה», ובכך החמיץ את מה שקובע זמינות
@@ -3825,7 +3951,9 @@ function excelSerialToDate(n){return new Date(Math.round((n-25569)*86400000))}
 function fmtDate(d){return d.toLocaleDateString('he-IL')}
 function sameDay(a,b){return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
 function daysBetween(a,b){return Math.round((a-b)/86400000)}
-function isFutureDate(d){if(!d||isNaN(d))return false;const today=new Date();today.setHours(23,59,59,999);return d>today}
+/* BASE_MONTH: `lim` — הגבול שמעבר לו תאריך תנועה הוא שגוי ולא «פעילות
+   אחרי תאריך הייחוס». בלי `lim` — כמו קודם, מול היום (לשימושים תפעוליים). */
+function isFutureDate(d,lim){if(!d||isNaN(d))return false;if(lim)return d>lim;const today=new Date();today.setHours(23,59,59,999);return d>today}
 function movCell(v){
   if(v==null||v==='')return null;
   if(v instanceof Date&&!isNaN(v))return {date:v};
@@ -3838,6 +3966,148 @@ function movCell(v){
 function movText(o){if(!o)return '—';if(o.date)return fmtDate(o.date);if(o.num!=null)return String(o.num);return o.text||'—'}
 function lastFullMonth(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return d}
 let ANCHOR=lastFullMonth();
+/* ============ BASE_MONTH — שלושה תאריכים, שלושה תפקידים ============
+   1. חודש הבסיס — החודש המלא האחרון שעמודות הצריכה מכסות. ממנו נגזרים
+      חלון 3 השנים (win3y), שמות החודשים, הדעיכה וחתימת הדוח.
+   2. תאריך הייחוס לגיל מלאי — ממנו נספרים ימים מאז מכירה וכניסה.
+      תאריך מצב מפורש ואמין בכותרת; אם אין כזה — סוף חודש הבסיס, וזו
+      *הנחת חישוב* שנאמרת על המסך. חודש בסיס שזוהה מהנתונים אינו מוכיח
+      את תאריך מצב המלאי.
+   3. היום — לפעולות תפעוליות בלבד: ETA, גיל סימון, מועד הטעינה.
+
+   היה: בלי תאריך מעל הכותרת (וכך בדוח האמיתי), חודש הבסיס היה החודש
+   המלא האחרון לפי *יום הטעינה*, בשקט, והגילים נספרו מיום הטעינה.
+   נמדד על הדוח האמיתי, אותו קובץ ואותו קוד: 31.10 מול 1.11 — 46 פריטים
+   שינו ROP/סיווג/סימון, הקצב של 2,439 פריטים, 10 מונים; ו-16.10 מול
+   31.10 — 4 פריטים עברו ל«מלאי מת» רק כי עברו הימים.
+
+   סדר הקביעה (החלטת המעתד, 1.11.2026):
+     1. בחירה ידנית שנשמרה לאותו *תוכן* קובץ (BM_KEY, לפי חתימת התוכן).
+     2. הנתונים: «צר.השנה» = סכום חודשי השנה הנוכחית שבחלון + «צר.החודש»,
+        ומספר החודשים האלה הוא מספר החודש של חודש הבסיס (0 = דצמבר).
+        בדוח האמיתי: 9 חודשים ב-1,891 מתוך 1,891 פריטים עם צריכה; כל
+        מספר אחר — 74% לכל היותר. הספים ב-BM_TH.
+        השנה נבדקת בנפרד: הפעילות האחרונה בקובץ חייבת ליפול בחודש הבסיס
+        או בחודש שאחריו, בשנה אחת בלבד. הפעילות האחרונה *אינה* תאריך
+        הדוח — היא גבול תחתון ובדיקת שנה, לא יותר.
+     3. תאריך מפורש בכותרת — רק אם הוא תאריך תקין, אינו בעתיד ואינו
+        מוקדם מהפעילות האחרונה בקובץ. כשהנתונים מזהים חודש אחר — הנתונים
+        קובעים, ונאמרת אזהרה שמבחינה בין תאריך ההפקה לחודש הבסיס.
+     4. אחרת — לא מאומת. החישוב זמני ומוצג, אבל לא נרשמת הרצה, לא נרשם
+        פרופיל ולא מעקב יישום, ואין קובץ SAP, עד שהמשתמש מאשר או בוחר. */
+const BM_KEY='planner_basemonth_v1',BM_MAX=60;
+const BM_TH={rate:0.95,min:30,second:0.80};
+const BM_SRC={data:'מהנתונים',header:'מהכותרת',manual:'נבחר ידנית',none:'לא מאומת'};
+let BASE=null,BMS=null;
+const bmYM=(y,m)=>`${y}-${String(m).padStart(2,'0')}`;
+const bmNext=(y,m)=>m===12?{y:y+1,m:1}:{y,m:m+1};
+const bmDay=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+/* תאריך הייחוס והגבול — גם כש-build נקרא בלי טעינה (בדיקות, שינוי ANCHOR
+   ידני): סוף חודש העוגן, אותו כלל, ולא היום. */
+function bmRef(){return BASE?BASE.ref:new Date(ANCHOR.getFullYear(),ANCHOR.getMonth()+1,0)}
+function bmLim(){if(BASE)return BASE.lim;const n=bmNext(ANCHOR.getFullYear(),ANCHOR.getMonth()+1);return new Date(n.y,n.m,0,23,59,59,999)}
+/* (2) הנתונים: לכל מועמד k=0..11 — בכמה פריטים «צר.השנה» שווה ל-k
+   החודשים האחרונים ועוד «צר.החודש». רק פריטים עם צריכה כלשהי בחלון
+   מבדילים בין המועמדים. */
+function bmFromData(rows,m){
+ if(m.y0<0||m.curMonth<0||m.months.some(i=>i<0))return {ok:false,inf:0,why:'אין בדוח את עמודות הצריכה הנדרשות'};
+ const hit=new Array(12).fill(0);let inf=0;const ms=new Array(11);
+ for(const r of rows){if(!CLEAN(r[m.pn]))continue;
+  let any=false;for(let i=0;i<11;i++){ms[i]=NUM(r[m.months[i]]);if(ms[i]!==0)any=true}
+  if(!any)continue;inf++;
+  const y0=NUM(r[m.y0]);let s=NUM(r[m.curMonth]);
+  if(Math.abs(s-y0)<1e-6)hit[0]++;
+  for(let k=1;k<=11;k++){s+=ms[k-1];if(Math.abs(s-y0)<1e-6)hit[k]++}}
+ if(inf<BM_TH.min)return {ok:false,inf,why:`רק ${inf} פריטים עם צריכה בחלון — מעט מדי לזיהוי`};
+ const ord=hit.map((h,k)=>[k,h/inf]).sort((a,b)=>b[1]-a[1]);
+ const k=ord[0][0],rate=ord[0][1],second=ord[1][1],hits=hit[k];
+ const res={inf,k,hits,rate,second,mon:k===0?12:k};
+ res.ok=rate>=BM_TH.rate&&second<=BM_TH.second;
+ if(!res.ok)res.why=rate<BM_TH.rate
+   ?`הקשר בין «צר.השנה» לחודשי הצריכה מתקיים ב-${Math.round(rate*100)}% מהפריטים בלבד`
+   :`שני חודשים מתאימים לנתונים כמעט באותה מידה`;
+ return res}
+/* תאריכי הפעילות בקובץ — מכירה וכניסה, ממוינים. משמשים לבדיקה בלבד: הם
+   אינם תאריך הדוח. בלי השוואה ל«היום» — אחרת אותו קובץ היה נבדק אחרת
+   בכל יום (נתפס בבדיקה: תאריך שגוי אחד, 15.12, «נכנס» לחישוב בינואר
+   והפיל את אימות השנה). תאריך שגוי בודד נסבל: עד BM_OUT מהתאריכים. */
+function bmDates(rows,m){const a=[];
+ for(const r of rows){if(!CLEAN(r[m.pn]))continue;
+  for(const i of [m.sales,m.entries]){if(i<0)continue;const c=movCell(r[i]);const x=c&&c.date;
+   if(x&&!isNaN(x))a.push(bmDay(x).getTime())}}
+ return a.sort((x,y)=>x-y)}
+const bmTol=n=>Math.max(2,Math.ceil(n*0.002));
+/* כמה תאריכים אחרי t (ds ממוין) */
+function bmAfter(ds,t){let lo=0,hi=ds.length;while(lo<hi){const mid=(lo+hi)>>1;if(ds[mid]<=t)lo=mid+1;else hi=mid}return ds.length-lo}
+/* השנה — בנפרד מהחודש: השנה המאוחרת ביותר שבה יש פעילות בחודש הבסיס או
+   בחודש שאחריו, ואחרי החודש שאחריו — רק תאריכים בודדים (שגויים). אין
+   שנה כזו — השנה אינה מאומתת. */
+function bmYear(mon,ds){if(!ds.length)return null;const tol=bmTol(ds.length),maxY=new Date(ds[ds.length-1]).getFullYear();
+ for(let y=maxY;y>=maxY-3;y--){const n=bmNext(y,mon),st=new Date(y,mon-1,1).getTime(),en=new Date(n.y,n.m,0).getTime();
+  const after=bmAfter(ds,en),inW=bmAfter(ds,st-1)-after;
+  if(inW>0&&after<=tol)return y}
+ return null}
+/* התאריך הראשון שמעל שורת הכותרות — אותו פענוח כמו קודם, ועכשיו גם נבדק */
+function bmHeader(pre){
+ for(const row of pre||[])for(const c of row||[]){
+  if(c instanceof Date&&!isNaN(c))return {d:bmDay(c)};
+  const s=CLEAN(c);const mm=s.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+  if(mm){let y=+mm[3];if(y<100)y+=2000;const d=new Date(y,(+mm[2])-1,+mm[1]);
+   if(isNaN(d)||d.getDate()!==+mm[1]||d.getMonth()!==(+mm[2])-1)return {bad:mm[0]};
+   return {d}}}
+ return null}
+function bmResolve(rows,hdr,pre,today){today=today||new Date();
+ const m=mapCols(hdr),W=[];
+ const data=bmFromData(rows,m),ds=bmDates(rows,m),tol=bmTol(ds.length);
+ const H=bmHeader(pre);let hd=null,hdOK=false;
+ /* «בעתיד» היא הבדיקה היחידה כאן מול היום: תאריך הפקה שעוד לא הגיע הוא
+    שגיאה בקובץ, לא מידע. */
+ const eod=new Date(today);eod.setHours(23,59,59,999);
+ if(H&&H.d){hd=H.d;const aft=bmAfter(ds,hd.getTime());
+  if(hd>eod)W.push(`התאריך שמעל הכותרת (${fmtDate(hd)}) הוא בעתיד — לא נעשה בו שימוש`);
+  else if(aft>tol)W.push(`התאריך שמעל הכותרת (${fmtDate(hd)}) מוקדם מהפעילות בקובץ (${aft.toLocaleString('he-IL')} תנועות מאוחרות ממנו) — לא נעשה בו שימוש`);
+  else hdOK=true}
+ else if(H&&H.bad)W.push(`מעל הכותרת כתוב «${H.bad}», שאינו תאריך תקין — לא נעשה בו שימוש`);
+ const hb=hdOK?(()=>{const d=new Date(hd.getFullYear(),hd.getMonth()-1,1);return {y:d.getFullYear(),m:d.getMonth()+1}})():null;
+ let B=null,state=null;
+ if(data.ok){const y=bmYear(data.mon,ds);
+  if(y!=null)B={y,m:data.mon,src:'data'};
+  else if(hb&&hb.m===data.mon)B={y:hb.y,m:data.mon,src:'data'};
+  else W.push(`הנתונים מראים חודש בסיס ${HEB[data.mon-1]}, אבל השנה לא אומתה: אין בקובץ פעילות בחודש הזה או בזה שאחריו שאחריה אין פעילות נוספת (הפעילות האחרונה: ${ds.length?fmtDate(new Date(ds[ds.length-1])):'אין'})`)}
+ if(B&&hb){
+  if(hb.y===B.y&&hb.m===B.m)state=hd;
+  else W.push(`תאריך ההפקה שמעל הכותרת (${fmtDate(hd)}) מתאים לחודש בסיס ${HEB[hb.m-1]} ${hb.y}, אבל הצריכה בדוח מכסה עד ${HEB[B.m-1]} ${B.y}. חודש הבסיס נקבע לפי הנתונים; תאריך ההפקה לא משמש לגיל מלאי`)}
+ else if(!B&&hb){B={y:hb.y,m:hb.m,src:'header'};state=hd}
+ if(!B){const d=new Date(today.getFullYear(),today.getMonth()-1,1);B={y:d.getFullYear(),m:d.getMonth()+1,src:'none'};
+  W.unshift(`חודש הבסיס לא זוהה${data.why?' — '+data.why:''}. החישוב זמני, לפי ${HEB[B.m-1]} ${B.y}`)}
+ return bmFinish(B,{state,hd,hdOK,hb,ds,data,warn:W})}
+function bmFinish(B,c){
+ const st=c.state||null,n=bmNext(B.y,B.m);
+ const ref=st?bmDay(st):new Date(B.y,B.m,0);
+ const lim=st?new Date(st.getFullYear(),st.getMonth(),st.getDate(),23,59,59,999):new Date(n.y,n.m,0,23,59,59,999);
+ /* הפעילות האחרונה — המאוחרת שעד הגבול; תאריך שמעבר לו שגוי ונאמר בנפרד */
+ const ds=c.ds||[],k=ds.length-bmAfter(ds,lim.getTime());
+ const last=k>0?new Date(ds[k-1]):null;
+ return {y:B.y,m:B.m,src:B.src,verified:B.src!=='none',state:st,ref,refAssumed:!st,lim,
+  hd:c.hd||null,hdOK:!!c.hdOK,hb:c.hb||null,ds,last,data:c.data||null,warn:c.warn||[],cs:c.cs||null,auto:c.auto||null}}
+/* בחירה ידנית: חודש הבסיס של המשתמש. תאריך המצב מהכותרת נשמר רק אם
+   הוא אמין ומתאים לחודש שנבחר. האזהרה «לא זוהה» כבר לא נכונה ויורדת. */
+function bmManual(b,ym){const [y,m]=String(ym).split('-').map(Number);
+ const st=(b.hdOK&&b.hb&&b.hb.y===y&&b.hb.m===m)?b.hd:null;
+ const auto=b.src==='manual'?b.auto:{y:b.y,m:b.m,src:b.src};
+ return bmFinish({y,m,src:'manual'},{state:st,hd:b.hd,hdOK:b.hdOK,hb:b.hb,ds:b.ds,data:b.data,cs:b.cs,auto,
+  warn:b.warn.filter(w=>!/^חודש הבסיס לא זוהה/.test(w))})}
+function bmAfterTxt(what,cell){const d=cell&&cell.date;
+ return `${what} האחרונה (${d?fmtDate(d):'—'}) אחרי תאריך הייחוס של הדוח (${fmtDate(bmRef())}). היא אמיתית ואינה שגיאה — הגיל נספר 0, ולכן הפריט אינו נחשב מת או איטי בגלל הגיל.`}
+function bmSet(b){BASE=b;ANCHOR=new Date(b.y,b.m-1,1);rebuildLabels();
+ const rd=document.getElementById('rd');if(rd)rd.value=bmYM(b.y,b.m)}
+/* הבחירה הידנית נשמרת לפי חתימת התוכן — קובץ אחר אינו מושפע */
+function bmLoad(track=true){try{const v=JSON.parse(stateRaw(BM_KEY,track));BMS=(v&&typeof v==='object'&&!Array.isArray(v))?v:{}}catch(_){BMS={}}}
+function bmGetManual(cs){if(!cs)return null;if(BMS===null||stateChanged(BM_KEY))bmLoad();const e=BMS[cs];return e&&typeof e.ym==='string'&&/^\d{4}-\d{2}$/.test(e.ym)?e.ym:null}
+function bmPutCore(cs,ym){if(BMS===null)bmLoad();BMS[cs]={ym,ts:Date.now()};
+ const ks=Object.keys(BMS);if(ks.length>BM_MAX)ks.sort((a,b)=>(BMS[a].ts||0)-(BMS[b].ts||0)).slice(0,ks.length-BM_MAX).forEach(k=>delete BMS[k])}
+function bmPut(cs,ym){if(!cs||DEMO)return;bmPutCore(cs,ym);
+ statePersist(BM_KEY,()=>storeSet(BM_KEY,JSON.stringify(BMS),'חודש הבסיס שנבחר לדוח'),()=>{bmLoad();bmPutCore(cs,ym)})}
 function monthLabel(back){const d=new Date(ANCHOR);d.setDate(1);d.setMonth(d.getMonth()-(back-1));
   return {name:HEB[d.getMonth()],short:HEB[d.getMonth()].slice(0,3),yy:String(d.getFullYear()).slice(2),m:d.getMonth()}}
 let LABELS=Array.from({length:11},(_,i)=>monthLabel(i+1));
@@ -4403,6 +4673,10 @@ function recStatus(r){const s=[];if(!r)return '';
  if(r.ltBad&&!r.noStock&&(recNA(r)||pdUpgrade(r)))s.push(LT_NA,ltValuesMsg(r));
  if(r.slowEst)s.push(SLOW_EST);
  return s.join(' · ')}
+/* זמן האספקה המתוכנן (בלי זמן קבלה), הערך הגולמי, ו-SS לפני נטרול ה-LT החסר */
+const ltPlan=r=>r.ltPlanned!=null?r.ltPlanned:r.ltD;
+const ltRawOf=r=>r&&'ltRaw' in r?r.ltRaw:ltPlan(r);
+const ssCalc=r=>r.sugSSCalc!=null?r.sugSSCalc:r.sugSS;
 function pdUpgrade(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN}
 const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
  PROF_NAME={D:'PD',C:'ZM-C',B:'ZM-B',A:'ZM-A'};
@@ -4543,13 +4817,50 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
 /* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
    לפי חודש הבסיס של הדוח. העלאה חוזרת של אותו חודש דורסת את אותו
    מפתח ואינה נספרת פעמיים. נשמרים שלושה חודשים אחרונים. */
-function profRecord(items){const ym=dsigYM(),next={};
+function profLoad(track=true){try{const v=JSON.parse(stateRaw(PROF_KEY,track));PROFH=(v&&typeof v==='object')?v:{}}catch(_){PROFH={}}}
+/* ============ BASE_MONTH · מי רשם כל חודש ============
+   חודש בסיס שנבחר ידנית מחשב מחדש ורושם שוב. בלי הרישום הזה, אותו
+   קובץ נשאר רשום תחת שני חודשים (נמדד: 165 פריטים תחת ספטמבר וגם
+   תחת אוגוסט, אחרי מעבר ידני אחד).
+
+   `PROFH[PROF_SRC][ym] = {cs, prev}` — חתימת התוכן של מי שרשם את החודש
+   אחרון, ו-`prev` — מה שהוא דרס כשנכנס לחודש שמישהו אחר (או רישום
+   ישן שכותבו לא ידוע) כבר רשם. כשאותו תוכן עובר לחודש אחר:
+     · מוסרים מהחודש הקודם רק את מה שהוא עצמו רשם — ורק אם הוא הכותב
+       האחרון של אותו חודש. אחרת שום דבר לא נמחק;
+     · מה שהוא דרס שם (`prev`) חוזר, כולל רישום ישן שכותבו לא ידוע.
+   רמה אחת: שלישי שנכנס לאותו חודש שומר את מה שדרס הוא, לא את קודמו.
+   ההיסטוריה עצמה לא השתנתה: היא של פריטים שמתחת לפרופיל *בדוח הנוכחי*
+   (פריט שיצא ממנה נשמט, כמו קודם). המפתח השמור אינו מק״ט, ולכן
+   `profPrevBelow` אינו פוגש אותו; הגיבוי והשחזור נושאים אותו עם השאר. */
+const PROF_SRC='\u0000src';
+function profRecord(items,cs){
+ if(!DEMO&&stateChanged(PROF_KEY))profLoad();
+ profRecordCore(items,cs);
+ statePersist(PROF_KEY,()=>storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם'),()=>{profLoad();profRecordCore(items,cs)})}
+function profRecordCore(items,cs){const ym=dsigYM(),next={};
+ const s0=PROFH[PROF_SRC],src=(s0&&typeof s0==='object')?JSON.parse(JSON.stringify(s0)):{};
+ const base={};for(const pn of Object.keys(PROFH))if(pn!==PROF_SRC)base[pn]=Object.assign({},PROFH[pn]);
+ if(cs){
+  /* אותו תוכן, רשום תחת חודש אחר כותב אחרון — הרישום שלו שם יורד, ומה שדרס חוזר */
+  for(const k of Object.keys(src)){const e=src[k];if(k===ym||!e||e.cs!==cs)continue;
+   for(const pn of Object.keys(base))delete base[pn][k];
+   if(e.prev&&e.prev.v){for(const [pn,t] of Object.entries(e.prev.v))(base[pn]=base[pn]||{})[k]=t;src[k]={cs:e.prev.cs,prev:null}}
+   else delete src[k]}
+  /* נכנסים לחודש שמישהו אחר רשם (או רישום ישן) — שומרים את מה שנדרס */
+  const e=src[ym];
+  if(!e||e.cs!==cs){const v={};for(const pn of Object.keys(base))if(base[pn][ym]!=null)v[pn]=base[pn][ym];
+   src[ym]={cs,prev:Object.keys(v).length?{cs:e?e.cs:null,v}:null}}}
  for(const r of items){const cur=profCur(r);if(!cur)continue;const t=profTgtZM(profH(r));
   if(PROF_RANK[t]>=PROF_RANK[cur])continue;
-  const h=Object.assign({},PROFH[r.pn]||{});h[ym]=t;
+  const h=Object.assign({},base[r.pn]||{});h[ym]=t;
   const ks=Object.keys(h).sort((a,b)=>{const p=k=>k.split('-').map(Number);const[x1,x2]=p(a),[y1,y2]=p(b);return x1-y1||x2-y2});
   for(const k of ks.slice(0,-3))delete h[k];next[r.pn]=h}
- PROFH=next;storeSet(PROF_KEY,JSON.stringify(PROFH),'המלצות הפרופיל מהחודש הקודם')}
+ /* רישום המקור — רק לחודשים שעדיין יש בהם משהו, או שיש להם מה להחזיר */
+ if(Object.keys(src).length){const live=new Set([ym]);for(const h of Object.values(next))for(const k of Object.keys(h))live.add(k);
+  for(const k of Object.keys(src))if(!live.has(k)&&!(src[k]&&src[k].prev))delete src[k];
+  next[PROF_SRC]=src}
+ PROFH=next}
 function staleRows(){if(!QF||!QF.all)return [];
  return QF.all.filter(r=>(r.etaPast||0)>0&&passColFilters(r))
   .sort((a,b)=>staleDays(b)-staleDays(a)||(b.etaPast||0)-(a.etaPast||0))}
@@ -4579,11 +4890,53 @@ let STORE_FAIL=null,STORE_TRIM=null;
 function storeSet(key,val,label){
  if(DEMO)return true;                       /* מצב הדגמה — לא נכתב דבר */
  try{localStorage.setItem(key,val);
+  /* מה שהלשונית עצמה כתבה הוא «הבסיס שנראה» — ראה stateChanged */
+  if(typeof STATE_SEEN!=='undefined')STATE_SEEN[key]=val;
   if(STORE_FAIL&&STORE_FAIL.key===key){STORE_FAIL=null;storeChip()}
   return true}
  catch(e){
   const quota=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014);
   STORE_FAIL={key,label,quota,when:Date.now()};storeChip();return false}}
+/* ============ TABS — שתי לשוניות, אחסון אחד ============
+   localStorage משותף לכל הלשוניות של הכלי, וכל מבנה החלטות (סימונים,
+   זיכרון הרצות, פרמטרים, פנקס, פרופיל) נקרא פעם אחת בעלייה ונכתב
+   בשלמותו. לשונית שנפתחה קודם החזיקה עותק ישן, ושמירה שלה מחקה את מה
+   שלשונית אחרת שמרה בינתיים — נמדד: סימון בלשונית A נעלם ברגע שלשונית
+   B סימנה פריט אחר, גם אחרי רענון.
+
+   מכאן: כל כתיבה של החלטות עוברת ב-stateTxn — נעילה בלעדית בין
+   הלשוניות (Web Locks), ובתוכה קריאה מחדש, מיזוג רק של מה שהשתנה
+   כאן, וכתיבה. שתי לשוניות שכותבות באותו רגע ממתינות זו לזו, ואף אחת
+   אינה כותבת על בסיס ישן.
+
+   בלי Web Locks (דפדפן ישן): אין דרך לנעול, ולכן אין כתיבה כשלשונית
+   אחרת של הכלי פתוחה — ההחלטות נשמרות בזיכרון הלשונית, ושבב האחסון
+   אומר שלא נשמרו ולמה. לשונית יחידה כותבת כרגיל. «פתוחה» נקבע לפי
+   פעימה במפתח planner_tabs_v1, שמתעדכן רק במצב הזה. */
+const TAB_ID=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const LOCKS=!!(typeof navigator!=='undefined'&&navigator.locks&&navigator.locks.request);
+const TABS_KEY='planner_tabs_v1',TAB_BEAT=2000,TAB_DEAD=7000;
+let TXN_BLOCKED=false;
+function otherTabAlive(){try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+ return Object.keys(o).some(id=>id!==TAB_ID&&now-o[id]<TAB_DEAD)}catch(_){return false}}
+if(!LOCKS){const beat=()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+  for(const id of Object.keys(o))if(now-o[id]>=TAB_DEAD)delete o[id];
+  o[TAB_ID]=now;localStorage.setItem(TABS_KEY,JSON.stringify(o))}catch(_){}};
+ beat();setInterval(beat,TAB_BEAT);
+ addEventListener('pagehide',()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{};
+  delete o[TAB_ID];localStorage.setItem(TABS_KEY,JSON.stringify(o))}catch(_){}})}
+/* fn רץ בלעדית: אין לשונית אחרת בתוך stateTxn באותו זמן. מחזיר Promise
+   של true אם נכתב, false אם לא (הדגמה, או חסימה בלי נעילה). */
+function stateTxn(fn){
+ if(DEMO)return Promise.resolve(false);
+ /* ההשהיה בתוך הנעילה: עדכון מלשונית אחרת שעוד בדרך נקלט לפני הקריאה.
+    נמדד: 120 עדכונים חופפים תחת עומס — 118 בלי השהיה, 120 איתה */
+ if(LOCKS)return navigator.locks.request('planner-state',async()=>{await new Promise(r=>setTimeout(r,30));fn();return true});
+ if(otherTabAlive()){
+  if(!TXN_BLOCKED){TXN_BLOCKED=true;STORE_FAIL={key:'',label:'ההחלטות',tabs:true,when:Date.now()};storeChip()}
+  return Promise.resolve(false)}
+ if(TXN_BLOCKED){TXN_BLOCKED=false;if(STORE_FAIL&&STORE_FAIL.tabs){STORE_FAIL=null;storeChip()}}
+ fn();return Promise.resolve(true)}
 function storeBytes(){let t=0;
  try{for(const k in localStorage)if(localStorage.hasOwnProperty(k))t+=(localStorage[k]||'').length}catch(_){}
  return t}
@@ -4605,6 +4958,11 @@ function storeChip(){const el=document.getElementById('storechip');if(!el)return
   return}
  el.hidden=false;
  el.textContent=`⚠ ${STORE_FAIL.label} לא נשמר`;
+ if(STORE_FAIL.tabs){
+  el.title='הכלי פתוח בלשונית נוספת, והדפדפן הזה אינו תומך בנעילה בין לשוניות (Web Locks). '
+   +'כדי לא לדרוס את מה שנשמר שם, ההחלטות שלך נשארות בלשונית הזו ואינן נכתבות לאחסון.\n\n'
+   +'מה לעשות: סגור את הלשונית הנוספת — הכתיבה הבאה תישמר. או עבוד בדפדפן עדכני (Chrome, Edge, Firefox).';
+  el.onclick=()=>toast('סגור את הלשונית הנוספת של הכלי, ואז סמן שוב');return}
  el.title=(STORE_FAIL.quota
    ?`אחסון הדפדפן מלא (${kb.toLocaleString('he-IL')}KB). `
    :'הדפדפן דחה את הכתיבה. ')
@@ -4738,6 +5096,10 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        החלון הארוך אומר עליו «אין מספיק». LOWDEM_MAX נשאר המקור
        היחיד למספר. */
     const rate=d12<=3?((has3y&&rate3y>LOWDEM_MAX/11)?rate3y:0):clean.slice(0,6).reduce((a,b)=>a+b,0)/6;
+    /* RATE_DECAY — ראה שם. רק בנתיב 3 השנים; ההחלפה עצמה ליד sugROP. */
+    const rateRecent=(d12<=3&&has3y&&rate3y>LOWDEM_MAX/11)?recentRate(clean,months,y3,ANCHOR.getMonth()+1):null;
+    const decayed=rateRecent!==null&&rateRecent<RATE_DECAY*rate3y
+      &&!(curMonth>0)&&decayDataOK(months,y3,curMonth,ANCHOR.getMonth()+1);
     /* ============ RATE_3Y — איזה סרגל שופט קצב תלת-שנתי ============
        המדידה השנייה חשפה שהתיקון מגריל עוד משהו, ולא במתכוון.
        `cov` נגזר מ-`rate`, וענף «עודף מלאי» מחזיק 12 חודשי כיסוי.
@@ -4776,7 +5138,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const mtRaw=m.matType>=0?CLEAN(r[m.matType]):'';
     const matType=MATTYPE[mtRaw]||(mtRaw||'ללא');
     const mrp=CLEAN(r[m.mrp]);
-    const z=srvMissing?0:zFor(srv),dLT=rate*ltM,sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
+    let dLT=rate*ltM;
+    const z=srvMissing?0:zFor(srv),sdLT=A.sd*Math.sqrt(Math.max(ltM,0)),ssMin=NUM(r[m.ssMin]);
     const isPDItem=isPD(mrp);
     /* החלק הסטטי בלבד. הסימון הידני נקרא ב-classify, כי הוא משתנה בלי
        בנייה מחדש של ALL — ושם גם מתאפסות ההמלצות. */
@@ -4825,6 +5188,15 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const lowBand=lowFloor?lowDemBand(price,currency):null;
     const ssMinEff=noRec?0:ssMin;
     let sugSS=noRec?0:Math.max(ssStat,ssMinEff,lowFloor);
+    /* RATE_DECAY: הקצב העדכני מחליף את קצב 3 השנים רק כשהוא משנה את
+       ההמלצה — פריט בלי המלצה (OD/PD/04-14), או פריט שה-ROP שלו יוצא
+       זהה, נשאר בדיוק כמו קודם, כולל «ביקוש בזמן האספקה» שבייצוא. SS לא
+       זז: ssStat ורצפות ה-SS נשארים על הנתונים הקיימים. כשההחלפה חלה —
+       rateROP, dLT ו-sugROP נגזרים כולם מאותו קצב. */
+    const ropDecay=(decayed&&!noRec)?Math.ceil(rateRecent*ltM+sugSS):null;
+    const rateDecay=ropDecay!==null&&ropDecay!==Math.ceil(dLT+sugSS);
+    const rateROP=rateDecay?rateRecent:rate;
+    if(rateDecay)dLT=rateRecent*ltM;
     let sugROP=noRec?0:Math.ceil(dLT+sugSS);
     /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
     const ssSrc=isODStatic?'od':noStock?'nostock':ltBad?'nolt':sugSS<=0?'none'
@@ -4923,8 +5295,14 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       ?Math.min(TREND_CEIL,1+(tRatio-1)*TREND_DAMP):1;
     const rateU=rate*riseF;
     const sugROPU=riseF>1?Math.max(sugSS,Math.ceil(rateU*ltM+sugSS)):sugROP;
-    const NOW=new Date(),AGE=d=>(d&&!isNaN(d))?Math.round((NOW-d)/86400000):null;
-    const entFuture=isFutureDate(entries&&entries.date),saleFuture=isFutureDate(sales&&sales.date);
+    /* BASE_MONTH: הגיל נספר מתאריך הייחוס של הדוח, לא מיום הטעינה. תנועה
+       שאחרי תאריך הייחוס (למשל מכירה באוקטובר בדוח שחודש הבסיס שלו
+       ספטמבר) אינה שגויה ואינה «עתידית»: הגיל שלה 0, והיא מסומנת
+       (saleAfterRef/entAfterRef) כדי שאפשר יהיה להסביר אותה. רק תאריך
+       שמעבר ל-bmLim() — שגוי, כמו קודם. */
+    const NOW=bmRef(),LIM=bmLim(),AGE=d=>(d&&!isNaN(d))?Math.max(0,Math.round((NOW-d)/86400000)):null;
+    const entFuture=isFutureDate(entries&&entries.date,LIM),saleFuture=isFutureDate(sales&&sales.date,LIM);
+    const entAfter=!entFuture&&!!(entries&&entries.date&&entries.date>NOW),saleAfter=!saleFuture&&!!(sales&&sales.date&&sales.date>NOW);
     const entAge=entFuture?null:AGE(entries&&entries.date),saleAge=saleFuture?null:AGE(sales&&sales.date);
     const noCons3y=has3y?(cons3y===0&&d12===0):(d12===0);
     /* ============ שעון הגיל הוא הביקוש, לא הרכש ============
@@ -4962,7 +5340,16 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       mkt1:mkt1||'ללא',mkt2:mkt2||'ללא',hier3:hier3||'ללא',grp:CLEAN(r[m.grpTxt])||'ללא',
       model:TXT(r,m.model)||'ללא דגם',origin:CLEAN(r[m.origin])||'—',
       site:CLEAN(r[m.site]),pGroup:CLEAN(r[m.pGroup]),isAcc,srv,ss:NUM(r[m.ss]),rop:NUM(r[m.rop]),
-      ssMin,ltD,ltM,ltRaw,ltPlanned,ltBad,net12,sugSSCalc,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      /* RATE_DECAY: השדות קיימים רק בפריט שההחלפה חלה עליו — כל פריט אחר
+         נשאר זהה לחלוטין, כולל טביעת האצבע של business-golden */
+      ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
+      /* BASE_MONTH: רק בפריט שבו זה קרה — כמו RATE_DECAY */
+      ...(saleAfter?{saleAfterRef:true}:{}),...(entAfter?{entAfterRef:true}:{}),
+      /* שלב 2 (PD/LT): כמו RATE_DECAY — רק בפריט שבו זה רלוונטי, כדי שכל פריט
+         אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
+      ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
+      ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
@@ -5427,7 +5814,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
          נאמרת, וההוראה היחידה היא לבחור. */
       /* sugSSCalc ולא sugSS: הרצפה (ssMin / מדיניות) אינה תלויה בזמן אספקה,
          וכשזמן האספקה חסר sugSS מנוטרל. בזמן אספקה תקין השניים זהים. */
-      const deadFloor=it.sugSSCalc>0;
+      const deadFloor=ssCalc(it)>0;
       /* ============ הדגל, ולמה הוא מכבה את paramFix ============
          כל עוד לא הוכרע איזו מדיניות חלה, אין יעד פרמטרים מחייב —
          ולכן הפריט גם אינו «תיקון פרמטרים שהוחלט עליו». paramFix הוא
@@ -5437,12 +5824,12 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       it.floorClash=deadFloor;
       if(deadFloor)it.paramFix=false;
       if(deadFloor)it.why.push(['warn',`התנגשות מדיניות: אין צריכה ${win}, `+
-        `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${it.sugSSCalc} יח׳. `+
+        `אבל רצפת ${it.ssSrc==='policy'?'המדיניות':'ssMin מ-SAP'} היא ${ssCalc(it)} יח׳. `+
         `הכלי אינו מכריע — חיסול ורצפה אינם יכולים לחול יחד`]);
       it.act=[deadSure
           ?`לבחון חיסול / החזרה לספק / קמפיין — ${money(val,it.currency)} מוקפאים`
           :`לאמת מול צריכת 3 השנים ב-SAP לפני החלטת חיסול — ${money(val,it.currency)} מוקפאים`,
-        deadFloor?`להכריע: לשחרר את רצפת ה-SS (${it.sugSSCalc}) ואז לחסל, או להשאיר אותה ולהחזיק ${it.sugSSCalc} יח׳`
+        deadFloor?`להכריע: לשחרר את רצפת ה-SS (${ssCalc(it)}) ואז לחסל, או להשאיר אותה ולהחזיק ${ssCalc(it)} יח׳`
         :ropRisk?`לאפס נקודת הזמנה מ-${it.rop} ל-0 ומלאי ביטחון מ-${it.ss} ל-0`:'לוודא ש-ROP/SS מאופסים',
         'לבדוק רכש פתוח לפני החלטה'];
       Q.excess.push(it);continue}
@@ -5493,7 +5880,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        רצפה מאושרת היא חסם תחתון על מה שנשאר על המדף. */
     /* sugSSCalc — אותו ערך כמו קודם. כשזמן האספקה חסר הוא רצפות בלבד,
        והתוצאה מסומנת «אומדן בלבד» (slowEst, ראה LT_PASS). */
-    const keep=Math.max(Math.ceil(it.rate3y*SLOW_MONTHS),it.sugSSCalc||0), over=Math.max(0,it.stock-keep);
+    const keep=Math.max(Math.ceil(it.rate3y*SLOW_MONTHS),ssCalc(it)||0), over=Math.max(0,it.stock-keep);
     it.excessQty=over;it.expCap=over*it.price;it.sev=1;it.cat='מלאי איטי';
     it.why=[['warn',`צריכה ${it.cons3y} יח׳ בלבד ב-3 שנים · כיסוי ${it.cov3y.toFixed(0)} חודשים בקצב הזה`],
       ['info',`מעל ${SLOW_MONTHS} חודשי כיסוי יושבות ${over} יח׳ בשווי ${money(it.expCap,it.currency)}`],
@@ -5813,7 +6200,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     בלי זמן אספקה אין מספר להציע, וגם לא «תקין». המלאי האיטי מסומן
     כאומדן. 04/14 מוחרגים, כמו בכל מקום אחר. */
  const NUMACT=/נקודת (ה)?הזמנה|מלאי ביטחון|ROP|SS/;
- for(const it of items){it.slowEst=false;
+ for(const it of items){delete it.slowEst;
   const managed=!(isPD(it.mrp)||it.isOD||it.noStock);
   const pdUp=pdUpgrade(it);
   it.ltZero=!!it.ltBad&&!it.noStock&&(managed||actQ.has(it)||pdUp);
@@ -5833,8 +6220,137 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
  return Q}
 const MK_KEY='planner_marks_v1';
 let MARKS={};
-try{MARKS=JSON.parse(localStorage.getItem(MK_KEY)||'{}')}catch(_){MARKS={}}
-function saveMarks(){storeSet(MK_KEY,JSON.stringify(MARKS),'הסימונים')}
+const mkRead=()=>{try{return JSON.parse(localStorage.getItem(MK_KEY)||'{}')||{}}catch(_){return {}}};
+MARKS=mkRead();
+/* ============ TABS · סימונים: יומן לכל לשונית — אף לשונית אינה כותבת על אחרת ============
+   נעילה לבדה אינה מספיקה: נמדד שתחת עומס (ציור מחדש אחרי כל סימון)
+   לשונית קוראת מ-localStorage ערך ישן גם בתוך הנעילה — עדכון מלשונית
+   אחרת עוד לא הגיע אליה. 120 סימונים חופפים, 102 נשמרו.
+
+   לכן כל לשונית כותבת רק למפתח משלה: planner_marksj_v1:<מזהה לשונית>,
+   יומן {מפתח פריט: {v ערך או null למחיקה, ts}}. התצוגה = planner_marks_v1
+   (המבנה הקיים) ומעליו כל היומנים, ולכל פריט מנצחת הפעולה המאוחרת. אין
+   כתיבה שיכולה למחוק פעולה של לשונית אחרת, גם אם הלשונית רואה אחסון
+   ישן — הפעולה יושבת במפתח שרק בעליה כותב אליו.
+
+   planner_marks_v1 ממשיך להיכתב בכל פעולה (תמונת התצוגה המאוחדת) —
+   למבנה הקיים, לגיבוי ולשחזור. אם נכתב מתמונה ישנה, היומנים מתקנים
+   אותו בתצוגה ובכתיבה הבאה. יומן של לשונית שנסגרה מתמזג לתוכו ונמחק
+   כשלשונית נפתחת, רק אחרי שהתמזג.
+
+   · before — מה שהלשונית ראתה כשהמשתמש פעל. אם התצוגה המאוחדת שונה,
+     לשונית אחרת שינתה את הפריט בינתיים: פעולת משתמש מתבצעת אבל לא
+     בשקט — הודעה עם «בטל»; ביטול (cond) אינו מתבצע.
+   · לשונית שהפעולה שלה הוחלפה אחר כך על ידי פעולה מאוחרת בלשונית אחרת
+     מקבלת הודעה על כך כשהסנכרון מגיע. */
+const MKJ_PFX='planner_marksj_v1:',MK_EPOCH='planner_marks_epoch_v1';
+const mkSame=(a,b)=>JSON.stringify(a||null)===JSON.stringify(b||null);
+const mkEpoch=()=>{try{return localStorage.getItem(MK_EPOCH)||''}catch(_){return ''}};
+let MKJ={e:mkEpoch(),ops:{}},MK_LAST_TS=0,MK_TOLD={};
+const mkNextTs=()=>{const t=Math.max(Date.now(),MK_LAST_TS+1);MK_LAST_TS=t;return t};
+function mkJournals(){const out=[],ep=mkEpoch();
+ try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+  if(!k||!k.startsWith(MKJ_PFX))continue;
+  try{const j=JSON.parse(localStorage.getItem(k));if(j&&j.ops&&(j.e||'')===ep)out.push({key:k,tab:k.slice(MKJ_PFX.length),ops:j.ops})}catch(_){}}}catch(_){}
+ return out}
+/* התצוגה המאוחדת, ולכל פריט — מי קבע אותו */
+function mkView(){const m=mkRead(),who={},best={};
+ for(const k in m)best[k]=(m[k]&&m[k].ts)||0;
+ for(const j of mkJournals())for(const k in j.ops){const o=j.ops[k];if(!o)continue;
+  const t=Math.max(o.ts||0,(o.v&&o.v.ts)||0);
+  /* שוויון מול planner_marks_v1 — היומן הוא המקור (הקובץ הוא תמונה שלו);
+     שוויון בין שני יומנים — מכריע מזהה הלשונית, כדי שכולן יכריעו אותו דבר */
+  if(!(k in best)||t>best[k]||(t===best[k]&&(!who[k]||j.tab>who[k]))){
+   best[k]=t;who[k]=j.tab;if(o.v==null)delete m[k];else m[k]=o.v}}
+ for(const k in best)MK_LAST_TS=Math.max(MK_LAST_TS,best[k]);
+ return {m,who}}
+function marksSync(){const {m,who}=mkView(),same=mkSame(m,MARKS);
+ /* פעולה שלי שפעולה מאוחרת בלשונית אחרת החליפה — לא בשקט */
+ const lost=[];
+ for(const k in MKJ.ops){const o=MKJ.ops[k];
+  if(who[k]&&who[k]!==TAB_ID&&!mkSame(m[k],o.v)&&!MK_TOLD[k+'@'+o.ts]){MK_TOLD[k+'@'+o.ts]=1;lost.push(k)}}
+ MARKS=m;
+ if(lost.length)toast(lost.length===1
+  ?`${lost[0].split('|').pop()} סומן אחרי כן בלשונית אחרת כ${mkName(m[lost[0]])} — הסימון שלך הוחלף`
+  :`${lost.length.toLocaleString('he-IL')} פריטים שסימנת סומנו אחרי כן בלשונית אחרת — הסימון שלך הוחלף בהם`);
+ if(!same&&typeof ALL!=='undefined'&&ALL&&ALL.length)apply();return !same}
+const mkName=v=>v&&v.t?'«'+(MARK_LABEL[v.t]||v.t)+'»':'ללא סימון';
+function marksCommit(changes){
+ if(DEMO){for(const k in changes){const c=changes[k];if(c.after==null)delete MARKS[k];else MARKS[k]=c.after}return null}
+ const {m:cur}=mkView(),clash=[],skipped=[];
+ if((MKJ.e||'')!==mkEpoch())MKJ={e:mkEpoch(),ops:{}};
+ for(const k in changes){const c=changes[k];
+  if(!mkSame(cur[k],c.before)){
+   if(c.cond){skipped.push(k);continue}
+   clash.push({k,other:cur[k]||null,mine:c.after||null})}
+  const ts=Math.max(mkNextTs(),(c.after&&c.after.ts)||0);MK_LAST_TS=ts;
+  MKJ.ops[k]={v:c.after==null?null:c.after,ts};
+  if(c.after==null)delete cur[k];else cur[k]=c.after}
+ storeSet(MKJ_PFX+TAB_ID,JSON.stringify(MKJ),'הסימונים');
+ storeSet(MK_KEY,JSON.stringify(cur),'הסימונים');
+ MARKS=cur;
+ if(skipped.length)toast(`הביטול לא בוצע ל-${skipped.length.toLocaleString('he-IL')} `
+  +`${skipped.length===1?'פריט':'פריטים'}: לשונית אחרת שינתה ${skipped.length===1?'אותו':'אותם'} מאז — השינוי החדש נשאר`);
+ else if(clash.length){const c=clash[0],pn=c.k.split('|').pop();
+  toast(clash.length===1
+    ?`${pn} סומן בינתיים בלשונית אחרת כ${mkName(c.other)} — הסימון שלך (${mkName(c.mine)}) החליף אותו`
+    :`${clash.length.toLocaleString('he-IL')} פריטים סומנו בינתיים בלשונית אחרת — הסימון שלך החליף אותם`,
+   {label:'בטל',ms:UNDO_MS,run:()=>{const back={};
+    for(const x of clash)back[x.k]={before:x.mine,after:x.other,cond:true};
+    marksCommit(back);apply()}})}
+ return {clash,skipped}}
+/* saveMarks — הממשק הישן: «שמור את MARKS כפי שהוא בזיכרון». נשאר לקוד
+   ולבדיקות שמשנים את MARKS ישירות. הוא כותב דרך marksCommit רק את
+   המפתחות שבזיכרון שונים מהתצוגה המאוחדת — ולכן גם הוא אינו מוחק סימון
+   של לשונית אחרת שהלשונית הזו לא נגעה בו. */
+function saveMarks(){if(DEMO)return;
+ const mem=MARKS,{m:view}=mkView(),ch={};
+ for(const k of new Set([...Object.keys(mem),...Object.keys(view)]))
+  if(!mkSame(mem[k],view[k]))ch[k]={before:view[k]||null,after:mem[k]||null};
+ if(Object.keys(ch).length)marksCommit(ch);
+ else{storeSet(MKJ_PFX+TAB_ID,JSON.stringify(MKJ),'הסימונים');storeSet(MK_KEY,JSON.stringify(view),'הסימונים')}}
+/* יומנים של לשוניות שנסגרו: מתמזגים לתוך planner_marks_v1 ונמחקים. «נסגרה»
+   — אין לה נעילת חיים (Web Locks), או שלא פעמה (בלי Web Locks). המחיקה
+   באה אחרי הכתיבה, וכתיבות של לשונית אחת מגיעות לאחרות לפי הסדר. */
+function mkReapOrphans(){if(DEMO)return;
+ const live=LOCKS?navigator.locks.query().then(q=>new Set((q.held||[]).map(h=>h.name).filter(n=>n.startsWith('planner-tab:')).map(n=>n.slice(12))))
+  :Promise.resolve((()=>{try{const o=JSON.parse(localStorage.getItem(TABS_KEY)||'{}')||{},now=Date.now();
+     return new Set(Object.keys(o).filter(id=>now-o[id]<TAB_DEAD))}catch(_){return new Set()}})());
+ live.then(alive=>{if(DEMO)return;alive.add(TAB_ID);
+  const dead=[];try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);
+   if(k&&k.startsWith(MKJ_PFX)&&!alive.has(k.slice(MKJ_PFX.length)))dead.push(k)}}catch(_){}
+  if(!dead.length)return;
+  const {m}=mkView();
+  if(!storeSet(MK_KEY,JSON.stringify(m),'הסימונים'))return;
+  for(const k of dead)try{localStorage.removeItem(k)}catch(_){}})}
+if(LOCKS)navigator.locks.request('planner-tab:'+TAB_ID,()=>new Promise(()=>{}));
+setTimeout(mkReapOrphans,1500);
+MARKS=mkView().m;
+let MK_SYNC_T=0;
+addEventListener('storage',e=>{if(DEMO||e.storageArea!==localStorage)return;
+ if(e.key===MK_EPOCH&&(MKJ.e||'')!==mkEpoch())MKJ={e:mkEpoch(),ops:{}};
+ if(e.key===null||e.key===MK_KEY||e.key===MK_EPOCH||String(e.key).startsWith(MKJ_PFX)){
+  if(marksSync()&&Date.now()-MK_SYNC_T>4000){MK_SYNC_T=Date.now();toast('הסימונים עודכנו מלשונית אחרת')}}
+ if(e.key===null||STATE_SYNC[e.key])(STATE_SYNC[e.key]?[e.key]:Object.keys(STATE_SYNC)).forEach(k=>STATE_SYNC[k]())});
+/* שאר מבני ההחלטות — נקראים מחדש בזיכרון כשלשונית אחרת כתבה. הם
+   מוצגים רק בטעינה הבאה, ונכתבים מחדש רק אחרי קריאה טרייה (ראה
+   statePersist), ולכן מספיק לעדכן את המשתנה. */
+const STATE_SYNC={};
+/* קריאה טרייה לפני חישוב, ושמירה תחת נעילה: אם בין הקריאה לנעילה
+   לשונית אחרת כתבה, redo() קורא שוב ומחשב מחדש על הבסיס שלה — כך
+   הרצה שנרשמה שם אינה נמחקת בשמירה מכאן. */
+const STATE_SEEN={};
+/* track=false — קריאה לסנכרון בלבד. «הבסיס שנראה» מתעדכן רק כשהלשונית
+   עצמה קוראת כדי לחשב, אחרת סנכרון היה מסתיר שינוי ש-statePersist
+   חייב לזהות (נתפס בבדיקה: שתי טעינות חופפות, הרצה אחת נמחקה) */
+function stateRaw(key,track=true){let raw=null;try{raw=localStorage.getItem(key)}catch(_){}if(track)STATE_SEEN[key]=raw;return raw}
+/* האם לשונית אחרת כתבה מאז שהלשונית הזו קראה או כתבה. רק אז קוראים
+   מחדש לפני חישוב — שינוי מקומי בזיכרון (גם של בדיקה) אינו נמחק */
+function stateChanged(key){let raw=null;try{raw=localStorage.getItem(key)}catch(_){}return raw!==STATE_SEEN[key]}
+function statePersist(key,write,redo){
+ return stateTxn(()=>{let raw=null;try{raw=localStorage.getItem(key)}catch(_){}
+  if(raw!==STATE_SEEN[key])redo();write();try{STATE_SEEN[key]=localStorage.getItem(key)}catch(_){}})}
+STATE_SYNC[PROF_KEY]=()=>{if(!DEMO)profLoad(false)};
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
 /* סימון קבוצתי — פעולה על הרשימה המסוננת כולה.
@@ -5843,19 +6359,23 @@ function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(
 let BULK_UNDO=null;
 function setMarks(items,t,note){
  if(!items||!items.length)return 0;
- const prev={};
+ const ch={},ts=Date.now();
  for(const it of items){const k=markKey(it);
-  prev[k]=MARKS[k]?{...MARKS[k]}:null;
-  if(!t)delete MARKS[k];else MARKS[k]={t,note:note||'',ts:Date.now()}}
- BULK_UNDO={prev,n:items.length};
- saveMarks();apply();return items.length}
+  ch[k]={before:MARKS[k]?{...MARKS[k]}:null,after:t?{t,note:note||'',ts}:null}}
+ BULK_UNDO={ch,n:items.length};
+ marksCommit(ch);apply();return items.length}
+/* הביטול מותנה: פריט שלשונית אחרת שינתה מאז אינו מוחזר (ראה marksCommit) */
 function undoBulk(){
  if(!BULK_UNDO)return;
- for(const k in BULK_UNDO.prev){const v=BULK_UNDO.prev[k];
-  if(v==null)delete MARKS[k];else MARKS[k]=v}
+ const back={};
+ for(const k in BULK_UNDO.ch){const c=BULK_UNDO.ch[k];back[k]={before:c.after,after:c.before,cond:true}}
  const n=BULK_UNDO.n;BULK_UNDO=null;
- saveMarks();apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
-function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;if(!t){delete MARKS[key];if(it)delete MARKS[it.pn]}else{MARKS[key]={t,note:note||'',ts:Date.now()}}saveMarks();apply()}
+ marksCommit(back);apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
+function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;
+ const ch={[key]:{before:MARKS[key]?{...MARKS[key]}:null,after:t?{t,note:note||'',ts:Date.now()}:null}};
+ /* ביטול סימון מוחק גם מפתח ישן לפי מק״ט, כמו קודם */
+ if(!t&&it&&it.pn!==key&&MARKS[it.pn])ch[it.pn]={before:{...MARKS[it.pn]},after:null};
+ marksCommit(ch);apply()}
 const WIDGETS=[['kpis','מדדים'],['filters','פילטרים'],['queue','תור עבודה'],['detail','פרטי פריט']];
 const LAY_KEY='planner_layout_v2';
 /* שורת ה-KPI מוסתרת כברירת מחדל: "בוער עכשיו" הוא כותרת הקבוצה הראשונה
@@ -7261,11 +7781,12 @@ function chips(){const o=[];FDEF.forEach(([k,l])=>SEL[k].forEach(v=>o.push(
    19KB ליום על הדוח האמיתי (836 פריטים), ולכן 180 יום ≈ 3.4MB. */
 const LEDG_KEY='planner_ledger_v1', LEDG_DAYS=180;
 let LEDGER={v:1,days:{},etas:{}};
-try{const o=JSON.parse(localStorage.getItem(LEDG_KEY));
- if(o&&o.days&&o.etas)LEDGER=o}catch(_){}
+function ledgLoad(track=true){try{const o=JSON.parse(stateRaw(LEDG_KEY,track));
+ LEDGER=(o&&o.days&&o.etas)?o:{v:1,days:{},etas:{}}}catch(_){LEDGER={v:1,days:{},etas:{}}}}
+ledgLoad();STATE_SYNC[LEDG_KEY]=()=>{if(!DEMO)ledgLoad(false)};
 function ledgerSave(){
  if(DEMO)return;
- try{localStorage.setItem(LEDG_KEY,JSON.stringify(LEDGER))}
+ try{const v=JSON.stringify(LEDGER);localStorage.setItem(LEDG_KEY,v);STATE_SEEN[LEDG_KEY]=v}
  catch(_){/* נגמר המקום — מוותרים על היום הישן ביותר, לא על הפנקס.
     זו התנהגות נכונה, אבל היא הייתה שקטה: הפנקס מתקצר מאחור ואיש
     אינו יודע. עכשיו זה נאמר, כי «כמה זמן אחורה הפנקס מגיע» הוא
@@ -7291,9 +7812,11 @@ function ledgerRecord(items){
  for(const r of items){
   if(!((r.po||0)>0||has[etaKey(r.pn)]||(r.cust||0)>0))continue;
   it[r.pn]=[r.po|0,Math.max(0,r.free||0)|0]}
- LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
- if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
- ledgerPrune();ledgerSave();
+ const put=()=>{LEDGER.days[day]={ts:Date.now(),etaSig:sig,n:Object.keys(it).length,it};
+  if(sig&&!LEDGER.etas[sig])LEDGER.etas[sig]={ts:Date.now(),byPn:has};
+  ledgerPrune()};
+ if(!DEMO&&stateChanged(LEDG_KEY))ledgLoad();
+ put();statePersist(LEDG_KEY,ledgerSave,()=>{ledgLoad();put()});
  return {days:Object.keys(LEDGER.days).length}}
 const ledgerDays=()=>Object.keys(LEDGER.days).sort();
 /* ============ הבטחה מול ביצוע ============
@@ -7488,12 +8011,21 @@ function dsigBytes(s){
  return out}
 const dsigYM=()=>`${ANCHOR.getFullYear()}-${ANCHOR.getMonth()+1}`;
 /* החתימה של דוח שנקלט. `items` הוא פלט `build()` — לפני סימונים וסיווג. */
-function dataSig(items){
+function dsigBody(items){
  const rows=new Array(items.length);
  for(let i=0;i<items.length;i++)rows[i]=dsigRow(items[i]);
  rows.sort();                      /* סדר השורות בגיליון אינו דוח חדש */
+ return rows.join('\u001e')}
+function dataSig(items,body){
  return 'v'+DSIG_V+':'+dsigHash(
-   `${DSIG_V}|${dsigYM()}|${items.length}\u001e`+rows.join('\u001e'))}
+   `${DSIG_V}|${dsigYM()}|${items.length}\u001e`+(body!=null?body:dsigBody(items)))}
+/* ============ BASE_MONTH · חתימת תוכן ============
+   אותה רשימת שדות בלי חודש הבסיס: «אותו קובץ» גם כשהחודש שלו נקבע
+   מחדש (בחירה ידנית). כל השדות ב-DSIG_FIELDS הם נתוני מקור שאינם תלויים
+   בחודש הבסיס או בתאריך הייחוס, ולכן החתימה זהה בכל build של אותו קובץ. */
+function contentSig(items,body){
+ return 'c'+DSIG_V+':'+dsigHash(
+   `${DSIG_V}|content|${items.length}\u001e`+(body!=null?body:dsigBody(items)))}
 /* ============ מעבר מפורמט החתימה הישן ============
    רשומה שנשמרה לפני השינוי נושאת sig בפורמט «חודש|מספרים» ואין בה v.
    אי אפשר להשוות אותה לחתימה החדשה, ואסור להכריז «אותו דוח» על סמך
@@ -7501,14 +8033,17 @@ function dataSig(items){
    מוחקים דבר, קובעים בסיס חדש, ואומרים את זה במפורש על המסך.
    התמונות עצמן (`PARAMS.runs[].it`) אינן תלויות בפורמט החתימה, ולכן
    ההשוואה מול התמונה הקודמת נשמרת ועובדת גם במעבר. */
-function sigState(last,sig){
+/* BASE_MONTH: אותו תוכן (cs) הוא אותו דוח גם כשחודש הבסיס שלו נקבע מחדש.
+   הרשומה מתעדכנת לחודש החדש במקום שתיווצר הרצה שנייה מאותו קובץ. */
+function sigState(last,sig,cs){
  if(!last)return {repeat:false,migrated:false};
  if(last.v!==DSIG_V||typeof last.sig!=='string')return {repeat:false,migrated:true};
- return {repeat:last.sig===sig,migrated:false}}
+ return {repeat:last.sig===sig||(!!cs&&last.cs===cs),migrated:false}}
 const HIST_KEY='planner_history_v1', HIST_RUNS=40;
 let HIST={runs:[],items:{}};
-try{const h=JSON.parse(localStorage.getItem(HIST_KEY));
- if(h&&Array.isArray(h.runs)&&h.items)HIST=h}catch(_){}
+function histLoad(track=true){try{const h=JSON.parse(stateRaw(HIST_KEY,track));
+ HIST=(h&&Array.isArray(h.runs)&&h.items)?h:{runs:[],items:{}}}catch(_){HIST={runs:[],items:{}}}}
+histLoad();STATE_SYNC[HIST_KEY]=()=>{if(!DEMO)histLoad(false)};
 function saveHist(){storeSet(HIST_KEY,JSON.stringify(HIST),'ההיסטוריה בין ההרצות')}
 /* ============ RUNSIG_BLIND — ההיסטוריה של התיקון הזה ============
    בגרסה הראשונה «אותו קובץ שוב» נקבע לפי חודש · מספר פריטים · סכום
@@ -7523,16 +8058,21 @@ function histQueue(Qs){return [...Qs.waiting,...Qs.immediate,...Qs.prevent,...Qs
    etaApply, הסימונים ו-classify. קריאה בלי חתימה (בדיקות, כלי פנימי)
    מחשבת אותה כאן; רשימת השדות כוללת רק נתוני מקור שאיש אינו דורס
    אחרי build, ולכן שתי הדרכים נותנות אותו מספר. */
-function recordRun(items,Qs,sig){
+function recordRun(items,Qs,sig,cs){
  if(typeof sig!=='string')sig=dataSig(items);
+ if(!DEMO&&stateChanged(HIST_KEY))histLoad();
+ const r=recordRunCore(items,Qs,sig,cs);
+ statePersist(HIST_KEY,saveHist,()=>{histLoad();recordRunCore(items,Qs,sig,cs)});
+ return r}
+function recordRunCore(items,Qs,sig,cs){
  const now=Date.now();
  const last=HIST.runs[HIST.runs.length-1];
- const stt=sigState(last,sig);
+ const stt=sigState(last,sig,cs);
  const repeat=stt.repeat;                             /* אותו קובץ שוב */
  const q=histQueue(Qs), inQ=new Set(q.map(x=>x.pn));
- if(!repeat){HIST.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,n:items.length,q:q.length});
+ if(!repeat){HIST.runs.push(Object.assign({v:DSIG_V,sig,ym:dsigYM(),ts:now,n:items.length,q:q.length},cs?{cs}:{}));
   if(HIST.runs.length>HIST_RUNS)HIST.runs=HIST.runs.slice(-HIST_RUNS)}
- else{last.ts=now;last.q=q.length}
+ else{last.ts=now;last.q=q.length;if(cs){last.cs=cs;last.sig=sig;last.ym=dsigYM()}}
  const prev=HIST.items;const next={};
  for(const x of q){const p=prev[x.pn];
   next[x.pn]=p?{since:p.since,seen:repeat?p.seen:p.seen+1,miss:x.miss||0,prevMiss:repeat?p.prevMiss:p.miss,cat:x.cat}
@@ -7540,7 +8080,6 @@ function recordRun(items,Qs,sig){
  /* פריטים שיצאו מהתור — נספרים כנפתרו בהרצה הזאת ואז נשכחים */
  let resolved=0;for(const pn of Object.keys(prev))if(!inQ.has(pn))resolved++;
  HIST.items=next;HIST.lastResolved=repeat?(HIST.lastResolved||0):resolved;
- saveHist();
  /* הצמדה לפריטים עצמם, כדי שהתצוגה לא תיגע ב-localStorage */
  for(const x of items){const h=next[x.pn];
   if(!h){x.hSeen=0;x.hNew=false;x.hDays=0;x.hWorse=false;continue}
@@ -7570,9 +8109,10 @@ function histReset(){HIST={runs:[],items:{}};saveHist()}
    זיכרון התור לא ייפגע. */
 const PAR_KEY='planner_params_v1', PAR_RUNS=4;
 let PARAMS={runs:[]};
-try{const q=JSON.parse(localStorage.getItem(PAR_KEY));
- if(q&&Array.isArray(q.runs))PARAMS=q}catch(_){}
-function saveParams(){if(DEMO)return;try{localStorage.setItem(PAR_KEY,JSON.stringify(PARAMS))}catch(_){
+function parLoad(track=true){try{const q=JSON.parse(stateRaw(PAR_KEY,track));
+ PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}catch(_){PARAMS={runs:[]}}}
+parLoad();STATE_SYNC[PAR_KEY]=()=>{if(!DEMO)parLoad(false)};
+function saveParams(){if(DEMO)return;try{const v=JSON.stringify(PARAMS);localStorage.setItem(PAR_KEY,v);STATE_SEEN[PAR_KEY]=v}catch(_){
   /* אם נגמר המקום — מוותרים על התמונה הישנה ביותר ולא על הזיכרון כולו */
   if(PARAMS.runs.length>1){PARAMS.runs=PARAMS.runs.slice(1);
    STORE_TRIM={what:'זיכרון הפרמטרים',left:PARAMS.runs.length};storeChip();
@@ -7640,21 +8180,24 @@ function parState(then,sug,now){
  if(now===sug)return 'done';                /* יושם בדיוק */
  if(now!==then)return 'other';              /* שונה, אבל לא למספר שהוצע */
  return 'none'}                             /* לא נגעו */
-function recordParams(items,Qs,sig){
+function recordParams(items,Qs,sig,cs){
  const SQ=shortSet(Qs);
  if(typeof sig!=='string')sig=dataSig(items);
  const now=Date.now();
- const last=PARAMS.runs[PARAMS.runs.length-1];
- const stt=sigState(last,sig);
+ if(!DEMO&&stateChanged(PAR_KEY))parLoad();
+ const push=()=>{const last=PARAMS.runs[PARAMS.runs.length-1],st=sigState(last,sig,cs);
+  /* אותו תוכן בחודש בסיס אחר — ההמלצה שנשמרה היא של החודש הקודם, ולכן מתחלפת */
+  if(st.repeat){last.ts=now;if(cs&&last.sig!==sig)last.it=paramSnap(items,SQ);if(cs){last.cs=cs;last.sig=sig;last.ym=dsigYM()}}
+  else{PARAMS.runs.push(Object.assign({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)},cs?{cs}:{}));
+   if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
+  return st};
+ const stt=push();
  const repeat=stt.repeat;
+ statePersist(PAR_KEY,saveParams,()=>{parLoad();push()});
  /* העלאה חוזרת של אותו קובץ לא יוצרת תמונה חדשה — אחרת היינו משווים
     קובץ לעצמו ומדווחים «אפס יושמו», שזה שקר. וההפך חמור לא פחות:
     דוח שבו עודכנו ROP ו-SS *חייב* לייצר תמונה, אחרת היישום שבדיוק
     התבצע נבלע. זה היה הבאג — ראה DSIG. */
- if(repeat)last.ts=now;
- else{PARAMS.runs.push({v:DSIG_V,sig,ym:dsigYM(),ts:now,it:paramSnap(items,SQ)});
-  if(PARAMS.runs.length>PAR_RUNS)PARAMS.runs=PARAMS.runs.slice(-PAR_RUNS)}
- saveParams();
  const prev=PARAMS.runs[PARAMS.runs.length-2];
  for(const x of items){x.apStatus=null;x.apPrev=null;x.apDrift=null}
  /* אין תמונה קודמת — אין מה להשוות, וממשיכים להחזיר null בדיוק כמו
@@ -7770,6 +8313,8 @@ const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','p
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
+ /* הגיבוי הוא התצוגה המאוחדת — כולל יומנים של לשוניות פתוחות */
+ if(!DEMO)keys[MK_KEY]=JSON.stringify(mkView().m);
  return {app:'inventory-planner',kind:'work-state',v:STATE_V,ts:Date.now(),keys}}
 function stateStats(blob){const k=blob&&blob.keys||{};
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
@@ -7814,13 +8359,14 @@ function stateMergeMarks(blob){
  if(DEMO){toast('⚠ מיזוג אינו זמין במצב הדגמה — צא ממנו קודם');return {added:0,updated:0,kept:0}}
  const j=s=>{try{return JSON.parse(s)}catch(_){return null}};
  const inc=j((blob.keys||{})['planner_marks_v1'])||{};
- let added=0,updated=0,kept=0;
+ let added=0,updated=0,kept=0;const ch={};
  for(const key in inc){const a=inc[key],b=MARKS[key];
   if(!a||typeof a!=='object'||!a.t)continue;
-  if(!b){MARKS[key]=a;added++}
-  else if((a.ts||0)>(b.ts||0)){MARKS[key]=a;updated++}
+  if(!b){ch[key]={before:null,after:a,cond:true};added++}
+  else if((a.ts||0)>(b.ts||0)){ch[key]={before:{...b},after:a,cond:true};updated++}
   else kept++}
- saveMarks();return {added,updated,kept}}
+ /* מותנה: פריט שלשונית אחרת שינתה בזמן המיזוג אינו נדרס */
+ marksCommit(ch);return {added,updated,kept}}
 /* «שחזור מלא» כותב ומוחק ישירות, ולכן עקף את הגנת ההדגמה לגמרי:
    קובץ גיבוי שנטען בתוך הדגמה היה דורס סימונים והיסטוריה אמיתיים.
    שחזור הוא החלטה על העבודה האמיתית, ואין לו מובן בתוך הדגמה. */
@@ -7828,6 +8374,12 @@ function stateRestoreAll(blob){
  if(DEMO){toast('⚠ שחזור אינו זמין במצב הדגמה — צא ממנו קודם');return false}
  for(const k of STATE_KEYS){const v=(blob.keys||{})[k];
   try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(_){}}
+ /* שחזור מחליף את הסימונים כולם: יומני הלשוניות שייכים לעידן הקודם —
+    עידן חדש, והיומנים (כאן ובלשוניות הפתוחות) אינם נקראים עוד */
+ try{localStorage.setItem(MK_EPOCH,String(Date.now()));
+  const old=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(MKJ_PFX))old.push(k)}
+  old.forEach(k=>localStorage.removeItem(k))}catch(_){}
+ MKJ={e:mkEpoch(),ops:{}};MARKS=mkView().m;
  return true}
 function appliedRows(){return (QF&&QF.all?QF.all:[]).filter(r=>r.apStatus&&passColFilters(r))}
 function apply(){const fl=ALL.filter(it=>FDEF.every(([k])=>!SEL[k].size||SEL[k].has(it[k])));
@@ -8934,9 +9486,12 @@ const UNDO_MS=6000;
 function markHandled(k,after){const it=markItem(k),key=it?markKey(it):String(k||'');if(!key)return;
  const pn=it?it.pn:key,prev=MARKS[key]?{...MARKS[key]}:null;
  setMark(k,'handled','');
+ const set=MARKS[key]?{...MARKS[key]}:null;
  toast('✓ '+pn+' — סומן כטופל',{label:'בטל',ms:UNDO_MS,run:()=>{
-  if(prev)MARKS[key]=prev;else delete MARKS[key];
-  saveMarks();apply();toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה');
+  /* מותנה: אם לשונית אחרת שינתה את הפריט מאז, הביטול אינו דורס אותה */
+  if(!mkSame(MARKS[key],set)){toast(`↺ הביטול לא בוצע: ${pn} שונה בלשונית אחרת — השינוי החדש נשאר`);if(after)after();return}
+  marksCommit({[key]:{before:set,after:prev,cond:true}});apply();
+  toast('↺ '+pn+' — הסימון בוטל, הפריט חזר לרשימה');
   if(after)after()}})}
 function wireMarkBtns(){
  wireSapSel();
@@ -9057,8 +9612,14 @@ const SCOL={
   cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
  act:{t:'הפעולה הבאה',val:r=>String((r.act||[])[0]||''),ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
   cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(actShort(r)||'—')}</td>`},
+ /* D2 — כשהסיווג זהה לסיווג השולט בקבוצה (x.maj), כותרת הקבוצה כבר אומרת
+    אותו: הוא נשאר בשורה כטקסט שקט, באותן מילים, וגלולה צבעונית נשארת רק
+    לשורה שהסיווג שלה *שונה* מהקבוצה — שם היא אומרת משהו. מפתח נפרד מ-x.maj
+    של התיאור: שם הוא מוסיף גלולה לתיאור, וכאן יש לסיווג עמודה משלו. */
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
-  cell:r=>`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+  cell:(r,x)=>(x&&x.gmaj&&r.cat===x.gmaj)
+   ?`<td class="note"><span class="ocat same" title="${esc(r.cat)} — כמו כותרת הקבוצה">${esc(r.cat)}</span></td>`
+   :`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
  /* ============ משפחת הפרמטרים ============
     ROP ו-SS קיים מול מוצע, הדרישה הסטטיסטית, זמן האספקה והפערים.
     כל אלה היו תבניות HTML נפרדות לכל מסלול; כאן הם עמודות ככל
@@ -9632,7 +10193,11 @@ const aVal=g=>(g==='ag3'?(r=>r.unsVal||0):(r=>(r.miss||0)*(r.price||0)));
    ב-on…= ולכן ציור חוזר אינו מכפיל אותם. הבחירה נשמרת כאינדקס ברשימה
    (sel) ולא כשורה ב-DOM, ולכן היא שורדת יציאה מהחלון, והמקלדת עוברת על
    הרשימה כולה וגוללת אל השורה (vgo). */
-const VL={},VFULL=200,VCHUNK=40,VOVER=900,VSHRINK=120,VMAIN=500;
+/* D2 — VCHUNK 40→44: החלון נמדד בשורות, והשורה ירדה מ-31 ל-28px. 44 שורות
+   הן אותו גובה בפיקסלים כמו 40 של פעם (1,240px), ולכן הציור מחדש בגלילה
+   חוזר לתדירות שלו: נמדד על הדוח האמיתי, קטלוג 7,990, גלגלת 100px —
+   פריימים ארוכים (>50ms) 19–21 ב-main, 34–35 עם 40, 24 עם 44. */
+const VL={},VFULL=200,VCHUNK=44,VOVER=900,VSHRINK=120,VMAIN=500;
 function vh(st,j){return st.hs[j]||st.est[st.ents[j].k]||30}
 function vsum(st,a,b){let t=0;for(let j=a;j<b;j++)t+=vh(st,j);return t}
 function vspc(st,h){return `<tr class="vsp${st.g?' g':''}" aria-hidden="true"><td colspan="${st.ncol}" style="height:${h}px"></td></tr>`}
@@ -9660,6 +10225,16 @@ function vdraw(st,force){
  if(n>VFULL){
   const bt=box.getBoundingClientRect().top;
   const y0=tb.getBoundingClientRect().top-bt+box.scrollTop;
+  /* D2 — היסטרזיס. בלעדיו כל גלילה שהזיזה את גבול החלון בשורה אחת ציירה
+     מחדש 120–176 שורות (60–130ms), ובשורה של 28px זה קרה יותר: נמדד על הדוח
+     האמיתי, קטלוג 7,990, גלגלת 100px — פריימים ארוכים (>50ms) 19 ב-main ו-24
+     ב-D2, והפריים הגרוע 101–107ms מול 144–202ms. כל עוד מה שכבר מצויר מכסה
+     את המסך ועוד שליש מהמרווח מכל צד, אין ציור; רק כשמתקרבים לקצה מציירים
+     חלון מלא סביב המיקום. אחרי: 15–16 פריימים ארוכים, הגרוע 115–119ms. */
+  if(!force&&st.a>=0){const l2=box.scrollTop-y0-VOVER/3,h2=box.scrollTop-y0+box.clientHeight+VOVER/3;
+   let y2=0,k=0;for(;k<n;k++){const h=vh(st,k);if(y2+h>l2)break;y2+=h}const ka=k;
+   for(;k<n&&y2<h2;k++)y2+=vh(st,k);
+   if(st.a<=ka&&st.b>=k)return}
   const lo=box.scrollTop-y0-VOVER,hi=box.scrollTop-y0+box.clientHeight+VOVER;
   let y=0,j=0;
   for(;j<n;j++){const h=vh(st,j);if(y+h>lo)break;y+=h}
@@ -9833,9 +10408,10 @@ function renderAgenda(rows){
       ?`${aUnits(g,list).toLocaleString('he-IL')} יח׳ · ${moneyMix(list,aVal(g))}${noPriceTxt(list)}`
       :'אין פריטים'}</span></td></tr>`});
   if(coll||!list.length)continue;
+  const maj=majorCat(list);
   for(const r of list){const i=idx++;
    ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
-    +colRowHTML(r,{dlen:30})+'</tr>'})}}
+    +colRowHTML(r,{dlen:30,gmaj:maj})+'</tr>'})}}
  /* התצוגה שעל המסך היא מה שהייצוא מייצג, והסדר כאן אינו
     הסדר של `agendaRows()` — הקיבוץ והקיפול מסדרים אותו מחדש. */
  const view=AGROUP.flatMap(([g])=>GCOLL.has(g)?[]:G[g]);
@@ -10275,8 +10851,10 @@ function movList(tab,base){
    הייצוא — כדי שלא יתפצלו. */
 function movPrimDate(r){return movTab==='sales'
  ? ((r.sales&&r.sales.date)||null) : ((r.entries&&r.entries.date)||null)}
+/* BASE_MONTH: מתאריך הייחוס של הדוח, כמו גיל המלאי — לא מהיום. פעילות
+   שאחרי תאריך הייחוס נספרת 0, כמו ב-build. */
 function movDaysSince(r){const d=movPrimDate(r);if(!d)return null;
- const t=new Date();t.setHours(0,0,0,0);return daysBetween(t,d)}
+ return Math.max(0,daysBetween(bmRef(),bmDay(d)))}
 function movDelta(r){return (r.sales&&r.sales.date&&r.entries&&r.entries.date)
  ? daysBetween(r.sales.date,r.entries.date) : null}
 /* הרשימה שעל המסך — מסוננת, ואז ממוינת לפי העמודה שנלחצה אם
@@ -10829,11 +11407,11 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
     <div class="box"><b>${r.free}</b><span>מלאי פנוי</span></div><div class="box"><b>${r.stock}</b><span>סה״כ מלאי</span></div>
     <div class="box"><b>${r.cust}</b><span>הזמנות לקוח פעילות</span></div><div class="box"><b>${r.po}</b><span>רכש ואספקות</span></div>
     <div class="box"><b>${r.transfer||0}</b><span>מלאי בהעברה</span></div><div class="box"><b>${r.avail}</b><span>זמין לכיסוי</span></div>
-    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</span></div>
+    <div class="box"><b>${r.ltD}</b><span>זמן אספקה (ימים)</span></div><div class="box"><b>${r.rate.toFixed(1)}</b><span>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</span></div>${r.rateDecay?`<div class="box" title="הביקוש דעך — ROP ו-SS מחושבים על הקצב העדכני ולא על קצב 3 השנים"><b>${r.rateROP.toFixed(2)}</b><span>קצב ל-ROP · עדכני</span></div>`:''}
     <div class="box"><b>${r.d12}</b><span>צריכה 11 חו׳</span></div>
     <div class="box"><b>${r.has3y?r.cons3y:'—'}</b><span>צריכה 3 שנים</span></div>
-    <div class="box"><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה</span></div>
-    <div class="box"><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
+    <div class="box"${r.entAfterRef?` title="${esc(bmAfterTxt('הכניסה',r.entries))}"`:''}><b>${yrs(r.entAge)}</b><span>מאז כניסה אחרונה${r.entAfterRef?' · אחרי תאריך הייחוס':''}</span></div>
+    <div class="box"${r.saleAfterRef?` title="${esc(bmAfterTxt('המכירה',r.sales))}"`:''}><b>${yrs(r.saleAge)}</b><span>מאז מכירה אחרונה${r.saleAfterRef?' · אחרי תאריך הייחוס':''}</span></div><div class="box"><b>${r.cov==null?'—':r.cov.toFixed(1)}</b><span>חודשי כיסוי</span></div>
     <div class="box"><b>${money(r.price*Math.max(0,r.stock),r.currency)}</b><span>שווי מלאי</span></div>
     <div class="box"><b style="color:${r.miss?'var(--red)':'var(--dim)'}">${r.miss?r.miss.toLocaleString('he-IL'):'—'}</b><span>כמות חסרה (יח׳)</span></div>
     <div class="box"><b style="color:${r.expCap?'var(--blue)':'var(--dim)'}">${r.expCap?money(r.expCap,r.currency):'—'}</b><span>כסף תקוע</span></div></div>
@@ -11017,8 +11595,9 @@ function explain(r){const A=r.A;
      בהגדרה. השורה הייתה מזכה את מכונת תיקון האזילה בקצב שלא היא
      ייצרה, ומסתירה את המקור האמיתי. */
   :`<tr><td>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</td><td>${r.rate.toFixed(2)}${r.rateFrom3y?` <span style="color:#7c3aed">(${r.cons3y} יח׳ ב-3 שנים · החלון הקצר ${r.d12} יח׳ ב-11 חודשים)</span>`:(r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:'')}</td></tr>
+    ${r.rateDecay?`<tr><td>קצב ל-ROP · קצב עדכני</td><td>${r.rateROP.toFixed(2)} <span style="color:#7c3aed">(הביקוש דעך: הקצב העדכני הוא ${Math.round(100*r.rateROP/r.rate3y)}% מקצב 3 השנים, פחות מ-${Math.round(100*RATE_DECAY)}% — ROP ו-SS מחושבים עליו. הסיווג והכיסוי נשארים על קצב 3 השנים)</span></td></tr>`:''}
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
-    <tr class="step"><td>ביקוש צפוי בזמן האספקה = קצב × LT</td><td>${r.rate.toFixed(2)} × ${ltM} = ${dLT}</td></tr>
+    <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':'קצב'} × LT</td><td>${(r.rateDecay?r.rateROP:r.rate).toFixed(2)} × ${ltM} = ${dLT}</td></tr>
     <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
     <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${ropCalc}</td></tr>
     ${r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
@@ -11107,8 +11686,13 @@ document.getElementById('modalwrap').onclick=e=>{if(e.target.id==='modalwrap')do
 document.getElementById('onlyTasks').onclick=function(){onlyTasks=!onlyTasks;this.classList.toggle('on',onlyTasks);render()};
 document.getElementById('fclr').onclick=()=>{FDEF.forEach(([k])=>SEL[k].clear());colFilters={};
  SQ=null;qEl('q').value='';qEl('qbox').classList.remove('has');closeSug();apply()};
-document.getElementById('rd').onchange=e=>{const v=e.target.value;if(!v)return;const[y,mo]=v.split('-').map(Number);
- ANCHOR=new Date(y,mo-1,1);rebuildLabels();if(QF&&ALL_RAW){ALL=build(ALL_RAW.rows,ALL_RAW.hdr);apply()}};
+/* BASE_MONTH: בחירה כאן היא בחירה ידנית — נשמרת לתוכן הקובץ הזה, מחשבת
+   מחדש ורושמת את ההרצה (מחליפה את הרשומה של אותו תוכן). */
+document.getElementById('rd').onchange=e=>{const v=e.target.value;if(!v)return;
+ const[y,mo]=v.split('-').map(Number);
+ if(QF&&ALL_RAW&&BASE){bmChoose(bmYM(y,mo));return}
+ ANCHOR=new Date(y,mo-1,1);rebuildLabels()};
+{const b=document.getElementById('bmOk');if(b)b.onclick=()=>{if(BASE)bmChoose(bmYM(BASE.y,BASE.m))}}
 /* ---- חיווט תיבת החיפוש ---- */
 let QT=null;
 qEl('q').oninput=()=>{clearTimeout(QT);QT=setTimeout(applyQuery,140)};
@@ -11151,7 +11735,7 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
  ['יח׳ שתאריכן כבר עבר',r=>ETA?(r.etaPast||0):''],
  ['ROP בSAP',r=>r.rop],['ROP מוצע',r=>recX(r,'sugROP')],['SS בSAP',r=>r.ss],['SS מוצע',r=>recX(r,'sugSS')],
  /* שלב 2: המספרים ריקים כשאין המלצה, וההסבר כאן — לא בתוך תא מספרי */
- ['סטטוס המלצה',r=>recStatus(r)],['זמן אספקה מתוכנן ב-SAP (מקור)',r=>r.ltRaw],
+ ['סטטוס המלצה',r=>recStatus(r)],['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)],
  ['ביקוש בזמן האספקה',r=>recNA(r)?'':+(r.dLT||0).toFixed(2)],['SS סטטיסטי',r=>recNA(r)?'':(r.ssStat||0)],['רצפת ssMin מ-SAP',r=>r.ssMin||0],['רצפת ssMin בתוקף',r=>r.ssMinEff||0],['רצפת מדיניות',r=>r.lowFloor||0],['מקור SS',r=>SS_SRC[r.ssSrc]||''],
  ['כמות להזמנה',r=>r.orderQty!=null?r.orderQty:''],['זמן אספקה (ימים)',r=>r.ltD],['קצב חודשי',r=>+r.rate.toFixed(2)],
  /* ============ RATE_3Y — הגיליון חייב לומר מאיזה חלון ============
@@ -11262,7 +11846,7 @@ function sapRowsBy(list,pred){
      ב-SAP בכל העלאה (שלב 2). שורה נכנסת רק כש-ltPlanned>0 (sapUsableBase).
      (ssMin||0) נשאר כפי שהוא — סמנטיקת היבוא של שדה ריק טרם אומתה. */
   out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
-            r.sugROP, r.pGroup||'', '', r.ltPlanned]);
+            r.sugROP, r.pGroup||'', '', ltPlan(r)]);
  return out}
 function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
 function sapSlowRows(list){return sapRowsBy(list,sapSlowUsable)}
@@ -11276,13 +11860,18 @@ function sapPred(kind){return kind==='slow'?sapSlowUsable:(track==='tier'?sapTie
    הדפדפן לא מראה את ההסבר במעבר עכבר ולא מגיב בלחיצה. */
 const SAP_NO_LIST='«תנועות אחרונות» אינו רשימת פריטים — קובץ SAP יוצא ממסך של פריטים, למשל «תכנון ו-MRP» או «קטלוג פריטים»';
 function sapNoList(){return cur==='moves'}
-function sapBtnSync(){const off=sapNoList();
+/* BASE_MONTH: חודש בסיס לא מאומת — ההמלצות זמניות, ולכן אין קובץ שנכתב
+   ל-SAP. אותו מנגנון כמו SAP_NO_LIST: מסומן, ולחיצה אומרת למה ומה לעשות. */
+const SAP_NO_BASE='חודש הבסיס של הדוח לא אומת, ולכן ההמלצות זמניות ואין קובץ SAP. אשר או בחר חודש בסיס בתפריט הדוח שבסרגל העליון.';
+function sapNoBase(){return !!BASE&&!BASE.verified}
+function sapBtnSync(){const why=sapNoList()?SAP_NO_LIST:(sapNoBase()?SAP_NO_BASE:'');const off=!!why;
  for(const id of ['sapXls','sapSlowXls']){const b=document.getElementById(id);if(!b)continue;
   if(b.dataset.t0==null)b.dataset.t0=b.title;
   b.classList.toggle('na',off);b.setAttribute('aria-disabled',off?'true':'false');
-  b.title=off?SAP_NO_LIST:b.dataset.t0}}
+  b.title=off?why:b.dataset.t0}}
 function doSapMass(kind,onlyRows){
  if(sapNoList()){toast(SAP_NO_LIST);return}
+ if(sapNoBase()){toast(SAP_NO_BASE);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  /* ============ SAP_NO_CAP ============
     כאן היה `LAST_VIEW` — ו-LAST_VIEW נחתך ב-`.slice(0,lim)`, מגבלת
@@ -11346,6 +11935,7 @@ function sapPlan(kind,view,pool){
  return {rows:aoa.length-1,total:(pool||view||[]).length,out,why}}
 function sapPreview(kind,sel){
  if(sapNoList()&&!sel){toast(SAP_NO_LIST);return}
+ if(sapNoBase()){toast(SAP_NO_BASE);return}
  if(!QF||!QF.all||!QF.all.length){toast('אין נתונים לייצוא');return}
  const view=sel?sapSelRows():currentRows();
  const pool=sel?sapSelAll():view;
@@ -11863,7 +12453,29 @@ function hhmm(t){const d=new Date(t);
  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function sameDayNow(t){const d=new Date(t),n=new Date();
  return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()}
+/* BASE_MONTH · ההסבר המלא: מה חודש הבסיס ומאיפה, מה תאריך הייחוס ואם
+   הוא הנחה, ומה הפעילות האחרונה — ושהיא אינה תאריך הדוח. */
+function bmTitle(B){const N=n=>n.toLocaleString('he-IL');const L=[];
+ L.push(`חודש הבסיס: ${HEB[B.m-1]} ${B.y} — ${B.verified?BM_SRC[B.src]:'לא מאומת, חישוב זמני'}`);
+ if(B.src==='data'&&B.data)L.push(`זוהה מהנתונים: «צר.השנה» = ${B.data.k} החודשים האחרונים + «צר.החודש», ב-${N(B.data.hits)} מתוך ${N(B.data.inf)} פריטים עם צריכה`);
+ if(B.src==='manual'&&B.auto)L.push(`הזיהוי האוטומטי: ${HEB[B.auto.m-1]} ${B.auto.y} (${BM_SRC[B.auto.src]})`);
+ L.push(B.state?`תאריך מצב הדוח: ${fmtDate(B.state)} (מהכותרת)`:'תאריך מצב הדוח: לא ידוע — אין בקובץ תאריך אמין שמתאים לחודש הבסיס');
+ L.push(`גיל מלאי נספר מ-${fmtDate(B.ref)}${B.refAssumed?' — הנחת חישוב: סוף חודש הבסיס':''}`);
+ if(B.last)L.push(`הפעילות האחרונה בקובץ: ${fmtDate(B.last)} — זו אינה תאריך הדוח`);
+ const sa=(ALL||[]).filter(x=>x.saleAfterRef).length,ea=(ALL||[]).filter(x=>x.entAfterRef).length;
+ if(sa||ea)L.push(`אחרי תאריך הייחוס: ${N(sa)} פריטים עם מכירה, ${N(ea)} עם כניסה — הגיל שלהם נספר 0, והם אינם מלאי מת או איטי בגלל הגיל`);
+ for(const w of B.warn)L.push('⚠ '+w);
+ return L.join('\n')}
+function bmInfoSync(){const el=document.getElementById('bmInfo'),ok=document.getElementById('bmOk');if(!el)return;
+ const B=BASE;
+ if(!B||!ZN){el.textContent='';if(ok)ok.hidden=true;return}
+ el.textContent=B.verified
+   ?`${BM_SRC[B.src]} · גיל מלאי נספר מ-${fmtDate(B.ref)}${B.refAssumed?' (הנחה: סוף חודש הבסיס)':' (תאריך מצב הדוח)'}`
+   :`⚠ לא זוהה — החישוב זמני לפי ${HEB[B.m-1]} ${B.y}. אשר אותו או בחר חודש אחר. עד אז אין רישום היסטוריה ואין קובץ SAP.`;
+ el.classList.toggle('warn',!B.verified);el.title=bmTitle(B);
+ if(ok)ok.hidden=B.verified}
 function syncDataState(){
+ bmInfoSync();
  const z=document.getElementById('zchip'),u=document.getElementById('updated');
  /* מזהה הבנייה בהישג יד בלי להפיל כלום — «איזו גרסה אצלך» היא
     השאלה הראשונה בכל דיווח תקלה. */
@@ -11882,8 +12494,13 @@ function syncDataState(){
      ? ` · ${ROWS.used.toLocaleString('he-IL')} מ-${ROWS.read.toLocaleString('he-IL')} שורות`+(rgap?' ⚠':'')
      : '';
    z.classList.toggle('rgap',rgap>0);
-   z.textContent='ZMRP · '+(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח')+req;
-   z.title=(ZDATE?`תאריך הדוח עצמו, כפי שהוא מופיע בקובץ: ${ZDATE.toLocaleDateString('he-IL')}.`
+   /* BASE_MONTH: השבב אומר את חודש הבסיס ואת המקור שלו — זה מה שקובע את
+      החישוב. תאריך ההפקה, תאריך הייחוס והפעילות האחרונה — בפירוט. */
+   const B=BASE;
+   z.classList.toggle('bmwarn',!!B&&!B.verified);
+   z.textContent='ZMRP · '+(B?(B.verified?`בסיס ${HEB[B.m-1]} ${B.y} · ${BM_SRC[B.src]}`:'⚠ חודש בסיס לא מאומת')
+     :(ZDATE?ZDATE.toLocaleDateString('he-IL'):'ללא תאריך בדוח'))+req;
+   z.title=(B?bmTitle(B)+'\n\n':'')+(ZDATE?`התאריך שמעל שורת הכותרות: ${ZDATE.toLocaleDateString('he-IL')}.`
      :'בקובץ אין תאריך מעל שורת הכותרות, ולכן תאריך הדוח אינו ידוע.')
     +(ROWS.read?`\n\nחשבונאות הקליטה:`
       +`\nנקראו ${ROWS.read.toLocaleString('he-IL')} שורות מתחת לכותרת`
@@ -12068,6 +12685,29 @@ document.getElementById('f').onchange=e=>{const file=e.target.files[0];if(!file)
   <div class="lbs">«${esc(String(o.n))}»${o.s?' · '+zSize(o.s):''} — הלשונית נסגרה או קרסה בזמן הטעינה. אם היא קרסה, הסיבה הסבירה היא שלדפדפן לא היה מספיק זיכרון לקובץ בגודל הזה. אפשר לסגור לשוניות ותוכנות אחרות ולנסות שוב.</div>
   <div class="lbr"><button type="button" class="btn" id="lbClose">סגור</button></div>`);
  const c=document.getElementById('lbClose');if(c)c.onclick=()=>zBox(null)})();
+/* ============ BASE_MONTH · רישום, אזהרות ובחירה ============ */
+function bmNeutral(items){for(const x of items){x.hSeen=0;x.hNew=false;x.hDays=0;x.hWorse=false;x.apStatus=null;x.apPrev=null;x.apDrift=null}}
+function bmRecord(sig){
+ if(BASE&&BASE.verified){HRUN=recordRun(ALL,Q,sig,BASE.cs);APPLIED=recordParams(ALL,Q,sig,BASE.cs);
+  /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
+     כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
+     התוצאה של הטעינה הזאת. */
+  profRecord(ALL,BASE.cs)}
+ else{HRUN=null;APPLIED=null;bmNeutral(ALL)}}
+let BM_DIAG=[];
+function bmDiag(){
+ DIAG.warn=DIAG.warn.filter(w=>!BM_DIAG.includes(w));BM_DIAG=[];
+ if(!BASE)return;
+ BM_DIAG.push(...BASE.warn);
+ if(!BASE.verified)BM_DIAG.push('עד שתאשר או תבחר חודש בסיס (בתפריט הדוח שבסרגל העליון): לא נרשמת הרצה בהיסטוריה, לא נרשמים פרופיל ומעקב יישום, ואין קובץ SAP.');
+ DIAG.warn.push(...BM_DIAG)}
+function bmChoose(ym){if(!ALL_RAW||!BASE||!/^\d{4}-\d{2}$/.test(String(ym||'')))return;
+ const b=bmManual(BASE,ym);bmPut(BASE.cs,ym);bmSet(b);bmRerun();
+ toast(`חודש הבסיס: ${HEB[b.m-1]} ${b.y} — נשמר לקובץ הזה בלבד`)}
+/* אותו צינור כמו בטעינה, מ-build ועד הרישום — בלי לקרוא את הקובץ שוב */
+function bmRerun(){const keep=DIAG,keepR=Object.assign({},ROWS);ALL=build(ALL_RAW.rows,ALL_RAW.hdr);DIAG=keep;Object.assign(ROWS,keepR);
+ etaApply(ALL);Q=classify(ALL);etaOrphanSync();
+ bmRecord(dataSig(ALL));bmDiag();showDiag();syncDataState();apply()}
 function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
  /* ============ יציאה מפורשת מההדגמה ============
     כפתור ההעלאה נשאר פעיל בהדגמה, וזה נכון — אבל בלי השורה הזאת
@@ -12083,16 +12723,12 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
    const sheets=r.names.join(', ');
    const el=document.getElementById('diag');el.className='diag show err';
    el.textContent=`⛔ הקובץ נפתח, אבל לא נמצאה בו שורת כותרות עם «מק״ט מוביל». מחפשים ב-30 השורות הראשונות של כל גיליון, ודורשים שבשורה יהיו לפחות 11 תאים מלאים. גיליונות שנסרקו: ${sheets}. אם זה ייצוא חדש מ-SAP — ייתכן שהכותרת ירדה נמוך יותר או שהעמודות השתנו. · בנייה ${BUILD}`;return}
-  let detected=null;
-  for(const row of best.pre){for(const c of row){
-    if(c instanceof Date&&!isNaN(c)){detected=c;break}
-    const s=CLEAN(c);const mm=s.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
-    if(mm){let y=+mm[3];if(y<100)y+=2000;detected=new Date(y,(+mm[2])-1,+mm[1]);break}}
-   if(detected)break}
-  if(detected){const d=new Date(detected);d.setDate(1);d.setMonth(d.getMonth()-1);ANCHOR=d}else ANCHOR=lastFullMonth();
-  rebuildLabels();
-  document.getElementById('rd').value=`${ANCHOR.getFullYear()}-${String(ANCHOR.getMonth()+1).padStart(2,'0')}`;
-  ALL_RAW={rows:best.rows,hdr:best.hdr};
+  /* BASE_MONTH — חודש הבסיס ותאריך הייחוס נקבעים לפני build, מהקובץ
+     עצמו. בחירה ידנית שנשמרה לאותו תוכן גוברת — וזה נבדק אחרי build,
+     כי חתימת התוכן נגזרת מהפריטים. */
+  let bm=bmResolve(best.rows,best.hdr,best.pre,new Date());
+  bmSet(bm);
+  ALL_RAW={rows:best.rows,hdr:best.hdr,pre:best.pre};
   ALL=build(best.rows,best.hdr);
   /* ============ החתימה נלקחת כאן, ולא מאוחר יותר ============
      מיד אחרי build ולפני etaApply, לפני הסימונים ולפני classify —
@@ -12100,7 +12736,13 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
      ולא גלובלי: שתי העלאות עוקבות אינן יכולות להחליף חתימות זו עם
      זו, כי לכל טעינה יש משלה. החישוב סינכרוני, ולכן גם אין חלון
      שבו טעינה שנייה תספיק להידחף באמצע. */
-  const runSig_=dataSig(ALL);
+  const sigBody=dsigBody(ALL);
+  bm.cs=contentSig(ALL,sigBody);
+  {const man=DEMO?null:bmGetManual(bm.cs);
+   if(man){const was=bmYM(bm.y,bm.m);bm=bmManual(bm,man);bmSet(bm);
+    if(man!==was)ALL=build(best.rows,best.hdr)}}
+  const runSig_=dataSig(ALL,sigBody);
+  bmDiag();
   /* ============ ROW_AUDIT ============
      המשוואה נאמרת תמיד, גם כשהיא מסתדרת: «נקראו N · נכנסו M».
      כשהיא אינה מסתדרת היא אומרת בדיוק כמה ולמה. בלי זה, פער בין
@@ -12134,11 +12776,9 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
   if(DIAG.hardStop){document.getElementById('updated').textContent='שגיאת מיפוי';return}
   Q=classify(ALL);
   etaOrphanSync();
-  HRUN=recordRun(ALL,Q,runSig_);APPLIED=recordParams(ALL,Q,runSig_);
-  /* אחרי classify ולפני render: הדלת קוראת את החודש *הקודם*, והרישום
-     כותב את החודש הנוכחי — שני מפתחות שונים, ולכן הסדר אינו משנה את
-     התוצאה של הטעינה הזאת. */
-  profRecord(ALL);
+  /* BASE_MONTH: חודש לא מאומת — החישוב מוצג, אבל לא נרשם דבר: לא הרצה,
+     לא מעקב יישום ולא פרופיל. הרישום קורה כשהמשתמש מאשר או בוחר חודש. */
+  bmRecord(runSig_);
   /* ============ הכותרת אומרת את מה שהיא סופרת ============
      היה: סכום של שישה תורים כולל excess. על הדוח האמיתי —
      6+0+153+47+2,791+249 = 3,246, ומתוכם 2,791 (86%) הם «הון
@@ -12151,7 +12791,7 @@ function zCommit(r,job){const t0=job.t0,opt=job.opt,best=r.best;try{
   const planner=Object.entries(planners).sort((a,b)=>b[1]-a[1])[0];
   /* S3: המספרים עצמם נכתבים ב-greetSync, מהמונים של המסילה — ראה שם */
   GREET_WHO=planner?planner[0]:'';
-  ZDATE=detected?new Date(detected):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
+  ZDATE=BASE.hd?new Date(BASE.hd):null;ZLOAD=Date.now();ZN={items:ALL.length,tasks};
   syncDataState();
   /* חזרה למסך שבו עבדת; בפתיחה ראשונה — מרכז העבודה.
      setMode נקרא תמיד ולא רק כשיש מה לשחזר: `let mode` קובע את
@@ -12210,9 +12850,12 @@ function demoRows(){
   ['תיקון פרמטרים',     8,i=>({m:()=>I(3,12),free:I(10,40),cust:I(0,2),po:I(0,6),lt:120,pr:I(25,500),ss:I(0,1),rop:I(0,2),sale:I(5,40),ent:I(40,160)})],
   ['לפי דרישה (PD)',    6,i=>({m:()=>I(0,4),free:I(0,8),cust:I(0,3),po:I(0,4),lt:150,pr:I(100,2000),ss:0,rop:0,pd:true,sale:I(10,90),ent:I(80,320)})]];
  let n=0;
+ /* BASE_MONTH: «צר.השנה» הוא חודשי השנה הנוכחית שבחלון — כמו בדוח האמיתי.
+    היה: סכום כל 11 החודשים, והנתונים «הראו» חודש בסיס נובמבר בכל חודש. */
+ const bmK=(()=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);return (d.getMonth()+1)%12})();
  for(const [lbl,cnt,gen] of fam)for(let i=0;i<cnt;i++){
   const c=gen(i);const mon=Array.from({length:11},c.m);
-  const y=mon.reduce((a,b)=>a+b,0);
+  const y=mon.reduce((a,b)=>a+b,0),y0=mon.slice(0,bmK).reduce((a,b)=>a+b,0);
   const gp=GRP[n%GRP.length],md=MDL[n%MDL.length];
   const pn=`DEMO-${String(1000+n)}`;n++;
   rows.push([pn,`${gp} ${md} — ${lbl}`,`Demo ${gp} ${n}`,SUP[n%SUP.length],'01','פעיל',
@@ -12221,8 +12864,9 @@ function demoRows(){
    c.free,c.free,0,c.po,0,0,c.cust,n%3?'Z001':'Z004',
    gp,'ZT','מתכנן הדגמה','12 חודשים',md,gp,
    '100','ZT','200',md,'300',gp,
-   y,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
- return {hdr,rows}}
+   y0,Math.round(y*1.1),Math.round(y*0.9),0,...mon,D(c.sale),D(c.ent)]);}
+ /* ההדגמה נבנית היום, ולכן תאריך המצב שלה הוא היום — במפורש, מעל הכותרת */
+ return {hdr,rows,state:D(0)}}
 /* ============ DEMO_ISOLATION ============
    היציאה קוראת את האמת מחדש מ-localStorage, שלא נגענו בו לכל אורך
    ההדגמה. לכן היא לא דורשת רענון — וזה מה שמאפשר מעבר מפורש גם
@@ -12267,7 +12911,7 @@ function demoExit(){
  if(!DEMO)return false;
  DEMO=false;
  const j=(k,f)=>{try{const o=JSON.parse(localStorage.getItem(k));return o==null?f:o}catch(_){return f}};
- MARKS=j(MK_KEY,{})||{};
+ MARKS=mkView().m;
  {const h=j(HIST_KEY,null);HIST=(h&&Array.isArray(h.runs)&&h.items)?h:{runs:[],items:{}}}
  {const q=j(PAR_KEY,null);PARAMS=(q&&Array.isArray(q.runs))?q:{runs:[]}}
  {const l=j(LEDG_KEY,null);LEDGER=(l&&l.days&&l.etas)?l:{v:1,days:{},etas:{}}}
@@ -12277,7 +12921,7 @@ function demoExit(){
  etaChip();return true}
 function demoStart(){
  if(typeof XLSX==='undefined'){toast('⚠ ספריית האקסל עוד נטענת — נסה שוב בעוד רגע');return}
- const {hdr,rows}=demoRows();
+ const {hdr,rows,state}=demoRows();
  /* (ב) — הזיכרון שבזיכרון מתאפס, כדי שהדוגמה לא תרשת סימונים אמיתיים */
  DEMO=true;DEMO_LOADING=true;
  Object.keys(MARKS).forEach(k=>delete MARKS[k]);
@@ -12288,7 +12932,7 @@ function demoStart(){
  ETA=null;etaChip();
  document.getElementById('demobar').hidden=false;
  document.body.classList.add('demo');
- const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה'],[],hdr,...rows]);
+ const ws=XLSX.utils.aoa_to_sheet([['דוח ZMRP — נתוני הדגמה',`מצב המלאי: ${state}`],[],hdr,...rows]);
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'ZMRP');
  const buf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
  const file=new File([buf],'הדגמה-ZMRP.xlsx',
@@ -12425,7 +13069,7 @@ function fchipSync(){
  tx.textContent=zt?zt+(ut&&!/^לא נטען/.test(ut)?' · '+ut.replace(/^נטען\s*/,''):''):(ut||'לא נטען דוח');
  const n=d&&!d.hidden?+(document.getElementById('dchipN')||{}).textContent||0:0;
  if(w){w.hidden=!n;w.textContent=n?`⚠ ${n}`:''}
- const b=document.getElementById('fchip');if(b)b.classList.toggle('warn',!!n)}
+ const b=document.getElementById('fchip');if(b)b.classList.toggle('warn',!!n||(!!z&&z.classList.contains('bmwarn')))}
 function fchipWire(){
  const ids=['zchip','updated','dchip','dchipN'];fchipSync();
  if(!window.MutationObserver)return;
@@ -12504,7 +13148,7 @@ function welWire(){
  if(ex)ex.onclick=()=>{
   if(!confirm('לצאת ממצב ההדגמה? נתוני הדוגמה יימחקו מהמסך והעבודה האמיתית תחזור.'))return;
   demoExit();ALL=[];Q=QF=null;
-  ZDATE=null;ZLOAD=null;ZN=null;syncDataState();
+  ZDATE=null;ZLOAD=null;ZN=null;BASE=null;syncDataState();
   document.getElementById('plannerGreeting').textContent='העלה דוח ZMRP כדי להתחיל';
   welToggle();render();toast('חזרת לעבודה האמיתית')};
  welToggle()}
@@ -12868,7 +13512,10 @@ function briefToggle(v){
  if(c)c.hidden=!v}
 function showBrief(h){
  const box=document.getElementById('brief');if(!box)return;
- HIST.lastDiag=diagSig();saveHist();
+ /* דרך הנעילה, כמו recordRun — שמירה ישירה כאן כתבה את כל HIST מחוץ
+    לנעילה, ונתפסה: שתי טעינות חופפות השאירו הרצה כפולה */
+ /* BASE_MONTH: חודש לא מאומת — גם זה רישום בהיסטוריה, ולכן לא נכתב */
+ if(!BASE||BASE.verified){const d=diagSig();HIST.lastDiag=d;statePersist(HIST_KEY,saveHist,()=>{histLoad();HIST.lastDiag=d})}
  if(BRIEF_SKIP||!(typeof ALL!=='undefined'&&ALL&&ALL.length)){
   box.hidden=true;document.body.classList.remove('briefing');return}
  const sub=document.getElementById('briefSub');
@@ -13221,8 +13868,8 @@ const TOPICS={
    {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
    {k:'ss',l:'מלאי ביטחון',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
    {k:'src',l:'מה קבע את מלאי הביטחון',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
-   {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>r.ltRaw===''?null:r.ltRaw,
-    h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(r.ltRaw),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>r.ltRaw]]},
+   {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>{const x=ltRawOf(r);return x===''?null:x},
+    h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(ltRawOf(r)),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)]]},
    {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpRecVal(r),
@@ -13350,7 +13997,7 @@ function tpdParams(r){const N=tpN,q=tpRec(r);
  const row=(l,sap,recTd)=>`<tr><th scope="row">${l}</th><td class="v">${sap}</td>${recTd}</tr>`;
  const na='<td class="v note">—</td>';
  const ssMinNote=(!q.na&&q.src==='engine'&&r.ssMinEff!==r.ssMin)?` <span class="note">(לא חל)</span>`:'';
- const ltSap=r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:N(r.ltRaw)+' ימים';
+ const ltSap=r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:N(ltRawOf(r))+' ימים';
  return `<table><thead><tr><th></th><th>${TPD_SRC.sap}${q.na==='lt'?' <span class="note">ערכים קיימים</span>':''}</th><th>${TPD_SRC.rec}</th></tr></thead><tbody>
   ${row('נקודת הזמנה',N(r.rop),rec(r.rop,q.rop))}
   ${row('מלאי ביטחון',N(r.ss),rec(r.ss,q.ss))}
@@ -13393,7 +14040,7 @@ function tpdEta(r){
  return `<ul class="eta">${ls.slice().sort((a,b)=>String(a[1]).localeCompare(String(b[1]))).map(([q,d])=>
   `<li>${tpdDate(d)} · ${tpN(q)} יח׳${d<t?' <span class="note">— תאריך שעבר, לבדוק אם נקלט</span>':''}</li>`).join('')}</ul>`}
 function tpdMissing(r){const m=[r.ltBad?`זמן אספקה מתוכנן ב-SAP — «אספ.מתוכנ.» ${r.ltRaw===''?'ריק':'0'}`:'זמן אספקה בפועל — אין בדוח קבלות; מוצג זמן האספקה המתוכנן ב-SAP בלבד'];
- if(r.net12==null)m.push('עמודת צריכה חודשית — אי אפשר לקבוע המלצת פרופיל');
+ if(r.isPDItem&&r.net12==null)m.push('עמודת צריכה חודשית — אי אפשר לקבוע המלצת פרופיל');
  if(r.po>0&&!r.etaHas)m.push('תאריכי הגעה לרכש הפתוח');
  if(r.cust>0)m.push('תאריך הזמנת הלקוח וגילה');
  m.push('צריכה חודשית לפני 11 החודשים שבדוח');

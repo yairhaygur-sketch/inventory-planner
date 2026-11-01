@@ -851,7 +851,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const lzPre=await p.evaluate(()=>{
    const all=ALL||[];
    const pick=all.filter(r=>(r.ltD||0)>0&&!isPD(r.mrp)&&!r.isOD&&!r.noStock).slice(0,3);
-   window.__lz={pns:pick.map(r=>r.pn),lt:pick.map(r=>r.ltD),raw:pick.map(r=>[r.ltRaw,r.ltPlanned]),
+   window.__lz={pns:pick.map(r=>r.pn),lt:pick.map(r=>r.ltD),
+     /* השדות של LT קיימים רק כשהם רלוונטיים — שומרים בדיוק מה שהיה, כולל היעדר */
+     raw:pick.map(r=>Object.fromEntries(['ltD','ltM','ltBad','ltRaw','ltPlanned'].filter(k=>k in r).map(k=>[k,r[k]]))),
      /* נמדד **לפני** השינוי. הגרסה הראשונה מדדה אחרי ההזרקה
         והשוותה 3===3 — בדיקה שעוברת בלי לבדוק כלום. */
      flaggedBefore:((QF&&QF.all)||[]).filter(r=>r.ltZero).length};
@@ -899,7 +901,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   const lzBack=await p.evaluate(()=>{
    const by=new Map((ALL||[]).map(r=>[r.pn,r]));
    window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
-     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30;r.ltBad=false;r.ltRaw=window.__lz.raw[i][0];r.ltPlanned=window.__lz.raw[i][1]}});
+     if(r){for(const k of ['ltD','ltM','ltBad','ltRaw','ltPlanned'])delete r[k];Object.assign(r,window.__lz.raw[i])}});
    apply();DL_CACHE={};XMAP=null;render();
    const says=r=>(r.why||[]).some(w=>/חסר זמן אספקה — יש לעדכן ב-SAP/.test((w&&w[1])||''));
    return {flagged:(QF.all||[]).filter(r=>r.ltZero).length,
@@ -925,7 +927,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    const f=(QF.all||[]).filter(r=>r.ltZero);
    const per=f.map(r=>(r.why||[]).filter(w=>/חסר זמן אספקה — יש לעדכן ב-SAP/.test((w&&w[1])||'')).length);
    window.__lz.pns.forEach((pn,i)=>{const r=by.get(pn);
-     if(r){r.ltD=window.__lz.lt[i];r.ltM=window.__lz.lt[i]/30;r.ltBad=false;r.ltRaw=window.__lz.raw[i][0];r.ltPlanned=window.__lz.raw[i][1]}});
+     if(r){for(const k of ['ltD','ltM','ltBad','ltRaw','ltPlanned'])delete r[k];Object.assign(r,window.__lz.raw[i])}});
    apply();
    return {n:f.length,max:per.length?Math.max(...per):0,min:per.length?Math.min(...per):0}});
   ok('והשורה אינה נערמת בסינונים חוזרים',

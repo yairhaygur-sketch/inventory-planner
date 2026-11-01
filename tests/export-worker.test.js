@@ -13,7 +13,9 @@
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path'),os=require('os');
 const XLSX=require('xlsx');
 const SD=__dirname;
-const out=[];let bad=0;
+const {resolveBase,short}=require('./lib/export-base.js');
+const {cellDiffs,validateDecl,checkDeclared,fmt:fmtDiff}=require('./lib/export-expected.js');
+const out=[];let bad=0,skip=0;
 const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!==''?'  ['+x+']':''))};
 const TMP=fs.mkdtempSync(path.join(os.tmpdir(),'xw-'));
 function bigFile(n){const wb=XLSX.readFile(path.join(SD,'zmrp-demo.xlsx'),{cellDates:true});const nm=wb.SheetNames[0];
@@ -30,19 +32,26 @@ const sig=wb=>JSON.stringify(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];
  const types=Object.keys(ws).filter(k=>k[0]!=='!').sort().map(k=>k+':'+ws[k].t).join(',');
  return [n,cells,types,(ws['!cols']||[]).map(c=>c&&c.wch)]}));
 const fileSig=f=>sig(XLSX.readFile(f,{cellDates:true}));
-/* שלב 2 הוסיף בכוונה שתי עמודות לייצוא. מול main משווים בלעדיהן: כל תא אחר — ערך,
-   סדר ורוחב — חייב להיות זהה, ושתי העמודות חייבות להיות קיימות בקובץ החדש */
-const NEW_COLS=['סטטוס המלצה','זמן אספקה מתוכנן ב-SAP (מקור)'];
-const sigLess=(f,drop)=>{const wb=XLSX.readFile(f,{cellDates:true});let found=0;
- return {found:()=>found,s:JSON.stringify(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];
-  const cells=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
-  const hr=cells.find(r=>r.some(c=>drop.includes(c)))||[];const idx=new Set(hr.map((c,i)=>drop.includes(c)?i:-1).filter(i=>i>=0));found+=idx.size;
-  const keep=(r)=>r.filter((_,i)=>!idx.has(i));
-  return [n,cells.map(keep),keep(ws['!cols']||[]).map(c=>c&&c.wch)]}))}};
+/* המקום הראשון שבו שני קבצים נבדלים: גיליון ותא — כדי שכשל יגיד מה זז */
+function firstDiff(fa,fb){const A=XLSX.readFile(fa,{cellDates:true}),B=XLSX.readFile(fb,{cellDates:true});
+ if(A.SheetNames.join('|')!==B.SheetNames.join('|'))return `גיליונות: ${A.SheetNames.join(',')} → ${B.SheetNames.join(',')}`;
+ for(const n of A.SheetNames){const a=A.Sheets[n],b=B.Sheets[n];
+  const ks=[...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>k[0]!=='!').sort();
+  for(const k of ks){const x=a[k],y=b[k];
+   if(!x||!y||x.t!==y.t||String(x.v)!==String(y.v))return `${n}!${k}: «${x?x.v:'∅'}» → «${y?y.v:'∅'}»`}
+  const wa=(a['!cols']||[]).map(c=>c&&c.wch).join(','),wb=(b['!cols']||[]).map(c=>c&&c.wch).join(',');
+  if(wa!==wb)return `${n}: רוחבי עמודות`}
+ return ''}
 const sheetsOf=f=>{const wb=XLSX.readFile(f);return wb.SheetNames.map(n=>`${n}:${XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1}).length}`).join(' · ')};
 const HTML='file://'+path.join(SD,'..','index.html')+'?nobrief=1';
+/* BASE_MONTH: השעון של הדף מקובע לתאריך המצב של הדוח הסינתטי. ה-main
+   שלפני BASE_MONTH סופר גיל מלאי מהיום, והגרסה הנוכחית מתאריך מצב הדוח —
+   בלי שעון משותף, ההשוואה תא-בתא הייתה מודדת את יום ההרצה ולא את הקוד, וכל
+   יום הייתה נותנת main אחר. ההשוואה עצמה לא השתנתה: כל תא, כל גיליון. */
+const {FIXTURE_NOW}=require('./lib/fixture-date.js');
 async function open(b,W,H,html){const ctx=await b.newContext({viewport:{width:W,height:H},acceptDownloads:true});
  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+ await p.clock.setFixedTime(FIXTURE_NOW);
  await p.goto(html||HTML);await p.waitForTimeout(500);
  await p.setInputFiles('#f',XL);
  await p.waitForFunction(()=>typeof LOADMS!=='undefined'&&LOADMS>0&&(typeof LOADJOB==='undefined'||!LOADJOB),null,{timeout:300000,polling:200});
@@ -77,29 +86,49 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
   const hf=path.join(TMP,'harness.xlsx');fs.writeFileSync(hf,Buffer.from(h.b64||'','base64'));
   ok('מחשב · הקובץ מה-Worker זהה תא בתא לספר שנבנה בדף (גיליונות, סדר, ערכים, סוגים, רוחבים)',!!w1.f&&fileSig(w1.f)===fileSig(hf));
   ok('מחשב · XLSX.writeFile שהוחלף מקבל את הספר בדף, סינכרוני — כמו קודם, עם דחיסה',!!h.b64&&h.opt&&h.opt.compression===true&&h.box);
-  /* 3 — מול main (git show origin/main), אם זמין */
-  /* מול main — רק כש-main הוא גרסה *אחרת* מזו שנבדקת (ב-PR). אחרי המיזוג main
-     הוא הקובץ הזה עצמו, וההשוואה הייתה קובץ מול עצמו: זהה, ובאותו גודל —
-     «קטן יותר» נכשל על לא כלום (CI על main אחרי #130). אז היא נאמרת ולא נעשית.
-     הגודל נבדק כ«לא גדול יותר» ולא «קטן יותר»: «קטן יותר» הוכיח את הדחיסה
-     של L3 מול main שלפניו. מאז main כבר דחוס, ו-PR שלא נוגע בייצוא מוריד
-     קובץ באותו גודל בדיוק (18,624KB מול 18,624KB). קובץ שגדל — למשל
-     דחיסה שכבתה — עדיין נכשל, וכך גם כל שינוי בתאים (fileSig). */
-  let mainF=null,mainSame=false;
-  try{const mh=require('child_process').execSync('git show origin/main:index.html',{cwd:path.join(SD,'..'),stdio:['ignore','pipe','ignore'],maxBuffer:64e6});
-   mainSame=mh.equals(fs.readFileSync(path.join(SD,'..','index.html')));if(mainSame)throw 0;
-   const MF=path.join(TMP,'main.html');fs.writeFileSync(MF,mh);
-   const m=await open(b,1440,900,'file://'+MF+'?nobrief=1');
-   const files=[];m.p.on('download',d=>files.push(d));await m.p.evaluate(()=>doExport());
-   const t=Date.now();while(!files.length&&Date.now()-t<120000)await m.p.waitForTimeout(200);
-   if(files.length){mainF=path.join(TMP,'main.xlsx');await files[0].saveAs(mainF)}await m.ctx.close()}catch(_){}
-  if(mainF){const sm=fs.statSync(mainF).size,sn=fs.statSync(w1.f).size;
-   const a=sigLess(mainF,NEW_COLS),b=sigLess(w1.f,NEW_COLS),sa=a.s,sb=b.s;
-   ok('מחשב · זהה תא בתא לקובץ של main, חוץ משתי העמודות החדשות של שלב 2 — והן קיימות',sa===sb&&a.found()===0&&b.found()>0,`עמודות חדשות שנמצאו: ${b.found()}`);
-   /* הגודל: «לא גדול יותר» אינו אפשרי כשנוספו עמודות. נשאר: הגידול מוגבל (≤10%) והקובץ דחוס */
-   ok('מחשב · הקובץ גדל רק בגלל העמודות החדשות (≤10%) ונשאר דחוס',sn<=sm*1.10,`main ${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`)}
-  else ok(mainSame?'מחשב · השוואה ל-main דולגה — main הוא כבר הגרסה הזו (נעשית ב-PR, מול main הקודם)'
-   :'מחשב · השוואה ל-main דולגה (origin/main לא זמין בצ׳קאאוט הזה)',true);
+  /* 3 — מול main: אותו ייצוא בגרסת הבסיס, תא בתא, והקובץ לא גדל.
+     «קטן יותר» הוכיח את הדחיסה של L3 מול main שלפניו; מאז main כבר דחוס,
+     ולכן התנאי הוא «לא גדול יותר». קובץ שגדל (למשל דחיסה שכבתה) נכשל,
+     וכך גם כל שינוי בתאים, בסוגים או ברוחבים (fileSig).
+     PR-A: עד כאן הבסיס נלקח מ-`git show origin/main`, וכל כשל — גם זה
+     שב-CI קרה תמיד, וגם קריסה של הדף של main — נבלע ב-catch ונרשם כ-PASS.
+     עכשיו resolveBase() מחליט (ראה tests/lib/export-base.js): compare —
+     ההשוואה רצה, וכל כשל בה הוא FAIL עם השגיאה; skip — רק בשלושה מקרים,
+     בשורת SKIP נפרדת; error — ההשוואה נדרשת ואי אפשר לבצע אותה: FAIL. */
+  const base=resolveBase();
+  if(base.kind==='skip'){skip++;out.push('SKIP · מחשב · ההשוואה ל-main לא בוצעה — '+base.reason)}
+  else if(base.kind==='error')ok('מחשב · ההשוואה ל-main נדרשת — ולא ניתן לבצע אותה',false,base.reason);
+  else{const who=`${base.src}${base.sha?' '+short(base.sha):''}`;
+   let mainF=null,why='',m=null;
+   try{const MF=path.join(TMP,'main.html');fs.writeFileSync(MF,base.html);
+    m=await open(b,1440,900,'file://'+MF+'?nobrief=1');
+    const files=[];m.p.on('download',d=>files.push(d));await m.p.evaluate(()=>doExport());
+    const t=Date.now();while(!files.length&&Date.now()-t<120000)await m.p.waitForTimeout(200);
+    if(files.length){mainF=path.join(TMP,'main.xlsx');await files[0].saveAs(mainF)}
+    else why='הייצוא של הבסיס לא ירד בתוך 120 שניות';
+    if(m.errs.length)why=(why?why+' · ':'')+'שגיאות JS בבסיס: '+m.errs.slice(0,2).join(' | ')}
+   catch(e){why='הדף של הבסיס נכשל: '+String(e&&e.message||e).split('\n')[0]}
+   finally{if(m)await m.ctx.close().catch(()=>{})}
+   if(!mainF||why)ok(`מחשב · ההשוואה מול ${who} נכשלה בביצוע`,false,why);
+   else{const sm=fs.statSync(mainF).size,sn=fs.statSync(w1.f).size,same=fileSig(mainF)===fileSig(w1.f);
+    /* כשההבדל קטן מ-KB מעוגל — בבתים, אחרת «גדל» ליד שני מספרים זהים */
+    const kb=Math.round(sm/1024)===Math.round(sn/1024)&&sm!==sn?`${sm.toLocaleString('he-IL')} → ${sn.toLocaleString('he-IL')} בתים`:`${Math.round(sm/1024)}KB → ${Math.round(sn/1024)}KB`;
+    /* PR-B: ההבדל נבדק מול tests/export-expected.json. ברירת המחדל — הצהרה
+       ריקה — היא בדיוק התנאי של PR-A: זהה תא בתא, והקובץ לא גדל. הצהרה
+       לא ריקה מתירה רק את התאים שבה, מול ה-SHA שבה, ולא אחד יותר. */
+    const decl=JSON.parse(fs.readFileSync(path.join(SD,'export-expected.json'),'utf8'));
+    if(same){const de=validateDecl(decl);
+     ok(`מחשב · ההשוואה בוצעה מול ${who} — זהה תא בתא, והקובץ ${sn<=sm?'אינו גדול יותר':'גדל'}`,
+      sn<=sm&&!decl.changes.length&&!de.length,decl.changes.length?`${kb} · אבל tests/export-expected.json מצהיר על ${decl.changes.length} שינויים שלא קרו`:de.length?de.join(' · '):kb)}
+    else{const r=checkDeclared(cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true})),decl,base.sha||'');
+     /* טיוטה להצהרה — בדיוק מה שזז, מחוץ לריפו. היא אינה היתר: מישהו צריך
+        להעתיק אותה ל-tests/export-expected.json ולהסביר כל שורה ב-PR. */
+     if(!r.ok&&!r.other.length&&base.sha){const cand=path.join(os.tmpdir(),`export-expected.candidate-${process.pid}.json`);
+      fs.writeFileSync(cand,JSON.stringify({base:base.sha,changes:cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true})).declarable},null,1));
+      out.push('INFO · טיוטת הצהרה לכל ההבדלים שנמצאו (לבדיקה ידנית, לא להעתקה עיוורת): '+cand)}
+     const why=[...r.errs,...r.other.slice(0,3),...r.undeclared.slice(0,3).map(d=>'לא מוצהר: '+fmtDiff(d)),...r.unused.slice(0,3).map(d=>'מוצהר ולא קרה: '+fmtDiff(d))];
+     ok(`מחשב · ההשוואה בוצעה מול ${who} — ${r.ok?`השתנו בדיוק ${r.matched} התאים המוצהרים`:`תוכן שונה — ${decl.changes.length?'ההבדל אינו תואם את ההצהרה':'ואין הצהרה'}`}`,r.ok,
+      r.ok?`${kb}`:`${firstDiff(mainF,w1.f)} · ${kb} · `+`${r.errs.length} שגיאות הצהרה · ${r.other.length} שינויים שאי אפשר להצהיר · ${r.undeclared.length} לא מוצהרים · ${r.unused.length} מוצהרים שלא קרו — ${why.join(' | ')}`)}}}
   /* 4 — תמונת מצב: סינון ומעבר מסך באמצע הייצוא לא משנים את הקובץ */
   const w2=await exp(p,'snapshot',async()=>{
    await p.waitForFunction(()=>!!XJOB,null,{timeout:10000}).catch(()=>{});
@@ -155,5 +184,5 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
   ok('טלפון · אפס שגיאות JS',!errs.length,errs.slice(0,3).join(' | '));
   await ctx.close()}
  await b.close();fs.rmSync(TMP,{recursive:true,force:true});
- console.log(out.join('\n'));console.log(`\n${out.length-bad} עברו · ${bad} נכשלו`);
+ console.log(out.join('\n'));console.log(`\n${out.filter(l=>l.startsWith("PASS")).length} עברו · ${bad} נכשלו`+(skip?` · ${skip} דולג`:''));
  process.exit(bad?1:0)})().catch(e=>{console.error(e);process.exit(1)});

@@ -171,6 +171,50 @@ The following business logic remains unchanged:
 
 Changes to these areas require explicit business approval.
 
+## Approved changes (log)
+
+- **2026-10-31 · ROP/SS policy A′, stage 1 (PR #145).** For items on the
+  three-year-rate path, when the recent rate (EWMA, 4-month half-life) is
+  below 25% of the three-year rate, the Reorder Point is calculated on the
+  recent rate. Applied only when it changes the suggested ROP, not when there
+  is a sale in the current month, and not when annual and monthly columns
+  are inconsistent. Safety Stock, SAP `ssMin`, `rate`, coverage and the SAP
+  field mapping are unchanged. Every SAP file row keeps SS ≥ ssMin.
+- **2026-10-31 · SAP ssMin is not changed by the tool.** The tool shows one
+  official, SAP-applicable recommendation. A reduction potential for stale
+  SAP floors may be shown separately, never as a second recommendation.
+
+- **2026-10-31 · Two-tab safety (PR #146).** Item marks and decision
+  memory are no longer lost when the tool is open in two browser tabs. No
+  change to calculations or exports.
+
+- **2026-11-01 · Base month and age reference (BASE_MONTH, PR א׳).** The
+  same file, with the same data and settings, must produce the same
+  recommendations on any day it is loaded. Approved:
+  - The base month (last full month covered by consumption) is determined in
+    this order: a manual choice saved for the same file content; the data
+    («צר.השנה» = the current-year months in the window + «צר.החודש», with
+    confidence thresholds, and the year verified separately from activity
+    dates); an explicit, reliable date above the header; otherwise the month
+    is **unverified**.
+  - When the data and the header disagree, the data decides, with a warning
+    that separates the report's extraction date from the base month.
+  - Stock age (days since last sale/entry) is counted from the report's
+    reliable state date; without one, from the end of the base month — shown
+    as a calculation assumption. Not from the day the tool is opened.
+  - Activity after the reference date is real, not an error: its age is 0,
+    it is flagged and explained, and it does not make an item dead or slow.
+  - Unverified month: results are shown as provisional with a clear warning;
+    no run history, no profile history, no implementation tracking and no
+    SAP export until the user confirms or chooses a month.
+  - Operational checks (ETA, mark age) still use the current date.
+  - Measured on the real report, against main loaded in the correct month:
+    ROP/SS 0 changes, SAP and slow-stock files 0 changes; ages counted from
+    30.9 instead of the load day; 5 items move from «מלאי מת» to «נמכר פעם,
+    לא זז מאז». Details: `docs/DECISION-RULES.md` section 5ת3.
+
+Details, numbers and open items: `docs/PROJECT-STATUS.md`.
+
 ---
 
 # Summary

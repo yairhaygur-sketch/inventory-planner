@@ -102,7 +102,10 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
    pdUp:pns.filter(pn=>pdUpgrade(by[pn])).sort(),
    net:Object.fromEntries(pns.map(pn=>[pn,by[pn].net12])),
    ltBad:pns.filter(pn=>by[pn].ltBad).sort(),
-   ltRaw:Object.fromEntries(pns.map(pn=>[pn,by[pn].ltRaw])),ltD:Object.fromEntries(pns.map(pn=>[pn,by[pn].ltD])),
+   ltRaw:Object.fromEntries(pns.map(pn=>[pn,ltRawOf(by[pn])])),
+   /* השדות החדשים קיימים רק כשהם רלוונטיים (כמו RATE_DECAY) — פריט תקין נשאר כמו שהיה */
+   sparse:(x=>({ltBad:'ltBad' in x,ltRaw:'ltRaw' in x,sugSSCalc:'sugSSCalc' in x,net12:'net12' in x,slowEst:'slowEst' in x,plan:ltPlan(x),raw:ltRawOf(x),ltPlanned:x.ltPlanned}))(by['ZM-VALID']),
+   sparseBad:(x=>({ltBad:x.ltBad,ltRaw:x.ltRaw,ltPlanned:x.ltPlanned,plan:ltPlan(x)}))(by['PD-LT0GR']),ltD:Object.fromEntries(pns.map(pn=>[pn,by[pn].ltD])),
    info:Object.fromEntries(['ZM-A-H1','ZM-C-H0','ZM-B-H3','PD-TOOL','PD-NOLT'].map(pn=>[pn,info(pn)])),
    anyToPD:pns.some(pn=>{const i=profInfo(by[pn]);return i&&i.tgt==='D'}),
    cat:Object.fromEntries(pns.map(pn=>[pn,by[pn].cat])),
@@ -162,6 +165,9 @@ const ZMNOLT=['ZM-NOLT-SS','ZM-NOLT-ROP','ZM-NOLT-BOTH','ZM-NOLT-NONE','ZM-NOLT-
  ok('אקסל: לפריט תקין — ההמלצה מספר, והסטטוס ריק',typeof F.x['ZM-VALID']['ROP מוצע']==='number'&&F.x['ZM-VALID']['סטטוס המלצה']==='');
  ok('אקסל: PD ← ZM-C בלי זמן אספקה — המלצת הפרופיל והאזהרה בסטטוס',/PD ← ZM-C/.test(F.x['PD-NOLT']['סטטוס המלצה'])&&F.x['PD-NOLT']['סטטוס המלצה'].includes(F.LT_NA));
  /* ---- מלאי איטי, כסף תקוע, דלתות ---- */
+ ok('שדות שלב 2 רק בפריט שהם חלים עליו: פריט ZM תקין בלי ltBad/ltRaw/sugSSCalc/net12/slowEst, וזמן אספקה מתוכנן = 30 (בלי 2 ימי קבלה)',
+  !F.sparse.ltBad&&!F.sparse.ltRaw&&!F.sparse.sugSSCalc&&!F.sparse.net12&&!F.sparse.slowEst&&F.sparse.plan===30&&F.sparse.raw===30&&F.sparse.ltPlanned===30,JSON.stringify(F.sparse));
+ ok('LT=0 עם 2 ימי קבלה: ltBad, ltRaw=0, ltPlanned=0 שמור במפורש (ltD=2)',F.sparseBad.ltBad===true&&F.sparseBad.ltRaw===0&&F.sparseBad.ltPlanned===0&&F.sparseBad.plan===0,JSON.stringify(F.sparseBad));
  ok('מלאי איטי בלי זמן אספקה: החישוב נשאר, מסומן «אומדן» — בנימוק, בעמודה ובאקסל',
   F.slowEst===true&&F.slowExp>0&&F.why['ZM-SLOW-NOLT'].includes(F.SLOW_EST)&&/אומדן/.test(F.capCell)&&F.x['ZM-SLOW-NOLT']['סטטוס המלצה'].includes(F.SLOW_EST),
   `cat=${F.cat['ZM-SLOW-NOLT']} exp=${F.slowExp}`);
