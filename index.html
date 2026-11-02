@@ -14029,6 +14029,11 @@ function tpTrendAdj(r){const cl=cleanSeries(r.months||[],r.A),dr=new Set((r.A.dr
  return out}
 /* «זמן אספקה חסר»: כל פריט ש«אספ.מתוכנ.» שלו ריק או 0, כולל PD בלי צריכה; 04/14 מוחרגים */
 function tpLtMissing(r){return !!r&&!!r.ltBad&&!r.noStock}
+/* «רמת שירות חסרה» (החלטת המעתד 2.11): השדה ריק או 0 (srvMissing של build), בפריט
+   מנוהל מלאי עם צריכה — התנאי של רונג «נתון חסר ב-SAP» במנוע, בלי התלות בסדר
+   הרונגים (פריט עם לקוח ממתין נעצר ברונג מוקדם יותר ולא מקבל serviceMissing).
+   PD וכלי עבודה/אביזרים (isOD) ו-04/14 — אין להם המלצת SS/ROP ממילא */
+function tpSrvMissing(r){return !!r&&!!r.srvMissing&&!r.isOD&&!r.noStock&&(r.rate||0)>0}
 /* Set ולא includes: על דוח אמיתי זה אלפי שורות כפול אלפי פריטים בכל ציור */
 let TP_FIXSET={a:null,s:null};
 const tpInFix=r=>{const a=decisionList('fix')||[];if(TP_FIXSET.a!==a)TP_FIXSET={a,s:new Set(a)};return TP_FIXSET.s.has(r)};
@@ -14095,10 +14100,10 @@ const TOPICS={
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
  fix:{t:'טיוב נתונים',
-  lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP — בלי זמן אספקה אין המלצת SS/ROP. פריט יכול להופיע ביותר מקטגוריה אחת.',
-  rows:()=>tpUniq([profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),((QF&&QF.all)||[]).filter(tpLtMissing)]),
+  lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP, או רמת שירות חסרה או 0 בפריט מנוהל מלאי עם צריכה — בלי שניהם אין המלצת SS/ROP תקפה. פריט יכול להופיע ביותר מקטגוריה אחת.',
+  rows:()=>tpUniq([profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),((QF&&QF.all)||[]).filter(r=>tpLtMissing(r)||tpSrvMissing(r))]),
   cats:[['prof','שינוי פרופיל MRP','blu',r=>profActive(r)],['param','עדכון SS ו-ROP','amb',r=>tpInFix(r)&&!recNA(r)],
-   ['data','נתונים שבורים','red',r=>tpLtMissing(r)]],
+   ['data','נתונים שבורים','red',r=>tpLtMissing(r)||tpSrvMissing(r)]],
   cols:[
    {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
    {k:'prof',l:'שינוי פרופיל',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
@@ -14150,6 +14155,7 @@ function tpdProblem(t,r){const N=tpN;
  if(t==='fix'){
   if(pdUpgrade(r))return r.ltBad?PD_LT_MSG:`מומלץ לשנות פרופיל מ-PD ל-ZM-C בעקבות צריכה של ${N(r.net12)} יח׳ נטו ב-12 החודשים האחרונים.`;
   if(r.ltBad)return `${LT_MSG}. ${LT_NA}.`;
+  if(tpSrvMissing(r)&&!tpInFix(r))return 'רמת שירות חסרה או 0 ב-SAP — לא ניתן לאשר המלצת SS/ROP סטטיסטית.';
   /* הורדת פרופיל ZM (עד ZM-C) — אותו profInfo שמסך שינוי הפרופיל בכלי המלא מציג */
   if(profActive(r)&&!tpInFix(r)){const i=profInfo(r);return `מומלץ לשנות פרופיל מ-${PROF_NAME[i.cur]||i.cur} ל-${PROF_NAME[i.tgt]} — ${PROF_ST[i.state][0]}. ${i.why||''}`}
   if(r.sugROP>r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) נמוכה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
@@ -14283,6 +14289,9 @@ function tpdIssues(r){const out=[];
   <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
  else if(profOff(r))out.push(`<section class="q3"><div class="qa"><h3>שינוי פרופיל — מנוטרל</h3>
   <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — עד ביטול ידני.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
+ if(tpSrvMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>רמת שירות חסרה</h3><div class="big">רמת שירות חסרה או 0 ב-SAP</div>
+  <p>בלי רמת שירות מאושרת אין מקדם z, ולכן אין מלאי ביטחון סטטיסטי — המלצת SS/ROP אינה ניתנת לאישור. לא נעשה שימוש בברירת מחדל שקטה.</p>
+  <p class="note">להזין רמת שירות מאושרת ב-SAP. בהעלאת הדוח הבא החישוב יחזור.</p></div></section>`);
  if(tpLtMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>אזהרת זמן אספקה</h3><div class="big">${esc(LT_MSG)}</div>
   <p>«אספ.מתוכנ.» ב-SAP: <b>${r.ltRaw===''?'ריק':'0'}</b>${r.ltD>0?` (זמן עיבוד הקבלה ${tpN(r.ltD)} ימים אינו זמן אספקה)`:''}. מלאי ביטחון ונקודת הזמנה: ${LT_NA}.</p>
   <p>${esc(ltValuesMsg(r))} ב-SAP (קיים): נקודת הזמנה ${tpN(r.rop)} · מלאי ביטחון ${tpN(r.ss)}.</p>

@@ -99,6 +99,30 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   const d=await T.evaluate(()=>document.getElementById('tpd').textContent);
   ok('כרטיס הפריט אומר שזו נקודת הזמנה מינימלית, ומה החישוב נתן',/נקודת הזמנה מינימלית/.test(d)&&/החישוב אחרי ZM-C נתן 0/.test(d),d.match(/נקודת הזמנה מינימלית[^.]{0,80}/)?.[0])}
 
+ /* ---- 4. «נתונים שבורים» — גם רמת שירות חסרה (2.11) ----
+    בדוח הסינתטי אין פריט כזה, ולכן עותק שבו «רמת שרות» = 0 לשלושה פריטים:
+    מנוהל עם צריכה (נכנס), לקוח ממתין שנעצר ברונג מוקדם במנוע (נכנס), PD (לא נכנס) */
+ {const pk=await T.evaluate(()=>({mgd:QF.all.find(r=>!r.isOD&&!r.noStock&&r.rate>0&&!r.cust&&!r.ltBad&&!r.srvMissing).pn,
+   burn:QF.all.find(r=>r.burn&&!r.isOD&&r.rate>0).pn,pd:QF.all.find(r=>r.isPDItem&&r.rate>0).pn}));
+  const XLSX=require('xlsx'),os=require('os');const wb=XLSX.readFile(XL),ws=wb.Sheets[wb.SheetNames[0]];
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''});const hi=aoa.findIndex(r=>r.includes('מק"ט מוביל'));
+  const cp=aoa[hi].indexOf('מק"ט מוביל'),cs=aoa[hi].indexOf('רמת שרות');
+  for(const r of aoa.slice(hi+1))if([pk.mgd,pk.burn,pk.pd].includes(String(r[cp]).trim()))r[cs]=0;
+  const w2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w2,XLSX.utils.aoa_to_sheet(aoa),wb.SheetNames[0]);
+  const f2=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'srv-')),'srv.xlsx');XLSX.writeFile(w2,f2);
+  const S=await ctx.newPage();S.on('pageerror',e=>errs.push(e.message));await S.goto(HTML+'?topics');await S.waitForTimeout(400);
+  await S.setInputFiles('#f',f2);await S.waitForSelector('#lite table',{timeout:120000});
+  const r=await S.evaluate(pk=>{const data=TOPICS.fix.rows().filter(TOPICS.fix.cats[2][3]).map(r=>r.pn);const by=pn=>ALL.find(x=>x.pn===pn);
+   return {data,srv:[pk.mgd,pk.burn,pk.pd].map(pn=>by(pn).srvMissing),engBurn:!!by(pk.burn).serviceMissing,n:QF.all.filter(tpSrvMissing).length}},pk);
+  ok('רמת שירות 0 → srvMissing בשלושת הפריטים (שדה המנוע)',r.srv.every(Boolean),JSON.stringify(r.srv));
+  ok('«נתונים שבורים»: פריט מנוהל עם צריכה ורמת שירות חסרה — נכנס',r.data.includes(pk.mgd),r.data.join(','));
+  ok('גם פריט עם לקוח ממתין, שהמנוע עצר ברונג מוקדם (בלי serviceMissing) — נכנס',r.data.includes(pk.burn)&&!r.engBurn);
+  ok('PD — אין לו המלצת SS/ROP, ולכן אינו נכנס',!r.data.includes(pk.pd));
+  await S.evaluate(pn=>{TP.tab='fix';TP.cat.fix='data';TP.q=pn;tpRender()},pk.mgd);await S.click('#lite tr.r');
+  const d=await S.evaluate(()=>document.getElementById('tpd').textContent);
+  ok('כרטיס הפריט: «רמת שירות חסרה» והפעולה ב-SAP',/רמת שירות חסרה או 0 ב-SAP/.test(d)&&/להזין רמת שירות מאושרת ב-SAP/.test(d));
+  fs.rmSync(path.dirname(f2),{recursive:true,force:true})}
+
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(`\n${pass} עברו · ${fail} נכשלו`);process.exit(fail?1:0)})();
