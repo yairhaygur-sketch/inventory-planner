@@ -34,13 +34,20 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.evaluate(()=>{const d=document.getElementById('dchip');if(document.getElementById('diag').getBoundingClientRect().height>0)d.click();document.querySelectorAll('.top .menu.open').forEach(m=>m.classList.remove('open'))});
   // ⋯
   await p.focus('#helpBtn');await p.keyboard.press('Enter');await p.waitForTimeout(150);
-  /* 9 ולא 8: «תכנון מלאי — 4 נושאים» (topicsOpen) נוסף תחת «תצוגות» */
-  const items=[await act(p)];for(let i=0;i<8;i++){await p.keyboard.press('ArrowDown');items.push(await act(p))}
-  ok('מקלדת · «⋯» נפתח במיקוד על הפריט הראשון והחצים עוברים על כל 9',items.join(',')==='tour,xp,topicsOpen,btn,sapXls,sapSlowXls,expXls,darkToggle,stBtn'||new Set(items).size===9,items.join(','));
+  /* UX2: פעולות הקובץ (ייצוא, SAP, מלאי איטי, זירוז) עברו מ«⋯» לכותרת המסך.
+     ב«⋯» נשארו 5: עזרה, תצוגות והגדרות. הפעולות שעברו נבדקות למטה, במקלדת, במקומן החדש. */
+  const items=[await act(p)];for(let i=0;i<4;i++){await p.keyboard.press('ArrowDown');items.push(await act(p))}
+  ok('מקלדת · «⋯» נפתח במיקוד על הפריט הראשון והחצים עוברים על כל 5',items.join(',')==='tour,helpXp,topicsOpen,darkToggle,stBtn',items.join(','));
   // ייצוא במקלדת
   await p.keyboard.press('Escape');await p.waitForTimeout(100);
   ok('מקלדת · Escape סוגר את «⋯» ומחזיר מיקוד',await act(p)==='helpBtn');
-  for(const [id,chk] of [['exportXls','x'],['expXls','x'],['darkToggle','dark']]){
+  /* UX2: ייצוא וזירוז — בכותרת המסך. בטווח Tab (לא hidden, tabIndex ≥ 0), ו-Enter מפעיל */
+  for(const id of ['exportXls','expXls']){
+   const x0=await p.evaluate(()=>window.__x);
+   const tab=await p.evaluate(i=>{const e=document.getElementById(i);return !!e&&!e.hidden&&e.tabIndex>=0&&e.getBoundingClientRect().width>0&&!e.closest('.menu')},id);
+   await p.focus('#'+id);const at=await act(p);await p.keyboard.press('Enter');await p.waitForTimeout(1200);
+   ok(`מקלדת · ${id} בכותרת המסך, בטווח Tab, ומופעל ב-Enter`,tab&&at===id&&await p.evaluate(()=>window.__x)>x0,`${at} tab=${tab}`)}
+  for(const [id,chk] of [['darkToggle','dark']]){
    const x0=await p.evaluate(()=>({x:window.__x,d:document.body.classList.contains('dark')}));
    await p.focus('#helpBtn');await p.keyboard.press('Enter');await p.waitForTimeout(120);
    for(let i=0;i<10&&await act(p)!==id;i++)await p.keyboard.press('ArrowDown');
@@ -48,12 +55,10 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
    const x1=await p.evaluate(()=>({x:window.__x,d:document.body.classList.contains('dark'),open:document.getElementById('helpMenu').classList.contains('open')}));
    ok(`מקלדת · ${id} מגיע בחצים ומופעל ב-Enter, והתפריט נסגר`,at===id&&(chk==='x'?x1.x>x0.x:x1.d!==x0.d)&&!x1.open,`${at} ${JSON.stringify(x1)}`);
    if(chk==='dark')await p.evaluate(()=>document.getElementById('darkToggle').click())}
-  // SAP — פותח תצוגה מקדימה, לא קובץ ישר
-  await p.focus('#helpBtn');await p.keyboard.press('Enter');await p.waitForTimeout(120);
-  for(let i=0;i<10&&await act(p)!=='sapXls';i++)await p.keyboard.press('ArrowDown');
-  await p.keyboard.press('Enter');await p.waitForTimeout(800);
+  // SAP — פותח תצוגה מקדימה, לא קובץ ישר. UX2: מכותרת המסך
+  await p.focus('#sapXls');await p.keyboard.press('Enter');await p.waitForTimeout(800);
   const sap=await p.evaluate(()=>({x:window.__x,modal:!![...document.querySelectorAll('[role=dialog],.modal,.sapprev')].find(e=>e.offsetParent!==null)}));
-  ok('מקלדת · «עדכון ל-SAP» מופעל מהתפריט (תצוגה מקדימה או קובץ)',sap.modal||sap.x>0,JSON.stringify(sap));
+  ok('מקלדת · «עדכון ל-SAP» מופעל מכותרת המסך (תצוגה מקדימה או קובץ)',sap.modal||sap.x>0,JSON.stringify(sap));
   await p.keyboard.press('Escape');await p.waitForTimeout(200);
   await p.evaluate(()=>document.querySelectorAll('[role=dialog]').forEach(d=>{const c=d.querySelector('[data-close],.x,.close');if(c&&d.offsetParent)c.click()}));
   // stBtn
@@ -98,6 +103,30 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.evaluate(()=>{document.activeElement.blur();document.querySelector('.top .brand').setAttribute('tabindex','-1');document.querySelector('.top .brand').focus()});
   const ord=[];for(let i=0;i<6;i++){await p.keyboard.press('Tab');ord.push(await act(p))}
   ok('מקלדת · סדר Tab בכותרת: חיפוש → שבב קובץ → העלאה → ⋯',ord.join(',').includes('q')&&ord.indexOf('fchip')<ord.indexOf('helpBtn'),ord.join(','));
+  /* ============ UX2 · פעולות הקובץ לפי מסך ============
+     אין פעולה שאינה רלוונטית למסך, ולכל פעולה יש בית: «קטלוג פריטים» מציג את כולן. */
+  const vis=await p.evaluate(()=>{const o={};for(const m of ['home','today','line','month','cap','capBiz','catalog','prof','burn']){setMode(m);
+    o[m]=['exportXls','sapXls','sapSlowXls','expXls','lmailBtn'].filter(i=>{const e=document.getElementById(i);return e&&!e.hidden&&e.getBoundingClientRect().width>0})}return o});
+  const has=(m,i)=>vis[m].includes(i);
+  ok('UX2 · ייצוא לאקסל בכל מסך',Object.values(vis).every(v=>v.includes('exportXls')),JSON.stringify(vis));
+  ok('UX2 · «קטלוג פריטים» מציג את כל פעולות הקובץ',['sapXls','sapSlowXls','expXls'].every(i=>has('catalog',i)),vis.catalog.join(','));
+  ok('UX2 · SAP במסכי הפרמטרים, לא ב«בריאות המלאי» ולא במרכז העבודה',has('month','sapXls')&&!has('cap','sapXls')&&!has('home','sapXls'),JSON.stringify({month:vis.month,cap:vis.cap,home:vis.home}));
+  ok('UX2 · מלאי איטי ל-SAP ב«בריאות המלאי», לא במסך החוסרים',has('cap','sapSlowXls')&&!has('today','sapSlowXls'),JSON.stringify({cap:vis.cap,today:vis.today}));
+  ok('UX2 · דוח זירוז במסכי החוסרים והרכש, לא ב«בריאות המלאי»',has('today','expXls')&&has('line','expXls')&&has('burn','expXls')&&!has('cap','expXls'));
+  ok('UX2 · מייל לספקים רק ב«רכש ואספקות»',has('line','lmailBtn')&&Object.entries(vis).filter(([m])=>m!=='line').every(([,v])=>!v.includes('lmailBtn')));
+  ok('UX2 · «החלטה מסחרית»: אין קובץ SAP ריק להציע',!has('capBiz','sapXls')&&!has('capBiz','sapSlowXls'),vis.capBiz.join(','));
+  await p.evaluate(()=>setMode('line'));await p.waitForTimeout(250);
+  await p.focus('#lmailBtn');await p.keyboard.press('Enter');await p.waitForTimeout(300);
+  const ml=await p.evaluate(()=>{const b=document.getElementById('lmail');return {open:!!b&&!b.hidden&&b.getBoundingClientRect().height>0,len:b?b.querySelector('textarea').value.length:0,pressed:document.getElementById('lmailBtn').getAttribute('aria-pressed')}});
+  ok('UX2 · «מייל לספקים» פותח את הטיוטה, במקלדת',ml.open&&ml.pressed==='true'&&ml.len>0,JSON.stringify(ml));
+  ok('UX2 · ברצועה אין עוד Excel ומייל כפולים',await p.evaluate(()=>!document.querySelector('#line #lxlsBtn')&&document.querySelectorAll('#lmailBtn').length===1));
+  /* טקסט מוקלד בתיבת החיפוש — ניגודיות מול הסרגל הכהה (היה כהה על כהה) */
+  await p.click('#q');await p.keyboard.type('Part');await p.waitForTimeout(300);
+  const cr=await p.evaluate(()=>{const L=c=>{const m=c.match(/[\d.]+/g).map(Number);const f=v=>{v/=255;return v<=0.03928?v/12.92:((v+0.055)/1.055)**2.4};return 0.2126*f(m[0])+0.7152*f(m[1])+0.0722*f(m[2])};
+    let e=document.getElementById('qbox'),bg='rgba(0, 0, 0, 0)';while(e&&/rgba\(0, 0, 0, 0\)|transparent/.test(bg)){bg=getComputedStyle(e).backgroundColor;e=e.parentElement}
+    const fg=getComputedStyle(document.getElementById('q')).color;const a=L(fg),b=L(bg);return {fg,bg,ratio:+((Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)).toFixed(2)}});
+  ok('UX2 · טקסט החיפוש בסרגל העליון קריא (ניגודיות ≥ 4.5)',cr.ratio>=4.5,JSON.stringify(cr));
+  await p.keyboard.press('Escape');
   ok('מחשב · 0 שגיאות JS',!errs.length,errs.join('|'));await ctx.close()}
  /* ---------- טלפון · מגע ---------- */
  for(const dark of [false,true]){const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const [p,errs]=await load(ctx);
@@ -112,7 +141,7 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.evaluate(()=>{if(document.getElementById('diag').getBoundingClientRect().height>0)document.getElementById('dchip').click()});
   await p.tap('#helpBtn');await p.waitForTimeout(250);
   const hm=await inV('#helpMenu [role=menuitem]');
-  ok(`${T} · «⋯» נפתח בנגיעה, 9 פריטים, כולם בתוך המסך`,hm.length===9&&hm.every(x=>x.ok),hm.filter(x=>!x.ok).map(x=>x.id).join(',')||hm.length);
+  ok(`${T} · «⋯» נפתח בנגיעה, 5 פריטים (UX2: הייצוא עבר לכותרת המסך), כולם בתוך המסך`,hm.length===5&&hm.every(x=>x.ok),hm.filter(x=>!x.ok).map(x=>x.id).join(',')||hm.length);
   ok(`${T} · גובה פריטי «⋯» ≥ 32px`,hm.every(x=>x.h>=32),hm.map(x=>x.h).join(','));
   const x0=await p.evaluate(()=>window.__x);await p.tap('#exportXls');await p.waitForTimeout(1200);
   ok(`${T} · «ייצוא לאקסל» עובד בנגיעה`,await p.evaluate(()=>window.__x)>x0);

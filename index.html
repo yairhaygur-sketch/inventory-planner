@@ -1837,9 +1837,16 @@ td.pnc{padding:5px 14px;font-size:13px}
    והכפתור היה סרט דק שאי אפשר לקרוא ובקושי ללחוץ.
    מי שסופג את הצמצום הוא המשפט המסביר — וזה נכון, כי יש לו ⓘ. */
 .phd .kbd,.phd .bulkwrap,.phd #gseg{flex:0 0 auto}
+/* UX2 — פעולות הקובץ נכנסו לשורה. כשאין מקום (נמדד: «חוסרים ולקוחות» ב-1366,
+   119px), מה שמתקצר הוא הסכומים שאחרי המונה — לא שם המסך, לא המונה ולא
+   כפתור. הם מופיעים גם בשורת הסיכום שמתחת לטבלה, והמשפט המלא ב-title. */
+#w_queue .phd>span:first-child{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
+/* UX2 — פעולות הקובץ בכותרת המסך */
+.phdexp{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+.phdexp>.btn[hidden]{display:none}
 .bulkbtn{font-family:inherit;font-size:12px;font-weight:700;background:var(--panel2);
  border:1px solid var(--line);color:var(--soft);padding:4px 10px;border-radius:3px;cursor:pointer;white-space:nowrap}
 .bulkbtn:hover{border-color:var(--acc);color:var(--acc)}
@@ -3105,6 +3112,9 @@ body{background:var(--paper)}
 .top .qbox{height:34px;background:var(--shell-btn);border:1px solid var(--shell-track);border-radius:8px}
 .top .qbox:focus-within{border-color:var(--mark);box-shadow:0 0 0 1px var(--mark)}
 .top .qsearch{background:transparent;color:var(--shell-ink);border:0;height:32px}
+/* UX2 — `.qbox input.qsearch{color:var(--ink)}` (0,2,1) גבר על הכלל הזה (0,2,0), והטקסט
+   המוקלד יצא כהה על הסרגל הכהה (דווח 2.11). אותה ספציפיות + 1, אותו צבע. */
+.top .qbox input.qsearch{color:var(--shell-ink)}
 .top .qsearch::placeholder{color:var(--shell-mute);opacity:1}
 .top .qico,.top .qclr{color:var(--shell-dim)}
 .top .qstat{position:absolute;inset-block-start:100%;inset-inline-start:0;margin-top:3px;z-index:5}
@@ -3451,11 +3461,6 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
         <button type="button" class="mi" role="menuitem" data-help="xp" id="helpXp" aria-pressed="false"><span aria-hidden="true">💡</span> מצב הסבר — לחיצה מסבירה במקום להפעיל</button>
         <div class="msec" role="presentation">תצוגות</div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="topicsOpen" title="תכנון מלאי — 4 נושאים: טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר. נפתח בלשונית חדשה, על אותו מנוע — מעלים בה את הדוח שוב"><span aria-hidden="true">◫</span><span class="lbl"> תכנון מלאי — 4 נושאים ↗</span></button></div>
-        <div class="msec" role="presentation">קבצים</div>
-        <div class="mi act" role="none"><button class="btn" role="menuitem" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button></div>
-        <div class="mi act" role="none"><button class="btn" role="menuitem" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button></div>
-        <div class="mi act" role="none"><button class="btn" role="menuitem" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button></div>
-        <div class="mi act" role="none"><button class="btn" role="menuitem" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button></div>
         <div class="msec" role="presentation">הגדרות</div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button></div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button></div>
@@ -3534,6 +3539,9 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
           <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button><button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> פתח <b>D</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
+          <!-- UX2 · פעולות הקובץ בכותרת המסך, לפי המסך (EXPSET). עד כאן ישבו ב«⋯ עזרה ועוד».
+               אותם מזהים ואותן פעולות — רק המקום השתנה. -->
+          <span class="phdexp" id="phdExp" role="group" aria-label="ייצוא ופעולות קובץ למסך הזה"><button class="btn" id="exportXls" title="ייצוא לאקסל">⭳<span class="lbl"> ייצוא לאקסל</span></button><button class="btn" id="sapXls" aria-label="עדכון ל-SAP" title="קובץ מספר לתקן ב-SAP ל-SAP — בפורמט ההעלאה המונית. מכיל את מה שבתצוגה הנוכחית ושיש לו המלצה ששונה מהקיים, בלי פריטי מלאי איטי/מת (להם יש קובץ נפרד). «פרופיל MRP» יוצאת ריקה למילוי ידני, ו«מלאי ביטחון מינימלי» מועתק כפי שהוא ב-SAP">⇪<span class="lbl"> עדכון ל-SAP</span><span class="lbs"> SAP</span></button><button class="btn" id="sapSlowXls" aria-label="מלאי איטי ל-SAP" title="אותו פורמט בדיוק, לפריטי מלאי איטי ומלאי מת שבתצוגה. ההחלטה שם היא «להפסיק להזמין», ולכן היא נבדקת ומאושרת בנפרד מכיוונון פרמטרים">⇪<span class="lbl"> מלאי איטי ל-SAP</span><span class="lbs"> מלאי איטי</span></button><button class="btn" id="expXls" title="דוח זירוז מול הספקים — מה פתוח, מה איחר, ומה לבקש מכל ספק. יורד כקובץ אקסל ונבנה על כל הקטלוג, לא על הסינון שעל המסך."><span aria-hidden="true">☎</span><span class="lbl"> ייצוא דוח זירוז</span></button><button type="button" class="btn" id="lmailBtn" aria-pressed="false" title="טיוטת מייל לספקים, לפי הבחירה ברצועה — מקובצת לפי ספק, באנגלית, לעריכה לפני שליחה">✉<span class="lbl"> מייל לספקים</span></button></span>
           <span class="btn" id="histChip" hidden title="מה השתנה מאז ההעלאה הקודמת"></span>
           <span class="gseg" id="gseg" role="radiogroup" aria-label="קיבוץ הרשימה" hidden><button type="button" role="radio" data-gb="decision">לפי החלטה</button><button type="button" role="radio" data-gb="supplier">לפי ספק</button></span>
           <span class="doors" id="doors"><button class="btn" id="apBtn" hidden title="מתוך ההמלצות של ההעלאה הקודמת — כמה שונו בפועל ב-SAP"><span class="di">✔</span><span class="fn" id="apN">0</span><span class="dl"> יושמו ב-SAP</span><span class="lbl" id="apV"></span></button>
@@ -7603,13 +7611,11 @@ function renderLine(){
      <button type="button" id="lmailCopy">העתק</button>
      <button type="button" id="lmailClose">סגור</button></div>
    <textarea spellcheck="false" dir="ltr" rows="14"></textarea></div>`;
- h=h.replace('<!--OUT-->',
-  `<button type="button" id="lmailBtn" aria-pressed="false">✉ מייל</button>`
-  +`<button type="button" id="lxlsBtn">⭳ Excel</button>`);
+ /* UX2 — «✉ מייל» ו«⭳ Excel» עברו לכותרת המסך (#phdExp): Excel היה כפול שם,
+    והמייל ישב בתוך הרצועה המקופלת. הטיוטה עצמה (#lmail) נשארת כאן. */
+ h=h.replace('<!--OUT-->','');
  el.innerHTML=h;
  const bx=el.querySelector('#bandx');if(bx)bx.onclick=()=>bandSet(!BAND_OPEN);
- const mb=el.querySelector('#lmailBtn');if(mb)mb.onclick=lineMailToggle;
- const xb=el.querySelector('#lxlsBtn');if(xb)xb.onclick=doExport;
  const cb=el.querySelector('#lmailCopy');if(cb)cb.onclick=lineMailCopy;
  const kb=el.querySelector('#lmailClose');if(kb)kb.onclick=lineMailToggle;
  el.querySelectorAll('[data-ls]').forEach(b=>b.onclick=()=>lineSelect(b.dataset.ls));
@@ -10796,7 +10802,9 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
     פונקציה, אותם מספרים. רק בחוסרים ובתכנון: בקטלוג שורת המצב היא
     «כסף תקוע», וזה לא מה שהמסך הזה עוסק בו. */
  {let st='';try{if(mode==='today'||mode==='month')st=navSub(mode)}catch(_){}
-  document.getElementById('lc').textContent='('+rows.length.toLocaleString('he-IL')+')'+(st?' · '+st:'')}
+  {const lc=document.getElementById('lc');lc.textContent='('+rows.length.toLocaleString('he-IL')+')'+(st?' · '+st:'');
+   /* UX2 — כשהשורה צרה, הסכומים שאחרי המונה מתקצרים ב«…»; המשפט המלא ב-title */
+   lc.title=lc.textContent}}
  {const n=document.getElementById('fsN');if(n)n.textContent=rows.length.toLocaleString('he-IL')}
  colsSync();renderCapTop();setTimeout(()=>{colsBoot();freezeCols()},0);
  renderBulk(rows);
@@ -11884,7 +11892,28 @@ function sapNoList(){return cur==='moves'}
    ל-SAP. אותו מנגנון כמו SAP_NO_LIST: מסומן, ולחיצה אומרת למה ומה לעשות. */
 const SAP_NO_BASE='חודש הבסיס של הדוח לא אומת, ולכן ההמלצות זמניות ואין קובץ SAP. אשר או בחר חודש בסיס בתפריט הדוח שבסרגל העליון.';
 function sapNoBase(){return !!BASE&&!BASE.verified}
-function sapBtnSync(){const why=sapNoList()?SAP_NO_LIST:(sapNoBase()?SAP_NO_BASE:'');const off=!!why;
+/* ============ UX2 · EXPSET — אילו פעולות קובץ מוצגות בכל מסך ============
+   הכלל: לא להציג פעולה שאינה רלוונטית למסך. נגזר ממדידה (2.11) על הדוח
+   הסינתטי ועל הדוח האמיתי — כמה שורות כל קובץ מכיל בכל מסך:
+     · SAP (עדכון)      — המסכים שבהם הקובץ אינו ריק באחד הדוחות.
+     · מלאי איטי ל-SAP — כנ״ל לקובץ המלאי האיטי.
+     · דוח זירוז       — אינו תלוי במסך (כל הרכש הפתוח והלקוחות הממתינים);
+                         מוצג במסכי החוסרים והרכש.
+     · מייל לספקים     — נבנה מהבחירה ברצועה של «רכש ואספקות», ולכן רק שם.
+   «קטלוג פריטים» מציג את כולן, כך שלכל פעולה יש תמיד בית. Excel — בכל מסך.
+   «תנועות אחרונות» נשאר עם הקטלוג; שם כפתורי SAP מסומנים כלא זמינים
+   ואומרים למה (SAP_NO_LIST), כמו קודם. */
+const EXPSET={
+ sap:new Set(['line','today','month','catalog','over3y','tier','floor','floorNR','trend','rise','ropGap','ropThin','qual']),
+ slow:new Set(['cap','capPO','capStop','capNone','catalog','floor','floorNR','ropGap','ropThin','prof']),
+ exp:new Set(['home','today','burn','cust','line','stale','catalog']),
+ mail:new Set(['line'])};
+function expSync(){const show=(id,on)=>{const b=document.getElementById(id);if(b)b.hidden=!on};
+ show('exportXls',true);show('sapXls',EXPSET.sap.has(mode));show('sapSlowXls',EXPSET.slow.has(mode));
+ show('expXls',EXPSET.exp.has(mode));show('lmailBtn',EXPSET.mail.has(mode)&&cur!=='moves');
+ const mb=document.getElementById('lmailBtn'),box=document.getElementById('lmail');
+ if(mb)mb.setAttribute('aria-pressed',box&&!box.hidden?'true':'false')}
+function sapBtnSync(){expSync();const why=sapNoList()?SAP_NO_LIST:(sapNoBase()?SAP_NO_BASE:'');const off=!!why;
  for(const id of ['sapXls','sapSlowXls']){const b=document.getElementById(id);if(!b)continue;
   if(b.dataset.t0==null)b.dataset.t0=b.title;
   b.classList.toggle('na',off);b.setAttribute('aria-disabled',off?'true':'false');
@@ -12428,6 +12457,7 @@ function syncFiltBtn(){const b=document.getElementById('filtBtn');if(!b)return;
  b.innerHTML='<span aria-hidden="true">☰</span><span class="lbl"> סינון</span>'
   +(n?` <span class="fn">${n}</span>`:'')}
 document.getElementById('expXls').onclick=()=>doExpedite();
+{const mb=document.getElementById('lmailBtn');if(mb)mb.onclick=lineMailToggle;}
 document.getElementById('exportXls').onclick=()=>doExport();
 {const sb=document.getElementById('sapXls');if(sb)sb.onclick=()=>sapPreview();}
 {const sb=document.getElementById('sapSlowXls');if(sb)sb.onclick=()=>sapPreview('slow');}
