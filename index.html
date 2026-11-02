@@ -3288,6 +3288,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
 #lite .tph h1{font-size:var(--f-lg);margin:0;font-weight:700}
 #lite .tph .src{color:var(--shell-dim);flex:1;min-width:200px}
+#lite details.off{margin:0 0 12px;font-size:var(--f-sm,13px)} #lite details.off summary{cursor:pointer;color:var(--ink-2)} #lite details.off li{margin:4px 0}
 #lite .tph .src.eta{flex:0 0 auto;min-width:0} #lite .tph .src.eta.warn{color:var(--shell-warn,#F0B35A)}
 #lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
 #lite .tph .btn:hover{background:var(--shell-btn-h)}
@@ -4699,6 +4700,10 @@ function staleDocs(r){const seen=[];for(const l of etaPastLines(r)){
    הכלל מחליף את כלל התדירות (H ≥ 2) להעלאה מ-PD. כלל ה-H נשאר להורדות
    בין ZM-A/B/C בלבד, ואף פרופיל אינו מורד ל-PD. */
 const PD_NET_MIN=3;
+/* נקודת הזמנה מינימלית להמלצת PD → ZM-C (החלטת המעתד 2.11): בלי ROP של יח׳
+   אחת לפחות, המעבר ל-ZM-C אינו מחזיק מלאי. חל רק על תוצאת הסימולציה
+   (PROF_SIM), לא על SS ולא על כלי עבודה/אביזרים — הם נשארים לבדיקה ידנית */
+const PD_ROP_MIN=1;
 /* ============ LT_MSG — הנוסחים שאושרו לזמן אספקה חסר (שלב 2) ============ */
 const LT_MSG='חסר זמן אספקה — יש לעדכן ב-SAP',LT_NA='לא ניתן לחשב — LT חסר',
  LT_EXIST='קיימים מלאי ביטחון או נקודת הזמנה ב-SAP, אך לא ניתן לאמת אותם ללא זמן אספקה תקין.',
@@ -4726,7 +4731,32 @@ function recStatus(r){const s=[];if(!r)return '';
 const ltPlan=r=>r.ltPlanned!=null?r.ltPlanned:r.ltD;
 const ltRawOf=r=>r&&'ltRaw' in r?r.ltRaw:ltPlan(r);
 const ssCalc=r=>r.sugSSCalc!=null?r.sugSSCalc:r.sugSS;
-function pdUpgrade(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN}
+/* ============ PROF_OFF — «ללא שינוי פרופיל» (החלטת המעתד 2.11) ============
+   פריט שאין צורך לשנות לו פרופיל MRP (למשל פריט קמפיין): ההמלצה לשינוי
+   פרופיל בוטלה — בשני הכלים — והפריט נשאר בכל שאר הנושאים ובתור העבודה.
+   נשמר בנפרד מהסימונים (MARKS מחזיק סימון אחד לפריט, ו«הוזמן» או «בבדיקה»
+   היו מוחקים אותו), באותה תשתית של היסטוריית הפרופיל: משותף לשתי הלשוניות
+   (statePersist), נכלל בגיבוי (STATE_KEYS). קבוע עד ביטול ידני — כהחלטה
+   הרשומה ב-docs/BUSINESS-DECISIONS.md (2.11, «MRP-profile exclusion»). */
+const PROFOFF_KEY='planner_profoff_v1';
+let PROFOFF={};try{const v=JSON.parse(localStorage.getItem(PROFOFF_KEY));if(v&&typeof v==='object')PROFOFF=v}catch(_){}
+function profOffLoad(track=true){try{const v=JSON.parse(stateRaw(PROFOFF_KEY,track));PROFOFF=(v&&typeof v==='object')?v:{}}catch(_){PROFOFF={}}}
+function profOffMark(r){const e=r?PROFOFF[markKey(r)]:null;return (e&&e.ts)?e:null}
+function profOff(r){return !!profOffMark(r)}
+function setProfOff(r,on){if(!r)return;const k=markKey(r);
+ const edit=()=>{if(on)PROFOFF[k]={ts:Date.now(),pn:r.pn};else delete PROFOFF[k]};
+ if(DEMO)edit();
+ else{if(stateChanged(PROFOFF_KEY))profOffLoad();edit();
+  statePersist(PROFOFF_KEY,()=>storeSet(PROFOFF_KEY,JSON.stringify(PROFOFF),'נטרול שינוי פרופיל'),()=>{profOffLoad();edit()})}
+ /* ההמלצה, הטקסטים, המסכים והסימולציה — מחושבים מחדש */
+ PFSIM=null;DL_CACHE={};if(ALL&&ALL.length)apply()}
+/* פריטים מנוטרלים בדוח הנוכחי — לרשימת הביטול בשני הכלים */
+function profOffRows(){return ((QF&&QF.all)||[]).filter(profOff)}
+/* הכפתור — אותו כפתור בשני הכלים: מופיע כשיש המלצת פרופיל, או כשהיא מנוטרלת */
+function profOffBtn(r,cls){const mk=profOffMark(r);
+ if(mk)return `<button type="button" class="${cls}" data-tpd="profoff" data-profoff="0" title="נוטרל ב-${esc(new Date(mk.ts).toLocaleDateString('he-IL'))} · עד ביטול ידני">↺ החזר המלצת פרופיל</button>`;
+ return profActive(r)?`<button type="button" class="${cls}" data-tpd="profoff" data-profoff="1" title="ההמלצה לשינוי פרופיל MRP תבוטל בשני הכלים. הפריט נשאר בשאר הנושאים">ללא שינוי פרופיל</button>`:''}
+function pdUpgrade(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN&&!profOff(r)}
 const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
  PROF_NAME={D:'PD',C:'ZM-C',B:'ZM-B',A:'ZM-A'};
 function profCur(r){if(isPD(r.mrp))return 'D';
@@ -4744,7 +4774,7 @@ const PROF_ST={up:['להעלות',0],down:['להוריד',1],check:['לבדוק 
  wait:['בהמתנה לחודש הבא',3],keep:['לא להוריד',4]};
 /* היעד לפי H — להורדות בלבד, ולעולם לא מתחת ל-ZM-C (שלב 2) */
 function profTgtZM(h){const t=profTgt(h);return t==='D'?'C':t}
-function profInfo(r){const cur=profCur(r);if(!cur)return null;
+function profInfo(r){const cur=profCur(r);if(!cur||profOff(r))return null;
  const h=profH(r);
  /* PD: העלאה ל-ZM-C לפי pdUpgrade בלבד. אין ל-PD לאן לרדת. */
  if(cur==='D'){if(!pdUpgrade(r))return null;
@@ -4832,10 +4862,11 @@ function profSimAll(){
    const rows=[];
    for(const [pn,s] of src){if(s.n!==1)continue;
     const c=s.row.slice();c[m.mrp]='ZM';c[m.srv]=PFSIM_SRV;if(m.abc>=0)c[m.abc]='C';rows.push(c)}
-   for(const it of build(rows,hdr))res.map.set(it.pn,{rop:it.sugROP,ss:it.sugSS,
+   for(const it of build(rows,hdr)){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
+    res.map.set(it.pn,{rop:ropMin?PD_ROP_MIN:it.sugROP,ropCalc:it.sugROP,ropMin,ss:it.sugSS,
     rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,ltD:it.ltD,
     ssStat:it.ssStat,ssMin:it.ssMin,ssMinEff:it.ssMinEff,lowFloor:it.lowFloor,ssSrc:it.ssSrc,
-    noRec:it.isODStatic||it.noStock,priceMissing:it.priceMissing})}}
+    noRec,priceMissing:it.priceMissing})}}}
  finally{Object.assign(ROWS,rows0);DIAG=diag0}
  PFSIM=res;return res}
 /* החלוקה מחושבת בכל קריאה: הערכים מהמטמון, והסימון הידני מהפריט
@@ -4858,9 +4889,11 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
  if(S.srvCol===false)why.push('no_srv');
  else if(!sim)why.push('no_row');
  if(sim&&!sim.noRec&&!r.ltBad&&sim.ltD>0){
-  if(sim.rop<=0&&sim.ss<=0)
+  /* הסיבות מסבירות את החישוב — לפני רצפת PD_ROP_MIN (2.11), שמעלה רק את ההמלצה */
+  const rc=sim.ropCalc!=null?sim.ropCalc:sim.rop;
+  if(rc<=0&&sim.ss<=0)
    why.push(sim.d12>LOWDEM_MAX?'zero_silent':sim.priceMissing?'zero_noprice':'zero_low');
-  else if(sim.ss<=0)why.push(sim.rop>=2?'ss_zero_rate3y':'ss_zero')}
+  else if(sim.ss<=0)why.push(rc>=2?'ss_zero_rate3y':'ss_zero')}
  const ok=!why.length&&!!sim&&sim.rop>0&&sim.ss>0;
  return {grp:ok?'ok':'rev',reasons:why,primary:why[0]||null,sim}}
 /* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
@@ -5094,12 +5127,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const ltRaw=(ltRawCell==null||CLEAN(ltRawCell)==='')?'':NUM(ltRawCell);
     const ltPlanned=ltRaw===''?0:ltRaw;
     const ltBad=!(ltPlanned>0);
-    const dropIdx=new Set(A.drops.map(d=>d.i));
-    const spikeIdx=new Set(A.spikes.map(s=>s.i));
-    const clean=months.map((v,i)=>{const idx=i+1;
-      if(dropIdx.has(idx))return A.med;
-      if(spikeIdx.has(idx)&&A.med>0)return Math.min(Math.max(0,v),A.med*2);
-      return Math.max(0,v)});
+    const clean=cleanSeries(months,A);
     /* ============ RATE_3Y — כשהחלון החודשי ריק, לשאול את השנתי ============
        `d12<=3 ? 0` מאפס את הקצב לחלוטין כשסך 11 החודשים הוא 3 יחידות
        או פחות. הרציונל סביר — על 2 יחידות בשנה אין ממוצע חודשי שאומר
@@ -5401,6 +5429,16 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
+/* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
+   חודש שבו כנראה אזל המלאי (drop) → החציון · קפיצה (spike) → עד פעמיים
+   החציון · החזרות (שלילי) → 0. ממנה נגזרים הקצב והמגמה (tRec/tPre).
+   build() והתצוגה — שתיהן קוראות כאן, כדי שההסבר יהיה בדיוק החישוב. */
+function cleanSeries(months,A){
+ const dropIdx=new Set(A.drops.map(d=>d.i)),spikeIdx=new Set(A.spikes.map(s=>s.i));
+ return months.map((v,i)=>{const idx=i+1;
+  if(dropIdx.has(idx))return A.med;
+  if(spikeIdx.has(idx)&&A.med>0)return Math.min(Math.max(0,v),A.med*2);
+  return Math.max(0,v)})}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
 const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'הוצא ידנית מהרשימה',handled:'טופל',
@@ -6400,6 +6438,7 @@ function statePersist(key,write,redo){
  return stateTxn(()=>{let raw=null;try{raw=localStorage.getItem(key)}catch(_){}
   if(raw!==STATE_SEEN[key])redo();write();try{STATE_SEEN[key]=localStorage.getItem(key)}catch(_){}})}
 STATE_SYNC[PROF_KEY]=()=>{if(!DEMO)profLoad(false)};
+STATE_SYNC[PROFOFF_KEY]=()=>{if(!DEMO)profOffLoad(false)};
 function markKey(it){return [it.planner||'ללא שיוך',it.brand||'ללא שיוך',it.pn||''].join('|')}
 function markItem(ref){if(ref&&typeof ref==='object')return ref;return ALL.find(x=>markKey(x)===ref)||ALL.find(x=>x.pn===ref)||null}
 /* סימון קבוצתי — פעולה על הרשימה המסוננת כולה.
@@ -8357,7 +8396,7 @@ function paramsReset(){PARAMS={runs:[]};saveParams()}
    נשא עד כה «מה שהוחלט»; הפנקס הוא «מה שנמדד». הוא נכנס כי מדידה על
    אמינות ספק אינה העדפה אישית — היא עובדה שעמית צריך לרשת, וכי ניקוי
    עוגיות אחד מוחק חודשי תצפיות שאי אפשר לשחזר משום דוח. */
-const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1','planner_profile_v1'];
+const STATE_KEYS=['planner_marks_v1','planner_history_v1','planner_params_v1','planner_ledger_v1','planner_profile_v1','planner_profoff_v1'];
 const STATE_V=1;
 function stateBlob(){const keys={};
  for(const k of STATE_KEYS){const v=localStorage.getItem(k);if(v!=null)keys[k]=v}
@@ -10735,7 +10774,9 @@ function renderDecisions(rows){
        +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
    :track==='prof'
    ?(()=>{const c={};for(const r of rows){const st=profInfo(r).state;c[st]=(c[st]||0)+1}
-      return ['up','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${PROF_ST[k][0]} ${c[k].toLocaleString('he-IL')}`).join(' · ')})()
+      const off=profOffRows().length;
+      return ['up','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${PROF_ST[k][0]} ${c[k].toLocaleString('he-IL')}`).join(' · ')
+       +(off?` · ${off.toLocaleString('he-IL')} ללא שינוי פרופיל (נוטרלו ידנית — ביטול בכרטיס הפריט)`:'')})()
    :track==='stale'
    ?(()=>{const u=rows.reduce((a,r)=>a+(r.etaPast||0),0);
       return u?`${u.toLocaleString('he-IL')} יח׳ בשורות שתאריכן חלף · אינן נספרות ככיסוי בשום מקום`
@@ -11393,7 +11434,7 @@ function decisionBlock(r){
    <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:''}
   ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
-   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button></div>
+   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button>${profOffBtn(r,'bsec')}</div>
   <!-- ============ מה הסימון הזה אינו ============
        הסייג חייב לשבת ליד הכפתור: מי שלוחץ «טופל» בפעם הראשונה מניח
        שזה מעדכן משהו. אבל פסקה שלמה ליד כפתור היא עומס — לכן שורה
@@ -11564,6 +11605,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
    const k=b.dataset.go;if(!MODESET[k])return;
    setMode(k);
    const nr=(ALL||[]).find(x=>x.pn===r.pn);if(nr)detail(nr)});
+ const po=document.querySelector('#detail [data-profoff]');
+ if(po)po.onclick=()=>{setProfOff(r,po.dataset.profoff==='1');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dm=document.querySelector('#detail [data-dmark]');
  if(dm)dm.onclick=()=>{setMark(r,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dc=document.querySelector('#detail [data-dcopy]');
@@ -13954,7 +13997,7 @@ const tpVal=(n,r)=>r.priceMissing?null:n*(r.price||0);
 function tpRec(r){
  if(pdUpgrade(r)){if(r.ltBad)return {na:'lt'};
   const sp=profSplit(r),sm=sp&&sp.sim;
-  return (sm&&!sm.noRec&&typeof sm.rop==='number')?{src:'sim',rop:sm.rop,ss:sm.ss,ssSrc:sm.ssSrc,dLT:sm.dLT,ssStat:sm.ssStat,od:OD_GROUPS.has(r.mkt1)}:{na:'sim'}}
+  return (sm&&!sm.noRec&&typeof sm.rop==='number')?{src:'sim',rop:sm.rop,ss:sm.ss,ssSrc:sm.ssSrc,dLT:sm.dLT,ssStat:sm.ssStat,ropMin:!!sm.ropMin,ropCalc:sm.ropCalc,od:OD_GROUPS.has(r.mkt1)}:{na:'sim'}}
  if(recNA(r))return {na:'lt'};
  if(r.isOD||r.noStock)return {na:'od'};
  return {src:'engine',rop:r.sugROP,ss:r.sugSS,ssSrc:r.ssSrc,dLT:r.dLT,ssStat:r.ssStat}}
@@ -13964,6 +14007,26 @@ function tpRecPair(r,k){const q=tpRec(r),sap=r[k];
  if(q.na)return tpN(sap);
  return tpPair(sap,q[k])+(q.src==='sim'?' <span class="mini">ZM-C</span>':'')}
 function tpRecVal(r){const q=tpRec(r);return q.na?null:tpVal(q.rop-r.rop,r)}
+/* ============ BEFORE_ETA — «ייגמר לפני האספקה הבאה» (החלטת המעתד 2.11) ============
+   ימים עד אפס = מלאי פנוי ÷ קצב חודשי × 30 (tpdDays — אותו מספר שבכרטיס הפריט),
+   מהיום (etaToday), מול האספקה הקרובה בדוח ה-ETA (etaFirst — התאריך הראשון
+   שלא עבר). אותו בסיס של רשימת «חוסר»: מנוהל מלאי, לא מסומן, לא PD, לא 04/14.
+   בלי דוח ETA, או בלי תאריך אספקה לפריט — אין השוואה, והפריט אינו כאן. */
+function tpZeroDate(r){const d=tpdDays(r);if(d==null)return null;
+ const t=new Date(etaToday()+'T00:00:00');t.setDate(t.getDate()+d);return ymd(t)}
+function tpBeforeEta(r){if(!ETA||!r||r.mark||r.isOD||r.isPDItem||r.noStock||!(r.free>0)||!r.etaHas||!r.etaFirst)return false;
+ const z=tpZeroDate(r);return !!z&&z<r.etaFirst}
+/* ============ TREND_RAW — הסכום בדוח מול הסכום המנוקה (2.11) ============
+   חודשים 1–3 = שלושת החודשים המלאים האחרונים (בלי החודש הנוכחי), 4–6 = שלפניהם */
+const tpRawSum=(r,a)=>(r.months||[]).slice(a,a+3).reduce((x,y)=>x+y,0);
+function tpTrendCell(r,a){const c=a?r.tPre:r.tRec,raw=tpRawSum(r,a);
+ return raw===c?tpN(c):`<b>${tpN(c)}</b> <span class="mini" title="סכום החודשים בדוח, לפני הניקוי">בדוח ${tpN(raw)}</span>`}
+/* אילו חודשים תוקנו, ולמה — מאותה cleanSeries של המנוע */
+function tpTrendAdj(r){const cl=cleanSeries(r.months||[],r.A),dr=new Set((r.A.drops||[]).map(d=>d.i)),out=[];
+ for(let i=0;i<6;i++){const v=(r.months||[])[i];if(v==null||cl[i]===v)continue;
+  out.push({i:i+1,name:(LABELS[i]&&LABELS[i].name)||('חודש '+(i+1)),raw:v,clean:cl[i],
+   why:v<0?'החזרה — נספרת כ-0':dr.has(i+1)?`כנראה אזל המלאי — הוחלף בחציון (${tpN(r.A.med)})`:`קפיצה — נחתכה לפעמיים החציון (${tpN(r.A.med*2)})`})}
+ return out}
 /* «זמן אספקה חסר»: כל פריט ש«אספ.מתוכנ.» שלו ריק או 0, כולל PD בלי צריכה; 04/14 מוחרגים */
 function tpLtMissing(r){return !!r&&!!r.ltBad&&!r.noStock}
 /* Set ולא includes: על דוח אמיתי זה אלפי שורות כפול אלפי פריטים בכל ציור */
@@ -13999,13 +14062,14 @@ const TOPICS={
    {k:'eta',l:'אספקה ראשונה (ETA)',v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
  trend:{t:'חריגת צריכה',
-  lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים האחרונים מול 3 שלפניהם, על סדרת הצריכה אחרי ניקוי, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. המגמה היא מספר מייעץ ואינה משנה את נקודת ההזמנה המוצעת.',
+  lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים המלאים האחרונים (בלי החודש הנוכחי) מול 3 שלפניהם, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. הסכומים מחושבים על סדרה מנוקה: חודש שבו כנראה אזל המלאי מוחלף בחציון, קפיצה נחתכת לפעמיים החציון, והחזרות נספרות כ-0. כשהסכום בדוח שונה, הוא מוצג לידו («בדוח»), ובכרטיס הפריט — איזה חודש תוקן ולמה.',
   rows:()=>tpUniq([riseRows(),trendRows()]),
   cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0]],
   cols:[
    {k:'kind',l:'סוג',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
-   {k:'tRec',l:'3 ח׳ אחרונים',n:1,v:r=>r.tRec,h:r=>tpN(r.tRec)},
-   {k:'tPre',l:'3 ח׳ קודמים',n:1,v:r=>r.tPre,h:r=>tpN(r.tPre)},
+   /* 2.11: המגמה מחושבת על הסדרה המנוקה, והסכום בדוח מוצג לצדה כשהוא שונה */
+   {k:'tRec',l:'3 ח׳ אחרונים (מנוקה)',n:1,v:r=>r.tRec,h:r=>tpTrendCell(r,0),x:[['3 ח׳ אחרונים — מנוקה',r=>r.tRec],['3 ח׳ אחרונים — בדוח',r=>tpRawSum(r,0)]]},
+   {k:'tPre',l:'3 ח׳ קודמים (מנוקה)',n:1,v:r=>r.tPre,h:r=>tpTrendCell(r,3),x:[['3 ח׳ קודמים — מנוקה',r=>r.tPre],['3 ח׳ קודמים — בדוח',r=>tpRawSum(r,3)]]},
    {k:'pct',l:'שינוי',n:1,v:r=>r.tRatio==null?null:Math.round((r.tRatio-1)*100),
     h:r=>r.tRatio==null?'—':`${r.tRatio>1?'+':''}${Math.round((r.tRatio-1)*100)}%`},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
@@ -14014,18 +14078,21 @@ const TOPICS={
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
  short:{t:'מלאי 0 / צפוי להיגמר',
-  lead:'אותה רשימת «חוסר» של הכלי המלא — פריטים מנוהלי מלאי. «מלאי 0 עכשיו»: המדף ריק, ויש לקוח ממתין או צריכה שלא תכוסה החודש. «צפוי להיגמר החודש»: יש מלאי, אבל הקצב החודשי גדול מהמלאי הפנוי ומהאספקה המתוארכת שתגיע עד סוף החודש. רכש בלי תאריך אינו נספר.',
-  rows:()=>decisionList('short'),
-  cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0],['month','צפוי להיגמר החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0]],
+  lead:'אותה רשימת «חוסר» של הכלי המלא — פריטים מנוהלי מלאי. «מלאי 0 עכשיו»: המדף ריק, ויש לקוח ממתין או צריכה שלא תכוסה החודש. «צפוי להיגמר החודש»: יש מלאי, אבל הקצב החודשי גדול מהמלאי הפנוי ומהאספקה המתוארכת שתגיע עד סוף החודש. רכש בלי תאריך אינו נספר. «ייגמר לפני האספקה הבאה» (דורש דוח ETA): יש מלאי, אבל לפי הקצב החודשי הוא ייגמר לפני התאריך של האספקה הקרובה בדוח ה-ETA — גם אם זה אחרי סוף החודש. פריט יכול להופיע בשתי קטגוריות.',
+  rows:()=>tpUniq([decisionList('short'),((QF&&QF.all)||[]).filter(r=>passColFilters(r)&&tpBeforeEta(r))]),
+  cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0&&inToday(r)],['month','צפוי להיגמר החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0&&inToday(r)],
+   ['eta','ייגמר לפני האספקה הבאה','amb',r=>tpBeforeEta(r)]],
   cols:[
    {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'etaM',l:'אספקה עד סוף החודש (ETA)',n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
    {k:'uns',l:'לא יסופק החודש',n:1,v:r=>Math.ceil(r.unsQty||0),h:r=>r.unsQty>0?`<b>${tpN(Math.ceil(r.unsQty))}</b>`:'—'},
+   {k:'zd',l:'צפי סיום מלאי',v:r=>tpZeroDate(r),h:r=>{const d=tpZeroDate(r);return d?tpdDate(d):'—'}},
+   {k:'en',l:'אספקה הבאה (ETA)',v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?(tpBeforeEta(r)?`<b>${tpdDate(r.etaFirst)}</b>`:tpdDate(r.etaFirst)):'—'},
+   {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
-   {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
  fix:{t:'טיוב נתונים',
   lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP — בלי זמן אספקה אין המלצת SS/ROP. פריט יכול להופיע ביותר מקטגוריה אחת.',
@@ -14089,8 +14156,9 @@ function tpdProblem(t,r){const N=tpN;
   if(r.sugROP<r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) גבוהה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
   return `מלאי הביטחון ב-SAP (${N(r.ss)}) שונה מזה שהמנוע מחשב (${N(r.sugSS)}).`}
  if(t==='trend'){const p=r.tRatio==null?null:Math.round((r.tRatio-1)*100);
-  if(riseGap(r)>0)return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) גבוהה ב-${p}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`;
-  return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) נמוכה ב-${Math.abs(p)}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`}
+  const adj=tpTrendAdj(r),note=adj.length?`<p class="note">החישוב על הסדרה המנוקה. בדוח: ${N(tpRawSum(r,0))} מול ${N(tpRawSum(r,3))}. תוקנו: ${adj.map(x=>`${esc(x.name)} ${N(x.raw)} ← ${N(x.clean)} (${esc(x.why)})`).join(' · ')}</p>`:'';
+  if(riseGap(r)>0)return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) גבוהה ב-${p}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`+note;
+  return `הצריכה ב-3 החודשים האחרונים (${N(r.tRec)}) נמוכה ב-${Math.abs(p)}% מ-3 החודשים שלפניהם (${N(r.tPre)}).`+note}
  if(t==='cust'){
   if(r.burn)return `לקוח ממתין ל-${N(r.cust)} יח׳. במלאי הפנוי ${N(Math.max(0,r.free))}, ואין הזמנת רכש פתוחה.`;
   if(r.custGap)return `לקוח ממתין ל-${N(r.cust)} יח׳. מלאי פנוי ${N(Math.max(0,r.free))} ורכש פתוח ${N(r.po)} — חסרות ${N(tpdGap(r))} יח׳.`;
@@ -14208,9 +14276,13 @@ function tpdIssues(r){const out=[];
  if(pdUpgrade(r))out.push(`<section class="q3 amb"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">PD ← ZM-C</div>
   <p>צריכה נטו ${tpN(r.net12)} יח׳ ב-12 החודשים האחרונים (כולל החודש הנוכחי). רמת שירות ב-ZM-C: 80%.</p>
   ${OD_GROUPS.has(r.mkt1)?'<p><b style="color:var(--high)">לבדיקה ידנית:</b> קבוצת כלי עבודה / אביזרים («לפי דרישה») — לא לעדכן פרופיל אוטומטית.</p>':''}
-  ${r.ltBad?`<p>${esc(PD_LT_MSG)}</p>`:''}</div></section>`);
+  ${r.ltBad?`<p>${esc(PD_LT_MSG)}</p>`:''}
+  ${(q=>q.ropMin?`<p>נקודת הזמנה מינימלית: <b>${tpN(q.rop)}</b> (החישוב אחרי ZM-C נתן ${tpN(q.ropCalc)}) — המלצת PD ← ZM-C מחזיקה לפחות ${PD_ROP_MIN} יח׳.</p>`:'')(tpRec(r))}
+  <p>${profOffBtn(r,'btn')}</p></div></section>`);
  else if(profActive(r)){const i=profInfo(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
-  <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p></div></section>`)}
+  <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
+ else if(profOff(r))out.push(`<section class="q3"><div class="qa"><h3>שינוי פרופיל — מנוטרל</h3>
+  <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — עד ביטול ידני.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
  if(tpLtMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>אזהרת זמן אספקה</h3><div class="big">${esc(LT_MSG)}</div>
   <p>«אספ.מתוכנ.» ב-SAP: <b>${r.ltRaw===''?'ריק':'0'}</b>${r.ltD>0?` (זמן עיבוד הקבלה ${tpN(r.ltD)} ימים אינו זמן אספקה)`:''}. מלאי ביטחון ונקודת הזמנה: ${LT_NA}.</p>
   <p>${esc(ltValuesMsg(r))} ב-SAP (קיים): נקודת הזמנה ${tpN(r.rop)} · מלאי ביטחון ${tpN(r.ss)}.</p>
@@ -14285,6 +14357,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
    <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
    <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span></div>
   <div class="tiles">${tiles}</div>
+  ${t==='fix'?tpOffList():''}
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
   ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
   <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
@@ -14293,6 +14366,10 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  if(TP.open){const p=document.querySelector('#tpd .pos');if(p)p.textContent=tpdPos().txt;
   const pv=document.querySelector('#tpd [data-tpd="prev"]'),nx=document.querySelector('#tpd [data-tpd="next"]'),q=tpdPos();
   if(pv)pv.disabled=q.i<=0;if(nx)nx.disabled=q.i>=q.n-1}}
+/* «ללא שינוי פרופיל» — הפריטים שנוטרלו, וביטול לכל אחד. ברשימה מקופלת: אינם תת-קטגוריה */
+function tpOffList(){const l=profOffRows();if(!l.length)return '';
+ return `<details class="off"><summary>${l.length.toLocaleString('he-IL')} פריטים ללא שינוי פרופיל (נוטרלו ידנית — בשני הכלים)</summary><ul>${l.map(r=>
+  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))} <button type="button" class="btn" data-tp="profon" data-pn="${esc(markKey(r))}">↺ החזר המלצה</button></li>`).join('')}</ul></details>`}
 function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
  /* שלב 2: שדה סטטוס נפרד — הסבר למה אין מספר, בלי לשים טקסט בתא מספרי */
  const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]).concat([['סטטוס המלצה',r=>recStatus(r)]]);
@@ -14310,6 +14387,7 @@ if(LITE){
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
   else if(a.tp==='more'){TP.lim+=200;tpRender()}
+  else if(a.tp==='profon'){const r=ALL.find(x=>markKey(x)===a.pn);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}}
   /* לשונית אחרת — נושא אחר, ולכן כרטיס אחר: הפתוח נסגר */
   else if(a.tpTab){if(TP.open)tpdClose();TP.tab=a.tpTab;TP.lim=200;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
   else if(a.tpCat!=null){TP.cat[TP.tab]=a.tpCat;TP.lim=200;tpRender()}
@@ -14323,6 +14401,8 @@ if(LITE){
   else if(k==='prev')tpdStep(-1);
   else if(k==='next')tpdStep(1);
   else if(k==='explain'&&TP.open)explain(TP.open);
+  else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
+   toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
   else if(k==='copy'&&TP.open){const t=TP.open.pn;
    if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
    else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();

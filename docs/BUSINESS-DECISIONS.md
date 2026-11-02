@@ -258,6 +258,26 @@ Changes to these areas require explicit business approval.
   - **Blocked stock** (total > 0, free 0) stays a shortage, as today. No
     extra explanation line in the card.
 
+- **2026-11-02 · Minimal tool, round 2 (approved in the minimal-tool
+  conversation).**
+  - **Consumption change:** the trend stays on the cleaned series (stock-out
+    month → median, spike → twice the median, returns → 0). The raw sum from
+    the report is shown next to it, and the item drawer says which month was
+    adjusted and why. Display only.
+  - **MRP-profile exclusion — implemented in part.** A shared «no profile
+    change» neutralization: stored separately from marks
+    (`planner_profoff_v1`), included in backup, permanent until undone
+    manually. The item stays in every other topic. Button in the item drawer
+    of both tools; list with undo in the minimal tool; count on the full
+    tool's profile screen. **Still open (full-tool conversation):** items
+    marked «campaign» / «done» not shown as candidates, and a dedicated
+    review view in the full tool.
+  - **PD→ZM-C minimum reorder point:** at least 1 unit on the recommendation
+    (simulation). Tools/accessories stay manual review without a number.
+  - **«Will run out before the next delivery»** (topic 3, requires ETA):
+    days to zero = free ÷ monthly rate × 30, from today, before the nearest
+    ETA delivery date — also when that is after month end.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

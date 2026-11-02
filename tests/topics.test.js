@@ -37,7 +37,8 @@ const ENGINE=()=>{const uni=(...ls)=>[...new Set(ls.flat())];
  /* המבנה שהמעתד קבע (1.11) — כל נושא הוא בורר של המנוע המשותף */
  return {cust:by(QF.all.filter(r=>r.custGap)),
   trend:by(uni(riseRows(),trendRows())),
-  short:by(decisionList('short')),
+  /* 2.11: ∪ «ייגמר לפני האספקה הבאה» — ריק בלי דוח ETA (כאן לא נטען); נבדק ב-topics-eta */
+  short:by(uni(decisionList('short'),QF.all.filter(tpBeforeEta))),
   fix:by(uni(profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),QF.all.filter(r=>r.ltBad&&!r.noStock)))}};
 /* יחס ניגודיות WCAG בין צבע הטקסט לרקע האפקטיבי (עולים בעץ עד רקע אטום) */
 const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
@@ -114,7 +115,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
    fix:uni(ids(profRows().filter(profActive)),ids(decisionList('fix').filter(r=>!recNA(r))),ids(QF.all.filter(r=>r.ltBad&&!r.noStock))),
    trend:uni(ids(riseRows()),ids(trendRows())),
    cust:ids(QF.all.filter(r=>r.custGap)),
-   short:ids(decisionList('short')),
+   short:uni(ids(decisionList('short')),ids(QF.all.filter(tpBeforeEta))),
    prof:navCount('prof').n,
    nav:{burn:navCount('burn').n,trend:navCount('trend').n,rise:navCount('rise').n},
    custGap:QF.all.filter(r=>r.custGap).length}});
@@ -158,18 +159,19 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     custN:TOPICS.cust.rows().length,custCovered:TOPICS.cust.rows().filter(r=>gap(r)<=0).map(r=>r.pn),
     zero:zero.length,zeroBad:zero.filter(r=>shelfQty(r)>0).map(r=>r.pn),
     month:month.length,monthBad:month.filter(r=>!(shelfQty(r)>0&&r.unsQty>0)).map(r=>r.pn),
-    shortN:TOPICS.short.rows().length,shortSame:JSON.stringify(TOPICS.short.rows().map(r=>r.pn).sort())===JSON.stringify(QF.all.filter(inToday).map(r=>r.pn).sort()),
+    shortN:TOPICS.short.rows().length,shortSame:JSON.stringify(TOPICS.short.rows().filter(inToday).map(r=>r.pn).sort())===JSON.stringify(QF.all.filter(inToday).map(r=>r.pn).sort()),
+    shortToday:TOPICS.short.rows().filter(inToday).length,
     both:up.filter(r=>down.includes(r)).map(r=>r.pn)}});
   ok('ארבעת הנושאים בסדר שנקבע: הזמנות לקוח · חריגת צריכה · מלאי 0/צפוי להיגמר · טיוב נתונים',
    JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify(r.order),r.tabs.join(','));
   ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד'],
-   short:['מלאי 0 עכשיו','צפוי להיגמר החודש'],fix:['שינוי פרופיל MRP','עדכון SS ו-ROP','נתונים שבורים']}),JSON.stringify(r.cats));
+   short:['מלאי 0 עכשיו','צפוי להיגמר החודש','ייגמר לפני האספקה הבאה'],fix:['שינוי פרופיל MRP','עדכון SS ו-ROP','נתונים שבורים']}),JSON.stringify(r.cats));
   ok(`«אין רכש כלל» (${r.none}): בכל שורה אין רכש פתוח, ומלאי + רכש קטנים מההזמנה`,r.none>0&&!r.noneBad.length,r.noneBad.join(','));
   ok(`«כיסוי חלקי» (${r.part}): בכל שורה יש רכש, ומלאי + רכש יחד קטנים מההזמנה`,r.part>0&&!r.partBad.length,r.partBad.join(','));
   ok('אין בנושא 1 הזמנה שמלאי + רכש מכסים, ושתי הקטגוריות מכסות את כל הנושא',!r.custCovered.length&&r.none+r.part===r.custN,`${r.custCovered.length} · ${r.none}+${r.part}/${r.custN}`);
   ok(`«מלאי 0 עכשיו» (${r.zero}): המדף ריק בכל שורה`,r.zero>0&&!r.zeroBad.length,r.zeroBad.join(','));
   ok(`«צפוי להיגמר החודש» (${r.month}): יש מלאי, ו«לא יסופק החודש» > 0 בכל שורה`,r.month>0&&!r.monthBad.length,r.monthBad.join(','));
-  ok('נושא 3 = רשימת «חוסר» של הכלי המלא (inToday), ושתי הקטגוריות מכסות אותה בלי חפיפה',r.shortSame&&r.zero+r.month===r.shortN,`${r.zero}+${r.month}/${r.shortN}`);
+  ok('נושא 3 = רשימת «חוסר» של הכלי המלא (inToday), ושתי הקטגוריות מכסות אותה בלי חפיפה',r.shortSame&&r.zero+r.month===r.shortToday,`${r.zero}+${r.month}/${r.shortN}`);
   ok('פריט אינו גם «ביקוש עולה» וגם «ביקוש יורד»',!r.both.length,r.both.join(','))}
 
  /* ---- 4. טיוב נתונים: בכל שורה משהו שונה מ-SAP, וכסף במטבע של הפריט ---- */
