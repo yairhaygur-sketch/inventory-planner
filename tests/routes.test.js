@@ -517,15 +517,20 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('והמצב הוחזר אחרי הבדיקה',
     agEmpty.restoredHeads===3&&agEmpty.restoredRows===h.agenda,
     `${agEmpty.restoredRows} מתוך ${h.agenda}`);
-  ok('רצועה עם ארבעה שבבים, כל אחד דלת לתחום',
-    h.band&&h.chips.length===4&&h.chips.map(c=>c.go).join(',')==='line,month,qual,cap',
+  /* UX4 (אושר 2.11) — היו ארבעה; «רכש ואספקות», «איכות נתונים» ו«כסף תקוע»
+     חזרו על המונה שלהם במסילה ולכן הוסרו. */
+  ok('רצועה עם שבב «נקודת הזמנה», דלת לתחום שלו',
+    h.band&&h.chips.length===1&&h.chips.map(c=>c.go).join(',')==='month',
     h.chips.map(c=>c.go).join(' · '));
   /* הטענה המרכזית שנשמרה מהמבנה הישן: כל מספר הוא אורך הרשימה
      שהוא מצביע אליה, ולא ספירה משלו. */
+  /* UX4 (אושר 2.11) — שלושת השבבים שחזרו על מונה המסילה הוסרו; נשאר
+     רק «נקודת הזמנה נמוכה מהנדרש», שהמסילה אינה אומרת. */
   ok('כל שבב הוא אורך הרשימה שהוא מצביע אליה',
-    h.chips[0].n===h.eng.line&&h.chips[1].n===h.eng.month
-    &&h.chips[2].n===h.eng.qual&&h.chips[3].n===h.eng.cap,
+    h.chips.length===1&&h.chips[0].go==='month'&&h.chips[0].n===h.eng.month,
     h.chips.map(c=>`${c.go} ${c.n}`).join(' · '));
+  ok('UX4 · אין שבב שחוזר על מונה של המסילה',
+    !h.chips.some(c=>['line','qual','cap'].includes(c.go)),h.chips.map(c=>c.go).join(','));
   ok('מונה הרכש בלי תאריך הוא הספירה האמיתית, גם בלי דוח ETA',
     h.eng.stuck===0||h.gaps.includes(h.eng.stuck.toLocaleString('he-IL'))
       ||h.gaps.includes(String(h.eng.stuck)),
@@ -533,9 +538,30 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('ופערי הנתונים נאמרים מעל הרשימה',
     (!h.noPx||h.gaps.includes(String(h.noPx)))&&(h.hasEta||/דוח ETA/.test(h.gaps)),
     h.gaps.slice(0,110));
-  await p.click('.abchip[data-go="cap"]');await p.waitForTimeout(600);
-  ok('שבב מגיע לתחום הנכון',
-    'cap'===await p.evaluate(()=>mode),await p.evaluate(()=>mode));
+  /* UX4 — לחיצה על השבב פותחת בדיוק את מה שהוא סופר (היה: 31 פתח 36) */
+  await p.click('.abchip[data-go="month"]');await p.waitForTimeout(600);
+  const ru=await p.evaluate(()=>({mode,rows:currentRows().length,
+    trs:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+    all:currentRows().every(ropUpRow),
+    lc:document.getElementById('lc').textContent,
+    lcW:document.getElementById('lc').getBoundingClientRect().width,
+    chip:!document.getElementById('subChip').hidden,
+    full:modeRows('month').length}));
+  ok('שבב מגיע לתחום הנכון',ru.mode==='month',ru.mode);
+  ok('UX4 · ופותח בדיוק את מספר הפריטים שעל השבב — אותם פריטים',
+    ru.rows===h.chips[0].n&&ru.trs===ru.rows&&ru.all&&ru.lc.startsWith('('+ru.rows.toLocaleString('he-IL')+')')&&ru.lcW>0,
+    `שבב ${h.chips[0].n} · נפתחו ${ru.rows} (${ru.trs} שורות) · כותרת ${ru.lc} · התחום כולו ${ru.full}`);
+  ok('UX4 · ותווית «מסונן» גלויה, עם ✕',ru.chip&&await p.evaluate(()=>{const x=document.querySelector('#subChip .subx'),c=document.querySelector('#subChip .chip');
+    if(!x||!c)return false;const a=x.getBoundingClientRect(),b=c.getBoundingClientRect();return a.width>0&&a.left>=b.left-1&&a.right<=b.right+1}));
+  await p.click('#subChip .subx');await p.waitForTimeout(400);
+  const rx=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!document.getElementById('subChip').hidden}));
+  ok('UX4 · ✕ מחזיר את כל «תכנון ו-MRP»',rx.rows===rx.nav&&rx.rows===ru.full&&!rx.chip,JSON.stringify(rx));
+  await p.click('.abchip[data-go="month"]').catch(()=>{});
+  await p.evaluate(()=>setMode('home'));await p.waitForTimeout(300);
+  await p.click('.abchip[data-go="month"]');await p.waitForTimeout(300);
+  await p.evaluate(()=>{setMode('today');setMode('month')});await p.waitForTimeout(300);
+  const rn=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!document.getElementById('subChip').hidden}));
+  ok('UX4 · הסינון אינו נשאר אחרי מעבר מסך',rn.rows===rn.nav&&!rn.chip,JSON.stringify(rn));
   await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
   const pn=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
     if(!tr)return null;const t=tr.children[1].textContent.replace(/העתק|✓ טופל/g,'').trim();
