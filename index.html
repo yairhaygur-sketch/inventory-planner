@@ -1840,7 +1840,10 @@ td.pnc{padding:5px 14px;font-size:13px}
 /* UX2 — פעולות הקובץ נכנסו לשורה. כשאין מקום (נמדד: «חוסרים ולקוחות» ב-1366,
    119px), מה שמתקצר הוא הסכומים שאחרי המונה — לא שם המסך, לא המונה ולא
    כפתור. הם מופיעים גם בשורת הסיכום שמתחת לטבלה, והמשפט המלא ב-title. */
-#w_queue .phd>span:first-child{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#w_queue .phd>span:first-child{flex:0 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden}
+/* UX3 — תיקון ל-UX2: שם המסך עצמו התקצר («רכש…»). רק הסכומים (#lc) מתקצרים. */
+#w_queue .phd>span:first-child>.title{flex:0 0 auto}
+#w_queue .phd>span:first-child>#lc{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
@@ -2755,6 +2758,21 @@ body.dark .lband{border:1px solid #2B3B50}
 .lband.mini .nopx{display:inline-block}
 .lband.mini .bledg{display:inline}
 .lband.mini .lhero{gap:10px}
+/* UX3 — מקופלת = שורה אחת. הסייגים נשארים גלויים (NOPRICE למעלה), אבל לא
+   נשברים לעמודה צרה: נמדד 98px עם ETA, מתוכם 86px של שורת הסייגים שנשברה.
+   המשפט הראשי והסייגים — כל אחד בשורה, ומה שלא נכנס מתקצר ב«…»; המלא —
+   ברצועה הפתוחה (▼). */
+.lband.mini .lwrap{align-items:center;min-width:0}
+.lband.mini .lhero{min-width:0;flex:1 1 auto}
+.lband.mini .lhero .ht{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lband.mini .lwrap{flex-wrap:nowrap;padding-inline-start:30px}
+.lband.mini .ht>*{display:inline}
+.lband.mini .ht>*+*::before{content:" · "}
+.lband.mini .lbars{flex:0 1 auto;min-width:0;max-inline-size:48%;overflow:hidden}
+.lband.mini .bkey{align-items:center;overflow:hidden;min-width:0}
+.lband.mini .nopx,.lband.mini .nopx *,.lband.mini .bledg *{display:inline;white-space:nowrap}
+.lband.mini .bledg{overflow:hidden;text-overflow:ellipsis;min-width:0;white-space:nowrap}
+.lband.mini .bledg>*+*{margin-inline-start:8px}
 .lmail{border-top:1px dashed var(--line);padding:8px 0 10px}
 .lmail .lmh{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:6px;font-size:var(--f-sm)}
 .lmail .lmh span{color:var(--dim)}
@@ -2999,6 +3017,18 @@ tr.grp.sup b{font-size:var(--f-md)}
 .pager,.pager *{line-height:1.2}
 #capTop .cbar,#capTop .cpanel h4{line-height:1.15}
 #capTop .ctile,#capTop .ctile *{line-height:1.2}
+/* UX3 — מקופל: שורת אריחים אחת, בלי הפירוט לפי ספק ובלי ההערות */
+#capTop.mini .cpanels,#capTop.mini .cnote,#capTop.mini .ctile .cw{display:none}
+#capTop .captog{white-space:nowrap}
+/* מקופל: ארבעת האריחים והכפתור בשורה אחת; כל אריח — מספר, שם וסכום בשורה */
+/* סכום לעולם לא נחתך: האריחים ברוחב התוכן, ואם אין מקום — שורה שנייה */
+#capTop.mini .ctiles{display:flex;flex-wrap:wrap;align-items:stretch}
+#capTop.mini .ctile{flex:1 1 auto}
+#capTop.mini .ctile{flex-direction:row;align-items:baseline;gap:8px;padding:5px 10px}
+#capTop.mini .ctile .cn{font-size:17px}
+#capTop.mini .ctile .ct{flex:0 0 auto;white-space:nowrap}
+#capTop.mini .ctile .cm{white-space:nowrap;margin-inline-start:auto}
+#capTop:not(.mini) .captog{grid-column:1/-1;justify-self:start}
 /* טלפון: המק״ט והתיאור חולקים שורה אחת בכרטיס, ומק״ט ב-Heebo רחב יותר.
    מק״ט 13.5 ותיאור 12.5 (שניהם מעל 12): בכל 25 המסכים 470 תיאורים חתוכים
    מול 477 לפני D1, ו-106 כרטיסים במסך מול 101. */
@@ -13628,11 +13658,22 @@ function capBySupplier(list){
   .map(([cur,m])=>[cur,[...m.entries()].filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1])])
   .filter(([,l])=>l.length)
   .sort((a,b)=>b[1].reduce((t,x)=>t+x[1],0)-a[1].reduce((t,x)=>t+x[1],0))}
+/* ============ UX3 · הסיכום מקופל כברירת מחדל ============
+   הסיכום תפס 261px מעל הרשימה ב-1440 (17 שורות גלויות במקום 26). מקופל:
+   ארבעת האריחים נשארים בשורה אחת — מספר וסכום לכל מטבע — והפירוט לפי
+   ספק וההערות נפתחים בלחיצה. הבחירה נזכרת. שום מספר לא ירד: הכול נשאר
+   ב-DOM, ונגיש בלחיצה אחת. */
+const CAPTOP_KEY='planner_captop_open_v1';
+let CAPTOP_OPEN=false;try{CAPTOP_OPEN=localStorage.getItem(CAPTOP_KEY)==='1'}catch(_){}
+function capTopSet(v){CAPTOP_OPEN=!!v;try{localStorage.setItem(CAPTOP_KEY,v?'1':'0')}catch(_){}
+ const el=document.getElementById('capTop');if(!el)return;el.classList.toggle('mini',!CAPTOP_OPEN);
+ const b=el.querySelector('.captog');if(b){b.setAttribute('aria-expanded',CAPTOP_OPEN?'true':'false');b.textContent=CAPTOP_OPEN?'▲ קפל את הפירוט':'▼ פירוט לפי ספק'}}
 function renderCapTop(){
  const el=document.getElementById('capTop');if(!el)return;
  const on=mode==='cap';
  el.hidden=!on;document.body.classList.toggle('cap-on',on);
  if(!on){el.innerHTML='';return}
+ el.classList.toggle('mini',!CAPTOP_OPEN);
  const {list,B}=capBuckets();
  const tile=(t,rows,tone,why)=>`<div class="ctile ${tone}">
    <span class="cn">${rows.length.toLocaleString('he-IL')}</span>
@@ -13658,10 +13699,12 @@ function renderCapTop(){
    ${tile('עודף מלאי',B.excess,'excess','מלאי מעל מה שהקצב מצדיק')}
    ${tile('מלאי איטי',B.slow,'slow','תנועה איטית לפי גיל המלאי')}
    ${tile('מלאי מת',B.dead,'dead','בלי תנועה בחלון שנמדד')}
+   <button type="button" class="btn captog" aria-expanded="${CAPTOP_OPEN?'true':'false'}" aria-controls="capTop" title="הפירוט לפי ספק וההערות — נפתח ונסגר, והבחירה נזכרת">${CAPTOP_OPEN?'▲ קפל את הפירוט':'▼ פירוט לפי ספק'}</button>
   </div>
   ${B.other.length?`<p class="cnote">${B.other.length.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')} הפריטים עם כסף תקוע אינם עודף, אינם איטיים ואינם מתים — הם ברשימה שלמטה תחת הסיווג שלהם.</p>`:''}
   <div class="cpanels">${cur.map(panel).join('')}</div>
-  <p class="cnote dim">כסף תקוע לפי ספק · כל מטבע בסקאלה משלו — אין המרה ואין השוואה בין מטבעות.</p>`}
+  <p class="cnote dim">כסף תקוע לפי ספק · כל מטבע בסקאלה משלו — אין המרה ואין השוואה בין מטבעות.</p>`;
+ {const b=el.querySelector('.captog');if(b)b.onclick=()=>{capTopSet(!CAPTOP_OPEN);if(typeof fitRows==='function')fitRows()}}}
 
 /* ============ מרכז העבודה ============
    מסך הנחיתה. הוא אינו טבלה שלישית ואינו סיווג חדש: ארבע רשימות
