@@ -127,6 +127,36 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
     const fg=getComputedStyle(document.getElementById('q')).color;const a=L(fg),b=L(bg);return {fg,bg,ratio:+((Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)).toFixed(2)}});
   ok('UX2 · טקסט החיפוש בסרגל העליון קריא (ניגודיות ≥ 4.5)',cr.ratio>=4.5,JSON.stringify(cr));
   await p.keyboard.press('Escape');
+  /* ============ UX3 · סיכומים ורצועות מקופלים ============ */
+  await p.evaluate(()=>{try{localStorage.removeItem('planner_captop_open_v1')}catch(_){};CAPTOP_OPEN=false;setMode('cap')});await p.waitForTimeout(400);
+  const c0=await p.evaluate(()=>{const el=document.getElementById('capTop');const b=el.querySelector('.captog');
+   return {h:Math.round(el.getBoundingClientRect().height),mini:el.classList.contains('mini'),tiles:el.querySelectorAll('.ctile').length,
+    panels:el.querySelectorAll('.cpanel').length,panelsVis:[...el.querySelectorAll('.cpanel')].some(x=>x.getBoundingClientRect().height>0),
+    cut:[...el.querySelectorAll('.ctile .cm,.ctile .ct')].filter(e=>e.scrollWidth>e.clientWidth+1).length,aria:b&&b.getAttribute('aria-expanded')}});
+  ok('UX3 · «בריאות המלאי»: הסיכום מקופל כברירת מחדל — 4 אריחים בשורה, בלי לוחות הספקים',c0.mini&&c0.tiles===4&&!c0.panelsVis&&c0.h<=100&&c0.aria==='false',JSON.stringify(c0));
+  ok('UX3 · ואף סכום באריח אינו נחתך',c0.cut===0,c0.cut+' נחתכו');
+  ok('UX3 · לוחות הספקים נשארים בדף — מוסתרים, לא נמחקים',c0.panels>0,c0.panels+' לוחות');
+  await p.click('#capTop .captog');await p.waitForTimeout(300);
+  const c1=await p.evaluate(()=>{const el=document.getElementById('capTop');return {mini:el.classList.contains('mini'),panelsVis:[...el.querySelectorAll('.cpanel')].some(x=>x.getBoundingClientRect().height>0),aria:el.querySelector('.captog').getAttribute('aria-expanded'),stored:localStorage.getItem('planner_captop_open_v1')}});
+  ok('UX3 · לחיצה פותחת את הפירוט, והבחירה נשמרת',!c1.mini&&c1.panelsVis&&c1.aria==='true'&&c1.stored==='1',JSON.stringify(c1));
+  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(150);await p.evaluate(()=>setMode('cap'));await p.waitForTimeout(300);
+  ok('UX3 · ונשארת פתוחה כשחוזרים למסך',await p.evaluate(()=>!document.getElementById('capTop').classList.contains('mini')));
+  await p.click('#capTop .captog');await p.waitForTimeout(200);
+  /* רצועת «רכש ואספקות» מקופלת — שורה אחת, והסייג «בלי מחיר» נשאר גלוי (NOPRICE) */
+  await p.setInputFiles('#fe',path.join(SD,'zmrp-demo-eta.xlsx'));await p.waitForTimeout(1000);
+  /* צעד קודם בבדיקה הסתיר את המדדים (body.nokpi מסתיר גם את הרצועה) — מודדים כשהם גלויים, ומחזירים אחר כך */
+  const hadNokpi=await p.evaluate(()=>{const h=document.body.classList.contains('nokpi');document.body.classList.remove('nokpi');return h});
+  await p.evaluate(()=>{bandSet(false);setMode('line')});await p.waitForTimeout(400);
+  const ln=await p.evaluate(()=>{const b=document.querySelector('#line .lband'),x=document.getElementById('bandx'),n=document.querySelector('.lband .hn'),px=document.querySelector('.lband .nopx');
+   const ov=(a,c)=>{if(!a||!c)return false;const r=a.getBoundingClientRect(),q=c.getBoundingClientRect();return !(r.right<=q.left||q.right<=r.left||r.bottom<=q.top||q.bottom<=r.top)};
+   return {h:Math.round(b.getBoundingClientRect().height),mini:b.classList.contains('mini'),nopx:!!px&&px.getBoundingClientRect().width>0,overlap:ov(x,n)}});
+  ok('UX3 · רצועת «רכש ואספקות» מקופלת בשורה אחת (≤ 60px)',ln.mini&&ln.h>0&&ln.h<=60,JSON.stringify(ln));
+  ok('UX3 · והסייג «בלי מחיר» גלוי גם מקופל',ln.nopx);
+  ok('UX3 · כפתור הקיפול אינו עולה על המספר',!ln.overlap);
+  if(hadNokpi)await p.evaluate(()=>document.body.classList.add('nokpi'));
+  /* שם המסך אינו מתקצר באף מסך (תיקון ל-UX2) */
+  const tcut=await p.evaluate(()=>Object.keys(MODESET).filter(m=>m!=='moves').filter(m=>{setMode(m);const t=document.getElementById('lt');return t.scrollWidth>t.clientWidth+1}));
+  ok('UX3 · שם המסך שלם בכל 25 המסכים, גם כשיש כפתורי ייצוא',!tcut.length,tcut.join(','));
   ok('מחשב · 0 שגיאות JS',!errs.length,errs.join('|'));await ctx.close()}
  /* ---------- טלפון · מגע ---------- */
  for(const dark of [false,true]){const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const [p,errs]=await load(ctx);
