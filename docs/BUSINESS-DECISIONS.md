@@ -241,6 +241,23 @@ Changes to these areas require explicit business approval.
   (MRP profile change / SS-ROP update / missing LT). The ETA report loads in
   the minimal tool through the full tool's own loader.
 
+- **2026-11-02 · Approved, not yet implemented.**
+  - **PDI / customer order against non-free stock.** When non-free stock
+    (total − free) covers an open customer order, the order is not shown as
+    «without coverage». It gets its own state («non-free stock against the
+    order — check: reserved for PDI or blocked») and no automatic purchase
+    recommendation. The report cannot tell blocked from reserved stock, so
+    the order is not treated as covered. Measured on the real report and
+    shown to the owner before implementation; separate PR.
+  - **MRP-profile exclusion.** The planner can exclude an item from the
+    profile-change candidates permanently, until undone manually (one-off or
+    on-demand items). Items marked «campaign», «done» or with an exclusion
+    note are not shown as candidates. The excluded items have their own view
+    for future review. Changes the profile-screen counter — documented in
+    its PR.
+  - **Blocked stock** (total > 0, free 0) stays a shortage, as today. No
+    extra explanation line in the card.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
