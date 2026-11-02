@@ -28,11 +28,16 @@ const rows=[
  mk('Z-T1',{free:0,po:20,cust:4}),// מדף ריק ולקוח ממתין ⇒ נשאר ב«מלאי 0» גם עם ETA
  mk('C-NONE',{free:1,po:0,cust:5}),   // הזמנה 5, מלאי 1, אין רכש ⇒ «אין רכש כלל»
  mk('C-PART',{free:2,po:3,cust:10}),  // הזמנה 10, מלאי 2 + רכש 3 ⇒ «כיסוי חלקי»
- mk('C-COVER',{free:2,po:10,cust:5})];// מלאי 2 + רכש 10 ≥ 5 ⇒ מכוסה, אינו בנושא
+ mk('C-COVER',{free:2,po:10,cust:5}),// מלאי 2 + רכש 10 ≥ 5 ⇒ מכוסה, אינו בנושא
+ /* «ייגמר לפני האספקה הבאה» (2.11): מלאי 10, קצב 10 ⇒ אפס בעוד 30 יום. החודש מכוסה (לא «צפוי להיגמר») */
+ mk('E-BEFORE',{free:10,po:20}),  // אספקה בעוד 60 יום ⇒ ייגמר לפניה
+ mk('E-AFTER',{free:10,po:20}),   // אספקה בעוד 20 יום ⇒ מגיעה לפני האפס
+ mk('E-NOETA',{free:10,po:20})];  // רכש בלי שורה בדוח ETA ⇒ אין תאריך להשוות
 const ZF=path.join(TMP,'zmrp.xlsx'),EF=path.join(TMP,'eta.xlsx');
 XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['ZMRP'],[],hdr,...rows]),'ZMRP');return wb})(),ZF);
 const nowD=new Date();
+const dplus=n=>{const d=new Date(Date.now()+n*864e5);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
 const inMonth=new Date(nowD.getFullYear(),nowD.getMonth()+1,0);     // היום האחרון של החודש
 const afterMonth=new Date(nowD.getFullYear(),nowD.getMonth()+2,15); // אמצע החודש הבא
 const ehdr=['אספקה','פריט','חומר','תיאור','כמות באספקה',"א'",'תארי.אספקה'];
@@ -41,7 +46,9 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet
  ['4190000002','000010','M-LATE','x',8,'EA',afterMonth],
  ['4190000003','000010','M-PART','x',3,'EA',inMonth],
  ['4190000004','000010','Z-COVER','x',10,'EA',inMonth],
- ['4190000005','000010','Z-T1','x',20,'EA',inMonth]]),'גיליון1');return wb})(),EF);
+ ['4190000005','000010','Z-T1','x',20,'EA',inMonth],
+ ['4190000006','000010','E-BEFORE','x',20,'EA',dplus(60)],
+ ['4190000007','000010','E-AFTER','x',20,'EA',dplus(20)]]),'גיליון1');return wb})(),EF);
 
 let pass=0,fail=0;const ok=(n,c,d)=>{c?pass++:fail++;console.log(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+']':''}`)};
 const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf8');
@@ -87,6 +94,13 @@ const STATE=()=>{const by=Object.fromEntries(ALL.map(r=>[r.pn,r]));
  ok('M-PART: כיסוי חלקי בתוך החודש ⇒ נשאר, 5 לא יסופקו',s1.T.short.month.includes('M-PART')&&s1.uns['M-PART']===5,`uns=${s1.uns['M-PART']}`);
  ok('Z-COVER: מדף ריק בלי לקוח, ETA מכסה את החודש ⇒ יורד מ«מלאי 0» — כמו ברשימת «חוסר» של הכלי המלא',!s1.T.short.zero.includes('Z-COVER'),s1.T.short.zero.join(','));
  ok('Z-T1: מדף ריק ולקוח ממתין ⇒ נשאר ב«מלאי 0» גם עם ETA',s1.T.short.zero.includes('Z-T1'));
+ ok('בלי ETA: «ייגמר לפני האספקה הבאה» ריק — אין תאריך להשוות',s0.T.short.eta.length===0,s0.T.short.eta.join(','));
+ ok('E-BEFORE: מלאי לכ-30 יום ואספקה בעוד 60 ⇒ «ייגמר לפני האספקה הבאה», והחודש מכוסה',s1.T.short.eta.includes('E-BEFORE')&&!s1.T.short.month.includes('E-BEFORE')&&s1.uns['E-BEFORE']===0,s1.T.short.eta.join(','));
+ ok('E-AFTER: אספקה בעוד 20 יום, לפני האפס ⇒ אינו בקטגוריה',!s1.T.short.eta.includes('E-AFTER'));
+ ok('E-NOETA: רכש בלי תאריך בדוח ⇒ אינו בקטגוריה',!s1.T.short.eta.includes('E-NOETA'));
+ {const z=await L.p.evaluate(()=>{const r=ALL.find(x=>x.pn==='E-BEFORE');return {zd:tpZeroDate(r),eta:r.etaFirst,days:tpdDays(r),today:etaToday()}});
+  const exp=(()=>{const t=new Date(z.today+'T00:00:00');t.setDate(t.getDate()+30);const p2=n=>String(n).padStart(2,'0');return `${t.getFullYear()}-${p2(t.getMonth()+1)}-${p2(t.getDate())}`})();
+  ok('צפי סיום מלאי = היום + מלאי פנוי ÷ קצב × 30 (10 ÷ 10 × 30 = 30 יום)',z.days===30&&z.zd===exp&&z.zd<z.eta,JSON.stringify(z))}
  ok('נושא 1 אינו מושפע מ-ETA (מלאי + רכש פתוח)',JSON.stringify(s1.T.cust)===JSON.stringify(s0.T.cust));
  const ui=await L.p.evaluate(()=>({chip:document.querySelector('#lite .src.eta').textContent,
   month:+String((document.querySelector('#lite .tile[data-tp-cat="month"] .v')||{}).textContent||'').replace(/[^\d]/g,''),
