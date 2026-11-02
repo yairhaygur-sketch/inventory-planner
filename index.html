@@ -3446,6 +3446,28 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
 #tbl tbody tr:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
 #tbl tbody tr.sel>td:first-child{box-shadow:inset -3px 0 0 var(--mark-line)}
 #tbl tbody tr.sel:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
+/* ============ UX5 · כרטיס הפריט, חלופה א׳ — אותו רוחב, בלי מתג הרחבה ============
+   נמדד ב-1440×900 (פיקסצ׳ר): הכרטיס 1,393px מול 848 גלויים; ההחלטה,
+   המספרים, הנימוק והכפתור גלויים, אבל תחתית הגרף והמקרא נחתכו, ו«נתוני
+   מקור» כולו מתחת לקיפול. כאן רק פריסה — אף שורת תוכן אינה יורדת.
+   «אינו מעדכן SAP» נשאר גלוי (ההחלטה שבהערה ליד paramStrip). */
+#detail .dcx{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+#detail .dcx .dcmk{display:inline;margin:0}
+#detail .dcx .dcxl{display:contents}
+#detail .dcx .xgo{padding:2px 9px}
+#detail .dcx .dcxn{flex:1 1 100%;margin-top:2px}
+#detail .cstrip{margin-top:8px}
+#detail .cstrip .cs{padding:3px 8px}
+#detail .dcwhy{margin-top:10px}
+#detail .dcb{margin-top:10px}
+#detail .dcnote{margin-top:6px;padding:4px 10px;line-height:1.5}
+#detail .dcnote .dcwhat:not([open]){display:inline;margin:0 6px 0 0}
+#detail .dcnote .dcwhat:not([open]) summary{display:inline}
+#detail .dcmore{margin-top:9px}
+#detail .dcmore ul{line-height:1.45}
+#detail .dcwhy{gap:3px}
+#detail .dcwhy .msg{padding:4px 9px;line-height:1.35}
+.wdetail .dtabs{padding-block:4px}
 </style>
 </head>
 <body>
@@ -11112,7 +11134,8 @@ function barChart(cv,r){
  /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
     ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
  if(!cv||!cv.clientWidth)return;
- const {ctx,W,H}=hidpi(cv,208);
+ /* UX5 — 208→168: יותר מהגרף בתוך החלון ב-1440×900; העמודות, התוויות והמקרא זהים */
+ const {ctx,W,H}=hidpi(cv,168);
  ctx.clearRect(0,0,W,H);
  ctx.fillStyle=CHART_SURF;roundRect(ctx,0,0,W,H,12);ctx.fill();
  const hist=[...r.months].reverse(),histLabs=[...LABELS].reverse();
