@@ -351,7 +351,8 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
   const kAll=await p.evaluate(()=>[...document.querySelectorAll('#helpMenu [role=menuitem]')]
     .map(e=>e.tagName));
   ok('כל פריט בתפריט «⋯» הוא כפתור עם role=menuitem',
-    kAll.length===9&&kAll.every(x=>x==='BUTTON'),kAll.join(' · '));
+    /* UX2: פעולות הקובץ (4) עברו לכותרת המסך — נשארו 5, וכולם כפתורים */
+    kAll.length===5&&kAll.every(x=>x==='BUTTON'),kAll.join(' · '));
   await p.evaluate(()=>document.getElementById('helpBtn').focus());
   await p.keyboard.press('Enter');await p.waitForTimeout(200);
   const k1=await p.evaluate(()=>({open:document.getElementById('helpMenu').classList.contains('open'),
