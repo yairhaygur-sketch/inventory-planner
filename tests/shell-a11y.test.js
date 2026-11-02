@@ -157,6 +157,16 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   /* שם המסך אינו מתקצר באף מסך (תיקון ל-UX2) */
   const tcut=await p.evaluate(()=>Object.keys(MODESET).filter(m=>m!=='moves').filter(m=>{setMode(m);const t=document.getElementById('lt');return t.scrollWidth>t.clientWidth+1}));
   ok('UX3 · שם המסך שלם בכל 25 המסכים, גם כשיש כפתורי ייצוא',!tcut.length,tcut.join(','));
+  /* ============ UX5 · כרטיס הפריט: ההחלטה, הפעולה והגרף בלי גלילה ============ */
+  {const fit=[];for(const w of [1366,1440,1920]){await p.setViewportSize({width:w,height:900});
+   for(const m of ['today','month','cap']){const f=await p.evaluate(async m=>{setMode(m);const r=currentRows()[0];if(!r)return null;detail(r);
+     await new Promise(z=>setTimeout(z,350));const d=document.getElementById('detail'),box=d.closest('.wbody'),bot=Math.min(innerHeight,box.getBoundingClientRect().bottom);
+     const B=d.querySelector('.dcb'),C=d.querySelector('[data-chart="c1"]'),cv=d.querySelector('#c1'),N=d.querySelector('.dcnote');
+     return {btn:!!B&&B.getBoundingClientRect().bottom<=bot,chart:!!C&&C.getBoundingClientRect().bottom<=bot,
+      cv:!!cv&&cv.getBoundingClientRect().height>0,sap:!!N&&/אינו מעדכן SAP/.test(N.textContent)&&N.getBoundingClientRect().bottom<=bot}},m);
+    if(!f||!f.btn||!f.chart||!f.cv||!f.sap)fit.push(w+'/'+m+':'+JSON.stringify(f))}}
+   await p.setViewportSize({width:1440,height:900});
+   ok('UX5 · כרטיס הפריט: ההחלטה, «סמן כטופל», «אינו מעדכן SAP» והגרף כולו — בלי גלילה (1366/1440/1920 · 3 מסכים)',!fit.length,fit.join(' · '))}
   ok('מחשב · 0 שגיאות JS',!errs.length,errs.join('|'));await ctx.close()}
  /* ---------- טלפון · מגע ---------- */
  for(const dark of [false,true]){const ctx=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});const [p,errs]=await load(ctx);

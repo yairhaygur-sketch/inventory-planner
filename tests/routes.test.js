@@ -959,11 +959,14 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
    return {pn:r.pn,from:mode,
      labels:btns.map(b=>b.textContent.trim()),
      want:xOther(r).map(k=>XNAME[k]),
-     note:!!document.querySelector('#detail .dcxn')}});
+     note:!!document.querySelector('#detail .dcxn'),
+     /* UX5 — הסייג עבר לבועית על התווית, ונשאר בדף לקוראי מסך */
+     tip:((document.querySelector('#detail .dcx .dcmk')||{}).title||'')}});
   ok('הכרטיס מונה את אותן דלתות בדיוק, בשמותיהן',
     xj&&xj.labels.length>0&&xj.labels.join('|')===xj.want.join('|'),
     xj?`${xj.labels.join(' · ')} מול ${xj.want.join(' · ')}`:'(לא נמצא פריט)');
   ok('ויש סייג שאומר שההוראה אינה בהכרח זהה',!!(xj&&xj.note));
+  ok('UX5 · והסייג זמין בבועית על «הפריט הזה נמצא גם ב»',!!(xj&&/ולא בהכרח אותה הוראה/.test(xj.tip)),xj?xj.tip.slice(0,60):'');
   const xjump=await p.evaluate(async()=>{
    const b=document.querySelector('#detail .xgo');if(!b)return null;
    const want=b.dataset.go;b.click();
