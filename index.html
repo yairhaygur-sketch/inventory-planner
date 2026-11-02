@@ -279,6 +279,16 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .oact b{font-weight:700;color:var(--ink)}
 .chips.inline{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;align-items:center;min-width:0}
 .chips.inline .chip{font-size:var(--f-sm);padding:2px 7px;white-space:nowrap}
+#subChip{flex:0 1 auto;min-width:7em}
+#subChip .chip{min-width:0;overflow:hidden}
+#subChip .sct{overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:default;font-weight:600}
+#subChip b,#subChip .subx{flex:0 0 auto}
+#w_queue .phd>span:first-child>.title{white-space:nowrap}
+#w_queue .phd:has(#subChip:not([hidden]))>span:first-child{min-width:min-content}
+/* UX4 — עם תווית «מסונן», ההסבר הקבוע מתקצר ראשון, לפני התווית */
+#w_queue .phd:has(#subChip:not([hidden])) #phdSub{flex:1 1 0}
+#subChip .subx{background:none;border:0;padding:0 2px;color:inherit;font:inherit;cursor:pointer;line-height:1}
+#subChip .subx:focus-visible{outline:2px solid var(--acc);outline-offset:1px;border-radius:3px}
 .doors.compact .btn:not(.on) .dl{display:none}
 .doors.off{display:none}
 /* הדלתות ישבו באותה שורה עם הכותרת ורמזי המקלדת, ובלי flex-wrap הן
@@ -3566,7 +3576,7 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
     <div class="wbody"><div class="qbody">
       <div class="qpanel">
         <div class="phd"><span><span class="title" id="lt">—</span> <span class="sub" id="lc"></span></span>
-          <span class="chips inline" id="chipsTop"></span>
+          <span class="chips inline" id="chipsTop"></span><span class="chips inline" id="subChip" hidden></span>
           <button class="btn" id="filtBtn" title="הצג או קפל את מסילת הסינון">☰<span class="lbl"> סינון</span></button><button type="button" id="kpiTog" title="קיפול רצועת המדדים — מחזיר גובה לרשימה">▴ מדדים</button><button type="button" id="denTog" title="צפיפות השורות — «צפופה» מורידה ריפוד בלבד, הגופן אינו קטן">≡ צפיפות</button><button type="button" id="colsBtn" aria-haspopup="true" aria-expanded="false" title="אילו עמודות מוצגות בטבלה. הבחירה נשמרת לכל תצוגה בנפרד">▦ עמודות</button><button type="button" id="phdInfo" class="subinfo" aria-expanded="false" aria-controls="phdSub" title="הצג את ההסבר המלא">ⓘ</button><span class="sub" id="phdSub">לחיצה על כותרת — מיון וסינון · ✓ טופל מעלה מהרשימה</span>
           <span class="kbd" title="ניווט מקלדת — לעבור על התור בלי עכבר"><b>↑↓</b> פריט <b>←→</b> טאב <b>Enter</b> פתח <b>D</b> טופל <b>/</b> חיפוש</span>
           <span class="bulkwrap" id="bulk"></span>
@@ -7222,7 +7232,8 @@ function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
    רענון, והמסך עצמו לא. */
 const MODE_KEY='planner_mode_v1';
 function modeSaved(){try{const m=localStorage.getItem(MODE_KEY);return MODESET[m]?m:null}catch(_){return null}}
-function setMode(m){if(!MODESET[m])return;mode=m;const c=MODESET[m];
+function setMode(m,sub){if(!MODESET[m])return;mode=m;const c=MODESET[m];
+ ROPUP_ONLY=m==='month'&&sub==='ropUp';
  try{localStorage.setItem(MODE_KEY,m)}catch(_){}
  cur=c.cur;track=c.track;trackPicked=true;closeDetail();
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
@@ -8875,7 +8886,8 @@ function currentRows(){
  /* CAP_SPLIT — הרשימה היא decisionList('cap') עצמה, כולל המיון
     לפי שווי בבלוקי מטבע; capPick רק מצמצם אותה לידית אחת. */
  if(cur==='today'&&track==='cap')return capRows();
- if(cur==='today')return decisionList(track);
+ if(cur==='today'){const l=decisionList(track);
+   return ROPUP_ONLY&&track==='month'?l.filter(ropUpRow):l}
  /* הדלי הבוער — ממוין לפי שווי הפער, בתוך בלוק המטבע (מדיניות BZ) */
  if(track==='burn'){const by=burnRows().sort((a,b)=>(curPos(a)-curPos(b))||(burnVal(b)-burnVal(a)));
    return sortCol==='sev'?by:sortRowsBy(by)}
@@ -8984,14 +8996,14 @@ function renderAgendaBand(){
  /* הצבע והאייקון של כל אריח הם אותם של התחום במסילה — מי שלומד
     שסגול הוא «תכנון ו-MRP» רואה את אותו סגול בשני המקומות.
     הצבע לעולם אינו לבד: אייקון ותווית בכל אריח. */
- const NEXT=[['line','רכש ואספקות',null,'steady','⇄'],
-   ['month','נקודת הזמנה נמוכה מהנדרש',ropLow,'trend','◆'],
-   ['qual','איכות נתונים',null,'high','⚒'],
-   ['cap','כסף תקוע',null,'capital','❤']];
- const chips=NEXT.map(([k,l,fixed,c,ic])=>{let n=fixed;
+ /* UX4 — «רכש ואספקות», «איכות נתונים» ו«כסף תקוע» הוסרו מכאן (אושר
+    2.11): אותו מספר ואותו יעד כמו המונה שלהם במסילה, באותה תצוגה.
+    נשאר רק השבב שהמסילה אינה אומרת, והוא פותח את האוכלוסייה שלו. */
+ const NEXT=[['month','נקודת הזמנה נמוכה מהנדרש',ropLow,'trend','◆','ropUp']];
+ const chips=NEXT.map(([k,l,fixed,c,ic,sub])=>{let n=fixed;
    if(n==null){try{n=navCount(k).n}catch(_){n=0}}
    return `<button type="button" class="abchip" data-go="${k}"`
-    +` style="--tfg:var(--${c})"`
+    +(sub?` data-sub="${sub}"`:'')+` style="--tfg:var(--${c})"`
     +` title="${esc(l)} — ${n.toLocaleString('he-IL')}">`
     +`<span class="ic" aria-hidden="true">${ic}</span>`
     +`<span class="lb">${esc(l)}</span>`
@@ -9000,7 +9012,7 @@ function renderAgendaBand(){
  t.innerHTML=`<div class="aband">`
   +(gaps.length?`<div class="abgap"><span class="abi">⚠</span><span>${gaps.join(' · ')}${orph?' · '+esc(orph):''}</span></div>`:'')
   +`<div class="abnext"><span class="abl">מה עוד ממתין</span>${chips}</div></div>`;
- t.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>setMode(b.dataset.go))}
+ t.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>setMode(b.dataset.go,b.dataset.sub))}
 function renderTrack(){const t=document.getElementById('track');if(!t)return;
  t.innerHTML='';t.style.display='none';if(1)return;
  t.style.display='';
@@ -10872,11 +10884,15 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
     שורת המצב של אותו תחום, זו שכבר כתובה ב-title של המסילה. אותה
     פונקציה, אותם מספרים. רק בחוסרים ובתכנון: בקטלוג שורת המצב היא
     «כסף תקוע», וזה לא מה שהמסך הזה עוסק בו. */
- {let st='';try{if(mode==='today'||mode==='month')st=navSub(mode)}catch(_){}
-  {const lc=document.getElementById('lc');lc.textContent='('+rows.length.toLocaleString('he-IL')+')'+(st?' · '+st:'');
+ {let st='';try{if(mode==='today'||(mode==='month'&&!ROPUP_ONLY))st=navSub(mode)}catch(_){}
+  /* UX4 — מסונן: שורת המצב מתארת את כל התחום, ולכן אינה מוצגת ליד מונה של חלק ממנו */
+  {const lc=document.getElementById('lc'),cnt='('+rows.length.toLocaleString('he-IL')+')';lc.textContent=cnt+(st?' · '+st:'');
+   /* UX4 — המשפט שאחרי המונה מתקצר, המונה עצמו לעולם לא (ב-1440, עם תווית «מסונן», הוא ירד ל-0px) */
+   lc.style.minWidth=(cnt.length+0.5)+'ch';
    /* UX2 — כשהשורה צרה, הסכומים שאחרי המונה מתקצרים ב«…»; המשפט המלא ב-title */
    lc.title=lc.textContent}}
  {const n=document.getElementById('fsN');if(n)n.textContent=rows.length.toLocaleString('he-IL')}
+ subChipSync();
  colsSync();renderCapTop();setTimeout(()=>{colsBoot();freezeCols()},0);
  renderBulk(rows);
  /* מסלול "טופל" משתמש ב-cur='marked', ולכן היה נופל למרנדר הגנרי
@@ -13757,6 +13773,19 @@ function renderCapTop(){
    למה דווקא הארבע: שתיים הן כשל שכבר קרה או שאי אפשר לתזמן (לקוח
    בלי רכש, רכש בלי תאריך), אחת מונעת את התור של מחר (נקודת הזמנה
    שמפגרת), והרביעית היא הכיוון ההפוך — כסף ששוכב. */
+/* ============ UX4 · «נקודת הזמנה נמוכה מהנדרש» פותח בדיוק את מה שהוא סופר ============
+   השבב ספר את הפריטים ב«מספר לתקן ב-SAP» שבהם נקודת ההזמנה צריכה
+   לעלות (31 בפיקסצ׳ר, 23 בדוח האמיתי), אבל לחיצה פתחה את כל «תכנון
+   ו-MRP» (36 / 177). עכשיו הלחיצה פותחת את אותו מסך מסונן לאותה
+   אוכלוסייה בדיוק, עם תווית «מסונן: … ✕». הסינון אינו נשמר: כל מעבר
+   מסך או דלת מנקה אותו. אין שינוי בסיווג, במונה או בדירוג. */
+function ropUpRow(r){return !!r.paramFix&&(r.sugROP||0)>(r.rop||0)}
+let ROPUP_ONLY=false;
+function subChipSync(){const el=document.getElementById('subChip');if(!el)return;
+ const on=ROPUP_ONLY&&mode==='month'&&track==='month';
+ el.hidden=!on;
+ el.innerHTML=on?`<div class="chip" title="מסונן: נקודת הזמנה נמוכה מהנדרש"><b>מסונן:</b><span class="sct">נקודת הזמנה נמוכה מהנדרש</span><button type="button" class="subx" aria-label="הסר את הסינון — הצג את כל «תכנון ו-MRP»" title="הצג את כל «תכנון ו-MRP»">✕</button></div>`:'';
+ const x=el.querySelector('.subx');if(x)x.onclick=()=>{ROPUP_ONLY=false;render()}}
 function homeRows(k){
  if(!QF)return [];
  if(k==='burn')return burnRows().slice().sort((a,b)=>(b.miss||0)*(b.price||0)-(a.miss||0)*(a.price||0));
@@ -13773,7 +13802,7 @@ function homeRows(k){
     תאריך לאף יחידה. רצועת הפערים ממשיכה לומר שהדוח לא נטען. */
  if(k==='line')return (QF.all||[]).filter(r=>expStuck(r)>0)
    .sort((a,b)=>expStuck(b)-expStuck(a));
- if(k==='month')return modeRows('month').filter(r=>r.paramFix&&(r.sugROP||0)>(r.rop||0))
+ if(k==='month')return modeRows('month').filter(ropUpRow)
    .sort((a,b)=>((b.sugROP||0)-(b.rop||0))-((a.sugROP||0)-(a.rop||0)));
  if(k==='cap')return decisionList('cap').slice().sort((a,b)=>(b.expCap||0)-(a.expCap||0));
  return []}
