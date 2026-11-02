@@ -2,7 +2,7 @@
    1 · חריגת צריכה: הסכום בדוח מוצג ליד הסכום המנוקה, וכרטיס הפריט אומר איזה
        חודש תוקן ולמה — מאותה cleanSeries של המנוע.
    2 · «ללא שינוי פרופיל»: נטרול משותף לשני הכלים, נשמר בנפרד מהסימונים, בגיבוי,
-       ופג אחרי חצי שנה. הפריט נשאר בשאר הנושאים.
+       וקבוע עד ביטול ידני. הפריט נשאר בשאר הנושאים.
    3 · PD ← ZM-C: נקודת הזמנה מינימלית של יח׳ אחת בהמלצה; כלי עבודה/אביזרים
        נשארים לבדיקה ידנית, בלי מספר. */
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');
@@ -75,10 +75,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  ok('ביטול בכרטיס הפריט בכלי המלא מחזיר את ההמלצה',!f2.off&&f2.up&&f2.btn,JSON.stringify(f2));
  const t2=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);return {off:profOff(r)}},pick.key);
  ok('והלשונית של התצוגה המצומצמת רואה את הביטול (סנכרון בין לשוניות)',!t2.off);
- /* פקיעה */
- const exp=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);PROFOFF[k]={ts:Date.now()-OD_TTL-864e5,pn:r.pn};
+ /* קבוע עד ביטול ידני (BUSINESS-DECISIONS 2.11) — גם אחרי שנה */
+ const exp=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);PROFOFF[k]={ts:Date.now()-400*864e5,pn:r.pn};
   const a={off:profOff(r),up:pdUpgrade(r)};delete PROFOFF[k];return a},pick.key);
- ok('נטרול בן יותר מחצי שנה פג — ההמלצה חוזרת',!exp.off&&exp.up);
+ ok('נטרול אינו פג — גם אחרי יותר משנה, עד ביטול ידני',exp.off&&!exp.up);
  /* הורדת ZM (לא PD) — אותו כפתור */
  const zm=await T.evaluate(()=>{const r=QF.all.find(x=>profActive(x)&&!pdUpgrade(x));if(!r)return null;
   setProfOff(r,true);const r2=ALL.find(x=>x.pn===r.pn);const a={pn:r.pn,off:profOff(r2),act:profActive(r2)};setProfOff(r2,false);

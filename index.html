@@ -4726,12 +4726,12 @@ const ssCalc=r=>r.sugSSCalc!=null?r.sugSSCalc:r.sugSS;
    פרופיל בוטלה — בשני הכלים — והפריט נשאר בכל שאר הנושאים ובתור העבודה.
    נשמר בנפרד מהסימונים (MARKS מחזיק סימון אחד לפריט, ו«הוזמן» או «בבדיקה»
    היו מוחקים אותו), באותה תשתית של היסטוריית הפרופיל: משותף לשתי הלשוניות
-   (statePersist), נכלל בגיבוי (STATE_KEYS). פג אחרי חצי שנה כמו כל סימון
-   ידני (OD_TTL) — בלי תפוגה זו דרך שקטה לאבד פריטים. */
+   (statePersist), נכלל בגיבוי (STATE_KEYS). קבוע עד ביטול ידני — כהחלטה
+   הרשומה ב-docs/BUSINESS-DECISIONS.md (2.11, «MRP-profile exclusion»). */
 const PROFOFF_KEY='planner_profoff_v1';
 let PROFOFF={};try{const v=JSON.parse(localStorage.getItem(PROFOFF_KEY));if(v&&typeof v==='object')PROFOFF=v}catch(_){}
 function profOffLoad(track=true){try{const v=JSON.parse(stateRaw(PROFOFF_KEY,track));PROFOFF=(v&&typeof v==='object')?v:{}}catch(_){PROFOFF={}}}
-function profOffMark(r){const e=r?PROFOFF[markKey(r)]:null;return (e&&e.ts&&(Date.now()-e.ts)<=OD_TTL)?e:null}
+function profOffMark(r){const e=r?PROFOFF[markKey(r)]:null;return (e&&e.ts)?e:null}
 function profOff(r){return !!profOffMark(r)}
 function setProfOff(r,on){if(!r)return;const k=markKey(r);
  const edit=()=>{if(on)PROFOFF[k]={ts:Date.now(),pn:r.pn};else delete PROFOFF[k]};
@@ -4744,7 +4744,7 @@ function setProfOff(r,on){if(!r)return;const k=markKey(r);
 function profOffRows(){return ((QF&&QF.all)||[]).filter(profOff)}
 /* הכפתור — אותו כפתור בשני הכלים: מופיע כשיש המלצת פרופיל, או כשהיא מנוטרלת */
 function profOffBtn(r,cls){const mk=profOffMark(r);
- if(mk)return `<button type="button" class="${cls}" data-tpd="profoff" data-profoff="0" title="נוטרל ב-${esc(new Date(mk.ts).toLocaleDateString('he-IL'))} · פג אחרי חצי שנה">↺ החזר המלצת פרופיל</button>`;
+ if(mk)return `<button type="button" class="${cls}" data-tpd="profoff" data-profoff="0" title="נוטרל ב-${esc(new Date(mk.ts).toLocaleDateString('he-IL'))} · עד ביטול ידני">↺ החזר המלצת פרופיל</button>`;
  return profActive(r)?`<button type="button" class="${cls}" data-tpd="profoff" data-profoff="1" title="ההמלצה לשינוי פרופיל MRP תבוטל בשני הכלים. הפריט נשאר בשאר הנושאים">ללא שינוי פרופיל</button>`:''}
 function pdUpgrade(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN&&!profOff(r)}
 const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
@@ -14253,7 +14253,7 @@ function tpdIssues(r){const out=[];
  else if(profActive(r)){const i=profInfo(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
   <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
  else if(profOff(r))out.push(`<section class="q3"><div class="qa"><h3>שינוי פרופיל — מנוטרל</h3>
-  <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים. הנטרול פג אחרי חצי שנה.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
+  <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — עד ביטול ידני.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
  if(tpLtMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>אזהרת זמן אספקה</h3><div class="big">${esc(LT_MSG)}</div>
   <p>«אספ.מתוכנ.» ב-SAP: <b>${r.ltRaw===''?'ריק':'0'}</b>${r.ltD>0?` (זמן עיבוד הקבלה ${tpN(r.ltD)} ימים אינו זמן אספקה)`:''}. מלאי ביטחון ונקודת הזמנה: ${LT_NA}.</p>
   <p>${esc(ltValuesMsg(r))} ב-SAP (קיים): נקודת הזמנה ${tpN(r.rop)} · מלאי ביטחון ${tpN(r.ss)}.</p>
