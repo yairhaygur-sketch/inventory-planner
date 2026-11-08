@@ -3447,6 +3447,32 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
 #tbl tbody tr:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
 #tbl tbody tr.sel>td:first-child{box-shadow:inset -3px 0 0 var(--mark-line)}
 #tbl tbody tr.sel:has(.sapsel:checked)>td:first-child{box-shadow:inset -3px 0 0 var(--steady)}
+/* ============ UX5 · כרטיס הפריט, חלופה א׳ — אותו רוחב, בלי מתג הרחבה ============
+   נמדד ב-1440×900 (פיקסצ׳ר): הכרטיס 1,393px מול 848 גלויים; ההחלטה,
+   המספרים, הנימוק והכפתור גלויים, אבל תחתית הגרף והמקרא נחתכו, ו«נתוני
+   מקור» כולו מתחת לקיפול. כאן רק פריסה — אף שורת תוכן אינה יורדת.
+   «אינו מעדכן SAP» נשאר גלוי (ההחלטה שבהערה ליד paramStrip). */
+#detail .dcx{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+#detail .dcx .dcmk{display:inline;margin:0}
+#detail .dcx .dcxl{display:contents}
+#detail .dcx .xgo{padding:2px 9px}
+/* UX5 — אושר 2.11 (אפשרות 1): הסייג הקבוע, זהה בכל כרטיס, עבר לבועית על
+   «הפריט הזה נמצא גם ב» (ⓘ מסמן שיש שם הסבר). הוא נשאר בדף לקוראי מסך. */
+#detail .dcx .dcmk{cursor:help}
+#detail .dcx .dcxi{margin-inline-start:4px;font-weight:400}
+#detail .dcx .dcxn{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+#detail .cstrip{margin-top:8px}
+#detail .cstrip .cs{padding:3px 8px}
+#detail .dcwhy{margin-top:10px}
+#detail .dcb{margin-top:10px}
+#detail .dcnote{margin-top:6px;padding:4px 10px;line-height:1.5}
+#detail .dcnote .dcwhat:not([open]){display:inline;margin:0 6px 0 0}
+#detail .dcnote .dcwhat:not([open]) summary{display:inline}
+#detail .dcmore{margin-top:9px}
+#detail .dcmore ul{line-height:1.45}
+#detail .dcwhy{gap:3px}
+#detail .dcwhy .msg{padding:4px 9px;line-height:1.35}
+.wdetail .dtabs{padding-block:4px}
 </style>
 </head>
 <body>
@@ -11153,7 +11179,8 @@ function barChart(cv,r){
  /* קנבס ברוחב 0 (טאב מוסתר, details סגור) מייצר רדיוסים שליליים
     ו-arc() זורק. נמדד: «The radius provided (-1.16667) is negative». */
  if(!cv||!cv.clientWidth)return;
- const {ctx,W,H}=hidpi(cv,208);
+ /* UX5 — 208→168: יותר מהגרף בתוך החלון ב-1440×900; העמודות, התוויות והמקרא זהים */
+ const {ctx,W,H}=hidpi(cv,168);
  ctx.clearRect(0,0,W,H);
  ctx.fillStyle=CHART_SURF;roundRect(ctx,0,0,W,H,12);ctx.fill();
  const hist=[...r.months].reverse(),histLabs=[...LABELS].reverse();
@@ -11429,7 +11456,7 @@ function decisionBlock(r){
   ${paramStrip(r)}
   ${ltBlock(r)}
   ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
-  ${xOther(r).length?`<div class="dcx"><span class="dcmk">הפריט הזה נמצא גם ב</span>
+  ${xOther(r).length?`<div class="dcx"><span class="dcmk" title="אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.">הפריט הזה נמצא גם ב<span class="dcxi" aria-hidden="true">ⓘ</span></span>
    <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
    <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:''}
   ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
