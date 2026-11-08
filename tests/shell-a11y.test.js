@@ -155,8 +155,39 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   ok('UX3 · כפתור הקיפול אינו עולה על המספר',!ln.overlap);
   if(hadNokpi)await p.evaluate(()=>document.body.classList.add('nokpi'));
   /* שם המסך אינו מתקצר באף מסך (תיקון ל-UX2) */
-  const tcut=await p.evaluate(()=>Object.keys(MODESET).filter(m=>m!=='moves').filter(m=>{setMode(m);const t=document.getElementById('lt');return t.scrollWidth>t.clientWidth+1}));
-  ok('UX3 · שם המסך שלם בכל 25 המסכים, גם כשיש כפתורי ייצוא',!tcut.length,tcut.join(','));
+  /* UX6 — הבדיקה הזו מדדה רק את השם עצמו, וכך פספסה שהאזור שעוטף אותו חתך
+     אותו ברוב המסכים. עכשיו: השם שלם, נמצא כולו בתוך האזור שלו, והכותרת אינה
+     גולשת — בשלושת הרוחבים. */
+  const tcut=[];for(const w of [1366,1440,1920]){await p.setViewportSize({width:w,height:900});
+   /* fitDoors רץ גם בפריים שאחרי render — קוראים לו כאן כדי למדוד את מה שהמשתמש רואה */
+   tcut.push(...(await p.evaluate(()=>Object.keys(MODESET).filter(m=>m!=='moves').filter(m=>{setMode(m);fitDoors();const t=document.getElementById('lt'),sp=t.parentElement,ph=sp.parentElement;
+    const a=t.getBoundingClientRect(),c=sp.getBoundingClientRect();
+    return t.scrollWidth>t.clientWidth+1||a.left<c.left-1||a.right>c.right+1||ph.scrollWidth>ph.clientWidth+1}).map(m=>{setMode(m);fitDoors();const t=document.getElementById('lt'),sp=t.parentElement,ph=sp.parentElement;const a=t.getBoundingClientRect(),c=sp.getBoundingClientRect();return m+'['+[t.scrollWidth-t.clientWidth,Math.round(c.left-a.left),Math.round(a.right-c.right),ph.scrollWidth-ph.clientWidth].join(',')+']'}))).map(m=>w+'/'+m))}
+  await p.setViewportSize({width:1440,height:900});
+  ok('UX3 · שם המסך שלם בכל 25 המסכים, גם כשיש כפתורי ייצוא (1366/1440/1920, כולל חיתוך על ידי האזור העוטף)',!tcut.length,tcut.join(','));
+  /* ============ UX6 · בקרה תקופתית ============ */
+  {const g=await p.evaluate(()=>{setMode('prof');const ks=[...document.querySelectorAll('#railsub > *')].map(e=>e.classList.contains('railgrp')?'@'+e.textContent.trim():e.dataset.m);
+    setMode('qual');const qs=[...document.querySelectorAll('#railsub [data-m]')].map(e=>e.dataset.m);setMode('prof');
+    return {ks,qs,area:AREA_OF.prof,title:document.getElementById('lt').textContent}});
+   ok('UX6 · «שינוי פרופיל MRP» בקבוצה «בקרה תקופתית» בתוך «תכנון ו-MRP», ולא תחת «איכות נתונים»',
+    g.area==='month'&&g.ks.indexOf('@בקרה תקופתית')>=0&&g.ks.indexOf('prof')===g.ks.indexOf('@בקרה תקופתית')+1&&!g.qs.includes('prof')&&/^תכנון ו-MRP · שינוי פרופיל MRP$/.test(g.title),JSON.stringify(g));
+   const e=await p.evaluate(()=>{const act=profRows().filter(profActive);if(act.length<4)return null;const [a,b,c,d]=act,n0=navCount('prof').n;
+     setMark(a,'campaign');setMark(b,'handled');setMark(c,'checking','לבדוק מול הספק');setMark(d,'checking');
+     const n1=navCount('prof').n,ex=profExclRows(),gone=[a,b,c].every(r=>!profActive(r)&&!profRows().includes(r)),keep=profActive(d);
+     setMode('prof');const band=document.getElementById('track');
+     const out={n0,n1,ex:ex.length,gone,keep,band:band.style.display!=='none'&&band.querySelectorAll('tbody tr').length,why:ex.map(profExclWhy)};
+     [a,b,c,d].forEach(r=>setMark(r,null));out.n2=navCount('prof').n;return out});
+   ok('UX6 · «קמפיין», «טופל» וסימון עם הערה אינם מועמדים — וסימון בלי הערה כן',
+    !!e&&e.gone&&e.keep&&e.n1===e.n0-3&&e.ex===3,JSON.stringify(e));
+   ok('UX6 · ומופיעים ברשימת המוחרגים מעל הטבלה, עם הסיבה',!!e&&e.band===3&&e.why.join('|')==='קמפיין|טופל|סימון עם הערה',e&&e.why.join('|'));
+   ok('UX6 · ביטול הסימון מחזיר את ההמלצה',!!e&&e.n2===e.n0,e&&`${e.n0} → ${e.n1} → ${e.n2}`);
+   const u=await p.evaluate(async()=>{const r=profRows().filter(profActive)[0];setProfOff(r,true);setMode('prof');
+     const b=document.querySelector('#track [data-profx-undo]');const had=!!b&&profExclRows().includes(r);if(b)b.click();
+     await new Promise(z=>setTimeout(z,300));return {had,back:profActive(r)&&!profOff(r)}});
+   ok('UX6 · «↺ החזר» ברשימה מבטל את «ללא שינוי פרופיל»',u.had&&u.back,JSON.stringify(u))
+   const x=await p.evaluate(()=>{const r=profRows().filter(profActive)[0];setProfOff(r,true);const a=profExclAoa();setProfOff(r,false);return {h:a&&a[0].join('|'),n:a&&a.length-1,none:profExclAoa()}});
+   ok('UX6 · גיליון «ללא שינוי פרופיל» בעמודות שאושרו, ואין גיליון כשאין מוחרגים',
+    x.h==='מק״ט|תיאור|פרופיל נוכחי|פרופיל מומלץ|סיבת ההחרגה|תאריך ההחרגה|הערה'&&x.n===1&&x.none===null,JSON.stringify(x))}
   /* ============ UX5 · כרטיס הפריט: ההחלטה, הפעולה והגרף בלי גלילה ============ */
   {const fit=[];for(const w of [1366,1440,1920]){await p.setViewportSize({width:w,height:900});
    for(const m of ['today','month','cap']){const f=await p.evaluate(async m=>{setMode(m);const r=currentRows()[0];if(!r)return null;detail(r);

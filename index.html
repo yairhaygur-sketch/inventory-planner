@@ -280,11 +280,16 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .chips.inline{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;align-items:center;min-width:0}
 .chips.inline .chip{font-size:var(--f-sm);padding:2px 7px;white-space:nowrap}
 #subChip{flex:0 1 auto;min-width:7em}
+/* UX6 — תיקון ל-UX4: .chips.inline{display:flex} גבר על [hidden], והתווית המוסתרת תפסה 91px */
+#subChip[hidden]{display:none}
+.phd.tight .phdexp .lbl{display:none}
+.phd.tight .phdexp .lbs{display:inline}
+.phd.wrap2{flex-wrap:wrap;row-gap:6px}
+.phd.wrap2 #phdSub{flex:1 1 0;min-width:0}
 #subChip .chip{min-width:0;overflow:hidden}
 #subChip .sct{overflow:hidden;text-overflow:ellipsis;min-width:0;cursor:default;font-weight:600}
 #subChip b,#subChip .subx{flex:0 0 auto}
 #w_queue .phd>span:first-child>.title{white-space:nowrap}
-#w_queue .phd:has(#subChip:not([hidden]))>span:first-child{min-width:min-content}
 /* UX4 — עם תווית «מסונן», ההסבר הקבוע מתקצר ראשון, לפני התווית */
 #w_queue .phd:has(#subChip:not([hidden])) #phdSub{flex:1 1 0}
 #subChip .subx{background:none;border:0;padding:0 2px;color:inherit;font:inherit;cursor:pointer;line-height:1}
@@ -1850,10 +1855,11 @@ td.pnc{padding:5px 14px;font-size:13px}
 /* UX2 — פעולות הקובץ נכנסו לשורה. כשאין מקום (נמדד: «חוסרים ולקוחות» ב-1366,
    119px), מה שמתקצר הוא הסכומים שאחרי המונה — לא שם המסך, לא המונה ולא
    כפתור. הם מופיעים גם בשורת הסיכום שמתחת לטבלה, והמשפט המלא ב-title. */
-#w_queue .phd>span:first-child{flex:0 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden}
+/* UX6 — תיקון ל-UX3: min-width היה 0, והאזור חתך את שם המסך ברוב המסכים (נמדד ב-1440/1920). עכשיו: השם + המונה; רק המשפט שאחרי המונה מתקצר */
+#w_queue .phd>span:first-child{flex:0 1 auto;min-width:min-content;display:flex;align-items:baseline;gap:6px;overflow:hidden}
 /* UX3 — תיקון ל-UX2: שם המסך עצמו התקצר («רכש…»). רק הסכומים (#lc) מתקצרים. */
 #w_queue .phd>span:first-child>.title{flex:0 0 auto}
-#w_queue .phd>span:first-child>#lc{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#w_queue .phd>span:first-child>#lc{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;contain:inline-size}
 
 /* סימון קבוצתי */
 .bulkwrap{position:relative;margin-inline-start:auto}
@@ -3473,6 +3479,14 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
 #detail .dcwhy{gap:3px}
 #detail .dcwhy .msg{padding:4px 9px;line-height:1.35}
 .wdetail .dtabs{padding-block:4px}
+/* UX6 · בקרה תקופתית — כותרת הקבוצה במסילה, ורשימת המוחרגים במסך הפרופיל */
+.railsect.railgrp{padding-top:10px;border-top:1px solid var(--shell-line,rgba(255,255,255,.12));margin-top:6px}
+#track .profx{margin:6px 0;font-size:var(--f-sm)}
+#track .profx summary{cursor:pointer;font-weight:700;color:var(--ink-2)}
+#track .profxt{width:100%;border-collapse:collapse;margin-top:6px}
+#track .profxt th,#track .profxt td{padding:4px 8px;border-bottom:1px solid var(--line2);text-align:start;white-space:nowrap}
+#track .profxt td:nth-child(2),#track .profxt td:nth-child(7){white-space:normal}
+#track .profxt .btn{padding:2px 8px}
 </style>
 </head>
 <body>
@@ -4778,11 +4792,45 @@ function setProfOff(r,on){if(!r)return;const k=markKey(r);
  PFSIM=null;DL_CACHE={};if(ALL&&ALL.length)apply()}
 /* פריטים מנוטרלים בדוח הנוכחי — לרשימת הביטול בשני הכלים */
 function profOffRows(){return ((QF&&QF.all)||[]).filter(profOff)}
+/* UX6 — רשימת המוחרגים במסך הפרופיל: כל מי שנוטרל ידנית, ומי שסימון מחריג
+   אותו ויש לו המלצה פעילה (בלי המלצה — כל פריט קמפיין היה נכנס לרשימה) */
+function profExclRows(){return ((QF&&QF.all)||[]).filter(r=>{if(profOff(r))return true;
+  if(!profMarkWhy(r))return false;const i=profInfoRaw(r);return !!i&&(i.state==='up'||i.state==='down'||i.state==='check')})}
+function profExclWhy(r){return profOff(r)?'ידני — ללא שינוי פרופיל':profMarkWhy(r)}
+function profExclDate(r){const m=profOffMark(r)||((typeof MARKS!=='undefined')&&(MARKS[markKey(r)]||MARKS[r.pn]))||null;
+ return m&&m.ts?new Date(m.ts).toLocaleDateString('he-IL'):''}
+function profExclNote(r){const m=(typeof MARKS!=='undefined')&&(MARKS[markKey(r)]||MARKS[r.pn]);return m&&m.note?String(m.note):''}
+/* שורות הגיליון «ללא שינוי פרופיל» — העמודות שאושרו 2.11 */
+function profExclAoa(){const l=profExclRows();if(!l.length)return null;
+ const N=k=>k?PROF_NAME[k]:'';
+ return [['מק״ט','תיאור','פרופיל נוכחי','פרופיל מומלץ','סיבת ההחרגה','תאריך ההחרגה','הערה']]
+  .concat(l.map(r=>{const i=profInfoRaw(r);return [r.pn,r.desc||'',N(profCur(r)),i?N(i.tgt):'',profExclWhy(r),profExclDate(r),profExclNote(r)]}))}
+function profExclBand(){const l=profExclRows();if(!l.length)return '';
+ const N=k=>k?PROF_NAME[k]:'—';
+ return `<details class="profx"><summary>${l.length.toLocaleString('he-IL')} פריטים ללא שינוי פרופיל — נוטרלו ידנית או בגלל סימון</summary>
+  <table class="profxt"><thead><tr><th>מק״ט</th><th>תיאור</th><th>נוכחי</th><th>מומלץ</th><th>סיבה</th><th>תאריך</th><th>הערה</th><th></th></tr></thead><tbody>${l.map(r=>{const i=profInfoRaw(r);
+   return `<tr><td><bdi>${esc(r.pn)}</bdi></td><td>${esc((r.desc||'').slice(0,40))}</td><td>${esc(N(profCur(r)))}</td><td>${esc(i?N(i.tgt):'—')}</td>
+    <td>${esc(profExclWhy(r))}</td><td>${esc(profExclDate(r))}</td><td>${esc(profExclNote(r).slice(0,40))}</td>
+    <td>${profOff(r)?`<button type="button" class="btn" data-profx-undo="${esc(markKey(r))}">↺ החזר</button>`
+      :`<button type="button" class="btn" data-profx-open="${esc(markKey(r))}" title="ההחרגה נובעת מהסימון — ביטולו בכרטיס מחזיר את ההמלצה">פתח כרטיס</button>`}</td></tr>`}).join('')}</tbody></table></details>`}
 /* הכפתור — אותו כפתור בשני הכלים: מופיע כשיש המלצת פרופיל, או כשהיא מנוטרלת */
 function profOffBtn(r,cls){const mk=profOffMark(r);
  if(mk)return `<button type="button" class="${cls}" data-tpd="profoff" data-profoff="0" title="נוטרל ב-${esc(new Date(mk.ts).toLocaleDateString('he-IL'))} · עד ביטול ידני">↺ החזר המלצת פרופיל</button>`;
  return profActive(r)?`<button type="button" class="${cls}" data-tpd="profoff" data-profoff="1" title="ההמלצה לשינוי פרופיל MRP תבוטל בשני הכלים. הפריט נשאר בשאר הנושאים">ללא שינוי פרופיל</button>`:''}
-function pdUpgrade(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN&&!profOff(r)}
+/* ============ UX6 · פריט מסומן אינו מועמד לשינוי פרופיל (אושר 2.11) ============
+   «קמפיין», «טופל», או סימון שיש בו הערה — ההמלצה לשינוי פרופיל אינה
+   מוצגת, בדיוק כמו «ללא שינוי פרופיל» הידני (PROF_OFF), ובאותה שרשרת:
+   pdUpgrade ו-profInfo. הסימון נקרא מ-MARKS עצמו ולא מ-it.mark, כי classify
+   אינו מצמיד את כל סוגי הסימון לפריט (סימוני מצב טיפול הולכים ל-it.wip).
+   סימון שפג אינו מחריג. ההחרגה חיה כל עוד הסימון חי; ביטולו מחזיר את ההמלצה. */
+function profMarkWhy(r){if(!r||typeof MARKS==='undefined')return '';
+ const mk=MARKS[markKey(r)]||MARKS[r.pn];
+ if(!mk||!mk.t||markExpired(mk))return '';
+ if(mk.t==='campaign'||mk.t==='handled')return MARK_LABEL[mk.t]||mk.t;
+ return String(mk.note||'').trim()?'סימון עם הערה':''}
+function profExcl(r){return profOff(r)||!!profMarkWhy(r)}
+function pdUpgradeRaw(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN}
+function pdUpgrade(r){return pdUpgradeRaw(r)&&!profExcl(r)}
 const PROF_RANK={D:0,C:1,B:2,A:3},PROF_SRV={D:50,C:80,B:95,A:99},
  PROF_NAME={D:'PD',C:'ZM-C',B:'ZM-B',A:'ZM-A'};
 function profCur(r){if(isPD(r.mrp))return 'D';
@@ -4800,10 +4848,12 @@ const PROF_ST={up:['להעלות',0],down:['להוריד',1],check:['לבדוק 
  wait:['בהמתנה לחודש הבא',3],keep:['לא להוריד',4]};
 /* היעד לפי H — להורדות בלבד, ולעולם לא מתחת ל-ZM-C (שלב 2) */
 function profTgtZM(h){const t=profTgt(h);return t==='D'?'C':t}
-function profInfo(r){const cur=profCur(r);if(!cur||profOff(r))return null;
+/* UX6 — profInfoRaw היא ההמלצה כפי שהייתה ללא החרגה; לרשימת המוחרגים */
+function profInfo(r){return profExcl(r)?null:profInfoRaw(r)}
+function profInfoRaw(r){const cur=profCur(r);if(!cur)return null;
  const h=profH(r);
  /* PD: העלאה ל-ZM-C לפי pdUpgrade בלבד. אין ל-PD לאן לרדת. */
- if(cur==='D'){if(!pdUpgrade(r))return null;
+ if(cur==='D'){if(!pdUpgradeRaw(r))return null;
   const od=OD_GROUPS.has(r.mkt1);
   return {cur,tgt:'C',h,net:r.net12,state:'up',od,
    why:`צריכה נטו ${r.net12} יח׳ ב-12 ח׳ — להחזיק מלאי`
@@ -6712,7 +6762,7 @@ const NAV=[
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
  line:'line',rise:'line',ropGap:'line',ropThin:'line',month:'month',floor:'month',trend:'month',applied:'month',
  over3y:'month',tier:'month',floorNR:'month',
- qual:'qual',stale:'qual',prof:'qual',cap:'cap',catalog:'catalog',moves:'catalog',
+ qual:'qual',stale:'qual',prof:'month',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
  capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
 /* ============ WORDS — שמות שנאמרים בקול ============
@@ -6787,8 +6837,10 @@ const SUBNAV={
    ['ropGap','ROP קצר מזמן האספקה'],['ropThin','ROP נמוך מהמומלץ']],
  month:[['month','מספר לתקן ב-SAP'],['over3y','מעל מכירות 3 שנים'],['tier','מינימום לפי מחיר'],
    ['floor','מלאי ביטחון ידני'],['floorNR','מינימום בלי דרישה'],
-   ['trend','ביקוש יורד'],['applied','יושמו ב-SAP']],
- qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר'],['prof','שינוי פרופיל MRP']],
+   ['trend','ביקוש יורד'],['applied','יושמו ב-SAP'],
+   /* UX6 — בקרה תקופתית (בערך פעם בחודש), בקבוצה נפרדת בתחום התכנון. היה תחת «איכות נתונים». */
+   ['@','בקרה תקופתית'],['prof','שינוי פרופיל MRP']],
+ qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר']],
  cap:[['cap','כסף תקוע'],['capPO','רכש בדרך לעודף'],['capStop','להפסיק להזמין'],
    ['capBiz','החלטה מסחרית'],['capNone','אין מה לשנות']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']]};
@@ -8589,7 +8641,7 @@ function tiles(){
  const sb=document.getElementById('railsub');
  if(sb){
   sb.innerHTML=subs.length?`<div class="railsect">בתוך ${esc((NAV.find(x=>x[0]===area)||[,''])[1])}</div>`
-   +subs.map(([k,nm])=>{const {n}=navCount(k);
+   +subs.map(([k,nm])=>{if(k==='@')return `<div class="railsect railgrp">${esc(nm)}</div>`;const {n}=navCount(k);
     const on=(k==='moves')?(cur==='moves'):(mode===k&&cur!=='moves');
     return `<button type="button" class="railsub2 ${on?'sel':''}" data-m="${k}" data-nav="${k}" data-nav-level="sub"
      data-xp="nav-${k}" title="${esc(nm)} — ${esc(NAV_WHAT[k]||'')}"><span class="t">${esc(nm)}</span>
@@ -10800,9 +10852,9 @@ function renderDecisions(rows){
        +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
    :track==='prof'
    ?(()=>{const c={};for(const r of rows){const st=profInfo(r).state;c[st]=(c[st]||0)+1}
-      const off=profOffRows().length;
+      const off=profExclRows().length;
       return ['up','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${PROF_ST[k][0]} ${c[k].toLocaleString('he-IL')}`).join(' · ')
-       +(off?` · ${off.toLocaleString('he-IL')} ללא שינוי פרופיל (נוטרלו ידנית — ביטול בכרטיס הפריט)`:'')})()
+       +(off?` · ${off.toLocaleString('he-IL')} ללא שינוי פרופיל (נוטרלו ידנית או בגלל סימון — הרשימה מעל הטבלה)`:'')})()
    :track==='stale'
    ?(()=>{const u=rows.reduce((a,r)=>a+(r.etaPast||0),0);
       return u?`${u.toLocaleString('he-IL')} יח׳ בשורות שתאריכן חלף · אינן נספרות ככיסוי בשום מקום`
@@ -10889,6 +10941,8 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
  {const d=document.getElementById('doors');
   if(d)d.classList.toggle('off',![...d.children].some(b=>!b.hidden));}
  fitDoors();
+ /* UX6 — שוב אחרי שכל רכיבי הכותרת (קיבוץ, ייצוא, שבבים) מסונכרנים */
+ requestAnimationFrame(fitDoors);
  if(typeof syncApBtn==='function')syncApBtn();
  setTimeout(()=>{if(typeof updatePush==='function')updatePush()},0);
  if(typeof syncGseg==='function')syncGseg();
@@ -10945,7 +10999,10 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
    if(tkS){tkS.innerHTML='';tkS.style.display='none'}
    renderDecisions(rows);return}
  if(track==='prof'){const tkP=document.getElementById('track');
-   if(tkP){tkP.innerHTML='';tkP.style.display='none'}
+   /* UX6 — רשימת המוחרגים, מקופלת, מעל הטבלה */
+   if(tkP){const h=profExclBand();tkP.innerHTML=h;tkP.style.display=h?'':'none';
+    tkP.querySelectorAll('[data-profx-undo]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxUndo);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}});
+    tkP.querySelectorAll('[data-profx-open]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxOpen);if(r)detail(r)})}
    renderDecisions(rows);return}
  if(track==='cust'){const tk3=document.getElementById('track');
    if(tk3){tk3.innerHTML='';tk3.style.display='none'}
@@ -12224,6 +12281,8 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  const mAoa=movExportRows();
  const vx=onMoves?(mAoa.length?{aoa:mAoa,keys:mAoa[0]}:null):viewExportRows();
  if(vx)sheets.push({name:'התצוגה',cols:vx.keys.map((k,i)=>({wch:i<2?24:13})),aoa:vx.aoa});
+ /* UX6 — במסך שינוי פרופיל: גיליון המוחרגים (אושר 2.11). אין מוחרגים — אין גיליון */
+ if(!onMoves&&track==='prof'){const px=profExclAoa();if(px)sheets.push({name:'ללא שינוי פרופיל',cols:px[0].map((h,i)=>({wch:i<2?22:14})),aoa:px})}
  sheets.push({name:(vx?'כל הנתונים · ':'')+tabName.slice(0,16),cols:XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)})),aoa});
  /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל). בתנועות הוא כבר «התצוגה». */
  if(!onMoves&&mAoa.length>1){
@@ -12481,9 +12540,16 @@ document.getElementById('riseBtn').onclick=()=>jumpTo('rise','month');
 function fitDoors(){
  const d=document.getElementById('doors');if(!d)return;
  const phd=d.closest('.phd');if(!phd)return;
- d.classList.remove('compact');
+ d.classList.remove('compact');phd.classList.remove('tight','wrap2');
  if(phd.getBoundingClientRect().height>48||phd.scrollWidth>phd.clientWidth+1)
   d.classList.add('compact');
+ /* UX6 — שלב שני, רק כשהכותרת עדיין אינה נכנסת: כפתורי הייצוא עוברים לסמל
+    (ולתווית הקצרה, כשיש). השם המלא נשאר ב-title וב-aria-label. עד כאן מי
+    ששילם על הצפיפות היה שם המסך — נחתך, ובמסכים הצפופים נעלם לגמרי. */
+ if(phd.scrollWidth>phd.clientWidth+1)phd.classList.add('tight');
+ /* שלב שלישי, אחרון: שורה שנייה. נמדד ב-1366 עם דוח ETA — «מלאי ביטחון ידני»
+    עדיין חרג ב-90px אחרי שני השלבים. עדיף שורה נוספת מכפתור שיוצא מהמסך. */
+ if(phd.scrollWidth>phd.clientWidth+1)phd.classList.add('wrap2');
  /* במצב הצפוף השם נעלם ונשאר סמל ומספר. השם עדיין חייב להגיע לקורא
     מסך ולניווט מקלדת, ולכן הוא עובר ל-aria-label מאותו טקסט עצמו. */
  d.querySelectorAll('.btn').forEach(b=>{
