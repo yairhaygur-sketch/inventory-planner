@@ -242,7 +242,7 @@ Changes to these areas require explicit business approval.
   the minimal tool through the full tool's own loader.
 
 - **2026-11-02 · Approved, not yet implemented.**
-  - **PDI / customer order against non-free stock.** When non-free stock
+  - **PDI / customer order against non-free stock** (implemented 8.11, see below). When non-free stock
     (total − free) covers an open customer order, the order is not shown as
     «without coverage». It gets its own state («non-free stock against the
     order — check: reserved for PDI or blocked») and no automatic purchase
@@ -293,6 +293,25 @@ Changes to these areas require explicit business approval.
     profile · reason · exclusion date · note. No excluded items, no sheet.
   - «MRP profile change» moved from «data quality» to the planning domain,
     under a separate «periodic control» heading.
+
+- **2026-11-08 · PDI — customer order against non-free stock (implemented).**
+  - Non-free stock = total − free. When it covers what the order still lacks
+    after free stock and open purchase orders, the item gets its own state:
+    «מלאי לא פנוי מול ההזמנה — לבדוק: שמור ל-PDI או חסום». No automatic
+    purchase recommendation (action: check in SAP whether the stock is
+    reserved or blocked; if blocked, release or order). Not «without
+    coverage»: not in «אין רכש כלל», «כיסוי חלקי», the minimal tool's
+    «customer orders without coverage», or the expedite report's «no order
+    at all». Not treated as covered either: the shortage stays, the item
+    stays in «חוסרים ולקוחות», same severity, and in the work center under
+    «customer waiting, purchase does not cover». Tables show a short label;
+    the full state is in the card, the tooltip and the Excel export.
+  - Partial coverage (non-free stock smaller than the gap): stays «without
+    coverage», with one info line in the card.
+  - Measured on the real report (8.11): 0 items in the new state, 1 with the
+    info line; queues, screens, counters and exports otherwise unchanged.
+    Synthetic report: 6 items move, «כיסוי חלקי» 134 → 128. In the Excel
+    export those items' «uncovered customer order» and its value are blank.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 

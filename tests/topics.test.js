@@ -365,6 +365,9 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   const row=aoa[hi+1];const PN=`O'K"<b>X</b>`;
   row[col('מק"ט מוביל')]=PN;row[col('מלאי פנוי')]=0;row[col('כמות בהז.פ')]=7;row[col('הז. רכש')]=0;
   if(col('סה"כ מלאי')>=0)row[col('סה"כ מלאי')]=0;
+  /* PDI: «סה״כ מלאי» 0 נופל ל«מלאי מרלוג» (build), ומלאי לא פנוי שמכסה את ההזמנה מוציא
+     אותה מ«ללא כיסוי». הפריט כאן נועד להיות «לקוח ממתין, אין מלאי» — אפס גם שם. */
+  if(col('מלאי מרלוג')>=0)row[col('מלאי מרלוג')]=0;
   const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,XLSX.utils.aoa_to_sheet(aoa),wb.SheetNames[0]);
   const f2=path.join(tmp,'odd.xlsx');XLSX.writeFile(wb2,f2);
   const q=await page(1440,900,'?topics');await q.setInputFiles('#f',f2);await q.waitForSelector('#lite table');
