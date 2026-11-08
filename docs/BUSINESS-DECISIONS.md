@@ -278,6 +278,22 @@ Changes to these areas require explicit business approval.
     days to zero = free ÷ monthly rate × 30, from today, before the nearest
     ETA delivery date — also when that is after month end.
 
+- **2026-11-08 · MRP-profile exclusion — completed (UX6, full tool).**
+  - An item marked «campaign» or «done», or with any mark that carries a
+    note, is not a profile-change candidate while the mark is valid. An
+    expired mark does not exclude. Same effect as the manual «no profile
+    change»: the recommendation is cancelled in both tools (`pdUpgrade`,
+    `profInfo`). The profile-screen counter drops by the number of such
+    items with an active recommendation; with no marks it is unchanged
+    (real report, clean browser: 0 changes).
+  - The full tool's profile screen lists the excluded items (manual and by
+    mark, with the reason) above the table; manual ones have «undo», mark
+    ones open the item card. Its Excel export adds a sheet «ללא שינוי
+    פרופיל»: part number · description · current profile · recommended
+    profile · reason · exclusion date · note. No excluded items, no sheet.
+  - «MRP profile change» moved from «data quality» to the planning domain,
+    under a separate «periodic control» heading.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
