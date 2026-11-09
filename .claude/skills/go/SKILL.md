@@ -15,7 +15,7 @@ description: תהליך הסיום המלא של משימת פיתוח ב-ZMRP �
 ```
 index.html          קובץ יחיד — CSS + HTML + JavaScript + SheetJS מוטמע
                     אין build · אין שרת · אין dev server · פותחים בדפדפן
-npm test            npm run fixture && node tests/run-all.js   (25 קבצים)
+npm test            npm run fixture && node tests/run-all.js   (כ-45 קבצים)
 ```
 
 **אין בפרויקט eslint, אין prettier ואין tsconfig.** אל תדווח «Lint עבר» ואל תמציא
@@ -27,11 +27,12 @@ npm test            npm run fixture && node tests/run-all.js   (25 קבצים)
 
 ### Chromium בקונטיינר
 
-הפרויקט נועל `playwright@1.62.1` שמחפש build 1234, ובקונטיינר יש 1194. הבדיקות
+הפרויקט נועל `playwright@1.62.1`, והגרסה המותקנת מראש בקונטיינר יכולה להיות אחרת
+(ב-9.11.2026: build 1194; `/opt/pw-browsers/chromium` הוא קישור אליו). הבדיקות
 מכבדות `CHROMIUM_PATH`:
 
 ```bash
-export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+export CHROMIUM_PATH=/opt/pw-browsers/chromium
 ```
 
 אם הבדיקות נופלות כולן על שגיאת דפדפן — זה זה, ולא הקוד. ב-CI אין בעיה
@@ -66,7 +67,7 @@ export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
 לא «הבדיקות עברו». לפתוח את הכלי, להזין דוח, ללחוץ, להסתכל.
 
 ```bash
-export CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome
+export CHROMIUM_PATH=/opt/pw-browsers/chromium
 S=<scratchpad>; V=.claude/skills/go/verify
 node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 ```
@@ -90,12 +91,12 @@ node $V/engine-snapshot.js index.html $S/incoming/zt.xlsx $S/after.json
 ## 3 · להריץ Tests, Lint ו-Type Check רלוונטיים
 
 ```bash
-npm test                              # כל הקבצים (41 ב-1.11.2026) · ~25 דקות · הכול, לא תת-קבוצה
+npm test                              # כל הקבצים (45 ב-9.11.2026) · ~25 דקות · הכול, לא תת-קבוצה
 node $V/syntax-check.js .             # תחליף ל-lint/tsc שאינם קיימים
 node $V/data-leak-check.js $S/incoming/zt.xlsx .
 ```
 
-- [ ] **25/25 קבצים, אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
+- [ ] **כל הקבצים (45/45 ב-9.11.2026), אפס `FAIL`.** `run-all.js` מריץ את כולם גם כשאחד נופל —
       קרא את הסיכום בסוף, לא רק את הקובץ הראשון.
 - [ ] `syntax-check` נקי.
 - [ ] **`data-leak-check` מחזיר 0 מק״טים ו-0 ספקים.** הריפו ציבורי ומגיש
@@ -181,7 +182,7 @@ git diff --stat
 
 לא דילוג. פישוט שובר דברים.
 
-- [ ] `npm test` — שוב, 25/25.
+- [ ] `npm test` — שוב, כל הקבצים.
 - [ ] `syntax-check` · `data-leak-check` — שוב.
 - [ ] `engine-snapshot` + `engine-diff` — **שוב, מול אותו בסיס.** הפישוט חייב
       להיות 0 זזו מול המצב שלפניו.
@@ -195,7 +196,7 @@ git diff --stat
 
 **הראיות** — מספרים, לא הבטחות:
 ```
-25/25 קבצים · 0 FAIL
+45/45 קבצים · 0 FAIL
 business-guard: 7,990 פריטים · 26 מסכים · 0 הבדלים
 7,990 פריטים · 0 זזו · 0 תורים · 0 דלתות · 0 כסף בכל מטבע
 data-leak: 0 מק״טים · 0 ספקים
