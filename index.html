@@ -5772,6 +5772,22 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       (it.cust>0&&it.stock>0)?'ללא רכש נוסף · מעקב חיסול':null].filter(Boolean);
     Q.passive.push(it);continue}
   const gap=it.cust-(Math.max(0,it.free)+Math.max(0,it.po));
+  /* ============ PDI — הזמנת לקוח מול מלאי לא פנוי (אושר 2.11, 8.11) ============
+     מלאי לא פנוי = סה״כ − פנוי. כשהוא מכסה את מה שחסר אחרי המדף הפנוי
+     והרכש הפתוח, ההזמנה אינה «ללא כיסוי»: מצב משלה, בלי המלצת רכש
+     אוטומטית. הדוח אינו מבדיל בין חסום לשמור, ולכן ההזמנה גם אינה
+     «מכוסה» — miss נשאר, והפריט נשאר בתור. לא burn ולא custGap: אינו
+     ב«אין רכש כלל», ב«כיסוי חלקי» או ב«הזמנות לקוח ללא כיסוי» (4 הנושאים).
+     כיסוי חלקי — נשאר כמו היום, עם שורת מידע אחת (pdiPartLine למטה).
+     נמדד על הדוח האמיתי (8.11): 0 פריטים במצב הזה, 1 בכיסוי חלקי. */
+  const nonFree=Math.max(0,(it.stock||0)-Math.max(0,it.free));
+  delete it.pdi;   /* classify רץ שוב על אותם אובייקטים — הדגל קיים רק כשהוא אמת */
+  if(it.cust>0&&gap>0&&nonFree>=gap){it.miss=gap;it.sev=3;it.pdi=true;it.cat=PDI_CAT;   /* sev 3: לקוח ממתין — אותה חומרה, אותו מקום בסדר */
+    it.why=[['warn',`הזמנת לקוח ${it.cust} מול מלאי פנוי ${Math.max(0,it.free)}${it.po>0?` ורכש ${it.po}`:''} — חסרות ${gap} יח׳, ובמלאי ${nonFree} יח׳ לא פנויות`],
+      ['info','הדוח אינו מבדיל בין מלאי חסום למלאי שמור (למשל ל-PDI) — לכן ההזמנה אינה נחשבת מכוסה, ואין המלצת רכש אוטומטית'],
+      it.priceMissing?['warn','מחיר FOB חסר — לא ניתן לכמת את ההון הכלוא']:null].filter(Boolean);
+    it.act=['לבדוק ב-SAP: המלאי שאינו פנוי שמור להזמנה (PDI) או חסום',`אם חסום — לשחרר, או להזמין ${gap} יח׳`];
+    Q.immediate.push(it);continue}
   if(it.cust>0&&gap>0){it.miss=gap;it.sev=3;
     const noPO=it.po<=0;it.cat=noPO?'לקוח ממתין · אין רכש':'הזמנת לקוח לא מכוסה';
     it.why=[['err',noPO?`הזמנת לקוח ${it.cust} מול מלאי ${it.free} — אין הזמנת רכש`:`הזמנת לקוח ${it.cust} מול מלאי ${it.free} ורכש ${it.po} — חסרות ${gap} יח׳`],
@@ -5780,6 +5796,8 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
        Q.waiting הוכרע כאן ממילא. הדגל אינו סיווג חדש ואינו משנה אף
        הכרעה — הוא רק מאפשר למיון ולמסלול להצביע על אותו דלי בלי
        להשוות מחרוזות cat. */
+    /* PDI — כיסוי חלקי: נשאר «ללא כיסוי», ושורת מידע אחת (אושר 8.11) */
+    if(nonFree>0)it.why.push(['info',`${nonFree} יח׳ במלאי לא פנוי — לבדוק אם שמורות להזמנה`]);
     it.burn=noPO;it.custGap=true;
     it.act=[noPO?`לפתוח הזמנת רכש ל-${gap} יח׳`:`להשלים רכש ב-${gap} יח׳ לפחות`];(noPO?Q.waiting:Q.immediate).push(it);continue}
   /* מלאי שאינו מכסה את החודש הקרוב קודם לכל סיווג מעקב אספקה.
@@ -9523,6 +9541,9 @@ function burnTotals(rows){const cur={};let units=0;
    מכסים. זה בדיוק הרונג של הלקוח ב-classify, על שני ענפיו — 16 ללא
    רכש ו-118 עם רכש חלקי, סה״כ 134. «ללא רכש» הוא תת-הקבוצה הבוערת
    ויש לו מסלול משלו; הדלת הזאת היא התמונה המלאה. */
+const PDI_CAT='מלאי לא פנוי מול ההזמנה — לבדוק: שמור ל-PDI או חסום';
+/* בטבלאות — השם המלא ארוך מדי לעמודת הסיווג (נמדד: הרחיב אותה מ-168 ל-319px ב-1280). המלא ב-title, בכרטיס ובייצוא */
+const PDI_SHORT='מלאי לא פנוי — לבדוק';
 function custWaiting(r){return !!r.custGap}
 function custRows(){return (QF&&QF.all?QF.all:[]).filter(r=>custWaiting(r)&&passColFilters(r))}
 function custVal(r){return r.cust*(r.price||0)}
@@ -9793,7 +9814,9 @@ const SCOL={
     של התיאור: שם הוא מוסיף גלולה לתיאור, וכאן יש לסיווג עמודה משלו. */
  cat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
   cell:(r,x)=>(x&&x.gmaj&&r.cat===x.gmaj)
-   ?`<td class="note"><span class="ocat same" title="${esc(r.cat)} — כמו כותרת הקבוצה">${esc(r.cat)}</span></td>`
+   ?`<td class="note"><span class="ocat same" title="${esc(r.cat)} — כמו כותרת הקבוצה">${r.pdi?PDI_SHORT:esc(r.cat)}</span></td>`
+   /* PDI — שם המצב ארוך (31 תווים יותר מהארוך שהיה); בטבלה גרסה קצרה, המלא ב-title, בכרטיס ובייצוא */
+   :r.pdi?`<td class="note"><span class="ocat" style="${sCatStyle(r)}" title="${esc(r.cat)}">${PDI_SHORT}</span></td>`
    :`<td class="note"><span class="ocat" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
  /* ============ משפחת הפרמטרים ============
     ROP ו-SS קיים מול מוצע, הדרישה הסטטיסטית, זמן האספקה והפערים.
@@ -9960,7 +9983,7 @@ const SCOL={
     הראשי של הקבוצה. */
  capType:{t:'למה הכסף תקוע',ttl:'מה מחזיק את הכסף במחסן — עודף, איטי, מת, או ללא פעולה',
   val:r=>String(r.cat||''),xval:r=>String(r.cat||''),
-  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat||'')}</span></td>`},
+  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}"${r.pdi?` title="${esc(r.cat)}"`:''}>${r.pdi?PDI_SHORT:esc(r.cat||'')}</span></td>`},
  capVal:{t:'כסף תקוע',ttl:'השווי שיושב בפריט לפי מחיר ה-FOB. הדירוג הוא בתוך המטבע בלבד',
   val:r=>r.expCap||0,xval:r=>Math.round(r.expCap||0),
   cell:r=>`<td class="num val"><span class="stake cap">${money(r.expCap||0,r.currency)}</span>${r.slowEst?`<span class="est" title="${SLOW_EST}">אומדן</span>`:''}</td>`},
@@ -10061,7 +10084,7 @@ const SCOL={
   cell:r=>`<td class="dsc"${dscTtl(r.desc,30)}>${hlMark(r.desc.slice(0,30),SQ)}`
    +(d2Hit(r)?`<span class="den" title="${esc(r.desc2)}">${hlMark(r.desc2.slice(0,30),SQ)}</span>`:'')+'</td>'},
  cCat:{t:'סיווג',val:r=>String(r.cat||''),ttl:'הסיווג שהמנוע נתן לפריט',
-  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}">${esc(r.cat)}</span></td>`},
+  cell:r=>`<td><span class="badge" style="${sCatStyle(r)}"${r.pdi?` title="${esc(r.cat)}"`:''}>${r.pdi?PDI_SHORT:esc(r.cat)}</span></td>`},
  cSpark:{t:'11 חודשים',ttl:'צריכה 11 חודשים, מהישן לחדש',
   cell:r=>`<td>${sparkline(r)}</td>`},
  cMiss:{t:'חסר',val:r=>r.miss||r.orderQty||0,
@@ -10335,7 +10358,8 @@ const AGROUP=[
    'הקצב החודשי גדול ממה שיהיה זמין — תחזית, ואין לקוח ממתין','var(--trend)','חוסר צפוי']];
 /* המנוע כבר הדליק את שני הדגלים ב-`classify`; הקבוצה נקראת
    מהם ולא מחיפוש בתוך התורים — O(1) לשורה. */
-const aGroup=r=>r&&r.custGap?(r.burn?'ag1':'ag2'):'ag3';
+/* PDI — «לקוח ממתין והרכש אינו מכסה» נכון גם כאן; השורה עצמה נושאת את המצב שלה */
+const aGroup=r=>r&&(r.custGap||r.pdi)?(r.burn?'ag1':'ag2'):'ag3';
 function agendaGroups(rows){const by={ag1:[],ag2:[],ag3:[]};
  for(const r of rows)(by[aGroup(r)]||by.ag3).push(r);
  /* דירוג בתוך הקבוצה — בתוך המטבע, כמו בכל הכלי */
@@ -12365,6 +12389,8 @@ function expediteRows(){
   if(!(po>0)&&!(cust>0&&free<=0))continue;
   const fut=r.etaQty||0,past=r.etaPast||0,stuck=expStuck(r);
   let ask=null,qty=0;
+  /* PDI — מצב «לבדוק», בלי המלצת רכש: אינו נכנס כ«אין הזמנה בכלל» */
+  if(po<=0&&r.pdi)continue;
   if(po<=0){ask=EXP_ASK.noorder;qty=cust}
   /* הכמות שהובטחה בעבר כבר ירדה מהרכש הפתוח — הסחורה נחתה, ואין על מה
      להתקשר. חריג אחד: לקוח שעדיין ממתין מול מדף ריק. אז מה שנחת נצרך

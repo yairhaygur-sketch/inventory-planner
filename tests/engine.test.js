@@ -765,7 +765,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    /* «ללא רכש» הוא תת-קבוצה שלה, ויש לו מסלול משלו */
    holdsAllBurn:QF.waiting.every(r=>rows.some(x=>x.pn===r.pn)),
    burnIn:rows.filter(r=>r.burn).length,
-   isUnion:rows.length===QF.waiting.length+QF.immediate.length,
+   /* PDI (אושר 2.11/8.11): פריט שמלאי לא פנוי מכסה את החסר יושב גם הוא ב-immediate,
+      אבל אינו «ללא כיסוי» — ולכן אינו בדלת. שני הענפים, בלי מצב PDI. */
+   isUnion:rows.length===QF.waiting.length+QF.immediate.filter(r=>!r.pdi).length&&!rows.some(r=>r.pdi),
    /* הפיצול מכסה את הכל בדיוק פעם אחת */
    split:G.none.length+G.sup.reduce((a,[,l])=>a+l.length,0)===rows.length,
    noneOK:G.none.every(r=>r.po<=0&&(r.transfer||0)<=0),
@@ -781,7 +783,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    held:rows.filter(r=>r.stock>0).length};});
  ok('כל שורה עומדת בהגדרה: הזמנת לקוח שאין לה כיסוי מלא',cw.defOK&&cw.complete,cw.n+' פריטים');
  ok('הרשימה היא בדיוק שני ענפי רונג הלקוח',cw.isUnion,
-   `${cw.n} = waiting + immediate`);
+   `${cw.n} = waiting + immediate (בלי מצב PDI)`);
  ok('וכל הבוערים בפנים — היא לא מחמיצה אותם כמו ההגדרה הישנה',
    cw.holdsAllBurn&&cw.burnIn>0,`${cw.burnIn} בוערים מתוך ${cw.n}`);
  ok('הפיצול מכסה את כל הפריטים בדיוק פעם אחת',cw.split&&cw.dupes===0);
