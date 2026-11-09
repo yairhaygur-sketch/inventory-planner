@@ -72,7 +72,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   /* צריכה סדירה — d12>3 */
   const reg=one('B-REG',{ss:4,ssMin:4,rop:12,m:Array(11).fill(2),y:[18,30,30],free:30});
   const pick=x=>x&&{rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,rateDecay:!!x.rateDecay,rateRecent:x.rateRecent==null?null:x.rateRecent,rate3y:x.rate3y,
-   dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,ssStat:x.ssStat,ssMin:x.ssMin,cov:x.cov,free:x.free,rateFrom3y:x.rateFrom3y,has3y:x.has3y};
+   dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,ssStat:x.ssStat,ssMin:x.ssMin,cov:x.cov,free:x.free,rateFrom3y:x.rateFrom3y,has3y:x.has3y,
+   /* ROP_GAP × RATE_DECAY */rop:x.rop,scope:ropScope(x),ropRateV:ropRate(x),dry:ropDry(x),dryOld:(x.rate>0&&x.ltM>0)?x.ltM-((x.rop||0)/x.rate):null};
   return {ref:pick(ref),below:pick(below),above:pick(above),no3y:pick(no3y),st04:pick(st04),reg:pick(reg),curm:pick(curm),badY0:pick(badY0),badY1:pick(badY1),lam,anchor:ANCHOR.getMonth()+1}});
  const {ref,below,above,no3y,st04,reg,curm,badY0,badY1}=B;
  const near=(a,b)=>Math.abs(a-b)<1e-9;
@@ -93,10 +94,20 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  ok('צריכה סדירה — הנתיב אינו פעיל, הנוסחה כמו קודם',reg.rateRecent===null&&reg.rateDecay===false&&near(reg.dLT,reg.rate*reg.ltM)&&reg.sugROP===Math.ceil(reg.dLT+reg.sugSS),
    `ROP ${reg.sugROP}`);
 
+ /* ROP_GAP × RATE_DECAY (אושר 1.11): הדלת «ROP קצר מזמן האספקה» בודקת את ה-ROP הנוכחי
+    על אותו קצב שה-ROP המוצע נבנה עליו — בדעיכה הקצב העדכני, בכל השאר rate כמו קודם */
+ ok('ROP קצר × דעיכה: בפריט בדעיכה הדלת בודקת על הקצב העדכני',ref.scope&&near(ref.ropRateV,ref.rateRecent),`קצב ${ref.ropRateV.toFixed(3)}`);
+ ok('ROP קצר × דעיכה: PN-07 — לפי קצב 3 השנים היה «בלי מלאי», לפי הקצב העדכני ה-ROP מגשר',ref.dryOld>0&&!(ref.dry>0),
+   `ROP ${ref.rop} · לפני ${ref.dryOld.toFixed(1)} חו׳ · אחרי ${ref.dry==null?'—':ref.dry.toFixed(1)}`);
+ ok('ROP קצר × דעיכה: בלי דעיכה — אותו קצב ואותה תוצאה כמו קודם',[above,reg,curm,badY0,badY1].every(x=>near(x.ropRateV,x.rate)&&(x.dry==null||x.dryOld==null?x.dry==x.dryOld||!x.scope:near(x.dry,x.dryOld))),
+   [above,reg,curm].map(x=>x.dry==null?'—':x.dry.toFixed(2)).join(' · '));
+
  /* 3 · הדוח הסינתטי עצמו: אין בו פריט בנתיב הדעיכה, ולכן אף פריט לא זז */
  const D=await p.evaluate(()=>({n:ALL.length,dec:ALL.filter(x=>x.rateDecay).length,
   diff:ALL.filter(x=>!x.rateDecay&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
  ok('בכל פריט שאינו בדעיכה: ביקוש בזמן אספקה = rate × LT, כמו קודם',D.diff===0,`${D.n} פריטים · ${D.dec} בדעיכה`);
+ const G=await p.evaluate(()=>{const sc=ALL.filter(ropScope);return {n:sc.length,diff:sc.filter(x=>!x.rateDecay&&!(Math.abs(ropDry(x)-(x.ltM-((x.rop||0)/x.rate)))<1e-9)).length}});
+ ok('ROP קצר: בכל פריט בתחום שאינו בדעיכה — «בלי מלאי» כמו קודם',G.diff===0&&G.n>0,`${G.n} בתחום · ${G.diff} שונים`);
  ok('אין שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(out.join('\n'));console.log(`\n${out.length-bad} עברו · ${bad} נכשלו`);

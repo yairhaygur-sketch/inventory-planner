@@ -313,6 +313,16 @@ Changes to these areas require explicit business approval.
     Synthetic report: 6 items move, «כיסוי חלקי» 134 → 128. In the Excel
     export those items' «uncovered customer order» and its value are blank.
 
+- **2026-11-09 · «ROP short of lead time» on the same rate as the
+  recommended ROP (approved in principle 1.11, simulation approved 9.11).**
+  For an item where RATE_DECAY applies, the screen's check of the current SAP
+  reorder point, its «demand during lead time» and «months without stock»
+  columns, and the card line «…months without stock» use the recent rate —
+  the same rate the recommended ROP is built on. Every other item: unchanged.
+  Recommended ROP/SS, classification and the SAP file: unchanged. Measured on
+  the real report: the screen 18 → 11 (7 decay items leave, 0 others),
+  «ROP below recommended» 221 unchanged, every computed field identical.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

@@ -5651,10 +5651,12 @@ function ropGapWhy(it){
  /* כמה זמן תהיה יבש אם ההזמנה תיפתח ב-ROP הנוכחי: מגיעים לאפס אחרי
     rop/rate חודשים, והמשלוח מגיע אחרי ltM. נאמר רק כשהוא חיובי
     ורק כשיש קצב מדיד — בלי קצב אין מה לחשב. */
- const dry=(it.rate>0&&it.ltM>0)?(it.ltM-(it.rop/it.rate)):null;
+ /* ROP_GAP × RATE_DECAY — אותו קצב כמו הדלת והעמודות (ropRate) */
+ const q=it.rateDecay?it.rateRecent:it.rate;
+ const dry=(q>0&&it.ltM>0)?(it.ltM-(it.rop/q)):null;
  return ['warn',`נקודת הזמנה ${it.rop} נמוכה מהנדרש ${it.sugROP} — הרכש הפתוח מכסה את המחזור הזה, ה-ROP מנהל את הבא`
   +((dry!==null&&dry>0)
-    ?`. בקצב ${it.rate.toFixed(2)} לחודש וזמן אספקה ${it.ltD} ימים, הזמנה שתיפתח ב-${it.rop} יח׳ משאירה כ-${dry.toFixed(1)} חודשים בלי מלאי`
+    ?`. בקצב ${q.toFixed(2)} לחודש וזמן אספקה ${it.ltD} ימים, הזמנה שתיפתח ב-${it.rop} יח׳ משאירה כ-${dry.toFixed(1)} חודשים בלי מלאי`
     :'')]}
 /* ============ TWO_CLOCKS — «יש לך יותר מדי» ו«הזמן מוקדם יותר» ============
    נמדד על הדוח של 5.10: 277 פריטי עודף/איטי מחזיקים ROP > 1, והמנוע
@@ -9244,7 +9246,16 @@ function ropScope(r){return !!r&&r.rate>0&&r.ltM>0&&!r.ltBad&&!r.isOD&&!r.noStoc
   &&!isPD(r.mrp)&&((r.sugROP||0)>0||(r.sugSS||0)>0)}
 /* כמה חודשים תהיה בלי מלאי אם ההזמנה תיפתח ב-ROP הנוכחי:
    מגיעים לאפס אחרי rop/rate חודשים, והמשלוח מגיע אחרי ltM. */
-function ropDry(r){return ropScope(r)?(r.ltM-((r.rop||0)/r.rate)):null}
+/* ============ ROP_GAP × RATE_DECAY (אושר 1.11, יושם 9.11) ============
+   בפריט שבו RATE_DECAY חל, sugROP מחושב על הקצב העדכני — והדלת בדקה מול
+   קצב 3 השנים, ולכן צעקה «ROP קצר» על פריט שהכלי ממליץ להוריד לו את ה-ROP
+   (PN-07: «1.2 חודשים בלי מלאי», ביקוש בזמן האספקה 25.3 במקום 0.7). עכשיו
+   הבדיקה מול ה-ROP הנוכחי ב-SAP נעשית על אותו קצב שה-ROP המוצע נבנה עליו.
+   בשאר הפריטים ropRate === rate. ropScope, ROP/SS המוצעים, הסיווג וקובץ
+   SAP — ללא שינוי. נמדד בדוח האמיתי: הדלת 18 → 11, «ROP נמוך מהמומלץ»
+   221 ללא שינוי, 0 פריטים שאינם בדעיכה. */
+function ropRate(r){return r&&r.rateDecay?r.rateRecent:r.rate}
+function ropDry(r){if(!ropScope(r))return null;const q=ropRate(r);return q>0?(r.ltM-((r.rop||0)/q)):null}
 function ropAll(){return (QF&&QF.all?QF.all:[]).filter(ropScope)}
 function ropPick(list,k){return k==='ropThin'
   ?list.filter(r=>!(ropDry(r)>0)&&(r.sugROP||0)>(r.rop||0))
@@ -9843,8 +9854,8 @@ const SCOL={
     «ביקוש בזמן האספקה» הוא המספר שה-ROP אמור לגשר עליו, ו«בלי מלאי»
     הוא מה שקורה כשהוא לא. שתיהן נגזרות משדות שהמנוע כבר מחשב. */
  dLT:{t:'ביקוש בזמן האספקה',ttl:'כמה יחידות נמכרות במהלך זמן האספקה — קצב × זמן אספקה. זה המספר שנקודת ההזמנה אמורה לגשר עליו',
-  val:r=>ropScope(r)?+(r.rate*r.ltM).toFixed(1):-1,xval:r=>ropScope(r)?+(r.rate*r.ltM).toFixed(1):'',
-  cell:r=>`<td class="num">${ropScope(r)?(r.rate*r.ltM).toFixed(1):'—'}</td>`},
+  val:r=>ropScope(r)?+(ropRate(r)*r.ltM).toFixed(1):-1,xval:r=>ropScope(r)?+(ropRate(r)*r.ltM).toFixed(1):'',
+  cell:r=>`<td class="num">${ropScope(r)?(ropRate(r)*r.ltM).toFixed(1):'—'}</td>`},
  dryM:{t:'בלי מלאי',ttl:'כמה חודשים תישאר בלי מלאי אם ההזמנה תיפתח בנקודת ההזמנה הנוכחית: מתרוקן אחרי ROP÷קצב חודשים, והמשלוח מגיע אחרי זמן האספקה. «—» = נקודת ההזמנה מגשרת',
   val:r=>{const d=ropDry(r);return d>0?d:-1},
   xval:r=>{const d=ropDry(r);return d>0?+d.toFixed(1):''},
