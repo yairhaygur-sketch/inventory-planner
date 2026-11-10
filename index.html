@@ -9254,6 +9254,22 @@ function ropScope(r){return !!r&&r.rate>0&&r.ltM>0&&!r.ltBad&&!r.isOD&&!r.noStoc
    בשאר הפריטים ropRate === rate. ropScope, ROP/SS המוצעים, הסיווג וקובץ
    SAP — ללא שינוי. נמדד בדוח האמיתי: הדלת 18 → 11, «ROP נמוך מהמומלץ»
    221 ללא שינוי, 0 פריטים שאינם בדעיכה. */
+/* ============ ROP/SS שלב 2 — «פוטנציאל הפחתה» (אושר 10.11) ============
+   פריט שהביקוש שלו דעך (RATE_DECAY) ורצפת ssMin של SAP מחזיקה בו מלאי
+   ביטחון גבוה מהנדרש לפי הביקוש העדכני: שורת מידע אחת בכרטיס — כמה
+   יחידות, כמה מלאי יעד (במטבע הפריט, בלי המרה), ומה היה ה-ROP בלי הרצפה.
+   **כרטיס בלבד:** לא it.why, לא המלצה שנייה, לא ייצוא, לא מונה. ההמלצה
+   הרשמית (sugROP/sugSS), קובץ SAP וה-ssMin שבו — ללא שינוי. בלי סף כספי.
+   נמדד על הדוח האמיתי (10.11): 9 פריטים, 88 יח׳ — כ-$2,000 וכ-₪4,000. */
+function floorPotential(r){
+ if(!r||!r.rateDecay||r.isOD||r.noStock||r.isPDItem||recNA(r))return '';
+ const fl=r.ssMin||0,st=r.ssStat;
+ if(!(fl>0)||st==null||!(fl>st)||r.sugSS!==fl)return '';
+ const up=fl-st,ropT=Math.ceil((r.rateRecent||0)*(r.ltM||0)+st);
+ const val=r.price?`, כ-${money(up*r.price,r.currency)} מלאי יעד`:' (מחיר FOB חסר — השווי אינו מכומת)';
+ return `פוטנציאל הפחתה: רצפת ה-SS ב-SAP (${fl.toLocaleString('he-IL')}) גבוהה ב-${up.toLocaleString('he-IL')} יח׳ מהנדרש לפי הביקוש העדכני${val}.`
+  +(ropT<(r.sugROP||0)?` בלי הרצפה ה-ROP היה ${ropT.toLocaleString('he-IL')}.`:'')
+  +' הכלי אינו משנה את הרצפה; שינוי נעשה ידנית ב-SAP — זו אינה המלצה נוספת.'}
 function ropRate(r){return r&&r.rateDecay?r.rateRecent:r.rate}
 function ropDry(r){if(!ropScope(r))return null;const q=ropRate(r);return q>0?(r.ltM-((r.rop||0)/q)):null}
 function ropAll(){return (QF&&QF.all?QF.all:[]).filter(ropScope)}
@@ -11537,7 +11553,9 @@ function decisionBlock(r){
   :'ללא חשיפה';
  const done=r.mark&&r.mark.t==='handled';
  const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
- const why=(r.why||[]);
+ /* ROP/SS שלב 2 — «פוטנציאל הפחתה»: שורת מידע בכרטיס בלבד (floorPotential) */
+ const fpot=floorPotential(r);
+ const why=(r.why||[]).concat(fpot?[['info',fpot]]:[]);
  const qlbl=decisionQtyLabel(r);
  return `<div class="dcs">
   <div class="dcl">ההחלטה</div>

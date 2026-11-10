@@ -323,6 +323,17 @@ Changes to these areas require explicit business approval.
   the real report: the screen 18 → 11 (7 decay items leave, 0 others),
   «ROP below recommended» 221 unchanged, every computed field identical.
 
+- **2026-11-10 · ROP/SS stage 2 — «reduction potential» in the item card
+  (approved 10.11).** For an item where RATE_DECAY applies and the SAP ssMin
+  floor holds the safety stock above what the recent demand needs, the card
+  shows one information line: the extra units, the target-stock value in the
+  item's own currency (no conversion), and what the ROP would be without the
+  floor — worded as «not an additional recommendation; the tool does not
+  change the floor». No money threshold ($250 not adopted). Card only: not in
+  the engine's reasons, not in any export, counter or classification. The
+  official recommendation and the SAP file are unchanged. Real report: 9
+  items, 88 units, about $2,000 and ₪4,000; business-guard 0 differences.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
