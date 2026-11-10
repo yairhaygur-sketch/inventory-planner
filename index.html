@@ -917,6 +917,9 @@ body.xp #tbl,body.xp .rows{cursor:default}
 .wel{position:fixed;inset:0;inset-block-start:56px;z-index:420;background:var(--paper);
  display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
 .wel[hidden]{display:none}
+/* תיקון: מסך הפתיחה (z 420) ישב מעל כל הסרגל העליון (z 40), ולכן תפריטי «עזרה ועוד» ושבב הקובץ
+   נפתחו מתחתיו ולא נראו. כל עוד מסך הפתיחה גלוי — הסרגל מעליו. אחרי טעינת דוח — ללא שינוי. */
+body:has(#welcome:not([hidden])) .top{z-index:430}
 .welbox{width:min(640px,100%);text-align:center}
 .welmk{width:46px;height:46px;border-radius:11px;background:var(--accent);color:var(--on-fill);
  font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px}

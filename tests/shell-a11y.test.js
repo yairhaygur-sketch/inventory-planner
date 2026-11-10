@@ -229,4 +229,20 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   await p.tap('#filtBtn');await p.waitForTimeout(400);
   ok(`${T} · נגיעה ב«סינון» פותחת את המגירה`,await p.evaluate(()=>{const r=document.querySelector('.wfilters');return !!r&&!document.body.classList.contains('nofilters')&&r.getBoundingClientRect().height>100}));
   ok(`${T} · 0 שגיאות JS`,!errs.length,errs.join('|'));await ctx.close()}
+ /* ---------- מסך הפתיחה (לפני טעינת דוח) — התפריטים נפתחים מעליו ----------
+    תקלה מהשטח: מסך הפתיחה (z 420) ישב מעל הסרגל העליון (z 40), ותפריטי «עזרה ועוד»
+    ושבב הקובץ נפתחו מתחתיו — פתוחים, אבל מוסתרים. בודקים מה באמת נמצא בנקודה. */
+ {const ctx=await b.newContext({viewport:{width:1920,height:1000}});
+  await ctx.route('**/cdn.sheetjs.com/**',r=>r.fulfill({contentType:'application/javascript',body:sheetjs}));
+  const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  await p.goto('file://'+HTML+'?nobrief=1');await p.waitForTimeout(800);
+  const welcome=await p.evaluate(()=>{const w=document.getElementById('welcome');return !!w&&!w.hidden});
+  for(const [btn,menu,name] of [['#helpBtn','#helpMenu','«עזרה ועוד»'],['#fchip','#fileMenu','שבב הקובץ']]){
+   await p.click(btn);await p.waitForTimeout(300);
+   const r=await p.evaluate(m=>{const el=document.querySelector(m);if(!el)return {n:0};const R=el.getBoundingClientRect();
+     const pts=[[R.left+R.width/2,R.top+16],[R.left+R.width/2,R.top+R.height/2],[R.left+16,R.bottom-16]];
+     return {n:pts.filter(([x,y])=>{const e=document.elementFromPoint(x,y);return !!e&&el.contains(e)}).length,h:Math.round(R.height)}},menu);
+   ok(`מסך הפתיחה · ${name} נפתח מעל מסך הפתיחה, גלוי`,welcome&&r.n===3&&r.h>0,JSON.stringify({welcome,...r}));
+   await p.keyboard.press('Escape');await p.waitForTimeout(200)}
+  ok('מסך הפתיחה · 0 שגיאות JS',!errs.length,errs.join('|'));await ctx.close()}
  await b.close();console.log(out.join('\n'));console.log(`\n${out.length-bad}/${out.length}`);process.exit(bad?1:0)})();
