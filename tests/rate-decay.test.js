@@ -73,6 +73,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   const reg=one('B-REG',{ss:4,ssMin:4,rop:12,m:Array(11).fill(2),y:[18,30,30],free:30});
   const pick=x=>x&&{rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,rateDecay:!!x.rateDecay,rateRecent:x.rateRecent==null?null:x.rateRecent,rate3y:x.rate3y,
    dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,ssStat:x.ssStat,ssMin:x.ssMin,cov:x.cov,free:x.free,rateFrom3y:x.rateFrom3y,has3y:x.has3y,
+   /* ROP/SS שלב 2 */fpot:floorPotential(x),ssStat:x.ssStat,
    /* ROP_GAP × RATE_DECAY */rop:x.rop,scope:ropScope(x),ropRateV:ropRate(x),dry:ropDry(x),dryOld:(x.rate>0&&x.ltM>0)?x.ltM-((x.rop||0)/x.rate):null};
   return {ref:pick(ref),below:pick(below),above:pick(above),no3y:pick(no3y),st04:pick(st04),reg:pick(reg),curm:pick(curm),badY0:pick(badY0),badY1:pick(badY1),lam,anchor:ANCHOR.getMonth()+1}});
  const {ref,below,above,no3y,st04,reg,curm,badY0,badY1}=B;
@@ -102,10 +103,19 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  ok('ROP קצר × דעיכה: בלי דעיכה — אותו קצב ואותה תוצאה כמו קודם',[above,reg,curm,badY0,badY1].every(x=>near(x.ropRateV,x.rate)&&(x.dry==null||x.dryOld==null?x.dry==x.dryOld||!x.scope:near(x.dry,x.dryOld))),
    [above,reg,curm].map(x=>x.dry==null?'—':x.dry.toFixed(2)).join(' · '));
 
+ /* ROP/SS שלב 2 (אושר 10.11): «פוטנציאל הפחתה» — שורת מידע בכרטיס בלבד */
+ ok('שלב 2: PN-07 — רצפה 11 מול נדרש 1: 10 יח׳, ובלי הרצפה ROP 2',
+   /רצפת ה-SS ב-SAP \(11\) גבוהה ב-10 יח׳/.test(ref.fpot)&&/בלי הרצפה ה-ROP היה 2\./.test(ref.fpot)&&/אינה המלצה נוספת/.test(ref.fpot),ref.fpot.replace(/[$₪€][\d,]+/,'$X'));
+ ok('שלב 2: בלי דעיכה — אין שורה',[above,reg,curm,badY0,badY1,no3y,st04].every(x=>x.fpot===''),'');
+ ok('שלב 2: ההמלצה הרשמית לא זזה — SS = הרצפה, ROP 12',ref.sugSS===11&&ref.sugROP===12,`SS ${ref.sugSS} · ROP ${ref.sugROP}`);
+
  /* 3 · הדוח הסינתטי עצמו: אין בו פריט בנתיב הדעיכה, ולכן אף פריט לא זז */
  const D=await p.evaluate(()=>({n:ALL.length,dec:ALL.filter(x=>x.rateDecay).length,
   diff:ALL.filter(x=>!x.rateDecay&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
  ok('בכל פריט שאינו בדעיכה: ביקוש בזמן אספקה = rate × LT, כמו קודם',D.diff===0,`${D.n} פריטים · ${D.dec} בדעיכה`);
+ const FP=await p.evaluate(()=>({why:ALL.filter(x=>(x.why||[]).some(w=>/פוטנציאל הפחתה/.test(String(w[1])))).length,
+   none:ALL.filter(x=>!x.rateDecay&&floorPotential(x)).length}));
+ ok('שלב 2: השורה אינה בנימוקי המנוע (לכן לא בייצוא), ואינה מופיעה בפריט שאינו בדעיכה',FP.why===0&&FP.none===0,JSON.stringify(FP));
  const G=await p.evaluate(()=>{const sc=ALL.filter(ropScope);return {n:sc.length,diff:sc.filter(x=>!x.rateDecay&&!(Math.abs(ropDry(x)-(x.ltM-((x.rop||0)/x.rate)))<1e-9)).length}});
  ok('ROP קצר: בכל פריט בתחום שאינו בדעיכה — «בלי מלאי» כמו קודם',G.diff===0&&G.n>0,`${G.n} בתחום · ${G.diff} שונים`);
  ok('אין שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
