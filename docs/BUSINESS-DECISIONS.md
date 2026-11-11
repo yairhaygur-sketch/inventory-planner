@@ -351,8 +351,13 @@ Changes to these areas require explicit business approval.
     rule.
   - Real report (11.11): 89 items change. «purchase in transit toward
     surplus» 89 → 59 (about $123,000 → $31,000). Queues: follow 138 → 137,
-    immediate 2 → 3, prevent 33 → 34; agenda 38 → 40. The main SAP file is
-    unchanged.
+    immediate 2 → 3, prevent 33 → 34; agenda 38 → 40. Two items change
+    classification: one «supply follow-up» whose «purchase» was the delivery
+    itself becomes «shortage prevention», and one never-sold item with an
+    open delivery gets the PDI state (non-free stock against the order).
+    The expedite report shrinks from 696 to 627 lines (−267 units): 69 items
+    were listed for expediting with no real purchase order behind them.
+    Every SAP update file is unchanged.
   - Synthetic report (DB on every 60th item, as in the real report's ~1%):
     15 items change; «אין רכש כלל» 127 → 128; «purchase in transit toward
     surplus» 107 → 105; one accessory moves from «on demand» to «surplus».
