@@ -372,7 +372,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   const f2=path.join(tmp,'odd.xlsx');XLSX.writeFile(wb2,f2);
   const q=await page(1440,900,'?topics');await q.setInputFiles('#f',f2);await q.waitForSelector('#lite table');
   await q.click('[data-tp-tab="cust"]');await q.fill('#lite [data-tp="q"]',"O'K");await q.waitForTimeout(600);
-  const r0=await q.evaluate(PN=>{const tr=[...document.querySelectorAll('#lite tr.r')].find(t=>t.firstElementChild.textContent===PN);
+  const r0=await q.evaluate(PN=>{const tr=[...document.querySelectorAll('#lite tr.r')].find(t=>(t.firstElementChild.querySelector("b")||{}).textContent===PN);
    return {found:!!tr,injected:!!document.querySelector('#lite td b b')}},PN);
   await q.click('#lite tr.r');
   const r1=await q.evaluate(PN=>{const el=document.getElementById('tpd');return !el.hidden&&el.querySelector('#tpdT').textContent===PN&&!el.querySelector('#tpdT b')},PN);

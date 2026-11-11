@@ -123,6 +123,57 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('כרטיס הפריט: «רמת שירות חסרה» והפעולה ב-SAP',/רמת שירות חסרה או 0 ב-SAP/.test(d)&&/להזין רמת שירות מאושרת ב-SAP/.test(d));
   fs.rmSync(path.dirname(f2),{recursive:true,force:true})}
 
+ /* ---- 5. ליד כל מק״ט: העתקה, «טופל», והדגם אחרי התיאור (11.11) ---- */
+ {await ctx.grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
+  const P=await open('?topics');await P.waitForSelector('#lite table');await P.click('[data-tp-tab="cust"]');
+  const row=await P.evaluate(()=>{const tr=document.querySelector('#lite tr.r'),r=TP.shown[0];
+   return {pn:r.pn,model:r.model,key:markKey(r),n0:tpRows('cust',true).length,hasBtns:!!tr.querySelector('[data-tp="copy"]')&&!!tr.querySelector('[data-tp="done"]'),
+    descCell:tr.children[1].textContent,heads:[...document.querySelectorAll('#lite th')].map(t=>t.textContent.trim())}});
+  ok('בכל שורה, ליד המק״ט: כפתור העתקה וכפתור «טופל»',row.hasBtns&&await P.evaluate(()=>[...document.querySelectorAll('#lite tr.r')].every(tr=>tr.querySelector('[data-tp="copy"]')&&tr.querySelector('[data-tp="done"]'))));
+  ok('הדגם מופיע אחרי התיאור',row.descCell.endsWith(row.model)&&row.heads.includes('תיאור · דגם'),row.descCell);
+  await P.click('#lite tr.r [data-tp="copy"]');await P.waitForTimeout(250);
+  const cp=await P.evaluate(async()=>({drawer:!document.getElementById('tpd').hidden,clip:await navigator.clipboard.readText().catch(()=>null)}));
+  ok('העתקה: המק״ט בלוח, והכרטיס לא נפתח',!cp.drawer&&(cp.clip===null||cp.clip===row.pn),JSON.stringify(cp));
+  await P.click('#lite tr.r [data-tp="done"]');await P.waitForTimeout(400);
+  const d=await P.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
+   return {mark:MARKS[k]&&MARKS[k].t,n1:tpRows('cust',true).length,inAny:Object.keys(TOPICS).some(t=>tpRows(t,true).includes(r)),
+    list:!!document.querySelector('#lite details.off [data-tp="undone"]')}},row.key);
+  ok('«טופל»: סימון handled (של הכלי המלא), הפריט ירד מכל הנושאים, ומופיע ברשימת «טופלו»',d.mark==='handled'&&d.n1===row.n0-1&&!d.inAny&&d.list,JSON.stringify(d));
+  const F2=await open('?nobrief=1');
+  const fd=await F2.evaluate(pn=>{const r=ALL.find(x=>x.pn===pn);return {t:r.mark&&r.mark.t,cat:r.cat}},row.pn);
+  ok('הכלי המלא רואה את אותו סימון «טופל»',fd.t==='handled',JSON.stringify(fd));
+  await F2.close();
+  await P.click('#lite details.off summary');await P.click('#lite [data-tp="undone"]');await P.waitForTimeout(400);
+  const u=await P.evaluate(k=>({mark:MARKS[k]||null,n:tpRows('cust',true).length}),row.key);
+  ok('«החזר לרשימה» מבטל את הסימון והפריט חוזר',!u.mark&&u.n===row.n0,JSON.stringify(u));
+  const [dl]=await Promise.all([P.waitForEvent('download'),P.click('#lite [data-tp="csv"]')]);
+  const H=fs.readFileSync(await dl.path(),'utf8').replace(/^\uFEFF/,'').split('\r\n')[0].split(',').map(x=>x.replace(/"/g,''));
+  ok('CSV: «תיאור» ו«דגם» בעמודות נפרדות',H.indexOf('דגם')===H.indexOf('תיאור')+1,H.slice(0,5).join(','));
+  await P.close()}
+
+ /* ---- 6. סינון לפי ספק, מותג, דגם, קבוצת שיווק, קבוצת חומרים, סוג MRP, ABC (11.11) ---- */
+ {const P=await open('?topics');await P.waitForSelector('#lite table');
+  const keys=await P.evaluate(()=>[...document.querySelectorAll('#lite [data-tpf]')].map(s=>s.dataset.tpf)),FDEF_KEYS=await P.evaluate(()=>FDEF.map(f=>f[0]));
+  ok('שבעה מסננים, באותם שדות של הכלי המלא',JSON.stringify(keys)===JSON.stringify(['supplier','brand','model','mkt1','grp','mrp','abc'])&&keys.every(k=>FDEF_KEYS.includes(k)),keys.join(','));
+  for(const k of keys){const v=await P.evaluate(k=>{const s=document.querySelector(`#lite [data-tpf="${k}"]`);return s.options.length>1?s.options[1].value:null},k);
+   if(v==null){ok(`${k}: יש ערכים לבחירה`,false);continue}
+   await P.selectOption(`#lite [data-tpf="${k}"]`,v);await P.waitForTimeout(150);
+   const r=await P.evaluate(([k,v])=>Object.keys(TOPICS).every(t=>{const got=tpRows(t,true),exp=TOPICS[t].rows().filter(r=>!tpDone(r)&&String(r[k])===v);
+     return got.length===exp.length&&got.every(x=>String(x[k])===v)&&+String(document.querySelector(`[data-tp-tab="${t}"] .n`).textContent).replace(/[^\d]/g,'')===got.length}),[k,v]);
+   ok(`סינון ${k}="${v}": בכל ארבעת הנושאים — רק פריטים עם הערך, והמונים תואמים`,r);
+   await P.selectOption(`#lite [data-tpf="${k}"]`,'');await P.waitForTimeout(100)}
+  const b=await P.evaluate(()=>document.querySelector('#lite [data-tpf="brand"]').options[1].value);
+  await P.selectOption('#lite [data-tpf="brand"]',b);await P.selectOption('#lite [data-tpf="abc"]','A');await P.waitForTimeout(150);
+  const two=await P.evaluate(b=>({n:tpRows('cust',true).length,ok:tpRows('cust',true).every(r=>r.brand===b&&r.abc==='A'),clear:!!document.querySelector('[data-tp="fclear"]')}),b);
+  ok('שני מסננים יחד — חיתוך, וכפתור «נקה סינון»',two.ok&&two.clear,JSON.stringify(two));
+  const [dl]=await Promise.all([P.waitForEvent('download'),P.click('#lite [data-tp="csv"]')]);
+  const rows=fs.readFileSync(await dl.path(),'utf8').replace(/^\uFEFF/,'').split('\r\n').filter(Boolean).length-1;
+  ok('ה-CSV מייצא רק את השורות המסוננות',rows===two.n,`${rows} · ${two.n}`);
+  await P.click('[data-tp="fclear"]');await P.waitForTimeout(150);
+  const cl=await P.evaluate(()=>({f:Object.values(TP.f).some(Boolean),sel:SEL.brand.size+SEL.abc.size}));
+  ok('«נקה סינון» מאפס, והסינון של הכלי המלא (SEL) לא נגעו בו',!cl.f&&cl.sel===0,JSON.stringify(cl));
+  await P.close()}
+
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(`\n${pass} עברו · ${fail} נכשלו`);process.exit(fail?1:0)})();
