@@ -55,7 +55,7 @@ for(const [n,o] of [['מק״ט «*»',{pn:'*'}],['מק״ט עם «*»',{pn:'T-*'
 /* --- מה שאי אפשר להצהיר עליו --- */
 const cases=[
  ['שורה נוספה',a=>{a.push(['T-004','ד',1,1])}],
- ['סדר המק״טים השתנה',a=>{const t=a[3];a[3]=a[4];a[4]=t}],
+ ['מק״ט הוחלף במק״ט אחר (קבוצה שונה)',a=>{a[3][0]='T-009'}],
  ['כותרת עמודה השתנתה',a=>{a[2][2]='ROP'}],
  ['שורת הכותרת העליונה השתנתה',a=>{a[0][0]='ייצוא אחר'}],
  ['תא בלי מק״ט',a=>{a.push([null,'סה״כ',10,2]);}],
@@ -72,6 +72,32 @@ for(const [n,mut] of cases){
 {const dupA=book([['מק״ט','ROP','ROP'],['T-1',1,2]]),dupB=book([['מק״ט','ROP','ROP'],['T-1',1,3]]);
  const r=checkDeclared(D(dupA,dupB),decl([chg({sheet:'כל הנתונים',field:'ROP',pn:'T-1',from:2,to:3})]),SHA);
  ok('עמודה ששמה כפול → אי אפשר להצהיר, נכשל',!r.ok&&r.other.length>0)}
+
+/* --- סדר המק״טים: תזוזה מוצהרת במדויק (אושר 11.11) ---
+   היה: «סדר המק״טים השתנה → נכשל, ואין דרך להצהיר עליו». עכשיו: נכשל בלי הצהרה,
+   ועובר רק כשהפריטים שזזו מוצהרים בדיוק — הרשימה המינימלית, לא כל שורה שהוסטה. */
+const mv=(o)=>Object.assign({sheet:'כל הנתונים',pn:'T-003',from:6,to:4},o);
+const declM=(moves,changes=[],base)=>({base:(moves.length||changes.length)?(base||SHA):null,changes,moves});
+const SW=book(null,a=>{const t=a[3];a[3]=a[4];a[4]=t});                    /* T-001 ↔ T-002 */
+const UP=book(null,a=>{const t=a[5];a.splice(5,1);a.splice(3,0,t)});         /* T-003 עולה לראש */
+{const r=checkDeclared(D(A,SW),decl([]),SHA);ok('סדר השתנה בלי הצהרה → נכשל (תזוזה לא מוצהרת)',!r.ok&&r.undeclaredMoves.length===1&&!r.other.length,JSON.stringify(r.undeclaredMoves))}
+{const d=D(A,UP);ok('פריט אחד עלה שתי שורות → מוצהר פריט אחד בלבד, לא השורות שהוסטו',d.moves.length===1&&d.moves[0].pn==='T-003'&&d.moves[0].from===6&&d.moves[0].to===4,JSON.stringify(d.moves))}
+{const r=checkDeclared(D(A,UP),declM([mv()]),SHA);ok('התזוזה מוצהרת בדיוק → עובר',r.ok&&r.movesMatched===1)}
+for(const [n,o] of [['שורת יעד אחרת',{to:5}],['שורת מקור אחרת',{from:5}],['מק״ט אחר',{pn:'T-002'}],['גיליון אחר',{sheet:'התצוגה'}]]){
+ const r=checkDeclared(D(A,UP),declM([mv(o)]),SHA);ok(`תזוזה מוצהרת עם ${n} → נכשל`,!r.ok&&r.undeclaredMoves.length===1&&r.unusedMoves.length===1)}
+{const r=checkDeclared(D(A,book()),declM([mv()]),SHA);ok('תזוזה מוצהרת שלא קרתה → נכשל',!r.ok&&r.unusedMoves.length===1)}
+{const B=book(null,a=>{const t=a[5];a.splice(5,1);a.splice(3,0,t);a[3][2]=5});   /* עלה, ו-ROP שלו השתנה */
+ const r=checkDeclared(D(A,B),declM([mv()],[chg({pn:'T-003',field:'ROP מוצע',from:0,to:5})]),SHA);
+ ok('שינוי תא בשורה שזזה נבדק מול אותו מק״ט → עובר כשמוצהר',r.ok&&r.matched===1&&r.movesMatched===1,JSON.stringify(r.undeclared))}
+{const B=book(null,a=>{const t=a[5];a.splice(5,1);a.splice(3,0,t);a[3][2]=5});
+ const r=checkDeclared(D(A,B),declM([mv()]),SHA);ok('…ונכשל כשהשינוי בתא לא מוצהר',!r.ok&&r.undeclared.length===1&&r.undeclared[0].pn==='T-003')}
+{const dA=book([['מק״ט','ROP'],['T-1',1],['T-1',2],['T-2',3]]),dB=book([['מק״ט','ROP'],['T-2',3],['T-1',1],['T-1',2]]);
+ const r=checkDeclared(D(dA,dB),decl([]),SHA);ok('מק״ט כפול בגיליון → סדר אינו ניתן להצהרה, נכשל',!r.ok&&r.other.length>0&&!(r.undeclaredMoves||[]).length)}
+for(const [n,m] of [['from לא שלם',{from:4.5}],['to = from',{to:6}],['מק״ט «*»',{pn:'*'}],['שדה חסר',{to:undefined}]]){
+ const x=mv(m);if(x.to===undefined)delete x.to;const r=checkDeclared(D(A,UP),declM([x]),SHA);ok(`תזוזה עם ${n} → נדחתה`,!r.ok&&r.errs.length>0)}
+{const r=checkDeclared(D(A,UP),declM([mv(),mv()]),SHA);ok('אותה תזוזה פעמיים → נדחתה',!r.ok&&r.errs.some(e=>/פעמיים/.test(e)))}
+{const r=checkDeclared(D(A,UP),{base:null,changes:[],moves:[mv()]},SHA);ok('תזוזות בלי base → נדחה',!r.ok&&r.errs.some(e=>/40/.test(e)))}
+{const r=checkDeclared(D(A,book()),{base:null,changes:[],moves:[]},SHA);ok('moves ריק → כמו הצהרה ריקה, עובר כשאין הבדל',r.ok)}
 
 /* --- הקובץ שבריפו --- */
 const repo=require('./export-expected.json');
