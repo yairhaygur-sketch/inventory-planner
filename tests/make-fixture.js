@@ -21,13 +21,29 @@ const dstr=d=>{const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')
    לא מיום ההרצה. ה-ETA בלבד — תפעולי — נבנה מהיום (etaNow, למטה). */
 const {FIXTURE_NOW,FIXTURE_STATE_DAY2,FIXTURE_HEAD}=require('./lib/fixture-date.js');
 const now=FIXTURE_NOW,DAY=864e5;
-const rows=[];
+/* ============ «אספקות פת.» — אספקה ללקוח, בשיעור מציאותי (OPEN_DEL, 11.11) ============
+   עד כאן העמודה קיבלה I(0,5) בכל שורה — ערך ב-5 מכל 6 פריטים. זה לא שינה דבר,
+   כי הכלי חיבר אותה לרכש הפתוח. עכשיו היא ביקוש לקוח (אספקה שטרם נופקה), ובדוח
+   האמיתי היא קיימת ב-89 מתוך 7,990 פריטים (כ-1%). כאן: כל פריט שישים (כ-1.7%).
+   ההגרלה I(0,5) נשארת בדיוק במקומה — אחרת כל שאר הדוח הסינתטי היה זז. */
+const openDelQ=(q,i)=>i%60===7?Math.max(1,q):0;
+/* ומה שהעמודה הזו כיסתה בטעות: עד OPEN_DEL, «רכש» של לקוח ממתין הגיע כמעט רק
+   ממנה — ולכן בדוח הסינתטי כמעט לא היה «לקוח ממתין, הרכש מכסה חלק» (Q.immediate)
+   עם רכש אמיתי. engine.test תפס את זה: הרשימה «הזמנות ללא כיסוי» הצטמצמה לתור אחד.
+   כאן: בכל פריט שלושים מסוג «בוער», רכש אמיתי שמכסה כשליש מההזמנה. בלי הגרלה —
+   שאר הדוח הסינתטי לא זז. */
+const partPO=(cust,i)=>i%30===11?Math.max(1,Math.floor(cust/3)):0;
+/* ובאותו אופן: פריט מת עם רכש פתוח («לבדוק — רכש פתוח» במסך שינוי הפרופיל, ורכש
+   בדרך לעודף) היה קיים בדוח הסינתטי רק דרך «אספקות פת.». כאן: בכל פריט עשרים מסוג
+   «מת», 2 יח׳ ברכש פתוח אמיתי. בלי הגרלה. */
+const deadPO=i=>i%20===17?2:0;
+const rows=[],addedPO=new Set();
 for(let i=0;i<900;i++){
  const kind=rnd();
  let months,y0,y1,y2,free,cust,po,stock,saleAgo,entAgo;
  if(kind<.25){ // בוער: לקוח ממתין ללא כיסוי
   months=MON.map(()=>I(0,14)); y0=I(40,120);y1=I(40,120);y2=I(30,110);
-  free=I(0,3);cust=I(5,40);po=0;stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
+  free=I(0,3);cust=I(5,40);po=partPO(cust,i);if(po)addedPO.add(i);stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
  }else if(kind<.45){ // מניעת חוסר
   months=MON.map(()=>I(2,20)); y0=I(60,200);y1=I(60,200);y2=I(50,180);
   free=I(2,10);cust=I(0,4);po=I(0,6);stock=free+I(0,5);saleAgo=I(1,25);entAgo=I(40,200);
@@ -36,7 +52,7 @@ for(let i=0;i<900;i++){
   free=I(200,900);cust=0;po=0;stock=free+I(0,30);saleAgo=I(30,200);entAgo=I(100,500);
  }else if(kind<.78){ // מת
   months=MON.map(()=>0); y0=0;y1=0;y2=0;
-  free=I(10,300);cust=0;po=0;stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
+  free=I(10,300);cust=0;po=deadPO(i);if(po)addedPO.add(i);stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
  }else if(kind<.9){ // איטי
   months=MON.map(()=>rnd()<.25?I(1,3):0); y0=I(1,6);y1=I(1,8);y2=I(1,8);
   free=I(80,400);cust=0;po=I(0,2);stock=free;saleAgo=I(200,900);entAgo=I(300,1000);
@@ -62,7 +78,7 @@ for(let i=0;i<900;i++){
  const odGrp=odR<.04?'כלי עבודה':odR<.07?'אביזרים':md;
  rows.push([pn,`חלק ${gp} ${md} דגם ${i}`,`Part ${gp} ${i}`,SUP[I(0,SUP.length-1)],
   ['01','04','14','01','01'][I(0,4)],'פעיל',mrpType,AB[I(0,2)],srvLevel,I(0,20),I(0,40),
-  I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),I(0,5),cust,['Z001','Z004'][I(0,1)],
+  I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),openDelQ(I(0,5),i),cust,['Z001','Z004'][I(0,1)],
   gp,br,'מתכנן א׳','12 חודשים',odGrp,gp,
   '100',br,'200',md,'300',rnd()<.15?'אביזרים':gp,
   y0,y1,y2,I(0,10),...months,
@@ -109,7 +125,9 @@ XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
    שלא נמדד הוא בדיוק איך שנכנס באג ניגודיות בפעם הקודמת.
    מכוון בכוונה לשלושת המצבים: כיסוי מלא, כיסוי חלקי, ותאריך שעבר. */
 const PO=hdr.indexOf('הז. רכש');
-const withPo=rows.filter(r=>+r[PO]>0).slice(0,60);
+/* בלי השורות שקיבלו רכש ב-OPEN_DEL (partPO/deadPO) — כדי שדוח ה-ETA הסינתטי
+   יישאר בדיוק אותן 60 שורות שהיו. */
+const withPo=rows.filter((r,i)=>+r[PO]>0&&!addedPO.has(i)).slice(0,60);
 const RLM=x=>'\u200e'+x+'\u200f';
 const etaNow=Date.now();
 const day=n=>{const d=new Date(etaNow+n*DAY);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
