@@ -5185,8 +5185,16 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rate3y=has3y&&cons3y>0?cons3y/win3y:0;
     const A=analyze(months);
     const free=NUM(r[m.free]),stock=NUM(r[m.stock])||NUM(r[m.wh]);
-    const po=NUM(r[m.po])+(m.openDel>=0?NUM(r[m.openDel]):0);
-    const custRaw=m.cust>=0?NUM(r[m.cust]):0;
+    /* ============ OPEN_DEL — «אספקות פת.» הן אספקה ללקוח (אושר 11.11) ============
+       עד כאן הן נוספו לרכש הפתוח — כאילו סחורה בדרך אלינו — ונספרו ככיסוי,
+       כ«רכש לביטול» וכמשהו לשבץ מול דוח ה-ETA. בפועל זו תעודת אספקה ללקוח
+       שטרם נופקה, וכשהיא נפתחת ב-SAP הכמות **יורדת** מ«כמות בהז.פ» (אישור
+       המעתד). לכן: יוצאות מהרכש, ונוספות לביקוש הלקוח. נמדד על הדוח האמיתי:
+       89 פריטים; «רכש בדרך לעודף» 89 → 59; 30 המלצות «לבדוק ביטול רכש»
+       שגויות נעלמו; קובץ ה-SAP הראשי ללא שינוי. */
+    const openDel=m.openDel>=0?Math.max(0,NUM(r[m.openDel])):0;
+    const po=NUM(r[m.po]);
+    const custRaw=(m.cust>=0?NUM(r[m.cust]):0)+openDel;
     /* ============ חסר אינו אפס ============
        שני השדות האלה מגיעים מ-NUM(), שמחזיר 0 לכל ערך שאינו מספר —
        כולל עמודה שאינה קיימת בדוח. 0 שמשמעותו «אין» ו-0 שמשמעותו
@@ -5507,7 +5515,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
          אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
       ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
       ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 /* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
@@ -8114,7 +8122,8 @@ function ledgerBySupplier(items){
    MurmurHash3 בארבעה זרעים, בחישוב סינכרוני במעבר אחד. ההשוואה היא
    תמיד מול רשומה אחת (האחרונה), ולא מול 40 — כלומר אין כאן אפילו
    פרדוקס יום ההולדת.                                               */
-const DSIG_V=2;
+/* 3 (11.11): OPEN_DEL — po ו-custRaw של אותו קובץ משתנים, ולכן ההעלאה הבאה מסומנת «מעבר» (sigState) ולא «דוח חדש» */
+const DSIG_V=3;
 /* ============ סדר השדות קבוע ============
    הוספה, הסרה או שינוי סדר כאן משנים את החתימה של *כל* דוח, ולכן
    מחייבים העלאת DSIG_V — אחרת כל מעתד יקבל «דוח חדש» שקרי אחד.
@@ -11560,7 +11569,9 @@ function decisionBlock(r){
  const ic={err:'✖',warn:'▲',ok:'✔',info:'ℹ',idea:'💡'};
  /* ROP/SS שלב 2 — «פוטנציאל הפחתה»: שורת מידע בכרטיס בלבד (floorPotential) */
  const fpot=floorPotential(r);
- const why=(r.why||[]).concat(fpot?[['info',fpot]]:[]);
+ /* OPEN_DEL — שורת מידע: כמה מתוך ביקוש הלקוח הן אספקה שנפתחה וטרם נופקה */
+ const odl=(r.openDel||0)>0?`${(r.openDel).toLocaleString('he-IL')} יח׳ באספקה ללקוח שטרם נופקה («אספקות פת.») — נכללות בביקוש הלקוח, ואינן רכש בדרך`:'';
+ const why=(r.why||[]).concat(fpot?[['info',fpot]]:[],odl?[['info',odl]]:[]);
  const qlbl=decisionQtyLabel(r);
  return `<div class="dcs">
   <div class="dcl">ההחלטה</div>
