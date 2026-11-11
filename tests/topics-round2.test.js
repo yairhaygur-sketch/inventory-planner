@@ -123,6 +123,34 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('כרטיס הפריט: «רמת שירות חסרה» והפעולה ב-SAP',/רמת שירות חסרה או 0 ב-SAP/.test(d)&&/להזין רמת שירות מאושרת ב-SAP/.test(d));
   fs.rmSync(path.dirname(f2),{recursive:true,force:true})}
 
+ /* ---- 5. ליד כל מק״ט: העתקה, «טופל», והדגם אחרי התיאור (11.11) ---- */
+ {await ctx.grantPermissions(['clipboard-read','clipboard-write']).catch(()=>{});
+  const P=await open('?topics');await P.waitForSelector('#lite table');await P.click('[data-tp-tab="cust"]');
+  const row=await P.evaluate(()=>{const tr=document.querySelector('#lite tr.r'),r=TP.shown[0];
+   return {pn:r.pn,model:r.model,key:markKey(r),n0:tpRows('cust',true).length,hasBtns:!!tr.querySelector('[data-tp="copy"]')&&!!tr.querySelector('[data-tp="done"]'),
+    descCell:tr.children[1].textContent,heads:[...document.querySelectorAll('#lite th')].map(t=>t.textContent.trim())}});
+  ok('בכל שורה, ליד המק״ט: כפתור העתקה וכפתור «טופל»',row.hasBtns&&await P.evaluate(()=>[...document.querySelectorAll('#lite tr.r')].every(tr=>tr.querySelector('[data-tp="copy"]')&&tr.querySelector('[data-tp="done"]'))));
+  ok('הדגם מופיע אחרי התיאור',row.descCell.endsWith(row.model)&&row.heads.includes('תיאור · דגם'),row.descCell);
+  await P.click('#lite tr.r [data-tp="copy"]');await P.waitForTimeout(250);
+  const cp=await P.evaluate(async()=>({drawer:!document.getElementById('tpd').hidden,clip:await navigator.clipboard.readText().catch(()=>null)}));
+  ok('העתקה: המק״ט בלוח, והכרטיס לא נפתח',!cp.drawer&&(cp.clip===null||cp.clip===row.pn),JSON.stringify(cp));
+  await P.click('#lite tr.r [data-tp="done"]');await P.waitForTimeout(400);
+  const d=await P.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
+   return {mark:MARKS[k]&&MARKS[k].t,n1:tpRows('cust',true).length,inAny:Object.keys(TOPICS).some(t=>tpRows(t,true).includes(r)),
+    list:!!document.querySelector('#lite details.off [data-tp="undone"]')}},row.key);
+  ok('«טופל»: סימון handled (של הכלי המלא), הפריט ירד מכל הנושאים, ומופיע ברשימת «טופלו»',d.mark==='handled'&&d.n1===row.n0-1&&!d.inAny&&d.list,JSON.stringify(d));
+  const F2=await open('?nobrief=1');
+  const fd=await F2.evaluate(pn=>{const r=ALL.find(x=>x.pn===pn);return {t:r.mark&&r.mark.t,cat:r.cat}},row.pn);
+  ok('הכלי המלא רואה את אותו סימון «טופל»',fd.t==='handled',JSON.stringify(fd));
+  await F2.close();
+  await P.click('#lite details.off summary');await P.click('#lite [data-tp="undone"]');await P.waitForTimeout(400);
+  const u=await P.evaluate(k=>({mark:MARKS[k]||null,n:tpRows('cust',true).length}),row.key);
+  ok('«החזר לרשימה» מבטל את הסימון והפריט חוזר',!u.mark&&u.n===row.n0,JSON.stringify(u));
+  const [dl]=await Promise.all([P.waitForEvent('download'),P.click('#lite [data-tp="csv"]')]);
+  const H=fs.readFileSync(await dl.path(),'utf8').replace(/^\uFEFF/,'').split('\r\n')[0].split(',').map(x=>x.replace(/"/g,''));
+  ok('CSV: «תיאור» ו«דגם» בעמודות נפרדות',H.indexOf('דגם')===H.indexOf('תיאור')+1,H.slice(0,5).join(','));
+  await P.close()}
+
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(`\n${pass} עברו · ${fail} נכשלו`);process.exit(fail?1:0)})();

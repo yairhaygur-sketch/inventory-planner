@@ -3297,6 +3297,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
 #lite .tph h1{font-size:var(--f-lg);margin:0;font-weight:700}
 #lite .tph .src{color:var(--shell-dim);flex:1;min-width:200px}
+#lite .tpa{display:flex;gap:4px;margin-top:3px} #lite .tpm{color:var(--ink-2);font-size:12px;margin-top:2px} #lite .tpi{font:inherit;font-size:11px;line-height:1;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap} #lite .tpi:hover{border-color:var(--ink-2);color:var(--ink)}
 #lite details.off{margin:0 0 12px;font-size:var(--f-sm,13px)} #lite details.off summary{cursor:pointer;color:var(--ink-2)} #lite details.off li{margin:4px 0}
 #lite .tph .src.eta{flex:0 0 auto;min-width:0} #lite .tph .src.eta.warn{color:var(--shell-warn,#F0B35A)}
 #lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
@@ -14191,9 +14192,13 @@ const tpInFix=r=>{const a=decisionList('fix')||[];if(TP_FIXSET.a!==a)TP_FIXSET={
 /* סדר הקטגוריה «זמן אספקה חסר»: הזמנת לקוח פתוחה · חוסר עכשיו או צפוי · כל השאר */
 function tpLtPrio(r){return (r.cust||0)>0?0:(((r.unsQty||0)>0||(r.miss||0)>0||isM1(r)||(shelfQty(r)<=0&&(r.rate||0)>0))?1:2)}
 /* עמודות משותפות לכל הנושאים — מק״ט, תיאור, מתכנן */
+/* ליד כל מק״ט (החלטת המעתד 11.11): העתקה, ו«טופל» — אותו סימון handled של הכלי
+   המלא (setMark): הפריט יורד מהרשימות בשני הכלים, וחוזר אחרי 7 ימים אם לא תוקן
+   (MARK_TTL.handled). ביטול — ברשימת «טופלו» שמתחת לאריחים */
 const TP_HEAD=[
- {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b>`},
- {k:'desc',l:'תיאור',v:r=>r.desc,c:'d'},
+ {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b><span class="tpa"><button type="button" class="tpi" data-tp="copy" data-pn="${esc(r.pn)}" title="העתק מק״ט" aria-label="העתק מק״ט ${esc(r.pn)}">⧉</button><button type="button" class="tpi" data-tp="done" data-key="${esc(markKey(r))}" title="סמן «טופל» — יוסר מהרשימה, בשני הכלים. חוזר אחרי 7 ימים אם הבעיה לא תוקנה" aria-label="סמן ${esc(r.pn)} כטופל">✓ טופל</button></span>`},
+ /* הדגם אחרי התיאור, באותו תא (בעמודה נפרדת הטבלה של «טיוב נתונים» חרגה מ-1366px); ב-CSV — עמודה משלו */
+ {k:'desc',l:'תיאור · דגם',v:r=>r.desc,c:'d',h:r=>`${esc(r.desc||'')}${r.model?`<div class="tpm">${esc(r.model)}</div>`:''}`,x:[['תיאור',r=>r.desc],['דגם',r=>r.model]]},
  {k:'planner',l:'מתכנן',v:r=>r.planner}];
 /* ============ ארבעת הנושאים — הסדר ותתי-הקטגוריות שהמעתד קבע (1.11) ============
    כל תת-קטגוריה היא בורר של המנוע המשותף, בלי חישוב חדש ובלי סף חדש:
@@ -14273,9 +14278,18 @@ const TOPICS={
    {k:'act',l:'פעולה',v:tpAct,c:'d'}]}};
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
+const tpDone=r=>!!(r&&r.mark&&r.mark.t==='handled');
+/* «טופלו» — כל הפריטים שסומנו (בשני הכלים), עם ביטול */
+function tpDoneList(){const l=((QF&&QF.all)||[]).filter(tpDone);if(!l.length)return '';
+ return `<details class="off"><summary>${l.length.toLocaleString('he-IL')} פריטים סומנו «טופל» — הוסרו מהרשימות (בשני הכלים), וחוזרים אחרי ${DAYS(markTTL('handled'))} ימים אם הבעיה לא תוקנה</summary><ul>${l.map(r=>
+  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(r.mark.ts).toLocaleDateString('he-IL'))} <button type="button" class="btn" data-tp="undone" data-key="${esc(markKey(r))}">↺ החזר לרשימה</button></li>`).join('')}</ul></details>`}
+function tpCopy(t){
+ if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
+ else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}
 function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
   cat=k?T.cats.find(c=>c[0]===k):null;
- return T.rows().filter(r=>(!TP.pl||r.planner===TP.pl)
+ return T.rows().filter(r=>!tpDone(r)&&(!TP.pl||r.planner===TP.pl)
   &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
 function tpSorted(t,list){const s=TP.sort[t];
  if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);return list}
@@ -14517,7 +14531,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
    <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
    <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span></div>
   <div class="tiles">${tiles}</div>
-  ${t==='fix'?tpOffList():''}
+  ${t==='fix'?tpOffList():''}${tpDoneList()}
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
   ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
   <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
@@ -14547,6 +14561,11 @@ if(LITE){
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
   else if(a.tp==='more'){TP.lim+=200;tpRender()}
+  else if(a.tp==='copy')tpCopy(a.pn);
+  else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
+   if(a.tp==='done'&&TP.open===r)tpdClose();
+   setMark(r,a.tp==='done'?'handled':'','');
+   toast(a.tp==='done'?`${r.pn} סומן «טופל» והוסר מהרשימה — ביטול ב«טופלו»`:`${r.pn} הוחזר לרשימה`)}
   else if(a.tp==='profon'){const r=ALL.find(x=>markKey(x)===a.pn);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}}
   /* לשונית אחרת — נושא אחר, ולכן כרטיס אחר: הפתוח נסגר */
   else if(a.tpTab){if(TP.open)tpdClose();TP.tab=a.tpTab;TP.lim=200;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
@@ -14563,10 +14582,7 @@ if(LITE){
   else if(k==='explain'&&TP.open)explain(TP.open);
   else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
    toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
-  else if(k==='copy'&&TP.open){const t=TP.open.pn;
-   if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
-   else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
-    try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}});
+  else if(k==='copy'&&TP.open)tpCopy(TP.open.pn)});
  el.addEventListener('change',e=>{if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}});
  let qt=null;
  el.addEventListener('input',e=>{if(e.target.dataset.tp!=='q')return;TP.q=e.target.value;clearTimeout(qt);
