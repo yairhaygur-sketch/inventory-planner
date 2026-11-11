@@ -151,6 +151,29 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('CSV: «תיאור» ו«דגם» בעמודות נפרדות',H.indexOf('דגם')===H.indexOf('תיאור')+1,H.slice(0,5).join(','));
   await P.close()}
 
+ /* ---- 6. סינון לפי ספק, מותג, דגם, קבוצת שיווק, קבוצת חומרים, סוג MRP, ABC (11.11) ---- */
+ {const P=await open('?topics');await P.waitForSelector('#lite table');
+  const keys=await P.evaluate(()=>[...document.querySelectorAll('#lite [data-tpf]')].map(s=>s.dataset.tpf)),FDEF_KEYS=await P.evaluate(()=>FDEF.map(f=>f[0]));
+  ok('שבעה מסננים, באותם שדות של הכלי המלא',JSON.stringify(keys)===JSON.stringify(['supplier','brand','model','mkt1','grp','mrp','abc'])&&keys.every(k=>FDEF_KEYS.includes(k)),keys.join(','));
+  for(const k of keys){const v=await P.evaluate(k=>{const s=document.querySelector(`#lite [data-tpf="${k}"]`);return s.options.length>1?s.options[1].value:null},k);
+   if(v==null){ok(`${k}: יש ערכים לבחירה`,false);continue}
+   await P.selectOption(`#lite [data-tpf="${k}"]`,v);await P.waitForTimeout(150);
+   const r=await P.evaluate(([k,v])=>Object.keys(TOPICS).every(t=>{const got=tpRows(t,true),exp=TOPICS[t].rows().filter(r=>!tpDone(r)&&String(r[k])===v);
+     return got.length===exp.length&&got.every(x=>String(x[k])===v)&&+String(document.querySelector(`[data-tp-tab="${t}"] .n`).textContent).replace(/[^\d]/g,'')===got.length}),[k,v]);
+   ok(`סינון ${k}="${v}": בכל ארבעת הנושאים — רק פריטים עם הערך, והמונים תואמים`,r);
+   await P.selectOption(`#lite [data-tpf="${k}"]`,'');await P.waitForTimeout(100)}
+  const b=await P.evaluate(()=>document.querySelector('#lite [data-tpf="brand"]').options[1].value);
+  await P.selectOption('#lite [data-tpf="brand"]',b);await P.selectOption('#lite [data-tpf="abc"]','A');await P.waitForTimeout(150);
+  const two=await P.evaluate(b=>({n:tpRows('cust',true).length,ok:tpRows('cust',true).every(r=>r.brand===b&&r.abc==='A'),clear:!!document.querySelector('[data-tp="fclear"]')}),b);
+  ok('שני מסננים יחד — חיתוך, וכפתור «נקה סינון»',two.ok&&two.clear,JSON.stringify(two));
+  const [dl]=await Promise.all([P.waitForEvent('download'),P.click('#lite [data-tp="csv"]')]);
+  const rows=fs.readFileSync(await dl.path(),'utf8').replace(/^\uFEFF/,'').split('\r\n').filter(Boolean).length-1;
+  ok('ה-CSV מייצא רק את השורות המסוננות',rows===two.n,`${rows} · ${two.n}`);
+  await P.click('[data-tp="fclear"]');await P.waitForTimeout(150);
+  const cl=await P.evaluate(()=>({f:Object.values(TP.f).some(Boolean),sel:SEL.brand.size+SEL.abc.size}));
+  ok('«נקה סינון» מאפס, והסינון של הכלי המלא (SEL) לא נגעו בו',!cl.f&&cl.sel===0,JSON.stringify(cl));
+  await P.close()}
+
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(`\n${pass} עברו · ${fail} נכשלו`);process.exit(fail?1:0)})();
