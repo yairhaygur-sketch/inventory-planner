@@ -21,6 +21,12 @@ const dstr=d=>{const x=new Date(d);return `${String(x.getDate()).padStart(2,'0')
    לא מיום ההרצה. ה-ETA בלבד — תפעולי — נבנה מהיום (etaNow, למטה). */
 const {FIXTURE_NOW,FIXTURE_STATE_DAY2,FIXTURE_HEAD}=require('./lib/fixture-date.js');
 const now=FIXTURE_NOW,DAY=864e5;
+/* ============ «אספקות פת.» — אספקה ללקוח, בשיעור מציאותי (OPEN_DEL, 11.11) ============
+   עד כאן העמודה קיבלה I(0,5) בכל שורה — ערך ב-5 מכל 6 פריטים. זה לא שינה דבר,
+   כי הכלי חיבר אותה לרכש הפתוח. עכשיו היא ביקוש לקוח (אספקה שטרם נופקה), ובדוח
+   האמיתי היא קיימת ב-89 מתוך 7,990 פריטים (כ-1%). כאן: כל פריט שישים (כ-1.7%).
+   ההגרלה I(0,5) נשארת בדיוק במקומה — אחרת כל שאר הדוח הסינתטי היה זז. */
+const openDelQ=(q,i)=>i%60===7?Math.max(1,q):0;
 const rows=[];
 for(let i=0;i<900;i++){
  const kind=rnd();
@@ -62,7 +68,7 @@ for(let i=0;i<900;i++){
  const odGrp=odR<.04?'כלי עבודה':odR<.07?'אביזרים':md;
  rows.push([pn,`חלק ${gp} ${md} דגם ${i}`,`Part ${gp} ${i}`,SUP[I(0,SUP.length-1)],
   ['01','04','14','01','01'][I(0,4)],'פעיל',mrpType,AB[I(0,2)],srvLevel,I(0,20),I(0,40),
-  I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),I(0,5),cust,['Z001','Z004'][I(0,1)],
+  I(14,180),I(1,14),I(0,10),price,sell,stock,free,I(0,50),po,I(0,8),openDelQ(I(0,5),i),cust,['Z001','Z004'][I(0,1)],
   gp,br,'מתכנן א׳','12 חודשים',odGrp,gp,
   '100',br,'200',md,'300',rnd()<.15?'אביזרים':gp,
   y0,y1,y2,I(0,10),...months,
