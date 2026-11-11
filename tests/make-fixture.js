@@ -37,13 +37,13 @@ const partPO=(cust,i)=>i%30===11?Math.max(1,Math.floor(cust/3)):0;
    בדרך לעודף) היה קיים בדוח הסינתטי רק דרך «אספקות פת.». כאן: בכל פריט עשרים מסוג
    «מת», 2 יח׳ ברכש פתוח אמיתי. בלי הגרלה. */
 const deadPO=i=>i%20===17?2:0;
-const rows=[];
+const rows=[],addedPO=new Set();
 for(let i=0;i<900;i++){
  const kind=rnd();
  let months,y0,y1,y2,free,cust,po,stock,saleAgo,entAgo;
  if(kind<.25){ // בוער: לקוח ממתין ללא כיסוי
   months=MON.map(()=>I(0,14)); y0=I(40,120);y1=I(40,120);y2=I(30,110);
-  free=I(0,3);cust=I(5,40);po=partPO(cust,i);stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
+  free=I(0,3);cust=I(5,40);po=partPO(cust,i);if(po)addedPO.add(i);stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
  }else if(kind<.45){ // מניעת חוסר
   months=MON.map(()=>I(2,20)); y0=I(60,200);y1=I(60,200);y2=I(50,180);
   free=I(2,10);cust=I(0,4);po=I(0,6);stock=free+I(0,5);saleAgo=I(1,25);entAgo=I(40,200);
@@ -52,7 +52,7 @@ for(let i=0;i<900;i++){
   free=I(200,900);cust=0;po=0;stock=free+I(0,30);saleAgo=I(30,200);entAgo=I(100,500);
  }else if(kind<.78){ // מת
   months=MON.map(()=>0); y0=0;y1=0;y2=0;
-  free=I(10,300);cust=0;po=deadPO(i);stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
+  free=I(10,300);cust=0;po=deadPO(i);if(po)addedPO.add(i);stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
  }else if(kind<.9){ // איטי
   months=MON.map(()=>rnd()<.25?I(1,3):0); y0=I(1,6);y1=I(1,8);y2=I(1,8);
   free=I(80,400);cust=0;po=I(0,2);stock=free;saleAgo=I(200,900);entAgo=I(300,1000);
@@ -125,7 +125,9 @@ XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
    שלא נמדד הוא בדיוק איך שנכנס באג ניגודיות בפעם הקודמת.
    מכוון בכוונה לשלושת המצבים: כיסוי מלא, כיסוי חלקי, ותאריך שעבר. */
 const PO=hdr.indexOf('הז. רכש');
-const withPo=rows.filter(r=>+r[PO]>0).slice(0,60);
+/* בלי השורות שקיבלו רכש ב-OPEN_DEL (partPO/deadPO) — כדי שדוח ה-ETA הסינתטי
+   יישאר בדיוק אותן 60 שורות שהיו. */
+const withPo=rows.filter((r,i)=>+r[PO]>0&&!addedPO.has(i)).slice(0,60);
 const RLM=x=>'\u200e'+x+'\u200f';
 const etaNow=Date.now();
 const day=n=>{const d=new Date(etaNow+n*DAY);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
