@@ -334,6 +334,29 @@ Changes to these areas require explicit business approval.
   official recommendation and the SAP file are unchanged. Real report: 9
   items, 88 units, about $2,000 and ₪4,000; business-guard 0 differences.
 
+- **2026-11-11 · «אספקות פת.» (OPEN_DEL, column DB) is a customer delivery,
+  not purchase in transit (approved 11.11).** When a customer delivery is
+  opened in SAP, its quantity leaves «כמות בהז.פ» and waits in «אספקות פת.»
+  until it is issued. Until now the tool added it to the open purchase
+  orders — so a delivery *to* a customer counted as coverage, as «purchase in
+  transit toward surplus», and against the ETA report. Now it leaves the open
+  purchase orders and is added to the customer demand (DA + DB). The item
+  card shows one info line with the quantity. Data-signature version 2 → 3,
+  so the next upload reads as «migrated», not as a new report.
+  - Every consequence follows the existing rules on the corrected numbers:
+    an order that looked covered by «purchase» (which was the delivery
+    itself) becomes «customer waiting · no purchase»; a status-04 item with
+    an open delivery says so; an on-demand accessory with an open delivery
+    is no longer «nothing to decide» and is judged by the existing accessory
+    rule.
+  - Real report (11.11): 89 items change. «purchase in transit toward
+    surplus» 89 → 59 (about $123,000 → $31,000). Queues: follow 138 → 137,
+    immediate 2 → 3, prevent 33 → 34; agenda 38 → 40. The main SAP file is
+    unchanged.
+  - Synthetic report (DB on every 60th item, as in the real report's ~1%):
+    15 items change; «אין רכש כלל» 130 → 131; «purchase in transit toward
+    surplus» 101 → 99; one accessory moves from «on demand» to «surplus».
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

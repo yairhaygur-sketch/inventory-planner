@@ -97,6 +97,14 @@ the export does not contain.
 | Column | Field | Purpose |
 |----------|----------|----------|
 | DA | כמות בהז.פ | Open Customer Orders |
+| DB | אספקות פת. | **Customer delivery not yet issued** (approved 11.11). Added to the customer demand, never to open purchase orders. |
+
+When a customer delivery is opened in SAP, its quantity leaves «כמות בהז.פ»
+and appears in «אספקות פת.» until it is issued. Customer demand is therefore
+DA + DB. Until 11.11 the tool added DB to the open purchase orders, so a
+delivery to a customer counted as stock on its way in: as coverage, as
+«purchase in transit toward surplus», and against the ETA report. It is not
+an inbound quantity in any case.
 
 # Document Status
 

@@ -27,13 +27,19 @@ const now=FIXTURE_NOW,DAY=864e5;
    האמיתי היא קיימת ב-89 מתוך 7,990 פריטים (כ-1%). כאן: כל פריט שישים (כ-1.7%).
    ההגרלה I(0,5) נשארת בדיוק במקומה — אחרת כל שאר הדוח הסינתטי היה זז. */
 const openDelQ=(q,i)=>i%60===7?Math.max(1,q):0;
+/* ומה שהעמודה הזו כיסתה בטעות: עד OPEN_DEL, «רכש» של לקוח ממתין הגיע כמעט רק
+   ממנה — ולכן בדוח הסינתטי כמעט לא היה «לקוח ממתין, הרכש מכסה חלק» (Q.immediate)
+   עם רכש אמיתי. engine.test תפס את זה: הרשימה «הזמנות ללא כיסוי» הצטמצמה לתור אחד.
+   כאן: בכל פריט שלושים מסוג «בוער», רכש אמיתי שמכסה כשליש מההזמנה. בלי הגרלה —
+   שאר הדוח הסינתטי לא זז. */
+const partPO=(cust,i)=>i%30===11?Math.max(1,Math.floor(cust/3)):0;
 const rows=[];
 for(let i=0;i<900;i++){
  const kind=rnd();
  let months,y0,y1,y2,free,cust,po,stock,saleAgo,entAgo;
  if(kind<.25){ // בוער: לקוח ממתין ללא כיסוי
   months=MON.map(()=>I(0,14)); y0=I(40,120);y1=I(40,120);y2=I(30,110);
-  free=I(0,3);cust=I(5,40);po=0;stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
+  free=I(0,3);cust=I(5,40);po=partPO(cust,i);stock=free+I(0,2);saleAgo=I(3,40);entAgo=I(60,300);
  }else if(kind<.45){ // מניעת חוסר
   months=MON.map(()=>I(2,20)); y0=I(60,200);y1=I(60,200);y2=I(50,180);
   free=I(2,10);cust=I(0,4);po=I(0,6);stock=free+I(0,5);saleAgo=I(1,25);entAgo=I(40,200);
