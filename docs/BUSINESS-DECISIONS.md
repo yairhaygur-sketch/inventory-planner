@@ -354,8 +354,11 @@ Changes to these areas require explicit business approval.
     immediate 2 → 3, prevent 33 → 34; agenda 38 → 40. The main SAP file is
     unchanged.
   - Synthetic report (DB on every 60th item, as in the real report's ~1%):
-    15 items change; «אין רכש כלל» 130 → 131; «purchase in transit toward
-    surplus» 101 → 99; one accessory moves from «on demand» to «surplus».
+    15 items change; «אין רכש כלל» 127 → 128; «purchase in transit toward
+    surplus» 107 → 105; one accessory moves from «on demand» to «surplus».
+    The synthetic report also gained real partial purchase orders (every
+    30th «burning» item) and real open orders on dead items (every 20th):
+    until now those cases existed in it only through «אספקות פת.».
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 

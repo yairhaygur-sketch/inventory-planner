@@ -33,6 +33,10 @@ const openDelQ=(q,i)=>i%60===7?Math.max(1,q):0;
    כאן: בכל פריט שלושים מסוג «בוער», רכש אמיתי שמכסה כשליש מההזמנה. בלי הגרלה —
    שאר הדוח הסינתטי לא זז. */
 const partPO=(cust,i)=>i%30===11?Math.max(1,Math.floor(cust/3)):0;
+/* ובאותו אופן: פריט מת עם רכש פתוח («לבדוק — רכש פתוח» במסך שינוי הפרופיל, ורכש
+   בדרך לעודף) היה קיים בדוח הסינתטי רק דרך «אספקות פת.». כאן: בכל פריט עשרים מסוג
+   «מת», 2 יח׳ ברכש פתוח אמיתי. בלי הגרלה. */
+const deadPO=i=>i%20===17?2:0;
 const rows=[];
 for(let i=0;i<900;i++){
  const kind=rnd();
@@ -48,7 +52,7 @@ for(let i=0;i<900;i++){
   free=I(200,900);cust=0;po=0;stock=free+I(0,30);saleAgo=I(30,200);entAgo=I(100,500);
  }else if(kind<.78){ // מת
   months=MON.map(()=>0); y0=0;y1=0;y2=0;
-  free=I(10,300);cust=0;po=0;stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
+  free=I(10,300);cust=0;po=deadPO(i);stock=free;saleAgo=I(1300,2600);entAgo=I(1300,2600);
  }else if(kind<.9){ // איטי
   months=MON.map(()=>rnd()<.25?I(1,3):0); y0=I(1,6);y1=I(1,8);y2=I(1,8);
   free=I(80,400);cust=0;po=I(0,2);stock=free;saleAgo=I(200,900);entAgo=I(300,1000);
