@@ -73,7 +73,7 @@
 
 ## 5 · איך מוודאים שהייצוא לא זז
 - `tests/export-worker.test.js` משווה ב-CI את קובץ האקסל לזה של main, תא בתא. ב-PR כשל בהשוואה הוא FAIL (PR-A, ‏#142).
-- שינוי מכוון בייצוא מוצהר תא-אחר-תא ב-`tests/export-expected.json`, קשור ל-SHA בסיס (PR-B, ‏#144).
+- שינוי מכוון בייצוא מוצהר תא-אחר-תא ב-`tests/export-expected.json`, קשור ל-SHA בסיס (PR-B, ‏#144). תזוזת שורות מוצהרת ב-`moves` — הפריטים שזזו בלבד (11.11).
   ברירת המחדל: `{"base":null,"changes":[]}`. **אחרי מיזוג PR שהצהיר, מאפסים אותו.**
 - `tests/sap-preview.test.js`: התצוגה המקדימה = הקובץ. ‏`tests/rate-decay-export.test.js`: ‏SS ≥ ssMin אחרי A′.
 - `business-guard.js` על הדוח האמיתי: כל קובץ שהכלי מוציא (אקסל, SAP, מלאי איטי, זירוז, מייל) מול main.
