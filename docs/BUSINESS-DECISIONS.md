@@ -377,8 +377,12 @@ Changes to these areas require explicit business approval.
   floor, the low-demand policy floor and the max between them are unchanged,
   so no recommended safety stock goes down. The item card shows the supplier
   risk and the service level in force.
-  - Real report (12.11, 10,159 items): 61 items, +743 units, about $39,000
-    and ₪11,500. Items selling 30+ a month: median statistical cushion about
+  - Exception (approved 12.11): an item with no consumption in the last 11
+    months (rate from 3-year history only) gets no supplier risk — otherwise
+    33 such items got a statistical requirement and 9 of them (mostly slow,
+    5 in decay) a higher safety stock, against RATE_DECAY.
+  - Real report (12.11, 10,159 items): 52 items, +734 units, about $39,000
+    and ₪11,200. Items selling 30+ a month: median statistical cushion about
     21 → 64 days of sales.
   - Alternatives simulated: delays only (38 items, about $6,000); delays +
     95% for all (462 items, about $117,000 and ₪86,000 — slow items over-

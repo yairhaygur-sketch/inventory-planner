@@ -2,7 +2,8 @@
    ההחלטה (docs/BUSINESS-DECISIONS.md, docs/ROP-SS-POLICY.md):
    · המרכיב הסטטיסטי של מלאי הביטחון מחבר את תנודת הביקוש בזמן האספקה ואת
      סיכון הספק: ⌈ Z × √( LT·σ² + (קצב · p · LT)² ) ⌉, p = 25% בייבוא, 10% ברכש
-     מקומי, וסוג חומר לא מוכר — כייבוא.
+     מקומי, וסוג חומר לא מוכר — כייבוא. חריגה: פריט בלי צריכה ב-11 החודשים
+     (קצב מהיסטוריית 3 השנים בלבד) — בלי סיכון ספק, כמו קודם.
    · פריט פעיל (5 יח׳ בחודש ומעלה) מקבל לפחות 95%; רמה גבוהה יותר מ-SAP נשמרת.
    · הרצפות לא זזות, ולכן מלאי ביטחון מוצע אינו יורד באף פריט.
    הבדיקה מחשבת את הנוסחה מחדש על כל פריט בפיקסצ׳ר — לא על דוגמה — ומוודאת
@@ -23,7 +24,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   const recOK=r=>!(r.isODStatic||r.noStock);
   const live=ALL.filter(r=>recOK(r)&&!r.ltBad);
   const want=r=>{const p=P[r.matType]??0.25,ltM=Math.max(r.ltM,0);
-   const sd=r.A.sd*Math.sqrt(ltM),sup=r.rate*p*ltM,z=r.rate>=5?Math.max(r.z,Z95):r.z;
+   const sd=r.A.sd*Math.sqrt(ltM),sup=r.d12>0?r.rate*p*ltM:0,z=r.rate>=5?Math.max(r.z,Z95):r.z;
    return r.rate>0?Math.ceil(z*Math.sqrt(sd*sd+sup*sup)):0};
   const old=r=>r.rate>0?Math.ceil(r.z*r.A.sd*Math.sqrt(Math.max(r.ltM,0))):0;
   /* ענפים שאין להם פריט בפיקסצ׳ר (רמות שירות 50/80/95 בלבד; Z001/Z004 בלבד) —
@@ -50,6 +51,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    keepHigher:live.filter(r=>r.rate>=5&&r.z>Z95).filter(r=>r.zEff!==r.z).map(r=>r.pn),
    slowSap:live.filter(r=>r.rate>0&&r.rate<5&&r.zEff!==r.z).map(r=>r.pn),
    raised:live.filter(r=>r.ssStat>old(r)).length,
+   hist:live.filter(r=>r.rate>0&&!(r.d12>0)).length,
+   histOK:live.filter(r=>r.rate>0&&!(r.d12>0)).filter(r=>r.sdSup!==0||r.ssStat!==old(r)).map(r=>r.pn),
    noDrop:live.filter(r=>r.sugSS<Math.max(old(r),r.ssMinEff||0,r.lowFloor||0)).map(r=>r.pn),
    floors:live.filter(r=>r.sugSS<Math.max(r.ssStat,r.ssMinEff||0,r.lowFloor||0)&&r.sugSS!==ROP_MIN_ACT).map(r=>r.pn),
    noRecZero:ALL.filter(r=>!recOK(r)&&r.ssStat!==0).map(r=>r.pn),
@@ -63,6 +66,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('רמת SAP גבוהה מ-95% נשמרת',!R.keepHigher.length,R.keepHigher.join(','));
  ok('מתחת ל-5 יח׳ בחודש — רמת השירות מ-SAP כמו קודם',!R.slowSap.length,R.slowSap.join(','));
  ok('השינוי מעלה מרכיב סטטיסטי בפריטים בפיקסצ׳ר',R.raised>0,R.raised);
+ ok('חריגה: יש בפיקסצ׳ר פריטים עם קצב בלי צריכה ב-11 חודשים (קצב 3 שנים)',R.hist>0,R.hist);
+ ok('חריגה: בלי צריכה ב-11 חודשים — אין סיכון ספק, והמרכיב הסטטיסטי כמו קודם',!R.histOK.length,R.histOK.join(','));
  ok('אף מלאי ביטחון מוצע אינו יורד מתחת לנוסחה הקודמת והרצפות',!R.noDrop.length,R.noDrop.join(','));
  ok('הרצפות לא זזו: SS מוצע ≥ max(סטטיסטי, ssMin, רצפת מדיניות)',!R.floors.length,R.floors.join(','));
  ok('פריט בלי המלצה (OD/PD/04-14) — המרכיב הסטטיסטי 0',!R.noRecZero.length,R.noRecZero.join(','));
