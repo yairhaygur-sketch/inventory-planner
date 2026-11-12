@@ -365,6 +365,32 @@ Changes to these areas require explicit business approval.
     30th «burning» item) and real open orders on dead items (every 20th):
     until now those cases existed in it only through «אספקות פת.».
 
+- **2026-11-12 · Safety stock covers supplier delay, and active items get at
+  least 95% service (SS_LTVAR, approved 12.11).** The statistical part of
+  safety stock was ⌈Z × σ × √LT⌉: demand variation only, assuming the supplier
+  always arrives exactly on time. It is now ⌈Z × √(LT·σ² + (rate · σ_LT)²)⌉,
+  where σ_LT — the lead-time deviation — is the planner's default until it is
+  measured from ETA history: 25% of the lead time for imports (Z001), 10% for
+  local purchase (Z004), unknown material type as import. An active item
+  (5 units a month or more) gets at least 95% service; a higher SAP level is
+  kept; below the threshold the SAP level applies as before. The SAP ssMin
+  floor, the low-demand policy floor and the max between them are unchanged,
+  so no recommended safety stock goes down. The item card shows the supplier
+  risk and the service level in force.
+  - Exception (approved 12.11): an item with no consumption in the last 11
+    months (rate from 3-year history only) gets no supplier risk — otherwise
+    33 such items got a statistical requirement and 9 of them (mostly slow,
+    5 in decay) a higher safety stock, against RATE_DECAY.
+  - Same logic (approved 12.11): for an item where the tool detected demand
+    decay, supplier risk and the active-item threshold use the recent rate,
+    as the reorder point does (one item: safety stock would jump 1 → 11).
+  - Real report (12.11, 10,159 items): 51 items, +724 units, about $37,000
+    and ₪11,200. Items selling 30+ a month: median statistical cushion about
+    21 → 64 days of sales.
+  - Alternatives simulated: delays only (38 items, about $6,000); delays +
+    95% for all (462 items, about $117,000 and ₪86,000 — slow items over-
+    cushioned); delays + 95% from 3 a month (90 items). The planner chose 5.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

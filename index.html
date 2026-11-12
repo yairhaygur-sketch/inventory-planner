@@ -3818,6 +3818,36 @@ function zFor(srv){const v=+srv||0;
  const p=v/100;
  if(!(p>0.5))return 0;                    /* רמת שרות עד 50% — ללא מרכיב ביטחון */
  return Math.round(normInv(Math.min(p,0.9999))*100)/100}
+/* ============ SS_LTVAR — סיכון הספק במלאי הביטחון (אושר 12.11) ============
+   עד כאן המרכיב הסטטיסטי היה ⌈Z × σ × √LT⌉: כמה הביקוש קופץ בזמן האספקה,
+   בהנחה שהספק מגיע **בדיוק** בזמן. בפריט יציב עם ספק רחוק זה מכסה את הסיכון
+   הקטן ומתעלם מהגדול — PN-07: 64 יח׳/חודש, LT 4 חודשים, σ 17 → 29 יח׳ (13
+   ימי מכירה); איחור של חודש אחד הוא 64 יח׳.
+
+   הנוסחה המלאה מחברת את שני הסיכונים (שונות הביקוש בזמן האספקה + שונות זמן
+   האספקה כפול הקצב):
+       SS סטטיסטי = ⌈ Z × √( LT·σ² + (קצב · σ_LT)² ) ⌉
+   σ_LT — סטיית זמן האספקה — אינה בדוח. עד שתימדד מדוחות ה-ETA, ברירת מחדל
+   שקבע המעתד: 25% מזמן האספקה בייבוא (Z001), 10% ברכש מקומי (Z004). סוג
+   חומר לא מוכר — כייבוא (הזהיר מבין השניים).
+
+   חריגה (אושרה 12.11): פריט בלי שום צריכה ב-11 החודשים — קצבו בא רק מהיסטוריית
+   3 השנים — אינו מקבל את סיכון הספק. אחרת 33 פריטים כאלה בדוח האמיתי קיבלו
+   דרישה סטטיסטית, ו-9 מהם (רובם «מלאי איטי», 5 בדעיכה) SS גבוה יותר — בסתירה
+   ל-RATE_DECAY: «אין הצדקה להשאיר ROP מנופח על בסיס ביקוש היסטורי שכבר דעך».
+   ובאותו היגיון (אושר 12.11): פריט שהכלי זיהה בו דעיכה — סיכון הספק וסף
+   «פריט פעיל» נמדדים על הקצב העדכני λ, לא על קצב 3 השנים. בדוח האמיתי: פריט
+   אחד, SS היה קופץ 1 → 11 (כ-$2,300).
+
+   ורמת השירות: כל הפריטים המהירים בדוח מוגדרים ב-SAP ל-80% — חוסר מתוכנן
+   באחד מכל חמישה מחזורים, בפריט ש«אסור שיחסר». פריט פעיל (≥5 יח׳/חודש)
+   מקבל לפחות 95%; רמה גבוהה יותר מ-SAP נשמרת. מתחת לסף — רמת SAP כמו קודם.
+
+   הרצפות לא זזות: SS מוצע = max(סטטיסטי, ssMin, רצפת מדיניות). השינוי יכול
+   רק להעלות. נמדד על הדוח האמיתי (12.11, 10,159 פריטים): 51 פריטים, +724
+   יח׳, כ-$37,000 וכ-₪11,200; אף SS לא יורד. ראה docs/ROP-SS-POLICY.md. */
+const LTV_P={'יבוא':0.25,'רכש מקומי':0.10},LTV_P_DEF=0.25;
+const SS_ACT_RATE=5,SS_ACT_SRV=95;
 /* מדיניות גיל מלאי: מלאי מת = 3 שנים ללא צריכה מתאריך הכניסה האחרון */
 const DEAD_DAYS=1095, SLOW_MONTHS=24;
 /* ספי זיהוי אזילה — חודש "נמוך" מול החציון, ומה נחשב שכן בריא */
@@ -4902,8 +4932,10 @@ function profActive(r){const i=profInfo(r);return !!i&&(i.state==='up'||i.state=
    הכלל ROP>0 וגם SS>0 מכריע גם במקרים שלא הופיעו בדוח:
      ROP≥2 ו-SS=0 → ss_zero_rate3y. בפריטים מנוהלים זה קורה כשהקצב בא
        מחלון 3 השנים ואין שונות ב-11 החודשים — 5 כאלה היום, PN-07 אחד
-       מהם. במועמד להעלאה יש צריכה בשני חודשים לפחות, ולכן σ>0 ו-SS≥1;
-       הדרך היחידה שלו לכאן היא צריכה זהה בכל 11 החודשים (σ=0).
+       מהם. במועמד להעלאה יש צריכה בשני חודשים לפחות, ולכן σ>0 ו-SS≥1.
+       מאז SS_LTVAR (12.11) גם צריכה זהה בכל 11 החודשים (σ=0) נושאת סיכון
+       ספק ו-SS≥1; הדרך היחידה של מועמד לכאן היא בלי צריכה ב-11 החודשים
+       (כולה בחודש הנוכחי, קצב מחלון 3 השנים) — החריגה של SS_LTVAR.
      אין עמודת רמת שירות → no_srv. לא מחשבים 80% בהשערה.
      מק״ט כפול או שורת מקור חסרה → no_row. לא בוחרים שורה בשקט.
 
@@ -4945,7 +4977,7 @@ function profSimAll(){
     const c=s.row.slice();c[m.mrp]='ZM';c[m.srv]=PFSIM_SRV;if(m.abc>=0)c[m.abc]='C';rows.push(c)}
    for(const it of build(rows,hdr)){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
     res.map.set(it.pn,{rop:ropMin?PD_ROP_MIN:it.sugROP,ropCalc:it.sugROP,ropMin,ss:it.sugSS,
-    rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,ltD:it.ltD,
+    rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,zEff:it.zEff,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,sdTot:it.sdTot,ltD:it.ltD,
     ssStat:it.ssStat,ssMin:it.ssMin,ssMinEff:it.ssMinEff,lowFloor:it.lowFloor,ssSrc:it.ssSrc,
     noRec,priceMissing:it.priceMissing})}}}
  finally{Object.assign(ROWS,rows0);DIAG=diag0}
@@ -5348,7 +5380,12 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        מנוהל. לכן הם מטופלים כאן בדיוק כמו «לפי דרישה»: אין מספר.
        המלאי עצמו נשאר גלוי — קטלוג, כסף תקוע, וכרטיס הפריט. */
     const noRec=isODStatic||noStock;
-    const ssStat=(rate>0&&!noRec)?Math.ceil(z*sdLT):0;
+    /* SS_LTVAR — ראה ההגדרות ליד zFor */
+    const rateSS=decayed?rateRecent:rate;
+    const ltvP=LTV_P[matType]??LTV_P_DEF,sdSup=d12>0?rateSS*ltvP*Math.max(ltM,0):0;
+    const sdTot=Math.sqrt(sdLT*sdLT+sdSup*sdSup);
+    const srvAct=rateSS>=SS_ACT_RATE&&zFor(SS_ACT_SRV)>z,zEff=srvAct?zFor(SS_ACT_SRV):z;
+    const ssStat=(rate>0&&!noRec)?Math.ceil(zEff*sdTot):0;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=noRec?0:lowDemFloor(d12,price,currency);
     const lowBand=lowFloor?lowDemBand(price,currency):null;
@@ -5515,7 +5552,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
          אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
       ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
       ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 /* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
@@ -9873,7 +9910,7 @@ const SCOL={
   cell:r=>`<td class="num">${(r.ss||0).toLocaleString('he-IL')}`
    +(recNA(r)?`<span class="sug na" title="${LT_NA}">← LT חסר</span>`
     :r.ss!==r.sugSS?`<span class="sug">←${(r.sugSS||0).toLocaleString('he-IL')}</span>`:'')+'</td>'},
- need:{t:'הדרישה',ttl:'⌈Z × σ × √LT⌉ — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר. «—» = אין קצב מדוד',
+ need:{t:'הדרישה',ttl:'⌈Z × √(LT·σ² + (קצב·σ_LT)²)⌉ — ביקוש + סיכון הספק — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר. «—» = אין קצב מדוד',
   val:r=>(ssNoRate(r)||recNA(r))?-1:ssNeed(r),xval:r=>(ssNoRate(r)||recNA(r))?'':ssNeed(r),
   cell:r=>`<td class="num need${ssFloorGap(r)>0?' over':''}${ssNoRate(r)?' dim':''}" title="${esc(ssFloorGap(r)>0?(ssNoRate(r)?`אין קצב מדוד, ולכן הרצפה שהגדרת (${r.ssMinEff}) היא כולה הפער`:`הרצפה שהגדרת גבוהה ב-${ssFloorGap(r)} יח׳ מהדרישה הסטטיסטית`):'הדרישה הסטטיסטית')}">`
    +((r.rate>0&&!r.isPDItem&&!ssNoRate(r)&&!recNA(r))?ssNeed(r).toLocaleString('he-IL'):'—')+'</td>'},
@@ -10326,12 +10363,12 @@ function colRowHTML(r,x,vk){return visCols(vk).map(k=>{const c=SCOL[k],h=c.cell(
 
 function decisionHead(){const cols=FIXLIKE()
   ?['מק״ט','תיאור','ROP','SS',
-    '<span title="Z × σ × √LT — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
+    '<span title="Z × √(LT·σ² + (קצב·σ_LT)²) — ביקוש + סיכון הספק — מה שהסטטיסטיקה דורשת, גם כשהרצפה שהגדרת גבוהה יותר">הדרישה</span>',
     'זמן אספקה','מה לתקן']
   :track==='done'?['מק״ט','תיאור','הסימון','מתי סומן','']
   :track==='floor'?['מק״ט','תיאור',
     '<span title="מל.בט.מינ. — הרצפה שהוגדרה ב-SAP">SS מוגדר</span>',
-    '<span title="⌈Z × σ × √LT⌉ — המרכיב הסטטיסטי. «—» = אין קצב מדוד, ולכן הוא לא חושב">הדרישה</span>',
+    '<span title="⌈Z × √(LT·σ² + (קצב·σ_LT)²)⌉ — המרכיב הסטטיסטי: ביקוש + סיכון הספק. «—» = אין קצב מדוד, ולכן הוא לא חושב">הדרישה</span>',
     'פער','שווי הפער',`<span title="${esc(doorEtaHead())}">הגעה</span>`,'צריכה 11ח׳']
   :track==='applied'?['מק״ט','תיאור',
     '<span title="הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז">נקודת הזמנה</span>',
@@ -11786,7 +11823,9 @@ function explain(r){const A=r.A;
    <div class="flag info">ב-SAP (קיים): נקודת הזמנה ${r.rop} · מלאי ביטחון ${r.ss} · מלאי ביטחון מינימלי ${r.ssMin}. ${esc(ltValuesMsg(r))}</div>`;
   document.getElementById('modalwrap').classList.add('open');return}
  const active=A.active,med=A.med,sd=+A.sd.toFixed(2),ltM=+r.ltM.toFixed(2),sqrtLT=+Math.sqrt(Math.max(r.ltM,0)).toFixed(3);
- const z=r.z, sdLT=+r.sdLT.toFixed(2), zsdLT=Math.ceil(z*r.sdLT), dLT=+r.dLT.toFixed(2);
+ /* SS_LTVAR: Z בתוקף (95% לפריט פעיל) וסיכון הספק — אותם שדות ש-build חישב */
+ const z=r.zEff??r.z, sdLT=+r.sdLT.toFixed(2), dLT=+r.dLT.toFixed(2);
+ const ltvPct=Math.round((r.ltvP??LTV_P_DEF)*100), sdSup=+(r.sdSup||0).toFixed(2), sdTot=+(r.sdTot??r.sdLT).toFixed(2);
  const pAct=+A.pAct.toFixed(2), muEv=+A.muEv.toFixed(1);
  const rateZero=r.rate<=0;
  const isPDItem=!!r.isPDItem;const zeroBuf=rateZero||isPDItem;
@@ -11841,11 +11880,13 @@ function explain(r){const A=r.A;
     ולכן הדגל דורש בסיס אמיתי ומנוסח בכפולות כשהיחס גדול. */
  else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
  const ssRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא מלאי ביטחון':isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'לפי דרישה — ללא מלאי ביטחון'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
-  :`<tr><td>רמת שירות</td><td>${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
+  :`<tr><td>רמת שירות</td><td>${r.srvAct?`${r.srv}% ב-SAP → <b>${SS_ACT_SRV}%</b> · פריט פעיל (${SS_ACT_RATE} יח׳ בחודש ומעלה)`:`${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}`}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
     <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr>
     <tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
-    <tr><td>σ_LT = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
-    <tr class="step"><td>① SS סטטיסטי = ⌈ Z × σ_LT ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdLT}⌉ = ${ssStatV}`}</td></tr>
+    <tr><td>תנודת הביקוש בזמן האספקה = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
+    <tr><td>סיכון הספק = קצב × (${ltvPct}% × LT) · ${esc(r.matType||'')}</td><td>${!(r.d12>0)?'0 — אין צריכה ב-11 החודשים (קצב מהיסטוריית 3 השנים בלבד)':`${fmt1(r.rateSS??r.rate)}${r.rateSS!=null&&r.rateSS!==r.rate?' (קצב עדכני — דעיכה)':''} × (${ltvPct}% × ${ltM}) = ${sdSup}`}</td></tr>
+    <tr><td>סיכון כולל = √( תנודת הביקוש² + סיכון הספק² )</td><td>√(${sdLT}² + ${sdSup}²) = ${sdTot}</td></tr>
+    <tr class="step"><td>① SS סטטיסטי = ⌈ Z × סיכון כולל ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdTot}⌉ = ${ssStatV}`}</td></tr>
     <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
     <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${tierNote}</td></tr>
     <tr class="total"><td>SS סופי = max( ① , ② , ③ )</td><td>max(${ssStatV}, ${ssMinEffV}, ${lowFloorV}) = ${ssMax}${r.ssSrc!=='none'?` · קבע: ${SS_SRC[r.ssSrc]}`:''}</td></tr>
@@ -11875,7 +11916,7 @@ function explain(r){const A=r.A;
  const mvRow=(r.sales!=null||r.entries!=null)?`<tr><td>תנועה אחרונה — מכירה/כניסה</td><td>${movText(r.sales)} / ${movText(r.entries)}</td></tr>`:'';
  document.getElementById('mtitle').textContent=`מאחורי החישוב — ${r.pn}`;
  document.getElementById('mbody').innerHTML=`${flags||''}
-  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × σ × √LT ⌉ , רצפת ssMin , רצפת מדיניות )</div><table>${ssRows}</table></div>
+  <div class="calc"><div class="ch">מלאי ביטחון (SS)<span class="res">${r.sugSS}</span></div><div class="formula">SS = max( ⌈ Z × √(LT·σ² + (קצב·σ_LT)²) ⌉ , רצפת ssMin , רצפת מדיניות )</div><table>${ssRows}</table></div>
   <div class="calc"><div class="ch">נקודת הזמנה (ROP)<span class="res">${r.sugROP}</span></div><div class="formula">ROP = ⌈ ביקוש בזמן האספקה + SS סופי ⌉</div><table>${ropRows}</table></div>${guard}
   <div class="calc"><div class="ch">בסיס הנתונים</div><table>
     <tr><td>חודשים פעילים</td><td>${active}/11</td></tr><tr><td>חציון צריכה (חודשים עם מכירה)</td><td>${med}</td></tr><tr><td>צריכה 11 חו׳</td><td>${r.d12}</td></tr>

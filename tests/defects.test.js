@@ -143,7 +143,7 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  await p.evaluate(()=>{try{setMode('today')}catch(_){}});await p.waitForTimeout(500);
  const o=await p.evaluate(()=>{const g=pn=>{const r=ALL.find(x=>x.pn===pn);if(!r)return null;
    const q=Object.keys(Q).find(k=>Q[k].includes(r))||'—';
-   return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
+   return {cat:r.cat,sd:+r.A.sd.toFixed(2),drops:r.A.drops.length,sugSS:r.sugSS,supSS:Math.ceil((r.zEff??r.z)*(r.sdSup||0)),sugROP:r.sugROP,rop:r.rop,ss:r.ss,lowFloor:r.lowFloor,
      act:(r.act||[])[0]||'',acts:(r.act||[]).join(' | '),actN:(r.act||[]).length,paramFix:r.paramFix,tierFloor:!!r.tierFloor,why:(r.why||[]).map(w=>w[1]).join(' | '),q,sev:r.sev,cov:r.covA,trend:r.A.trend.pct}};
   return {clean:g('FLAT-CLEAN'),so:g('FLAT-STOCKOUT'),run:g('RUN-STOCKOUT'),
           runOpen:g('RUN-STOCKOUT-OPEN'),eta:g('PO-NO-ETA'),etaWet:g('PO-SOME-STOCK'),fok:g('FOLLOW-OK'),low:g('LOW-DEMAND'),slowBad:g('SLOW-BAD-ROP'),slowOk:g('SLOW-OK-ROP'),cheap:g('LOW-CHEAP'),cheap0:g('LOW-CHEAP-ZERO'),ils150:g('LOW-150-ILS'),usd150:g('LOW-150-USD'),
@@ -160,7 +160,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
               marked:list.filter(x=>x.mark).length}})(),
           lumpy:(()=>{const r=ALL.find(x=>x.pn==='LUMPY-PEAK');
             return {peak:r.A.peak,pattern:r.A.pattern,spikes:r.A.spikes.length,
-              ssStat:r.ssStat,ssMin:r.ssMin,sugSS:r.sugSS,halfPeak:Math.ceil(0.5*r.A.peak)}})(),
+              ssStat:r.ssStat,ssMin:r.ssMin,sugSS:r.sugSS,halfPeak:Math.ceil(0.5*r.A.peak),
+              formula:Math.ceil((r.zEff??r.z)*Math.sqrt(r.sdLT*r.sdLT+(r.sdSup||0)**2))}})(),
           noThirdSource:ALL.filter(x=>x.sugSS>Math.max(x.ssStat||0,x.ssMin||0,x.lowFloor||0,x.ss||0))
             .map(x=>`${x.pn}: SS=${x.sugSS} מול max(${x.ssStat},${x.ssMin},${x.lowFloor},${x.ss})`),
           guard:g('SSROP-GUARD'),
@@ -268,9 +269,13 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
           cur:{usd:g('CUR-USD'),eur:g('CUR-EUR'),ils:g('CUR-ILS')}}});
  const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''));
  // A · חודש אזילה אינו יוצר מלאי ביטחון יש מאין
- ok('ביקוש שטוח → סטיית תקן 0',o.clean.sd===0&&o.clean.sugSS===0);
- ok('חודש אזילה אינו מנפח את סטיית התקן',o.so.sd===0&&o.so.sugSS===0,
-    `sd=${o.so.sd} SS=${o.so.sugSS} (לפני התיקון: 3.02 / 6)`);
+ /* SS_LTVAR (12.11): גם ביקוש שטוח נושא את סיכון הספק, ולכן SS אינו 0 — הוא
+    בדיוק ⌈Z × קצב·p·LT⌉, בלי שום תרומה מתנודת הביקוש. חודש אזילה שהיה
+    מנפח את σ (3.02 לפני התיקון) היה מעלה את SS מעל החלק הזה, והבדיקה תיפול. */
+ ok('ביקוש שטוח → סטיית תקן 0, ו-SS הוא סיכון הספק בלבד',o.clean.sd===0&&o.clean.sugSS===o.clean.supSS,
+    `sd=${o.clean.sd} SS=${o.clean.sugSS} · סיכון ספק בלבד ${o.clean.supSS}`);
+ ok('חודש אזילה אינו מנפח את סטיית התקן',o.so.sd===0&&o.so.sugSS===o.so.supSS,
+    `sd=${o.so.sd} SS=${o.so.sugSS} · סיכון ספק בלבד ${o.so.supSS} (לפני התיקון: σ 3.02 / SS 6)`);
  // TODAY_RULE — מי נכנס לרשימת הבוקר ומי לא
  ok('מלאי שמכסה את החודש אינו ברשימת הבוקר, גם מתחת לנקודת ההזמנה',
     !o.today.aIn,
@@ -282,9 +287,12 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('והוא בשכבה 1',o.today.bTier==='t1',o.today.bTier);
  ok('פריט מסומן «טופל» אינו ברשימת הבוקר',o.today.marked===0,o.today.marked+' מסומנים');
  // B3 · פיק היסטורי אינו מקור עצמאי למלאי ביטחון
+ /* עד SS_LTVAR ההוכחה הייתה SS < ⌈½·פיק⌉. מאז, פריט פעיל (≥5 יח׳/חודש) ב-95%,
+    ו-SS של הפריט הזה (16) עובר את רצפת-הפיק הישנה (15) מסיבה שאינה הפיק:
+    σ × Z בתוקף. ההוכחה המדויקת: SS שווה בדיוק לנוסחה, בלי איבר פיק. */
  ok('פיק גדול אינו מייצר מלאי ביטחון מחוץ לנוסחה',
-    o.lumpy.sugSS<o.lumpy.halfPeak,
-    `פיק ${o.lumpy.peak} · ${o.lumpy.pattern} · SS=${o.lumpy.sugSS} (רצפת-הפיק הישנה: ${o.lumpy.halfPeak})`);
+    o.lumpy.ssStat===o.lumpy.formula&&o.lumpy.sugSS===Math.max(o.lumpy.formula,o.lumpy.ssMin),
+    `פיק ${o.lumpy.peak} · ${o.lumpy.pattern} · SS=${o.lumpy.sugSS} = נוסחה ${o.lumpy.formula} (רצפת-הפיק הישנה: ${o.lumpy.halfPeak})`);
  ok('ומלאי הביטחון הוא בדיוק max(סטטיסטי, ssMin)',
     o.lumpy.sugSS===Math.max(o.lumpy.ssStat,o.lumpy.ssMin),
     `max(${o.lumpy.ssStat}, ${o.lumpy.ssMin}) = ${o.lumpy.sugSS}`);

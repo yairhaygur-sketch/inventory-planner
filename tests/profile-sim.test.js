@@ -30,7 +30,7 @@ const mk=(pn,o={})=>{const m=o.months||Array(11).fill(0),y=m.reduce((a,b)=>a+b,0
   o.srv!=null?o.srv:50,o.ss||0,o.rop||0,o.lt!=null?o.lt:60,o.ltAdd!=null?o.ltAdd:2,o.ssMin||0,
   o.price!=null?o.price:100,o.cur||'USD',o.free||0,o.free||0,0,o.po||0,0,0,o.cust||0,'Z004','מנוע','ZT','מתכנן',0,
   o.mkt1||'שיווק','מערכת','100','ZT','200','דגם','300','מערכת',
-  o.y0!=null?o.y0:y,o.y1!=null?o.y1:y,o.y2!=null?o.y2:y,0,...m,D(10),D(60)]};
+  o.y0!=null?o.y0:y,o.y1!=null?o.y1:y,o.y2!=null?o.y2:y,o.curM||0,...m,D(10),D(60)]};
 function write(file,rows,opt={}){let hdr=HDR.slice(),rr=rows.map(r=>r.slice());
  for(const name of (opt.drop||[])){const i=hdr.indexOf(name);
   if(i>=0){hdr.splice(i,1);rr=rr.map(r=>{const c=r.slice();c.splice(i,1);return c})}}
@@ -61,7 +61,11 @@ const CASES=[
  ['PF-NOLT',    {months:REG,lt:0,ltAdd:0},                      'rev', ['no_lt']],
  ['PF-SSMIN7',  {months:[3,3,3,4,3,3,3,4,3,3,3],ssMin:7},       'ok',  []],
  ['PF-ROP1',    {months:LOW,price:500,rop:1,ss:0,...LOWY},      'rev', ['ss_zero']],
- ['PF-FLAT',    {months:Array(11).fill(1),price:500},           'rev', ['ss_zero_rate3y']],
+ /* SS_LTVAR (12.11): צריכה שטוחה (σ=0) נושאת עכשיו את סיכון הספק — SS=1 ולא 0,
+    ולכן היא תקינה. «ROP≥2 ו-SS=0» נשאר אפשרי במועמד רק כשאין צריכה ב-11
+    החודשים (החריגה): כל הצריכה בחודש הנוכחי, והקצב מחלון 3 השנים — PF-HIST. */
+ ['PF-FLAT',    {months:Array(11).fill(1),price:500},           'ok',  []],
+ ['PF-HIST',    {months:Array(11).fill(0),curM:4,y0:4,y1:30,y2:30,price:500},'rev',['ss_zero_rate3y']],
  ['PF-SILENT',  {months:[0,0,0,0,0,0,3,4,2,3,1]},               'rev', ['zero_silent']],
  ['PF-DUP',     {months:REG},                                   'rev', ['no_row']]];
 const MANAGED=[mk('BG-ZM',{mrp:'ZM',abc:'C',srv:80,months:REG,free:30,rop:20,ss:8}),
@@ -127,14 +131,16 @@ const SNAP=()=>{
  ok('PF-LOWCHEAP — רצפת מדרגה A: SS=3, ROP=3',sp['PF-LOWCHEAP'].sim.ss===3&&sp['PF-LOWCHEAP'].sim.rop===3,`${sp['PF-LOWCHEAP'].sim.ss}/${sp['PF-LOWCHEAP'].sim.rop}`);
  ok('PF-SSMIN7 — רצפת SAP נשמרת: SS=7',sp['PF-SSMIN7'].sim.ss===7&&sp['PF-SSMIN7'].sim.ssSrc==='sap',`${sp['PF-SSMIN7'].sim.ss} ${sp['PF-SSMIN7'].sim.ssSrc}`);
  ok('PF-ROP1 — נוכחות מינימלית: ROP=1, SS=0',sp['PF-ROP1'].sim.rop===1&&sp['PF-ROP1'].sim.ss===0);
- ok('PF-FLAT — ROP≥2 ו-SS=0',sp['PF-FLAT'].sim.rop>=2&&sp['PF-FLAT'].sim.ss===0,`${sp['PF-FLAT'].sim.rop}/${sp['PF-FLAT'].sim.ss}`);
+ ok('PF-FLAT — σ=0, ולכן SS הוא סיכון הספק בלבד: ⌈0.84 × 1 × 10% × LT⌉ = 1',sp['PF-FLAT'].sim.ss===Math.ceil(0.84*1*0.10*(62/30))&&sp['PF-FLAT'].sim.ss===1,`${sp['PF-FLAT'].sim.rop}/${sp['PF-FLAT'].sim.ss}`);
+ ok('PF-HIST — בלי צריכה ב-11 חודשים: אין סיכון ספק, ROP≥2 ו-SS=0',sp['PF-HIST'].sim.rop>=2&&sp['PF-HIST'].sim.ss===0,`${sp['PF-HIST'].sim.rop}/${sp['PF-HIST'].sim.ss}`);
  ok('כל הסימולציות על רמת שירות 80 ו-z=0.84',Object.values(sp).filter(x=>x&&x.sim).every(x=>x.sim.srv===80&&x.sim.z===0.84));
 
  /* ---- 3. אורקל ידני: הנוסחה מחושבת כאן, לא רק משווים את הקוד לעצמו ---- */
  const reg=sp['PF-REG'].sim,ltM=62/30,mu=REG.reduce((a,b)=>a+b,0)/11;
  const sd=Math.sqrt(REG.reduce((a,b)=>a+(b-mu)**2,0)/10),rate=REG.slice(0,6).reduce((a,b)=>a+b,0)/6;
- const ssX=Math.ceil(0.84*sd*Math.sqrt(ltM)),ropX=Math.ceil(rate*ltM+ssX);
- ok('PF-REG — SS = ⌈z·σ·√LT⌉ ו-ROP = ⌈קצב·LT + SS⌉, מחושב ידנית',reg.ss===ssX&&reg.rop===ropX&&ssX>0,`${reg.ss}/${reg.rop} מול ${ssX}/${ropX}`);
+ /* SS_LTVAR: Z בתוקף 95% כשהקצב ≥5 (כאן כ-6), וסיכון הספק ב-10% (Z004) */
+ const zE=rate>=5?1.65:0.84,ssX=Math.ceil(zE*Math.sqrt(sd*sd*ltM+(rate*0.10*ltM)**2)),ropX=Math.ceil(rate*ltM+ssX);
+ ok('PF-REG — SS = ⌈Z·√(LT·σ² + (קצב·p·LT)²)⌉ ו-ROP = ⌈קצב·LT + SS⌉, מחושב ידנית',reg.ss===ssX&&reg.rop===ropX&&ssX>0,`${reg.ss}/${reg.rop} מול ${ssX}/${ropX}`);
  /* ואותו build() על אותה שורה, כשמשנים את שלושת התאים ביד */
  const same=await p.evaluate(()=>{const m=mapCols(ALL_RAW.hdr);const r0=Object.assign({},ROWS),d0=DIAG;
   try{const rows=ALL_RAW.rows.filter(row=>PFSIM.map.has(CLEAN(row[m.pn]))&&CLEAN(row[m.pn])!=='PF-DUP').map(row=>{const c=row.slice();c[m.mrp]='ZM';c[m.srv]=80;c[m.abc]='C';return c});
