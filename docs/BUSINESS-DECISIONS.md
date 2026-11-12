@@ -381,7 +381,10 @@ Changes to these areas require explicit business approval.
     months (rate from 3-year history only) gets no supplier risk — otherwise
     33 such items got a statistical requirement and 9 of them (mostly slow,
     5 in decay) a higher safety stock, against RATE_DECAY.
-  - Real report (12.11, 10,159 items): 52 items, +734 units, about $39,000
+  - Same logic (approved 12.11): for an item where the tool detected demand
+    decay, supplier risk and the active-item threshold use the recent rate,
+    as the reorder point does (one item: safety stock would jump 1 → 11).
+  - Real report (12.11, 10,159 items): 51 items, +724 units, about $37,000
     and ₪11,200. Items selling 30+ a month: median statistical cushion about
     21 → 64 days of sales.
   - Alternatives simulated: delays only (38 items, about $6,000); delays +

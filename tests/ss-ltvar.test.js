@@ -3,7 +3,8 @@
    · המרכיב הסטטיסטי של מלאי הביטחון מחבר את תנודת הביקוש בזמן האספקה ואת
      סיכון הספק: ⌈ Z × √( LT·σ² + (קצב · p · LT)² ) ⌉, p = 25% בייבוא, 10% ברכש
      מקומי, וסוג חומר לא מוכר — כייבוא. חריגה: פריט בלי צריכה ב-11 החודשים
-     (קצב מהיסטוריית 3 השנים בלבד) — בלי סיכון ספק, כמו קודם.
+     (קצב מהיסטוריית 3 השנים בלבד) — בלי סיכון ספק, כמו קודם. ופריט שזוהתה בו
+     דעיכה — סיכון הספק וסף «פריט פעיל» על הקצב העדכני.
    · פריט פעיל (5 יח׳ בחודש ומעלה) מקבל לפחות 95%; רמה גבוהה יותר מ-SAP נשמרת.
    · הרצפות לא זזות, ולכן מלאי ביטחון מוצע אינו יורד באף פריט.
    הבדיקה מחשבת את הנוסחה מחדש על כל פריט בפיקסצ׳ר — לא על דוגמה — ומוודאת
@@ -24,7 +25,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   const recOK=r=>!(r.isODStatic||r.noStock);
   const live=ALL.filter(r=>recOK(r)&&!r.ltBad);
   const want=r=>{const p=P[r.matType]??0.25,ltM=Math.max(r.ltM,0);
-   const sd=r.A.sd*Math.sqrt(ltM),sup=r.d12>0?r.rate*p*ltM:0,z=r.rate>=5?Math.max(r.z,Z95):r.z;
+   const q=r.rateRecent!=null&&r.rateRecent<RATE_DECAY*r.rate3y?r.rateRecent:r.rate;
+   const sd=r.A.sd*Math.sqrt(ltM),sup=r.d12>0?q*p*ltM:0,z=q>=5?Math.max(r.z,Z95):r.z;
    return r.rate>0?Math.ceil(z*Math.sqrt(sd*sd+sup*sup)):0};
   const old=r=>r.rate>0?Math.ceil(r.z*r.A.sd*Math.sqrt(Math.max(r.ltM,0))):0;
   /* ענפים שאין להם פריט בפיקסצ׳ר (רמות שירות 50/80/95 בלבד; Z001/Z004 בלבד) —
@@ -46,10 +48,11 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    imp:live.filter(r=>r.matType==='יבוא').length,loc:live.filter(r=>r.matType==='רכש מקומי').length,
    pOK:live.filter(r=>r.ltvP!==(P[r.matType]??0.25)).map(r=>r.pn),
    act:live.filter(r=>r.srvAct).length,
-   actOK:live.filter(r=>r.srvAct!==(r.rate>=5&&Z95>r.z)).map(r=>r.pn),
+   actOK:live.filter(r=>r.srvAct!==(r.rateSS>=5&&Z95>r.z)).map(r=>r.pn),
+   rssOK:live.filter(r=>r.rateSS!==(r.rateRecent!=null&&r.rateRecent<RATE_DECAY*r.rate3y?r.rateRecent:r.rate)).map(r=>r.pn),
    zEffOK:live.filter(r=>r.zEff!==(r.srvAct?Z95:r.z)).map(r=>r.pn),
-   keepHigher:live.filter(r=>r.rate>=5&&r.z>Z95).filter(r=>r.zEff!==r.z).map(r=>r.pn),
-   slowSap:live.filter(r=>r.rate>0&&r.rate<5&&r.zEff!==r.z).map(r=>r.pn),
+   keepHigher:live.filter(r=>r.rateSS>=5&&r.z>Z95).filter(r=>r.zEff!==r.z).map(r=>r.pn),
+   slowSap:live.filter(r=>r.rateSS>0&&r.rateSS<5&&r.zEff!==r.z).map(r=>r.pn),
    raised:live.filter(r=>r.ssStat>old(r)).length,
    hist:live.filter(r=>r.rate>0&&!(r.d12>0)).length,
    histOK:live.filter(r=>r.rate>0&&!(r.d12>0)).filter(r=>r.sdSup!==0||r.ssStat!==old(r)).map(r=>r.pn),
@@ -63,6 +66,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('p נקבע לפי סוג החומר: 25% יבוא, 10% מקומי',!R.pOK.length,R.pOK.join(','));
  ok('יש פריטים פעילים שרמת השירות שלהם הועלתה ל-95%',R.act>0,R.act);
  ok('הועלתה בדיוק כשהקצב ≥5 ו-SAP מתחת ל-95%',!R.actOK.length&&!R.zEffOK.length,[...R.actOK,...R.zEffOK].join(','));
+ ok('הקצב לסיכון הספק ולסף: הקצב העדכני כשזוהתה דעיכה, אחרת rate',!R.rssOK.length,R.rssOK.join(','));
  ok('רמת SAP גבוהה מ-95% נשמרת',!R.keepHigher.length,R.keepHigher.join(','));
  ok('מתחת ל-5 יח׳ בחודש — רמת השירות מ-SAP כמו קודם',!R.slowSap.length,R.slowSap.join(','));
  ok('השינוי מעלה מרכיב סטטיסטי בפריטים בפיקסצ׳ר',R.raised>0,R.raised);
