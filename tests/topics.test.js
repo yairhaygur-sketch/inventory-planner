@@ -178,7 +178,8 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  await p.click('[data-tp-tab="fix"]');
  {const r=await p.evaluate(()=>{const rows=TOPICS.fix.rows();
    const cells=[...document.querySelectorAll('#lite tr.r')].map(tr=>tr.children);
-   const ki=TP_HEAD.concat(TOPICS.fix.cols).findIndex(c=>c.k==='val');
+   /* לפי הכותרת ולא לפי מיקום בהגדרות: עמודה שערכה יחיד (מתכנן) אינה בטבלה (TOPICS_UX #10) */
+   const ki=[...document.querySelectorAll('#lite thead th')].findIndex(th=>th.dataset.tpSort==='val');
    const wrong=[];TP.shown.forEach((row,i)=>{const t=cells[i][ki].textContent.trim();
     if(t!=='—'&&!t.includes(curSym(row.currency).trim()))wrong.push(row.pn+':'+t)});
    return {same:rows.filter(r=>tpInFix(r)&&r.sugROP===r.rop&&r.sugSS===r.ss).length,wrong}});

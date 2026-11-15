@@ -3339,6 +3339,12 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite td.d{min-width:120px;max-width:280px;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:1500px){#lite td.d{max-width:165px}}
 #lite td.w{white-space:normal;min-width:84px}
+/* TOPICS_UX ב (15.11): בינוני ונמוך */
+/* .vh — טקסט לקורא מסך בלבד. התא relative: בלעדיו האלמנט ממוקם מול המסמך, ו-Chromium מחזיר html בבדיקת פגיעה על כל השורה (נמדד) */
+#lite td.n{position:relative} #lite .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+#lite .also{color:var(--ink-2);font-size:12px;margin-inline-start:6px}
+#lite .tdot{color:var(--accent-ink);font-weight:700;margin-inline-start:3px;cursor:help}
+#lite nav .n,#lite nav .u{unicode-bidi:isolate;display:inline-block} #lite nav .u{margin-inline-start:4px;background:var(--critical);color:var(--on-fill);border-radius:10px;padding:0 8px;font-size:var(--f-sm);font-weight:700}
 #lite tr.r{cursor:pointer} #lite tr.r:hover td{background:var(--accent-bg)}
 #lite tr.r.on td{background:var(--accent-bg)} #lite tr.r.on td:first-child{box-shadow:inset -3px 0 0 var(--accent)}
 #lite tr.r:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -14250,7 +14256,8 @@ function tpBeforeEta(r){if(!ETA||!r||r.mark||r.isOD||r.isPDItem||r.noStock||!(r.
    חודשים 1–3 = שלושת החודשים המלאים האחרונים (בלי החודש הנוכחי), 4–6 = שלפניהם */
 const tpRawSum=(r,a)=>(r.months||[]).slice(a,a+3).reduce((x,y)=>x+y,0);
 function tpTrendCell(r,a){const c=a?r.tPre:r.tRec,raw=tpRawSum(r,a);
- return raw===c?tpN(c):`<b>${tpN(c)}</b> <span class="mini" title="סכום החודשים בדוח, לפני הניקוי">בדוח ${tpN(raw)}</span>`}
+ /* TOPICS_UX #12: מספר אחד בתא; הסכום בדוח בנקודה (ריחוף) ובטקסט לקורא מסך */
+ return raw===c?tpN(c):`<b>${tpN(c)}</b><span class="tdot" title="סכום החודשים בדוח, לפני הניקוי: ${tpN(raw)}" aria-hidden="true">•</span><span class="vh">בדוח ${tpN(raw)}</span>`}
 /* אילו חודשים תוקנו, ולמה — מאותה cleanSeries של המנוע */
 function tpTrendAdj(r){const cl=cleanSeries(r.months||[],r.A),dr=new Set((r.A.drops||[]).map(d=>d.i)),out=[];
  for(let i=0;i<6;i++){const v=(r.months||[])[i];if(v==null||cl[i]===v)continue;
@@ -14269,6 +14276,13 @@ let TP_FIXSET={a:null,s:null};
 const tpInFix=r=>{const a=decisionList('fix')||[];if(TP_FIXSET.a!==a)TP_FIXSET={a,s:new Set(a)};return TP_FIXSET.s.has(r)};
 /* סדר הקטגוריה «זמן אספקה חסר»: הזמנת לקוח פתוחה · חוסר עכשיו או צפוי · כל השאר */
 function tpLtPrio(r){return (r.cust||0)>0?0:(((r.unsQty||0)>0||(r.miss||0)>0||isM1(r)||(shelfQty(r)<=0&&(r.rate||0)>0))?1:2)}
+/* TOPICS_UX #9: אותו פריט בנושא נוסף — תג שקט לפני התיאור. TP.inSets נבנה בכל ציור
+   מאותן רשימות שהמונים בלשוניות נשענים עליהן (tpRows(k,true)). */
+const TP_SHORT={cust:'לקוחות',trend:'חריגת צריכה',short:'מלאי 0',fix:'טיוב נתונים'};
+/* «טופל» הוא סימון אחד לפריט (handled של הכלי המלא) — הוא יורד מכל הנושאים, וההודעה אומרת מאילו */
+const tpDoneMsg=(r,oth)=>`${r.pn} סומן «טופל» והוסר מהרשימה${oth.length?` — וגם מ${oth.map(k=>TOPICS[k].t).join(' ומ')}`:''} · ביטול ב«טופלו»`;
+function tpOthers(r){const S=TP.inSets||{};return Object.keys(S).filter(k=>k!==TP.tab&&S[k].has(r))}
+function tpAlso(r){const o=tpOthers(r);return o.length?`<span class="also" title="הפריט מופיע גם ב: ${esc(o.map(k=>TOPICS[k].t).join(' · '))}">גם ב${esc(o.map(k=>TP_SHORT[k]).join(', '))} · </span>`:''}
 /* עמודות משותפות לכל הנושאים — מק״ט, תיאור, מתכנן */
 /* ליד כל מק״ט (החלטת המעתד 11.11): העתקה, ו«טופל» — אותו סימון handled של הכלי
    המלא (setMark): הפריט יורד מהרשימות בשני הכלים, וחוזר אחרי 7 ימים אם לא תוקן
@@ -14276,7 +14290,7 @@ function tpLtPrio(r){return (r.cust||0)>0?0:(((r.unsQty||0)>0||(r.miss||0)>0||is
 const TP_HEAD=[
  {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b><span class="tpa"><button type="button" class="tpi" data-tp="copy" data-pn="${esc(r.pn)}" title="העתק מק״ט" aria-label="העתק מק״ט ${esc(r.pn)}">⧉</button><button type="button" class="tpi" data-tp="done" data-key="${esc(markKey(r))}" title="סמן «טופל» — יוסר מהרשימה, בשני הכלים. חוזר אחרי 7 ימים אם הבעיה לא תוקנה" aria-label="סמן ${esc(r.pn)} כטופל">✓ טופל</button></span>`},
  /* הדגם אחרי התיאור, באותו תא (בעמודה נפרדת הטבלה של «טיוב נתונים» חרגה מ-1366px); ב-CSV — עמודה משלו */
- {k:'desc',l:'תיאור · דגם',v:r=>r.desc,c:'d',h:r=>`${esc(r.desc||'')}${r.model?`<div class="tpm">${esc(r.model)}</div>`:''}`,x:[['תיאור',r=>r.desc],['דגם',r=>r.model]]},
+ {k:'desc',l:'תיאור · דגם',v:r=>r.desc,c:'d',h:r=>`${tpAlso(r)}${esc(r.desc||'')}${r.model?`<div class="tpm">${esc(r.model)}</div>`:''}`,x:[['תיאור',r=>r.desc],['דגם',r=>r.model]]},
  {k:'planner',l:'מתכנן',v:r=>r.planner}];
 /* ============ ארבעת הנושאים — הסדר ותתי-הקטגוריות שהמעתד קבע (1.11) ============
    כל תת-קטגוריה היא בורר של המנוע המשותף, בלי חישוב חדש ובלי סף חדש:
@@ -14329,30 +14343,34 @@ const TOPICS={
   rows:()=>((QF&&QF.all)||[]).filter(r=>r.custGap),
   cats:[['none','אין רכש כלל','red',r=>!!r.burn],['part','כיסוי חלקי','amb',r=>r.custGap&&!r.burn]],
   cols:[
-   {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
-   {k:'mrp',l:'סוג MRP',v:r=>r.mrp},
+   {k:'kind',l:'מצב',kind:1,v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'mrp',l:'סוג MRP',hide:1,v:r=>r.mrp},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po>0?tpN(r.po):'—'},
    {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>r.miss||0,h:r=>r.miss>0?`<b>${tpN(r.miss)}</b>`:'—'},
    {k:'cval',l:'שווי ההזמנה',n:1,v:r=>r.priceMissing?null:custVal(r),h:r=>r.priceMissing?'—':money(custVal(r),r.currency),
     x:[['שווי ההזמנה',r=>r.priceMissing?'':Math.round(custVal(r))],['מטבע',r=>r.currency]]},
-   {k:'eta',l:'אספקה ראשונה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
+   {k:'eta',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
    tpActCol('cust')]},
  trend:{t:'חריגת צריכה',short:'3 החודשים המלאים האחרונים מול 3 שלפניהם — רק כשהמגמה משנה את נקודת ההזמנה.',
   lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים המלאים האחרונים (בלי החודש הנוכחי) מול 3 שלפניהם, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. הסכומים מחושבים על סדרה מנוקה: חודש שבו כנראה אזל המלאי מוחלף בחציון, קפיצה נחתכת לפעמיים החציון, והחזרות נספרות כ-0. כשהסכום בדוח שונה, הוא מוצג לידו («בדוח»), ובכרטיס הפריט — איזה חודש תוקן ולמה.',
   rows:()=>tpUniq([riseRows(),trendRows()]),
   cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0]],
   cols:[
-   {k:'kind',l:'סוג',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'kind',l:'מצב',kind:1,v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   /* TOPICS_UX #14: קודם ההשפעה על נקודת ההזמנה (מוצעת ← לפי המגמה), ואחר כך האחוז */
+   {k:'imp',l:'נק׳ הזמנה מוצעת ← לפי המגמה',n:1,v:r=>Math.max(riseGap(r),trendGap(r))*(riseGap(r)>0?1:-1),
+    h:r=>{const q=tpRec(r),adv=riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null;
+     if(q.na==='lt')return `<b style="color:var(--critical)" title="${LT_NA}">LT חסר</b>`;
+     return q.na||adv==null?'—':`<span class="old">${tpN(q.rop)}</span> ← <b>${tpN(adv)}</b>`},
+    x:[['נק׳ הזמנה מוצעת',r=>tpRecX(r,'rop')],['לפי המגמה (מייעץ)',r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:'']]},
    /* 2.11: המגמה מחושבת על הסדרה המנוקה, והסכום בדוח מוצג לצדה כשהוא שונה */
    {k:'tRec',l:'3 ח׳ אחרונים (מנוקה)',n:1,v:r=>r.tRec,h:r=>tpTrendCell(r,0),x:[['3 ח׳ אחרונים — מנוקה',r=>r.tRec],['3 ח׳ אחרונים — בדוח',r=>tpRawSum(r,0)]]},
    {k:'tPre',l:'3 ח׳ קודמים (מנוקה)',n:1,v:r=>r.tPre,h:r=>tpTrendCell(r,3),x:[['3 ח׳ קודמים — מנוקה',r=>r.tPre],['3 ח׳ קודמים — בדוח',r=>tpRawSum(r,3)]]},
    {k:'pct',l:'שינוי',n:1,v:r=>r.tRatio==null?null:Math.round((r.tRatio-1)*100),
     h:r=>r.tRatio==null?'—':`${r.tRatio>1?'+':''}${Math.round((r.tRatio-1)*100)}%`},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
-   {k:'sug',l:'נק׳ הזמנה מוצעת',n:1,v:r=>tpRec(r).rop,h:r=>{const q=tpRec(r);return q.na==='lt'?`<b style="color:var(--critical)" title="${LT_NA}">LT חסר</b>`:q.na?'—':tpN(q.rop)},x:[['נק׳ הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
-   {k:'adv',l:'לפי המגמה (מייעץ)',n:1,v:r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    tpActCol('trend')]},
  short:{t:'מלאי 0 / צפוי להיגמר',short:'מדף ריק, או מלאי שלא יחזיק עד סוף החודש או עד האספקה הבאה.',
@@ -14361,7 +14379,7 @@ const TOPICS={
   cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0&&inToday(r)],['month','צפוי להיגמר החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0&&inToday(r)],
    ['eta','ייגמר לפני האספקה הבאה','amb',r=>tpBeforeEta(r)]],
   cols:[
-   {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
+   {k:'kind',l:'מצב',kind:1,v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'etaM',l:'אספקה עד סוף החודש (ETA)',eta:1,n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
@@ -14370,7 +14388,7 @@ const TOPICS={
     x:[['להזמין',r=>actQty(r)],['לא יסופק החודש',r=>Math.ceil(r.unsQty||0)]]},
    {k:'zd',l:'צפי סיום מלאי',v:r=>tpZeroDate(r),h:r=>{const d=tpZeroDate(r);return d?tpdDate(d):'—'}},
    {k:'en',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?(tpBeforeEta(r)?`<b>${tpdDate(r.etaFirst)}</b>`:tpdDate(r.etaFirst)):'—'},
-   {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
+   {k:'lt',l:'זמן אספקה (ימים)',hide:1,n:1,v:r=>r.ltD},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
    tpActCol('short')]},
@@ -14384,15 +14402,16 @@ const TOPICS={
    {k:'prof',l:'שינוי פרופיל',c:'w',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
     h:r=>{const i=profActive(r)?profInfo(r):null;return i?`<span title="${esc(i.why||'')}">${esc(PROF_ST[i.state][0])}</span>`:'—'},
     x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${PROF_ST[i.state][0]}`:''}]]},
-   {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
-   {k:'ss',l:'מלאי ביטחון',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
+   {k:'rop',l:'נק׳ הזמנה (SAP ← מוצעת)',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
+   {k:'ss',l:'מלאי ביטחון (SAP ← מוצע)',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
    {k:'src',l:'מה קבע את מלאי הביטחון',c:'w',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
    {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>{const x=ltRawOf(r);return x===''?null:x},
     h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(ltRawOf(r)),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)]]},
    {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpRecVal(r),
-    h:r=>{const v=tpRecVal(r);return v==null?'—':(v>0?'+':v<0?'−':'')+money(Math.abs(v),r.currency)},
+    /* TOPICS_UX #14: 0 = אין שינוי — אותו «—» של «אין» */
+    h:r=>{const v=tpRecVal(r);return v==null||v===0?'—':(v>0?'+':'−')+money(Math.abs(v),r.currency)},
     x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
    tpActCol('fix')]}};
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
@@ -14493,6 +14512,7 @@ function tpdParams(r){const N=tpN,q=tpRec(r);
   ${row('רמת שירות',r.srvMissing?'<span class="note">חסרה</span>':N(r.srv)+'%',q.src==='sim'?`<td class="v note">80% ב-ZM-C</td>`:na)}
   ${row('זמן אספקה מתוכנן',ltSap,r.ltBad?`<td class="v note"><b style="color:var(--critical)">${LT_MSG}</b></td>`:`<td class="v note">אין המלצה · זמן בפועל אינו בדוח</td>`)}
   ${row('סוג MRP',esc(r.mrp||'—'),pdUpgrade(r)?`<td class="v rec diff"><b>ZM-C</b></td>`:na)}</tbody></table>
+  ${(!q.na&&q.src==='sim'&&q.ss<r.ss)?`<p class="note">מלאי הביטחון אחרי ZM-C (${N(q.ss)}) נמוך מהערך היום ב-SAP (${N(r.ss)}): ב-ZM-C הוא נקבע מחדש מהצריכה, והרצפה היא «מלאי ביטחון מינימלי» (${N(r.ssMin)}) — לא הערך הנוכחי.</p>`:''}
   <table style="margin-top:8px"><thead><tr><th>חישוב המנוע ${TPD_SRC.calc}</th><th></th></tr></thead><tbody>
   ${row('קצב צריכה לחודש',N(r.rate)+(r.rateFrom3y?' <span class="note">(חלון 3 שנים)</span>':''),'')}
   ${r.net12!=null?row('צריכה נטו ב-12 חודשים',N(r.net12),''):''}
@@ -14635,9 +14655,17 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר.</p>
   <p class="mini">הקובץ נקרא בדפדפן ולא נשלח לשום מקום. החישוב הוא של הכלי המלא — אותו מנוע, אותם כללים.</p></div></main>`;return}
  const t=TP.tab,T=TOPICS[t],all=tpRows(t,true),list=tpSorted(t,tpRows(t,false)),s=TP.sort[t]||{};
- const cols=TP_HEAD.concat(T.cols).filter(c=>ETA||!c.eta);
  const pls=[...new Set(((QF&&QF.all)||[]).map(r=>r.planner).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
- const nav=Object.keys(TOPICS).map((k,i)=>`<button type="button" class="${k===t?'on':''}" data-tp-tab="${k}">${i+1}. ${esc(TOPICS[k].t)}<span class="n">${tpRows(k,true).length.toLocaleString('he-IL')}</span></button>`).join('');
+ /* TOPICS_UX #10/#11: עמודה שערכה יחיד (מתכנן אחד, או מתכנן שנבחר) ועמודת «מצב» כשכבר סיננת
+    לתת-קטגוריה — לא בטבלה. «hide»: בכרטיס וב-CSV, לא בטבלה. */
+ const plOne=pls.length<=1||!!TP.pl;
+ const cols=TP_HEAD.concat(T.cols).filter(c=>(ETA||!c.eta)&&!c.hide&&!(c.k==='planner'&&plOne)&&!(c.kind&&TP.cat[t]));
+ const rowsBy={};for(const k of Object.keys(TOPICS))rowsBy[k]=tpRows(k,true);
+ TP.inSets=Object.fromEntries(Object.entries(rowsBy).map(([k,l])=>[k,new Set(l)]));
+ /* TOPICS_UX #11: בלשונית — גם החלק הדחוף, באדום */
+ const URG_TAB={cust:['none','בלי רכש'],short:['zero','ב-0'],fix:['data','שבורים']};
+ const nav=Object.keys(TOPICS).map((k,i)=>{const u=URG_TAB[k],c=u&&TOPICS[k].cats.find(x=>x[0]===u[0]),un=c?rowsBy[k].filter(c[3]).length:0;
+  return `<button type="button" class="${k===t?'on':''}" data-tp-tab="${k}">${i+1}. ${esc(TOPICS[k].t)}<span class="n">${rowsBy[k].length.toLocaleString('he-IL')}</span>${un?`<span class="u">${un.toLocaleString('he-IL')} ${u[1]}</span>`:''}</button>`}).join('');
  const tiles=[['','הכול','gry',()=>true]].concat(T.cats).map(([k,l,c,f])=>
   `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}" aria-pressed="${(TP.cat[t]||'')===k}"><span>${esc(l)}</span><span class="v">${all.filter(f).length.toLocaleString('he-IL')}</span></button>`).join('');
  const fOn=TP_FILT.filter(([k])=>TP.f[k]),fOpen=!!TP.fOpen;
@@ -14696,8 +14724,9 @@ if(LITE){
   else if(a.tp==='funset'){delete TP.f[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
    if(a.tp==='done'&&TP.open===r)tpdClose();
+   const oth=a.tp==='done'?tpOthers(r):[];
    setMark(r,a.tp==='done'?'handled':'','');
-   toast(a.tp==='done'?`${r.pn} סומן «טופל» והוסר מהרשימה — ביטול ב«טופלו»`:`${r.pn} הוחזר לרשימה`)}
+   toast(a.tp==='done'?tpDoneMsg(r,oth):`${r.pn} הוחזר לרשימה`)}
   else if(a.tp==='profon'){const r=ALL.find(x=>markKey(x)===a.pn);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}}
   /* לשונית אחרת — נושא אחר, ולכן כרטיס אחר: הפתוח נסגר */
   else if(a.tpTab){if(TP.open)tpdClose();TP.tab=a.tpTab;TP.lim=200;try{history.replaceState(null,'','#'+a.tpTab)}catch(_){}tpRender()}
@@ -14742,7 +14771,7 @@ if(LITE){
   if(ks==='c'){tpCopy(r.pn);return}
   const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=!!TP.open;
   if(wasOpen)tpdClose();
-  setMark(r,'handled','');toast(`${r.pn} סומן «טופל» והוסר מהרשימה — ביטול ב«טופלו»`);
+  const oth=tpOthers(r);setMark(r,'handled','');toast(tpDoneMsg(r,oth));
   const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(!nx)return;
   if(wasOpen)tpdShow(nx);
   else{const j=(TP.shown||[]).indexOf(nx),tr=j>=0?document.querySelector(`#lite tr.r[data-tp-row="${j}"]`):null;if(tr)tr.focus({preventScroll:false})}},true);
