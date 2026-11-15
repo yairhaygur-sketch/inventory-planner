@@ -430,6 +430,22 @@ Changes to these areas require explicit business approval.
     «filter», active filters as chips); one explanation line, the full text
     behind ⓘ; a «no ETA report» banner, and the ETA columns hidden without one;
     keys C (copy) and D (handled, then the next item).
+- **2026-11-15 · The 4-topics view: medium and low findings (approved 15.11).**
+  Display only, as above.
+  - An item that appears in another topic says so («גם בטיוב נתונים»), and
+    «handled» says which other topics it leaves (it is one mark per item).
+  - Columns that decide nothing leave the table (kept in the card and CSV):
+    «planner» when there is one planner or one is selected, «MRP type» in
+    customer orders, «lead time» in zero stock; the «status» column only when
+    the list is mixed (not after choosing a sub-category).
+  - Each tab shows its urgent part in red (no purchase · at zero · broken).
+  - Consumption deviation: one number per cell (the cleaned sum), the report's
+    sum behind a dot (and as text for screen readers); the effect on the
+    reorder point («proposed ← by the trend») before the percentage.
+  - One name per thing across the four topics («status», «next delivery
+    (ETA)», «(SAP ← proposed)»). A zero change in value shows «—».
+  - Card: when moving PD → ZM-C lowers safety stock below today's SAP value,
+    a line says why (re-derived from consumption; the floor is minimum SS).
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 

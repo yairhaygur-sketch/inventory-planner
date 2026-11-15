@@ -1,4 +1,4 @@
-/* ============ TOPICS_UX — ביקורת מסך 4 הנושאים, קריטי וגבוה (אושר 15.11) ============
+/* ============ TOPICS_UX — ביקורת מסך 4 הנושאים (אושר 15.11): קריטי וגבוה, ואחריהם בינוני ונמוך ============
    תצוגה בלבד: אין חישוב, סף או סיווג חדשים — כל מספר נבדק כאן מול השדה של המנוע.
      #1 פעולה לפי הנושא (ב-CSV נשארת גם «פעולה» של המנוע)
      #2 מיון ברירת מחדל לפי דחיפות + שווי ההזמנה בהזמנות לקוח
@@ -116,6 +116,63 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.click('#lite details.lead summary');await p.click('#lite details.lead summary');
  const k3=await p.evaluate(()=>Object.keys(MARKS).length);await p.keyboard.press('d');await p.waitForTimeout(200);
  ok('#8 בלי פריט ממוקד — D אינו עושה דבר',await p.evaluate(()=>Object.keys(MARKS).length)===k3);
+
+ /* ============ בינוני ונמוך (#9–#14) ============ */
+ await p.evaluate(()=>{for(const k of Object.keys(MARKS))delete MARKS[k];apply()});
+ await tab('cust');
+ const M=await p.evaluate(()=>{const R={};
+  /* #9 — «גם ב…» בדיוק בפריטים שמופיעים בנושא נוסף, ובאילו */
+  const sets=Object.fromEntries(Object.keys(TOPICS).map(k=>[k,new Set(tpRows(k,true))]));
+  const bad9=[];let n9=0;
+  for(const t of Object.keys(TOPICS)){TP.tab=t;TP.cat={};tpRender();
+   [...document.querySelectorAll('#lite tbody tr')].forEach((tr,i)=>{const r=TP.shown[i],exp=Object.keys(sets).filter(k=>k!==t&&sets[k].has(r));
+    const tag=tr.querySelector('.also'),txt=tag?tag.textContent:'';if(exp.length)n9++;
+    if(!!tag!==!!exp.length||exp.some(k=>!txt.includes(TP_SHORT[k])))bad9.push(t+':'+r.pn)})}
+  R.n9=n9;R.bad9=bad9;
+  /* #10 — מתכנן אחד: אין עמודת «מתכנן»; «סוג MRP» לא בהזמנות לקוח; «זמן אספקה» לא במלאי 0 */
+  const heads=t=>{TP.tab=t;TP.cat={};tpRender();return [...document.querySelectorAll('#lite thead th')].map(x=>x.textContent.trim())};
+  const pls=new Set(QF.all.map(r=>r.planner).filter(Boolean)).size;
+  R.pls=pls;R.noPlanner=pls>1||!heads('cust').some(h=>h.startsWith('מתכנן'));
+  R.noMrp=!heads('cust').some(h=>h.startsWith('סוג MRP'));R.noLt=!heads('short').some(h=>h.startsWith('זמן אספקה'));
+  /* #11 — «מצב» רק כשהרשימה מעורבת; בלשונית — החלק הדחוף באדום */
+  TP.tab='cust';TP.cat={cust:'none'};tpRender();R.kindHidden=![...document.querySelectorAll('#lite thead th')].some(x=>x.textContent.trim().startsWith('מצב'));
+  TP.cat={};tpRender();R.kindShown=[...document.querySelectorAll('#lite thead th')].some(x=>x.textContent.trim().startsWith('מצב'));
+  const u=k=>{const e=document.querySelector(`[data-tp-tab="${k}"] .u`);return e?+((e.textContent.match(/[\d,]+/)||['0'])[0].replace(/,/g,'')):0};
+  R.urg={cust:[u('cust'),tpRows('cust',true).filter(r=>r.burn).length],short:[u('short'),tpRows('short',true).filter(TOPICS.short.cats[0][3]).length],
+   fix:[u('fix'),tpRows('fix',true).filter(TOPICS.fix.cats[2][3]).length]};
+  /* #12 — חריגת צריכה: מספר אחד בתא, וה«בדוח» בנקודה */
+  TP.tab='trend';TP.cat={};tpRender();
+  const ths=[...document.querySelectorAll('#lite thead th')],ix=ths.findIndex(t=>t.dataset.tpSort==='tRec');
+  const bad12=[];let n12=0;[...document.querySelectorAll('#lite tbody tr')].forEach((tr,i)=>{const r=TP.shown[i],raw=tpRawSum(r,0),td=tr.children[ix];
+   const vis=[...td.childNodes].filter(n=>!(n.classList&&n.classList.contains('vh'))).map(n=>n.textContent).join('');
+   if(raw!==r.tRec){n12++;if(!td.querySelector('.tdot')||/בדוח/.test(vis)||!td.querySelector('.vh'))bad12.push(r.pn)}});
+  R.n12=n12;R.bad12=bad12;
+  /* #13 — שמות אחידים */
+  const H={};for(const t of ['cust','trend','short','fix'])H[t]=heads(t);
+  R.names={kind:['cust','trend','short'].every(t=>H[t].some(h=>h.startsWith('מצב'))),noSug:!H.trend.some(h=>h==='נק׳ הזמנה מוצעת'||h.startsWith('לפי המגמה (מייעץ)')),
+   fixPairs:H.fix.some(h=>h.startsWith('נק׳ הזמנה (SAP ← מוצעת)'))&&H.fix.some(h=>h.startsWith('מלאי ביטחון (SAP ← מוצע)'))};
+  /* #14 — חריגה: ההשפעה על נק׳ ההזמנה לפני האחוז; טיוב: שווי 0 ← «—» */
+  R.impBeforePct=H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה מוצעת ← לפי המגמה'))>=0&&H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה מוצעת ← לפי המגמה'))<H.trend.findIndex(h=>h.startsWith('שינוי'));
+  TP.tab='fix';TP.cat={};tpRender();const vi=[...document.querySelectorAll('#lite thead th')].findIndex(t=>t.dataset.tpSort==='val');
+  R.zeroDash=[...document.querySelectorAll('#lite tbody tr')].every((tr,i)=>{const v=tpRecVal(TP.shown[i]),c=tr.children[vi].textContent.trim();return v===0?c==='—':!/^[+−]?[€$₪]0$/.test(c)});
+  return R});
+ ok('#9 «גם ב…» בדיוק בפריטים שמופיעים בנושא נוסף, ושם הנושא נכון',M.n9>0&&!M.bad9.length,`${M.n9} שורות · ${M.bad9.slice(0,3).join(',')}`);
+ ok('#10 עמודות שלא מכריעות: «מתכנן» (ערך יחיד), «סוג MRP» בלקוחות, «זמן אספקה» במלאי 0 — לא בטבלה',M.noPlanner&&M.noMrp&&M.noLt,JSON.stringify({pls:M.pls,mrp:M.noMrp,lt:M.noLt}));
+ ok('#11 עמודת «מצב» רק כשהרשימה מעורבת',M.kindHidden&&M.kindShown);
+ ok('#11 בלשוניות — החלק הדחוף באדום, ובמספר הנכון',Object.values(M.urg).every(([a,b])=>a===b)&&M.urg.cust[0]>0,JSON.stringify(M.urg));
+ ok('#12 חריגת צריכה: מספר אחד בתא; הסכום בדוח בנקודה ובטקסט לקורא מסך',M.n12>0&&!M.bad12.length,`${M.n12} · ${M.bad12.slice(0,3).join(',')}`);
+ ok('#13 שמות אחידים: «מצב» בכל הנושאים, «(SAP ← מוצעת)» בטיוב',M.names.kind&&M.names.noSug&&M.names.fixPairs,JSON.stringify(M.names));
+ ok('#14 חריגה: ההשפעה על נק׳ ההזמנה לפני האחוז; טיוב: שינוי 0 מוצג «—»',M.impBeforePct&&M.zeroDash,JSON.stringify({imp:M.impBeforePct,zero:M.zeroDash}));
+ /* #9 — הודעת «טופל» אומרת מאילו נושאים נוספים הפריט ירד */
+ {const k=await p.evaluate(()=>{for(const t of Object.keys(TOPICS)){TP.tab=t;TP.cat={};tpRender();const r=TP.shown.find(x=>tpOthers(x).length);if(r)return {t,i:TP.shown.indexOf(r),oth:tpOthers(r).map(x=>TOPICS[x].t)}}return null});
+  if(k){await p.focus(`#lite tr.r[data-tp-row="${k.i}"]`);await p.keyboard.press('d');await p.waitForTimeout(300);
+   const msg=await p.evaluate(()=>(document.getElementById('toast')||{}).textContent||'');
+   ok('#9 «טופל» על פריט בכמה נושאים — ההודעה אומרת שירד גם מהם',k.oth.every(o=>msg.includes(o)),msg.slice(0,120))}
+  else ok('#9 יש פריט בכמה נושאים לבדיקת ההודעה',false)}
+ /* #14 — כרטיס: PD ← ZM-C שבו מלאי הביטחון יורד אומר למה */
+ {const c=await p.evaluate(()=>{const r=QF.all.find(x=>{if(!pdUpgrade(x))return false;const q=tpRec(x);return !q.na&&q.src==='sim'&&q.ss<x.ss});
+   if(!r)return null;TP.tab='fix';tpRender();tpdShow(r);const t=document.getElementById('tpd').textContent;tpdClose();return {pn:r.pn,ok:/נקבע מחדש מהצריכה/.test(t)&&/מלאי ביטחון מינימלי/.test(t)}});
+  ok('#14 כרטיס: PD ← ZM-C עם מלאי ביטחון נמוך מ-SAP — שורה שמסבירה',!!c&&c.ok,JSON.stringify(c))}
 
  ok('0 שגיאות JS',!errs.length,errs.join('|'));
  await b.close();console.log(out.join('\n'));console.log(`\n${out.length-bad}/${out.length}`);process.exit(bad?1:0)})();
