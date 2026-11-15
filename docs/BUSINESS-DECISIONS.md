@@ -411,6 +411,26 @@ Changes to these areas require explicit business approval.
   - Synthetic report: 15 items change, all with DB; the on-demand accessory
     returns to «on demand».
 
+- **2026-11-15 · The 4-topics view: critical and high findings of the screen
+  review (approved 15.11).** Display only — no new calculation, threshold or
+  classification; every number is an engine field.
+  - The «action» column shows the action of the topic: in «data quality» what
+    to update in SAP (profile, ROP/SS, missing lead time or service level), in
+    «consumption deviation» the advisory reorder point. Before, it showed the
+    engine's first action even from another topic («open a purchase order» in
+    data quality). The CSV keeps the engine's action too, as in the full tool.
+  - Default sort by urgency: customer orders — no purchase first, then order
+    value (in the item's currency, in currency blocks, never ₪ against $);
+    zero stock — empty shelf first, then days to zero; consumption — the
+    effect on the reorder point; data — broken data first.
+  - Customer orders gain «order value». Zero stock shows «to order» (the
+    quantity in the action itself) instead of «not supplied this month»
+    (which stays in the CSV and the card).
+  - One line per item; one toolbar (sub-category chips, filters folded behind
+    «filter», active filters as chips); one explanation line, the full text
+    behind ⓘ; a «no ETA report» banner, and the ETA columns hidden without one;
+    keys C (copy) and D (handled, then the next item).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

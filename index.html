@@ -3298,7 +3298,7 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tph h1{font-size:var(--f-lg);margin:0;font-weight:700}
 #lite .tph .src{color:var(--shell-dim);flex:1;min-width:200px}
 #lite .bar.flt{flex-wrap:wrap;gap:6px;margin-top:-4px} #lite .bar.flt select{max-width:190px} #lite .bar.flt select.on{border-color:var(--ink);font-weight:600}
-#lite .tpa{display:flex;gap:4px;margin-top:3px} #lite .tpm{color:var(--ink-2);font-size:12px;margin-top:2px} #lite .tpi{font:inherit;font-size:11px;line-height:1;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap} #lite .tpi:hover{border-color:var(--ink-2);color:var(--ink)}
+#lite .tpa{display:inline-flex;gap:4px;margin-inline-start:8px;vertical-align:middle} #lite tr.r td:first-child>b{display:inline-block;min-width:92px} #lite .tpm{display:inline;color:var(--ink-2);font-size:12px;margin-inline-start:6px} #lite .tpi{font:inherit;font-size:11px;line-height:1;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink-2);cursor:pointer;white-space:nowrap} #lite .tpi:hover{border-color:var(--ink-2);color:var(--ink)}
 #lite details.off{margin:0 0 12px;font-size:var(--f-sm,13px)} #lite details.off summary{cursor:pointer;color:var(--ink-2)} #lite details.off li{margin:4px 0}
 #lite .tph .src.eta{flex:0 0 auto;min-width:0} #lite .tph .src.eta.warn{color:var(--shell-warn,#F0B35A)}
 #lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
@@ -3309,25 +3309,36 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite nav button.on{color:var(--shell-ink);border-bottom-color:var(--shell-warn);font-weight:600}
 #lite nav .n{margin-inline-start:6px;background:var(--shell-track);border-radius:10px;padding:0 8px;font-size:var(--f-sm)}
 #lite main{padding:14px 24px 48px;max-width:1900px;margin:0 auto}
-#lite .lead{color:var(--ink-2);max-width:1050px;margin:0 0 12px}
+#lite .lead{color:var(--ink-2);max-width:1050px;margin:0 0 10px}
+/* TOPICS_UX (15.11): שורה אחת במקום פסקה — ההסבר המלא מאחורי ⓘ */
+#lite details.lead summary{cursor:pointer;list-style:none} #lite details.lead summary::-webkit-details-marker{display:none}
+#lite details.lead summary .i{color:var(--accent-ink);margin-inline-start:6px} #lite details.lead p{margin:6px 0 0}
+#lite .etab{display:flex;gap:12px;align-items:center;background:var(--high-bg);color:var(--ink);border:1px solid var(--high);border-radius:var(--r-ctl);padding:6px 12px;margin:0 0 10px}
+#lite .etab .btn{font:inherit;font-weight:600;padding:3px 10px;border:1px solid currentColor;border-radius:var(--r-ctl);background:var(--surface);color:inherit;cursor:pointer}
+#lite .bar .sortl{color:var(--ink-2);font-size:var(--f-sm)} #lite .bar[hidden]{display:none}
+#lite .bar .ftog.on{border-color:var(--ink);font-weight:600}
+#lite .fchip{display:inline-flex;gap:6px;align-items:center;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:var(--f-sm)}
+#lite .fchip button{font:inherit;border:0;background:none;color:var(--ink-2);cursor:pointer;padding:0}
 #lite .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
 #lite .bar input,#lite .bar select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);min-width:180px}
 #lite .bar .btn{font:inherit;padding:6px 14px;border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--surface);color:var(--ink);cursor:pointer}
 #lite .mini{color:var(--ink-3);font-size:var(--f-sm)}
-#lite .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:0 0 12px}
-#lite .tile{text-align:start;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--line);padding:8px 12px;cursor:pointer}
-#lite .tile .v{font-size:var(--f-xl);font-weight:700;font-variant-numeric:tabular-nums}
+#lite .tiles{display:inline-flex;flex-wrap:wrap;gap:6px}
+#lite .tile{display:inline-flex;gap:6px;align-items:baseline;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-inline-start:4px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+#lite .tile .v{font-weight:700;font-variant-numeric:tabular-nums}
 #lite .tile.on{outline:2px solid var(--accent);outline-offset:-2px}
-#lite .tile.red{border-top-color:var(--critical)} #lite .tile.amb{border-top-color:var(--high)}
-#lite .tile.blu{border-top-color:var(--steady)} #lite .tile.gry{border-top-color:var(--calm)}
+#lite .tile.red{border-inline-start-color:var(--critical)} #lite .tile.amb{border-inline-start-color:var(--high)}
+#lite .tile.blu{border-inline-start-color:var(--steady)} #lite .tile.gry{border-inline-start-color:var(--calm)}
 #lite .tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line)}
 #lite table{border-collapse:collapse;width:100%}
 #lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
 #lite th.on{color:var(--accent-ink)}
-#lite td{padding:6px 10px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+#lite td{padding:5px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;white-space:nowrap}
 #lite td.n,#lite th.n{text-align:end;font-variant-numeric:tabular-nums}
 #lite td.n{white-space:nowrap}
-#lite td.d{min-width:160px;max-width:300px;white-space:normal}
+#lite td.d{min-width:120px;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1500px){#lite td.d{max-width:165px}}
+#lite td.w{white-space:normal;min-width:84px}
 #lite tr.r{cursor:pointer} #lite tr.r:hover td{background:var(--accent-bg)}
 #lite tr.r.on td{background:var(--accent-bg)} #lite tr.r.on td:first-child{box-shadow:inset -3px 0 0 var(--accent)}
 #lite tr.r:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
@@ -14275,8 +14286,45 @@ const TP_HEAD=[
          מקזז אספקה מדוח ETA שתגיע עד סוף החודש (etaApply)
      4 · טיוב נתונים — profActive (מונה המסילה של «שינוי פרופיל»), שורות קובץ
          העדכון ל-SAP עם המלצה תקפה, וזמן אספקה חסר */
+/* ============ TOPICS_UX — ביקורת המסך (15.11), קריטי וגבוה ============
+   תצוגה בלבד — אין חישוב, סף או סיווג חדשים. כל מספר הוא שדה שהמנוע כבר חישב:
+   · פעולה לפי הנושא (tpTopicAct): בטיוב נתונים ובחריגת צריכה הוצגה הפעולה
+     הראשונה של המנוע גם כשהייתה מנושא אחר («לפתוח הזמנת רכש» בטיוב). ב-CSV
+     נשארת גם «פעולה» של המנוע, כמו בכלי המלא.
+   · מיון ברירת מחדל לפי דחיפות (TP_URG), ושווי ההזמנה בהזמנות לקוח (custVal,
+     במטבע הפריט; בלוקים לפי מטבע כמו cmpMoneyDesc — בלי השוואת שקל לדולר).
+   · «להזמין» במלאי 0 = הכמות שבפעולה (actQty), במקום «לא יסופק החודש» (שנשאר
+     ב-CSV ובכרטיס).
+   · שורה אחת לפריט, סרגל אחד, שורת הסבר במקום פסקה, פס «אין דוח ETA» ועמודות
+     ETA מוסתרות בלעדיו, וקיצורי מקלדת C / D. */
+function tpTopicAct(t,r){
+ if(t==='trend'){if(riseGap(r)>0)return `לבחון העלאת נק׳ הזמנה ל-${tpN(r.sugROPU)} לפי המגמה (מייעץ)`;
+  if(trendGap(r)>0)return `לבחון הורדת נק׳ הזמנה ל-${tpN(r.sugROPT)} לפי המגמה (מייעץ)`;return tpAct(r)}
+ if(t==='fix'){const k=TP.cat.fix||'',data=tpLtMissing(r)||tpSrvMissing(r),q=tpRec(r),param=tpInFix(r)&&!recNA(r)&&!q.na,prof=profActive(r);
+  const one={data:()=>tpLtMissing(r)?'להזין זמן אספקה מתוכנן ב-SAP':'להזין רמת שירות ב-SAP',
+   /* המספרים כבר בעמודות «נק׳ הזמנה» ו«מלאי ביטחון» — כאן רק מה לעדכן */
+   param:()=>{const p=[];if(q.rop!==r.rop)p.push('נק׳ הזמנה');if(q.ss!==r.ss)p.push('מלאי ביטחון');
+    /* בלי פער במספרים (איפוס, החלטה ידנית, «פרמטר מעל מכירות») — המשפט של המנוע, שהוא כאן פעולת פרמטר */
+    return p.length?`לעדכן ב-SAP: ${p.join(' ו')}`:tpAct(r)},
+   prof:()=>{const i=profInfo(r);return `${PROF_ST[i.state][0]} פרופיל: ${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]}`}};
+  const has={data,param,prof};
+  if(k&&has[k])return one[k]();
+  for(const c of ['data','param','prof'])if(has[c])return one[c]();
+  return tpAct(r)}
+ return tpAct(r)}
+const tpActCol=t=>({k:'act',l:'פעולה',v:r=>tpTopicAct(t,r),c:'d',h:r=>{const a=tpTopicAct(t,r);return `<span title="${esc(a)}">${esc(a)}</span>`},
+ x:[['פעולה בנושא',r=>tpTopicAct(t,r)],['פעולה',tpAct]]});
+/* מיון ברירת מחדל — הדחוף למעלה. כסף: בלוקים לפי מטבע (curPos), כמו בכלי המלא */
+const tpByMoney=(a,b,f)=>{const x=f(a),y=f(b);if(x==null||y==null)return (x==null)-(y==null);return (curPos(a)-curPos(b))||(y-x)};
+const TP_URG={
+ cust:{l:'אין רכש קודם, ואז שווי ההזמנה',f:(a,b)=>((a.burn?0:1)-(b.burn?0:1))||tpByMoney(a,b,r=>r.priceMissing?null:custVal(r))},
+ trend:{l:'ההשפעה על נקודת ההזמנה',f:(a,b)=>(Math.max(riseGap(b),trendGap(b))-Math.max(riseGap(a),trendGap(a)))},
+ short:{l:'מלאי 0 קודם, ואז הימים עד אפס',f:(a,b)=>{const c=r=>shelfQty(r)<=0?0:(r.unsQty||0)>0?1:2,d=r=>{const x=tpdDays(r);return x==null?1e9:x};
+  return (c(a)-c(b))||(d(a)-d(b))||((b.cust||0)-(a.cust||0))}},
+ fix:{l:'נתונים שבורים, עדכון SS/ROP לפי שווי, ואז פרופיל',f:(a,b)=>{const c=r=>(tpLtMissing(r)||tpSrvMissing(r))?0:(tpInFix(r)&&!recNA(r))?1:2;
+  return (c(a)-c(b))||tpByMoney(a,b,r=>{const v=tpRecVal(r);return v==null?null:Math.abs(v)})}}};
 const TOPICS={
- cust:{t:'הזמנות לקוח ללא כיסוי',
+ cust:{t:'הזמנות לקוח ללא כיסוי',short:'פער = הזמנת לקוח − מלאי פנוי − רכש פתוח. «אין רכש כלל»: אין הזמנת רכש פתוחה.',
   lead:'הזמנת לקוח פתוחה (בניכוי כמות חסומה למשלוח) שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים — אותו פער שהכלי המלא מחשב. «אין רכש כלל»: אין הזמנת רכש פתוחה. «כיסוי חלקי»: יש רכש, אבל מלאי ורכש יחד קטנים מההזמנה. PD נכלל; 04/14 מטופלים בנפרד בכלי המלא.',
   rows:()=>((QF&&QF.all)||[]).filter(r=>r.custGap),
   cats:[['none','אין רכש כלל','red',r=>!!r.burn],['part','כיסוי חלקי','amb',r=>r.custGap&&!r.burn]],
@@ -14287,9 +14335,11 @@ const TOPICS={
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po>0?tpN(r.po):'—'},
    {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>r.miss||0,h:r=>r.miss>0?`<b>${tpN(r.miss)}</b>`:'—'},
-   {k:'eta',l:'אספקה ראשונה (ETA)',v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
-   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
- trend:{t:'חריגת צריכה',
+   {k:'cval',l:'שווי ההזמנה',n:1,v:r=>r.priceMissing?null:custVal(r),h:r=>r.priceMissing?'—':money(custVal(r),r.currency),
+    x:[['שווי ההזמנה',r=>r.priceMissing?'':Math.round(custVal(r))],['מטבע',r=>r.currency]]},
+   {k:'eta',l:'אספקה ראשונה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
+   tpActCol('cust')]},
+ trend:{t:'חריגת צריכה',short:'3 החודשים המלאים האחרונים מול 3 שלפניהם — רק כשהמגמה משנה את נקודת ההזמנה.',
   lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים המלאים האחרונים (בלי החודש הנוכחי) מול 3 שלפניהם, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. הסכומים מחושבים על סדרה מנוקה: חודש שבו כנראה אזל המלאי מוחלף בחציון, קפיצה נחתכת לפעמיים החציון, והחזרות נספרות כ-0. כשהסכום בדוח שונה, הוא מוצג לידו («בדוח»), ובכרטיס הפריט — איזה חודש תוקן ולמה.',
   rows:()=>tpUniq([riseRows(),trendRows()]),
   cats:[['up','ביקוש עולה','amb',r=>riseGap(r)>0],['down','ביקוש יורד','blu',r=>trendGap(r)>0]],
@@ -14304,8 +14354,8 @@ const TOPICS={
    {k:'sug',l:'נק׳ הזמנה מוצעת',n:1,v:r=>tpRec(r).rop,h:r=>{const q=tpRec(r);return q.na==='lt'?`<b style="color:var(--critical)" title="${LT_NA}">LT חסר</b>`:q.na?'—':tpN(q.rop)},x:[['נק׳ הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
    {k:'adv',l:'לפי המגמה (מייעץ)',n:1,v:r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
-   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
- short:{t:'מלאי 0 / צפוי להיגמר',
+   tpActCol('trend')]},
+ short:{t:'מלאי 0 / צפוי להיגמר',short:'מדף ריק, או מלאי שלא יחזיק עד סוף החודש או עד האספקה הבאה.',
   lead:'אותה רשימת «חוסר» של הכלי המלא — פריטים מנוהלי מלאי. «מלאי 0 עכשיו»: המדף ריק, ויש לקוח ממתין או צריכה שלא תכוסה החודש. «צפוי להיגמר החודש»: יש מלאי, אבל הקצב החודשי גדול מהמלאי הפנוי ומהאספקה המתוארכת שתגיע עד סוף החודש. רכש בלי תאריך אינו נספר. «ייגמר לפני האספקה הבאה» (דורש דוח ETA): יש מלאי, אבל לפי הקצב החודשי הוא ייגמר לפני התאריך של האספקה הקרובה בדוח ה-ETA — גם אם זה אחרי סוף החודש. פריט יכול להופיע בשתי קטגוריות.',
   rows:()=>tpUniq([decisionList('short'),((QF&&QF.all)||[]).filter(r=>passColFilters(r)&&tpBeforeEta(r))]),
   cats:[['zero','מלאי 0 עכשיו','red',r=>shelfQty(r)<=0&&inToday(r)],['month','צפוי להיגמר החודש','amb',r=>shelfQty(r)>0&&(r.unsQty||0)>0&&inToday(r)],
@@ -14314,27 +14364,29 @@ const TOPICS={
    {k:'kind',l:'מצב',v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
-   {k:'etaM',l:'אספקה עד סוף החודש (ETA)',n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
-   {k:'uns',l:'לא יסופק החודש',n:1,v:r=>Math.ceil(r.unsQty||0),h:r=>r.unsQty>0?`<b>${tpN(Math.ceil(r.unsQty))}</b>`:'—'},
+   {k:'etaM',l:'אספקה עד סוף החודש (ETA)',eta:1,n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
+   /* «להזמין» = הכמות שבפעולה עצמה (actQty), לא חישוב חדש; «לא יסופק החודש» — ב-CSV ובכרטיס */
+   {k:'buy',l:'להזמין',n:1,v:r=>actQty(r),h:r=>{const q=actQty(r);return q>0?`<b>${tpN(q)}</b>`:'—'},
+    x:[['להזמין',r=>actQty(r)],['לא יסופק החודש',r=>Math.ceil(r.unsQty||0)]]},
    {k:'zd',l:'צפי סיום מלאי',v:r=>tpZeroDate(r),h:r=>{const d=tpZeroDate(r);return d?tpdDate(d):'—'}},
-   {k:'en',l:'אספקה הבאה (ETA)',v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?(tpBeforeEta(r)?`<b>${tpdDate(r.etaFirst)}</b>`:tpdDate(r.etaFirst)):'—'},
+   {k:'en',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?(tpBeforeEta(r)?`<b>${tpdDate(r.etaFirst)}</b>`:tpdDate(r.etaFirst)):'—'},
    {k:'lt',l:'זמן אספקה (ימים)',n:1,v:r=>r.ltD},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
-   {k:'act',l:'פעולה',v:tpAct,c:'d'}]},
- fix:{t:'טיוב נתונים',
+   tpActCol('short')]},
+ fix:{t:'טיוב נתונים',short:'פרופיל MRP, מלאי ביטחון ונקודת הזמנה לעדכון ב-SAP, ונתונים חסרים.',
   lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP, או רמת שירות חסרה או 0 בפריט מנוהל מלאי עם צריכה — בלי שניהם אין המלצת SS/ROP תקפה. פריט יכול להופיע ביותר מקטגוריה אחת.',
   rows:()=>tpUniq([profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),((QF&&QF.all)||[]).filter(r=>tpLtMissing(r)||tpSrvMissing(r))]),
   cats:[['prof','שינוי פרופיל MRP','blu',r=>profActive(r)],['param','עדכון SS ו-ROP','amb',r=>tpInFix(r)&&!recNA(r)],
    ['data','נתונים שבורים','red',r=>tpLtMissing(r)||tpSrvMissing(r)]],
   cols:[
    {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
-   {k:'prof',l:'שינוי פרופיל',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
+   {k:'prof',l:'שינוי פרופיל',c:'w',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
     h:r=>{const i=profActive(r)?profInfo(r):null;return i?`<span title="${esc(i.why||'')}">${esc(PROF_ST[i.state][0])}</span>`:'—'},
     x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${PROF_ST[i.state][0]}`:''}]]},
    {k:'rop',l:'נק׳ הזמנה',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
    {k:'ss',l:'מלאי ביטחון',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
-   {k:'src',l:'מה קבע את מלאי הביטחון',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
+   {k:'src',l:'מה קבע את מלאי הביטחון',c:'w',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
    {k:'lt',l:'זמן אספקה מתוכנן ב-SAP',n:1,v:r=>{const x=ltRawOf(r);return x===''?null:x},
     h:r=>r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:tpN(ltRawOf(r)),x:[['זמן אספקה מתוכנן ב-SAP (מקור)',r=>ltRawOf(r)]]},
    {k:'srv',l:'רמת שירות',n:1,v:r=>r.srvMissing?null:r.srv,h:r=>r.srvMissing?'חסרה':tpN(r.srv)+'%'},
@@ -14342,7 +14394,7 @@ const TOPICS={
    {k:'val',l:'שווי שינוי הנק׳',n:1,v:r=>tpRecVal(r),
     h:r=>{const v=tpRecVal(r);return v==null?'—':(v>0?'+':v<0?'−':'')+money(Math.abs(v),r.currency)},
     x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
-   {k:'act',l:'פעולה',v:tpAct,c:'d'}]}};
+   tpActCol('fix')]}};
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
 const tpDone=r=>!!(r&&r.mark&&r.mark.t==='handled');
@@ -14359,7 +14411,9 @@ function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.t
  return T.rows().filter(r=>!tpDone(r)&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
   &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
 function tpSorted(t,list){const s=TP.sort[t];
- if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);return list}
+ if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);
+  /* TOPICS_UX: ברירת המחדל — הדחוף למעלה; שוויון נשאר בסדר המנוע */
+  const u=TP_URG[t];return u?list.map((r,i)=>[r,i]).sort((a,b)=>u.f(a[0],b[0])||a[1]-b[1]).map(x=>x[0]):list}
  const col=TOPICS[t].cols.concat(TP_HEAD).find(c=>c.k===s.k);if(!col)return list;
  /* «—» (null) תמיד בסוף, בשני הכיוונים */
  return list.slice().sort((a,b)=>{const x=col.v(a),y=col.v(b);
@@ -14581,11 +14635,13 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר.</p>
   <p class="mini">הקובץ נקרא בדפדפן ולא נשלח לשום מקום. החישוב הוא של הכלי המלא — אותו מנוע, אותם כללים.</p></div></main>`;return}
  const t=TP.tab,T=TOPICS[t],all=tpRows(t,true),list=tpSorted(t,tpRows(t,false)),s=TP.sort[t]||{};
- const cols=TP_HEAD.concat(T.cols);
+ const cols=TP_HEAD.concat(T.cols).filter(c=>ETA||!c.eta);
  const pls=[...new Set(((QF&&QF.all)||[]).map(r=>r.planner).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
  const nav=Object.keys(TOPICS).map((k,i)=>`<button type="button" class="${k===t?'on':''}" data-tp-tab="${k}">${i+1}. ${esc(TOPICS[k].t)}<span class="n">${tpRows(k,true).length.toLocaleString('he-IL')}</span></button>`).join('');
  const tiles=[['','הכול','gry',()=>true]].concat(T.cats).map(([k,l,c,f])=>
-  `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}"><div>${esc(l)}</div><div class="v">${all.filter(f).length.toLocaleString('he-IL')}</div></button>`).join('');
+  `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}" aria-pressed="${(TP.cat[t]||'')===k}"><span>${esc(l)}</span><span class="v">${all.filter(f).length.toLocaleString('he-IL')}</span></button>`).join('');
+ const fOn=TP_FILT.filter(([k])=>TP.f[k]),fOpen=!!TP.fOpen;
+ const fchips=fOn.map(([k,l])=>`<span class="fchip">${esc(l)}: ${esc(TP.f[k])}<button type="button" data-tp="funset" data-k="${k}" aria-label="הסרת סינון ${esc(l)}">✕</button></span>`).join('');
  const shown=list.slice(0,TP.lim);
  const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
  /* דוח חדש נטען — האובייקטים התחלפו, והכרטיס הפתוח שייך לדוח הקודם */
@@ -14593,18 +14649,21 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const body=shown.map((r,i)=>
   `<tr class="r${TP.open===r?' on':''}" tabindex="0" data-tp-row="${i}">${cols.map(c=>`<td class="${c.n?'n':''} ${c.c||''}">${c.h?c.h(r):(c.n?tpN(c.v(r)):esc(c.v(r)==null?'—':c.v(r)))}</td>`).join('')}</tr>`).join('');
  el.innerHTML=head+`<nav aria-label="נושאים">${nav}</nav><main>
-  <p class="lead">${esc(T.lead)}</p>
+  <details class="lead"><summary title="הסבר מלא">${esc(T.short||'')}<span class="i" aria-hidden="true">ⓘ</span></summary><p>${esc(T.lead)}</p></details>
+  ${ETA?'':`<div class="etab" role="status"><b>אין דוח ETA</b><span>אספקות מתוכננות לא מקוזזות, ועמודות ה-ETA מוסתרות.</span><label class="btn" for="fe">העלאת דוח ETA</label></div>`}
   <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
    <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
-   <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span></div>
-  <div class="bar flt">${TP_FILT.map(([k,l,all])=>{const vals=[...new Set(((QF&&QF.all)||[]).map(r=>r[k]).filter(v=>v!=null&&v!==''))].map(String).sort((a,b)=>a.localeCompare(b,'he'));
+   <div class="tiles" role="group" aria-label="תת-קטגוריה">${tiles}</div>
+   <button class="btn ftog ${fOn.length?'on':''}" type="button" data-tp="ftog" aria-expanded="${fOpen}">סינון${fOn.length?` (${fOn.length})`:''} ${fOpen?'▴':'▾'}</button>${fchips}
+   <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span>
+   ${s.k?'':`<span class="sortl">ממוין: ${esc((TP_URG[t]||{}).l||'')}</span>`}</div>
+  <div class="bar flt" ${fOpen?'':'hidden'}>${TP_FILT.map(([k,l,all])=>{const vals=[...new Set(((QF&&QF.all)||[]).map(r=>r[k]).filter(v=>v!=null&&v!==''))].map(String).sort((a,b)=>a.localeCompare(b,'he'));
     return `<select data-tpf="${k}" aria-label="${esc(l)}" class="${TP.f[k]?'on':''}"><option value="">${esc(all)}</option>${vals.map(v=>`<option value="${esc(v)}" ${TP.f[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select>`}).join('')}
    ${Object.values(TP.f).some(Boolean)?'<button class="btn" type="button" data-tp="fclear">נקה סינון</button>':''}</div>
-  <div class="tiles">${tiles}</div>
   ${t==='fix'?tpOffList():''}${tpDoneList()}
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
   ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
-  <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
+  <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · C העתקת מק״ט · D «טופל» ומעבר לבא · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
  TP.shown=shown;TP.list=list;
  /* הכרטיס נשאר פתוח מעל רשימה שהסינון או המיון שינו — רק המיקום שלו מתעדכן */
  if(TP.open){const p=document.querySelector('#tpd .pos');if(p)p.textContent=tpdPos().txt;
@@ -14633,6 +14692,8 @@ if(LITE){
   else if(a.tp==='more'){TP.lim+=200;tpRender()}
   else if(a.tp==='copy')tpCopy(a.pn);
   else if(a.tp==='fclear'){TP.f={};TP.lim=200;tpRender()}
+  else if(a.tp==='ftog'){TP.fOpen=!TP.fOpen;tpRender()}
+  else if(a.tp==='funset'){delete TP.f[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
    if(a.tp==='done'&&TP.open===r)tpdClose();
    setMark(r,a.tp==='done'?'handled':'','');
@@ -14672,7 +14733,19 @@ if(LITE){
   if(mw&&mw.classList.contains('open'))return;
   if(e.key==='Enter'&&e.target.matches&&e.target.matches('#lite tr.r')){const r=(TP.shown||[])[+e.target.dataset.tpRow];if(r){tpdShow(r);e.preventDefault()}return}
   if(TP.open&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
-   tpdStep(e.key==='ArrowDown'?1:-1);e.preventDefault()}},true);
+   tpdStep(e.key==='ArrowDown'?1:-1);e.preventDefault();return}
+  /* TOPICS_UX: C העתקת מק״ט · D «טופל» ומעבר לפריט הבא — על הכרטיס הפתוח, או על
+     השורה הממוקדת. בלי פריט ממוקד אין פעולה (מקלדת הכלי המלא נשארת כבויה). */
+  const k=(e.key||'').toLowerCase(),ks={c:'c','ב':'c',d:'d','ג':'d'}[k];if(!ks)return;
+  const fr=e.target.matches&&e.target.matches('#lite tr.r')?(TP.shown||[])[+e.target.dataset.tpRow]:null,r=TP.open||fr;if(!r)return;
+  e.preventDefault();
+  if(ks==='c'){tpCopy(r.pn);return}
+  const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=!!TP.open;
+  if(wasOpen)tpdClose();
+  setMark(r,'handled','');toast(`${r.pn} סומן «טופל» והוסר מהרשימה — ביטול ב«טופלו»`);
+  const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(!nx)return;
+  if(wasOpen)tpdShow(nx);
+  else{const j=(TP.shown||[]).indexOf(nx),tr=j>=0?document.querySelector(`#lite tr.r[data-tp-row="${j}"]`):null;if(tr)tr.focus({preventScroll:false})}},true);
  /* התאריך שבכותרת מתעדכן גם כשהדוח נדחה (QF נשאר null) */
  new MutationObserver(()=>{if(!QF)tpRender()}).observe(document.getElementById('updated'),{childList:true,characterData:true,subtree:true});
  tpRender()}

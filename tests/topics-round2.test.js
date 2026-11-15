@@ -153,6 +153,11 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
 
  /* ---- 6. סינון לפי ספק, מותג, דגם, קבוצת שיווק, קבוצת חומרים, סוג MRP, ABC (11.11) ---- */
  {const P=await open('?topics');await P.waitForSelector('#lite table');
+  /* TOPICS_UX (15.11): שורת המסננים מקופלת מאחורי «סינון»; מסנן פעיל נראה כתג עם ✕ */
+  const f0=await P.evaluate(()=>({hidden:document.querySelector('#lite .bar.flt').hidden,exp:document.querySelector('#lite [data-tp="ftog"]').getAttribute('aria-expanded')}));
+  await P.click('#lite [data-tp="ftog"]');
+  const f1=await P.evaluate(()=>({hidden:document.querySelector('#lite .bar.flt').hidden,exp:document.querySelector('#lite [data-tp="ftog"]').getAttribute('aria-expanded')}));
+  ok('המסננים מקופלים כברירת מחדל, ו«סינון» פותח אותם',f0.hidden&&f0.exp==='false'&&!f1.hidden&&f1.exp==='true',JSON.stringify({f0,f1}));
   const keys=await P.evaluate(()=>[...document.querySelectorAll('#lite [data-tpf]')].map(s=>s.dataset.tpf)),FDEF_KEYS=await P.evaluate(()=>FDEF.map(f=>f[0]));
   ok('שבעה מסננים, באותם שדות של הכלי המלא',JSON.stringify(keys)===JSON.stringify(['supplier','brand','model','mkt1','grp','mrp','abc'])&&keys.every(k=>FDEF_KEYS.includes(k)),keys.join(','));
   for(const k of keys){const v=await P.evaluate(k=>{const s=document.querySelector(`#lite [data-tpf="${k}"]`);return s.options.length>1?s.options[1].value:null},k);
@@ -166,6 +171,12 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   await P.selectOption('#lite [data-tpf="brand"]',b);await P.selectOption('#lite [data-tpf="abc"]','A');await P.waitForTimeout(150);
   const two=await P.evaluate(b=>({n:tpRows('cust',true).length,ok:tpRows('cust',true).every(r=>r.brand===b&&r.abc==='A'),clear:!!document.querySelector('[data-tp="fclear"]')}),b);
   ok('שני מסננים יחד — חיתוך, וכפתור «נקה סינון»',two.ok&&two.clear,JSON.stringify(two));
+  const chips=await P.evaluate(()=>[...document.querySelectorAll('#lite .fchip')].map(c=>c.textContent.replace('✕','').trim()));
+  ok('כל מסנן פעיל מופיע כתג בסרגל, וגם «סינון (2)»',chips.length===2&&/סינון \(2\)/.test(await P.evaluate(()=>document.querySelector('#lite [data-tp="ftog"]').textContent)),chips.join(' | '));
+  await P.click('#lite .fchip [data-tp="funset"][data-k="abc"]');await P.waitForTimeout(150);
+  const un=await P.evaluate(b=>({abc:TP.f.abc||'',brand:TP.f.brand,ok:tpRows('cust',true).every(r=>r.brand===b)}),b);
+  ok('✕ בתג מסיר רק את אותו מסנן',!un.abc&&un.brand===b&&un.ok,JSON.stringify(un));
+  await P.selectOption('#lite [data-tpf="abc"]','A');await P.waitForTimeout(150);
   const [dl]=await Promise.all([P.waitForEvent('download'),P.click('#lite [data-tp="csv"]')]);
   const rows=fs.readFileSync(await dl.path(),'utf8').replace(/^\uFEFF/,'').split('\r\n').filter(Boolean).length-1;
   ok('ה-CSV מייצא רק את השורות המסוננות',rows===two.n,`${rows} · ${two.n}`);
