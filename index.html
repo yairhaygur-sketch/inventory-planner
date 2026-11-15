@@ -14304,7 +14304,8 @@ function tpTopicAct(t,r){
   const one={data:()=>tpLtMissing(r)?'להזין זמן אספקה מתוכנן ב-SAP':'להזין רמת שירות ב-SAP',
    /* המספרים כבר בעמודות «נק׳ הזמנה» ו«מלאי ביטחון» — כאן רק מה לעדכן */
    param:()=>{const p=[];if(q.rop!==r.rop)p.push('נק׳ הזמנה');if(q.ss!==r.ss)p.push('מלאי ביטחון');
-    return p.length?`לעדכן ב-SAP: ${p.join(' ו')}`:'לבדוק מול SAP'},
+    /* בלי פער במספרים (איפוס, החלטה ידנית, «פרמטר מעל מכירות») — המשפט של המנוע, שהוא כאן פעולת פרמטר */
+    return p.length?`לעדכן ב-SAP: ${p.join(' ו')}`:tpAct(r)},
    prof:()=>{const i=profInfo(r);return `${PROF_ST[i.state][0]} פרופיל: ${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]}`}};
   const has={data,param,prof};
   if(k&&has[k])return one[k]();
