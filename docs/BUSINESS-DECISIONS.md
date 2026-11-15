@@ -391,6 +391,26 @@ Changes to these areas require explicit business approval.
     95% for all (462 items, about $117,000 and ₪86,000 — slow items over-
     cushioned); delays + 95% from 3 a month (90 items). The planner chose 5.
 
+- **2026-11-15 · Correction: «אספקות פת.» are not customer demand either
+  (OPEN_DEL, approved 15.11).** The 11.11 change added DB to customer demand.
+  That was a double count: an open delivery's goods are already assigned to
+  it from stock and are no longer in free stock — in the report uploaded
+  on 15.11, for
+  779 of 786 items with DB, non-free stock (total − free) equals DB exactly,
+  and covers it in 2 more. The customer is already served from the shelf.
+  Now DB is neither demand nor purchase: customer demand is «כמות בהז.פ»
+  only, open purchase is «הז. רכש» only. The card keeps one info line
+  (quantity; «already assigned from stock, not open demand and not purchase
+  in transit»). The 11.11 benefit stays: DB is not purchase in transit, so
+  «purchase in transit toward surplus» and the expedite report stay clean.
+  Data-signature version 3 → 4.
+  - Real report (uploaded 15.11, 10,160 items): 786 items change, all with DB. 664
+    phantom «non-free stock against the order — check» items disappear (662
+    back to «no action»); «today's decisions» 708 → 44; immediate 665 → 1;
+    every SAP update file is unchanged.
+  - Synthetic report: 15 items change, all with DB; the on-demand accessory
+    returns to «on demand».
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
