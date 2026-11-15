@@ -49,18 +49,23 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('כיסוי חלקי: נשאר «ללא כיסוי», עם שורת מידע אחת וכמות נכונה',!R.partLine.length,R.partLine.join(','));
  ok('בלי מלאי לא פנוי — אין שורת מידע',!R.noLineWithout.length,R.noLineWithout.join(','));
 
- /* ============ OPEN_DEL — «אספקות פת.» הן אספקה ללקוח, לא רכש בדרך (אושר 11.11) ============
-    כשנפתחת אספקה ב-SAP הכמות יורדת מ«כמות בהז.פ», ולכן היא נוספת לביקוש הלקוח
-    ואינה נספרת כרכש פתוח (ולא משובצת מול דוח ETA). נבנה דרך build() על כותרת הדוח. */
+ /* ============ OPEN_DEL — «אספקות פת.» אינן רכש בדרך (11.11) ואינן ביקוש לקוח (15.11) ============
+    כשנפתחת אספקה ב-SAP הכמות יורדת מ«כמות בהז.פ», והסחורה כבר משויכת אליה מהמלאי
+    ואינה במלאי הפנוי. לכן (תיקון 15.11) היא אינה נספרת כרכש פתוח וגם **אינה**
+    נוספת לביקוש הלקוח — ב-11.11 נוספה, וזו הייתה ספירה כפולה. שדה openDel
+    נשמר לשורת המידע בכרטיס. נבנה דרך build() על כותרת הדוח. */
  const OD=await p.evaluate(()=>{const hdr=ALL_RAW.hdr,m=mapCols(hdr),tpl=ALL_RAW.rows[0];
   const mk=(pn,o)=>{const r=tpl.slice();const set=(i,v)=>{if(i>=0)r[i]=v};
    set(m.pn,pn);set(m.po,o.po);set(m.openDel,o.od);set(m.cust,o.cust);set(m.free,o.free);set(m.stock,o.free);
    if(m.blockedCust>=0)set(m.blockedCust,0);if(m.transfer>=0)set(m.transfer,0);return r};
   const [a,b]=build([mk('OD-A',{po:5,od:7,cust:3,free:2}),mk('OD-B',{po:5,od:0,cust:3,free:2})],hdr);
-  return {col:m.openDel>=0,a:{po:a.po,cust:a.cust,od:a.openDel},b:{po:b.po,cust:b.cust,od:b.openDel===undefined?null:b.openDel}}});
+  const card=(()=>{try{return decisionBlock(a)}catch(e){return 'ERR '+e.message}})();
+  return {col:m.openDel>=0,card:{line:/7 יח׳ באספקה ללקוח שטרם נופקה/.test(card),notDemand:/אינן ביקוש פתוח ואינן רכש בדרך/.test(card),noOld:!/נכללות בביקוש הלקוח/.test(card)},
+   a:{po:a.po,cust:a.cust,custRaw:a.custRaw,od:a.openDel},b:{po:b.po,cust:b.cust,custRaw:b.custRaw,od:b.openDel===undefined?null:b.openDel}}});
  ok('OPEN_DEL · העמודה «אספקות פת.» מזוהה בדוח',OD.col);
  ok('OPEN_DEL · אינה נספרת כרכש פתוח',OD.a.po===5&&OD.b.po===5,JSON.stringify(OD));
- ok('OPEN_DEL · נוספת לביקוש הלקוח (3 בהזמנה + 7 באספקה = 10)',OD.a.cust===10&&OD.a.od===7,JSON.stringify(OD.a));
+ ok('OPEN_DEL · אינה נוספת לביקוש הלקוח (3 בהזמנה, 7 באספקה → ביקוש 3)',OD.a.cust===3&&OD.a.custRaw===3&&OD.a.od===7,JSON.stringify(OD.a));
+ ok('OPEN_DEL · הכרטיס: שורת מידע עם הכמות, «אינן ביקוש פתוח ואינן רכש בדרך»',OD.card.line&&OD.card.notDemand&&OD.card.noOld,JSON.stringify(OD.card));
  ok('OPEN_DEL · בלי אספקה — ללא שינוי, ואין שדה',OD.b.cust===3&&OD.b.od===null,JSON.stringify(OD.b));
  ok('0 שגיאות JS',!errs.length,errs.join('|'));
  await b.close();console.log(out.join('\n'));console.log(`\n${out.length-bad}/${out.length}`);process.exit(bad?1:0)})();

@@ -97,14 +97,22 @@ the export does not contain.
 | Column | Field | Purpose |
 |----------|----------|----------|
 | DA | כמות בהז.פ | Open Customer Orders |
-| DB | אספקות פת. | **Customer delivery not yet issued** (approved 11.11). Added to the customer demand, never to open purchase orders. |
+| DB | אספקות פת. | **Customer delivery not yet issued.** Neither customer demand nor open purchase orders (11.11, corrected 15.11). Shown as an info line in the item card. |
 
 When a customer delivery is opened in SAP, its quantity leaves «כמות בהז.פ»
-and appears in «אספקות פת.» until it is issued. Customer demand is therefore
-DA + DB. Until 11.11 the tool added DB to the open purchase orders, so a
-delivery to a customer counted as stock on its way in: as coverage, as
-«purchase in transit toward surplus», and against the ETA report. It is not
-an inbound quantity in any case.
+and appears in «אספקות פת.» until it is issued. The goods are already
+assigned to the delivery from stock, so they are no longer in «מלאי פנוי»
+(DC): in the report uploaded on 15.11, for 779 of the 786 items with DB, total stock −
+free stock equals DB exactly (2 more: it covers it). The customer is already
+served from the shelf. DB is therefore neither demand nor supply:
+
+- **Until 11.11** the tool added DB to the open purchase orders — a delivery
+  to a customer counted as stock on its way in (coverage, «purchase in transit
+  toward surplus», the ETA report).
+- **11.11–15.11** it was added to customer demand instead (DA + DB). That
+  counted the same units twice: 664 items in that report showed «non-free
+  stock against the order — check» for an order that was already picked.
+- **From 15.11** customer demand is DA only, open purchase is CH only.
 
 # Document Status
 
