@@ -240,9 +240,19 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  // שורת הכותרת לא נשברת, והפילטרים קיימים — נבדק בשלושה רוחבי מסך
  for(const w of [1920,1512,1280]){
   await p.setViewportSize({width:w,height:860});await p.waitForTimeout(350);
-  const h=await p.evaluate(()=>{const e=document.querySelector('#w_queue .phd');
-   return {h:Math.round(e.getBoundingClientRect().height),ov:Math.round(e.scrollWidth-e.clientWidth)}});
-  ok(`שורת הכותרת בשורה אחת ב-${w}px`,h.h<=48&&h.ov<=1,`גובה ${h.h}px · גלישה ${h.ov}px`);
+  /* נכשל לסירוגין מקומית («גלישה 281px», ועבר בהרצה חוזרת על אותו קוד); לא שוחזר
+     גם בהאטת מעבד פי 20, ולא נכשל ב-CI. הסף לא משתנה — רק מה שנאסף כשהוא נכשל:
+     המחלקות של fitDoors על הכותרת והדלתות, רוחב החלון, ואילו ילדים חורגים, כדי
+     שהכישלון הבא יגיד מה גרם לו. */
+  const h=await p.evaluate(()=>{const e=document.querySelector('#w_queue .phd'),d=document.getElementById('doors');
+   const r=e.getBoundingClientRect(),top=r.top;
+   const kids=[...e.children].map(c=>{const b=c.getBoundingClientRect();
+     return {c:(c.id||c.className||c.tagName).toString().slice(0,24),w:Math.round(b.width),
+       out:Math.round(Math.max(0,r.left-b.left,b.right-r.right)),row2:b.top-top>8&&b.width>0}}).filter(k=>k.out>0||k.row2);
+   return {h:Math.round(r.height),ov:Math.round(e.scrollWidth-e.clientWidth),
+     cls:e.className,doors:d?d.className:'—',vw:innerWidth,cw:e.clientWidth,sw:e.scrollWidth,kids}});
+  const diag=(h.h<=48&&h.ov<=1)?'':` · מחלקות «${h.cls}» · דלתות «${h.doors}» · חלון ${h.vw} · ${h.cw}/${h.sw} · חורגים ${JSON.stringify(h.kids)}`;
+  ok(`שורת הכותרת בשורה אחת ב-${w}px`,h.h<=48&&h.ov<=1,`גובה ${h.h}px · גלישה ${h.ov}px${diag}`);
  }
  await p.setViewportSize({width:1512,height:860});await p.waitForTimeout(350);
  const f=await p.evaluate(()=>({keys:FDEF.map(x=>x[0]),
