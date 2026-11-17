@@ -14312,8 +14312,10 @@ const TP_HEAD=[
    · שורה אחת לפריט, סרגל אחד, שורת הסבר במקום פסקה, פס «אין דוח ETA» ועמודות
      ETA מוסתרות בלעדיו, וקיצורי מקלדת C / D. */
 function tpTopicAct(t,r){
- if(t==='trend'){if(riseGap(r)>0)return `לבחון העלאת נק׳ הזמנה ל-${tpN(r.sugROPU)} לפי המגמה (מייעץ)`;
-  if(trendGap(r)>0)return `לבחון הורדת נק׳ הזמנה ל-${tpN(r.sugROPT)} לפי המגמה (מייעץ)`;return tpAct(r)}
+ /* 17.11: שני מספרים, שתי משמעויות — ההמלצה (נכנסת לקובץ SAP) והמספר המייעץ «אם המגמה תימשך» */
+ if(t==='trend'){const q=tpRec(r),sap=q.na?'':` · ההמלצה לקובץ SAP: ${tpN(q.rop)}`;
+  if(riseGap(r)>0)return `לבחון העלאת נק׳ הזמנה ל-${tpN(r.sugROPU)} אם העלייה תימשך (מייעץ${sap})`;
+  if(trendGap(r)>0)return `לבחון הורדת נק׳ הזמנה ל-${tpN(r.sugROPT)} אם הירידה תימשך (מייעץ${sap})`;return tpAct(r)}
  if(t==='fix'){const k=TP.cat.fix||'',data=tpLtMissing(r)||tpSrvMissing(r),q=tpRec(r),param=tpInFix(r)&&!recNA(r)&&!q.na,prof=profActive(r);
   const one={data:()=>tpLtMissing(r)?'להזין זמן אספקה מתוכנן ב-SAP':'להזין רמת שירות ב-SAP',
    /* המספרים כבר בעמודות «נק׳ הזמנה» ו«מלאי ביטחון» — כאן רק מה לעדכן */
@@ -14360,10 +14362,10 @@ const TOPICS={
   cols:[
    {k:'kind',l:'מצב',kind:1,v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    /* TOPICS_UX #14: קודם ההשפעה על נקודת ההזמנה (מוצעת ← לפי המגמה), ואחר כך האחוז */
-   {k:'imp',l:'נק׳ הזמנה מוצעת ← לפי המגמה',n:1,v:r=>Math.max(riseGap(r),trendGap(r))*(riseGap(r)>0?1:-1),
+   {k:'imp',l:'נק׳ הזמנה: המלצה ← אם המגמה תימשך',n:1,v:r=>Math.max(riseGap(r),trendGap(r))*(riseGap(r)>0?1:-1),
     h:r=>{const q=tpRec(r),adv=riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:null;
      if(q.na==='lt')return `<b style="color:var(--critical)" title="${LT_NA}">LT חסר</b>`;
-     return q.na||adv==null?'—':`<span class="old">${tpN(q.rop)}</span> ← <b>${tpN(adv)}</b>`},
+     return q.na||adv==null?'—':`<span title="המלצה ${tpN(q.rop)} — נכנסת לקובץ העדכון ל-SAP. ${tpN(adv)} — אם ה${riseGap(r)>0?'עלייה':'ירידה'} תימשך: מייעץ בלבד, לא בקובץ"><span class="old">${tpN(q.rop)}</span> ← <b>${tpN(adv)}</b></span>`},
     x:[['נק׳ הזמנה מוצעת',r=>tpRecX(r,'rop')],['לפי המגמה (מייעץ)',r=>riseGap(r)>0?r.sugROPU:trendGap(r)>0?r.sugROPT:'']]},
    /* 2.11: המגמה מחושבת על הסדרה המנוקה, והסכום בדוח מוצג לצדה כשהוא שונה */
    {k:'tRec',l:'3 ח׳ אחרונים (מנוקה)',n:1,v:r=>r.tRec,h:r=>tpTrendCell(r,0),x:[['3 ח׳ אחרונים — מנוקה',r=>r.tRec],['3 ח׳ אחרונים — בדוח',r=>tpRawSum(r,0)]]},
@@ -14492,8 +14494,9 @@ function tpdImpact(t,r){const out=[],N=tpN,add=(v,l,s)=>out.push(`<div><b>${v}</
  if(r.slowEst&&r.expCap>0)add(money(r.expCap,r.currency),'כסף תקוע — אומדן בלבד','calc');
  if(t==='trend'){const p=r.tRatio==null?null:Math.round((r.tRatio-1)*100);
   if(p!=null)add((p>0?'+':'')+N(p)+'%','3 ח׳ מול 3 קודמים','calc');
-  if(riseGap(r)>0)add(N(r.sugROPU),'נק׳ הזמנה לפי המגמה (מייעץ)','calc');
-  else if(trendGap(r)>0)add(N(r.sugROPT),'נק׳ הזמנה לפי המגמה (מייעץ)','calc')}
+  const q=tpRec(r);if(!q.na&&(riseGap(r)>0||trendGap(r)>0))add(N(q.rop),'נק׳ הזמנה — המלצה (נכנסת לקובץ SAP)','rec');
+  if(riseGap(r)>0)add(N(r.sugROPU),'נק׳ הזמנה אם העלייה תימשך — מייעץ, לא בקובץ SAP','calc');
+  else if(trendGap(r)>0)add(N(r.sugROPT),'נק׳ הזמנה אם הירידה תימשך — מייעץ, לא בקובץ SAP','calc')}
  if(r.expCap>0&&!r.slowEst)add(money(r.expCap,r.currency),'כסף תקוע','calc');
  return out.length?`<div class="imp">${out.join('')}</div>`:'<div class="note">אין חשיפה מכומתת לפריט הזה.</div>'}
 /* SAP מול המלצה. נק׳ הזמנה ומלאי ביטחון — שני הערכים תמיד; השאר — SAP בלבד */

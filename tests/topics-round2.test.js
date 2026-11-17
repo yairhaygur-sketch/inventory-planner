@@ -185,6 +185,21 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«נקה סינון» מאפס, והסינון של הכלי המלא (SEL) לא נגעו בו',!cl.f&&cl.sel===0,JSON.stringify(cl));
   await P.close()}
 
+ /* ---- 7. חריגת צריכה: ההמלצה מול המספר המייעץ (17.11) ---- */
+ {const P=await open('?topics');await P.waitForSelector('#lite table');
+  const t=await P.evaluate(()=>{const down=TOPICS.trend.rows().filter(r=>trendGap(r)>0&&!tpRec(r).na),up=TOPICS.trend.rows().filter(r=>riseGap(r)>0&&!tpRec(r).na);
+   const act=r=>tpTopicAct('trend',r);
+   return {nd:down.length,nu:up.length,
+    downOk:down.every(r=>act(r).includes(`ל-${tpN(r.sugROPT)} אם הירידה תימשך`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),
+    upOk:up.every(r=>act(r).includes(`ל-${tpN(r.sugROPU)} אם העלייה תימשך`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),
+    pn:down[0]&&down[0].pn,rec:down[0]&&tpRec(down[0]).rop,adv:down[0]&&down[0].sugROPT}});
+  ok(`פעולה בחריגת צריכה: המספר המייעץ «אם המגמה תימשך» וההמלצה לקובץ SAP — שניהם, עם שמם (${t.nd} יורד · ${t.nu} עולה)`,t.nd>0&&t.nu>0&&t.downOk&&t.upOk);
+  await P.evaluate(pn=>{TP.tab='trend';TP.cat={};TP.q=pn;tpRender()},t.pn);await P.click('#lite tr.r');
+  const d=await P.evaluate(()=>[...document.querySelectorAll('#tpd .imp > div')].map(x=>x.textContent.replace(/\s+/g,' ').trim()));
+  ok('כרטיס הפריט: «המלצה (נכנסת לקובץ SAP)» ולידה «אם הירידה תימשך — מייעץ, לא בקובץ SAP»',
+   d.some(x=>x.startsWith(String(t.rec))&&/המלצה \(נכנסת לקובץ SAP\)/.test(x))&&d.some(x=>x.startsWith(String(t.adv))&&/אם הירידה תימשך — מייעץ, לא בקובץ SAP/.test(x)),d.join(' | '));
+  await P.close()}
+
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(`\n${pass} עברו · ${fail} נכשלו`);process.exit(fail?1:0)})();
