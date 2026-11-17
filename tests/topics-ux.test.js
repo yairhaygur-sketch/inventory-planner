@@ -26,7 +26,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   for(const t of ['cust','trend','short','fix']){TP.tab=t;TP.cat={};tpRender();
    const list=TP.list,cells=[...document.querySelectorAll('#lite tbody tr')].map(tr=>tr.lastElementChild.textContent.trim());
    R[t]={n:list.length,cellsMatch:list.slice(0,cells.length).every((r,i)=>cells[i]===tpTopicAct(t,r)),
-    trendBad:t==='trend'?list.filter(r=>!/^לבחון (העלאת|הורדת) נק׳ הזמנה ל-/.test(tpTopicAct(t,r))).map(r=>r.pn):[],
+    /* 17.11: פריט שאינו בקובץ העדכון ל-SAP — «לבחון נק׳ הזמנה N אם … תימשך (… לא בקובץ העדכון)» */
+    trendBad:t==='trend'?list.filter(r=>!/^לבחון ((העלאת|הורדת) נק׳ הזמנה ל-|נק׳ הזמנה \d)/.test(tpTopicAct(t,r))).map(r=>r.pn):[],
     trendNum:t==='trend'?list.filter(r=>{const a=tpTopicAct(t,r);return riseGap(r)>0?!a.includes(tpN(r.sugROPU)):!a.includes(tpN(r.sugROPT))}).map(r=>r.pn):[],
     fixBad:t==='fix'?list.filter(r=>/הזמנת רכש|רכש יזום|להשלים/.test(tpTopicAct(t,r))).map(r=>r.pn):[],
     fixCat:t==='fix'?{prof:list.filter(r=>profActive(r)&&!(tpLtMissing(r)||tpSrvMissing(r))&&!(tpInFix(r)&&!recNA(r))).every(r=>/פרופיל:/.test(tpTopicAct(t,r))),

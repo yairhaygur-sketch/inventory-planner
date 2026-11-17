@@ -185,19 +185,23 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«נקה סינון» מאפס, והסינון של הכלי המלא (SEL) לא נגעו בו',!cl.f&&cl.sel===0,JSON.stringify(cl));
   await P.close()}
 
- /* ---- 7. חריגת צריכה: ההמלצה מול המספר המייעץ (17.11) ---- */
+ /* ---- 7. חריגת צריכה: ההמלצה מול המספר המייעץ (17.11) ----
+    «ההמלצה לקובץ SAP» רק לפריט שבאמת בקובץ העדכון (tpInFix). לשאר — «ב-SAP היום» ו«לא בקובץ העדכון» */
  {const P=await open('?topics');await P.waitForSelector('#lite table');
-  const t=await P.evaluate(()=>{const down=TOPICS.trend.rows().filter(r=>trendGap(r)>0&&!tpRec(r).na),up=TOPICS.trend.rows().filter(r=>riseGap(r)>0&&!tpRec(r).na);
-   const act=r=>tpTopicAct('trend',r);
-   return {nd:down.length,nu:up.length,
-    downOk:down.every(r=>act(r).includes(`ל-${tpN(r.sugROPT)} אם הירידה תימשך`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),
-    upOk:up.every(r=>act(r).includes(`ל-${tpN(r.sugROPU)} אם העלייה תימשך`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),
-    pn:down[0]&&down[0].pn,rec:down[0]&&tpRec(down[0]).rop,adv:down[0]&&down[0].sugROPT}});
-  ok(`פעולה בחריגת צריכה: המספר המייעץ «אם המגמה תימשך» וההמלצה לקובץ SAP — שניהם, עם שמם (${t.nd} יורד · ${t.nu} עולה)`,t.nd>0&&t.nu>0&&t.downOk&&t.upOk);
-  await P.evaluate(pn=>{TP.tab='trend';TP.cat={};TP.q=pn;tpRender()},t.pn);await P.click('#lite tr.r');
-  const d=await P.evaluate(()=>[...document.querySelectorAll('#tpd .imp > div')].map(x=>x.textContent.replace(/\s+/g,' ').trim()));
-  ok('כרטיס הפריט: «המלצה (נכנסת לקובץ SAP)» ולידה «אם הירידה תימשך — מייעץ, לא בקובץ SAP»',
-   d.some(x=>x.startsWith(String(t.rec))&&/המלצה \(נכנסת לקובץ SAP\)/.test(x))&&d.some(x=>x.startsWith(String(t.adv))&&/אם הירידה תימשך — מייעץ, לא בקובץ SAP/.test(x)),d.join(' | '));
+  const t=await P.evaluate(()=>{const rows=TOPICS.trend.rows().filter(r=>!tpRec(r).na),act=r=>tpTopicAct('trend',r),adv=r=>riseGap(r)>0?r.sugROPU:r.sugROPT;
+   const inF=rows.filter(tpInFix),out=rows.filter(r=>!tpInFix(r));
+   return {ni:inF.length,no:out.length,
+    inOk:inF.every(r=>act(r).includes(`ל-${tpN(adv(r))} אם ה`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),
+    outOk:out.every(r=>act(r).includes(`נק׳ הזמנה ${tpN(adv(r))} אם ה`)&&act(r).includes(`ב-SAP היום: ${tpN(r.rop)}`)&&act(r).includes('לא בקובץ העדכון')&&!act(r).includes('ההמלצה לקובץ SAP')),
+    pin:inF.find(r=>trendGap(r)>0),pout:out.find(r=>trendGap(r)>0)}});
+  ok(`פעולה בחריגת צריכה: «ההמלצה לקובץ SAP» רק לפריט שבקובץ (${t.ni}); לשאר «ב-SAP היום» ו«לא בקובץ העדכון» (${t.no})`,t.ni>0&&t.no>0&&t.inOk&&t.outOk);
+  const drawer=async r=>{await P.evaluate(pn=>{TP.tab='trend';TP.cat={};TP.q=pn;tpRender()},r.pn);await P.click('#lite tr.r td:nth-child(2)');
+   const d=await P.evaluate(()=>[...document.querySelectorAll('#tpd .imp > div')].map(x=>x.textContent.replace(/\s+/g,' ').trim()));await P.evaluate(()=>tpdClose());return d};
+  const din=await drawer(t.pin);
+  ok('כרטיס, פריט בקובץ: «המלצה (נכנסת לקובץ SAP)» ולידה «אם הירידה תימשך — מייעץ»',din.some(x=>/המלצה \(נכנסת לקובץ SAP\)/.test(x))&&din.some(x=>/אם הירידה תימשך — מייעץ, לא בקובץ SAP/.test(x)),din.join(' | '));
+  const dout=await drawer(t.pout);
+  ok('כרטיס, פריט שאינו בקובץ: «חישוב המנוע, לא בקובץ העדכון ל-SAP», «ב-SAP היום», ובלי «נכנסת לקובץ SAP»',
+   dout.some(x=>/חישוב המנוע, לא בקובץ העדכון ל-SAP/.test(x))&&dout.some(x=>/נק׳ הזמנה ב-SAP היום/.test(x))&&!dout.some(x=>/נכנסת לקובץ SAP/.test(x)),dout.join(' | '));
   await P.close()}
 
  ok('אפס שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
