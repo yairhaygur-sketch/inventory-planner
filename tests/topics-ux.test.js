@@ -152,7 +152,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   R.names={kind:['cust','trend','short'].every(t=>H[t].some(h=>h.startsWith('מצב'))),noSug:!H.trend.some(h=>h==='נק׳ הזמנה מוצעת'||h.startsWith('לפי המגמה (מייעץ)')),
    fixPairs:H.fix.some(h=>h.startsWith('נק׳ הזמנה (SAP ← מוצעת)'))&&H.fix.some(h=>h.startsWith('מלאי ביטחון (SAP ← מוצע)'))};
   /* #14 — חריגה: ההשפעה על נק׳ ההזמנה לפני האחוז; טיוב: שווי 0 ← «—» */
-  R.impBeforePct=H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה מוצעת ← לפי המגמה'))>=0&&H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה מוצעת ← לפי המגמה'))<H.trend.findIndex(h=>h.startsWith('שינוי'));
+  /* 17.11: הכותרת אומרת מי ההמלצה ומי המייעץ — «נק׳ הזמנה: המלצה ← אם המגמה תימשך» */
+  R.impBeforePct=H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה: המלצה ← אם המגמה תימשך'))>=0&&H.trend.findIndex(h=>h.startsWith('נק׳ הזמנה: המלצה ← אם המגמה תימשך'))<H.trend.findIndex(h=>h.startsWith('שינוי'));
   TP.tab='fix';TP.cat={};tpRender();const vi=[...document.querySelectorAll('#lite thead th')].findIndex(t=>t.dataset.tpSort==='val');
   R.zeroDash=[...document.querySelectorAll('#lite tbody tr')].every((tr,i)=>{const v=tpRecVal(TP.shown[i]),c=tr.children[vi].textContent.trim();return v===0?c==='—':!/^[+−]?[€$₪]0$/.test(c)});
   return R});
