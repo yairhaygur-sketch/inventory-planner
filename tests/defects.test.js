@@ -386,8 +386,10 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     !/לעדכן נקודת הזמנה/.test(o.slowOk.acts)&&o.slowOk.paramFix!==true,
     `paramFix=${o.slowOk.paramFix} · ${o.slowOk.acts}`);
  ok('ההחלטות נשארות עד 4',o.slowBad.actN<=4,`${o.slowBad.actN} החלטות`);
- // D · כיוון ההמלצה נגזר מהמספרים
- ok('ROP מוצע גבוה → "העלאת"',/העלאת/.test(o.dec.act),o.dec.act);
+ // D · כיוון ההמלצה נגזר מהמספרים — אבל בדלת «ירידה בביקוש» אין «העלאת»
+ // (DROP_NO_RAISE, 18.11): ROP מחושב מעל SAP → להשאיר את ערך SAP
+ ok('ירידה בביקוש, ROP מוצע גבוה → «להשאיר», לא «העלאת»',
+    o.dec.sugROP>o.dec.rop&&!/העלאת/.test(o.dec.act)&&o.dec.act.startsWith(`להשאיר את נקודת ההזמנה ב-SAP (${o.dec.rop}) — לא מעלים בזמן ירידה בביקוש`),o.dec.act);
  // מטבע — BZ נקוב במטבע של BE, ואסור להציג אותו כשקלים או לחבר מטבעות
  const cur=await p.evaluate(()=>{
   const cap=ALL.filter(r=>r.expCap>0);
