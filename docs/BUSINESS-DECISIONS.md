@@ -507,6 +507,22 @@ Changes to these areas require explicit business approval.
   - The CSV export does not depend on the arrangement.
   - First in the 4-topics view; the full tool can use the same mechanism later.
 
+- **2026-11-18 · The 4-topics view: an arrivals board, deliveries grouped by
+  date in the card, and «first consumption» (approved 18.11).** Display only;
+  the engine, the recommendations and the SAP file are unchanged.
+  - «Arrivals board» (header button): one row per arrival date in the ETA
+    report, only for items that are in one of the four topics (after planner,
+    search and filters); dates that passed come first («check if received»).
+    A date opens its items; a part number opens the card in its first topic.
+  - The card groups ETA lines by date: total units, number of lines and the
+    delivery numbers.
+  - «First consumption», a sub-category of «consumption deviation»: an item
+    never consumed in all the history in the report (11 months and 3 years)
+    with consumption in the last full month or the current month. All such
+    items, no filter. Action, in words: «check whether to set up planning for
+    the item». Without the 3-year columns the rule does not apply. Measured:
+    report A 133 items, report B 143 (demo 108).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

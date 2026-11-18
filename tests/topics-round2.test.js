@@ -188,7 +188,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  /* ---- 7. חריגת צריכה: ההמלצה מול המספר המייעץ (17.11) ----
     «ההמלצה לקובץ SAP» רק לפריט שבאמת בקובץ העדכון (tpInFix). לשאר — «ב-SAP היום» ו«לא בקובץ העדכון» */
  {const P=await open('?topics');await P.waitForSelector('#lite table');
-  const t=await P.evaluate(()=>{const rows=TOPICS.trend.rows().filter(r=>!tpRec(r).na),act=r=>tpTopicAct('trend',r),adv=r=>riseGap(r)>0?r.sugROPU:r.sugROPT;
+  /* 18.11: פריטי «צריכה ראשונה» בלבד אינם נושאים מספר מייעץ — נבדקים ב-topics-arrivals */
+  const t=await P.evaluate(()=>{const rows=TOPICS.trend.rows().filter(r=>!tpRec(r).na&&(riseGap(r)>0||trendGap(r)>0)),act=r=>tpTopicAct('trend',r),adv=r=>riseGap(r)>0?r.sugROPU:r.sugROPT;
    const inF=rows.filter(tpInFix),out=rows.filter(r=>!tpInFix(r));
    return {ni:inF.length,no:out.length,
     inOk:inF.every(r=>act(r).includes(`ל-${tpN(adv(r))} אם ה`)&&act(r).includes(`ההמלצה לקובץ SAP: ${tpN(tpRec(r).rop)}`)),

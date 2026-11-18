@@ -36,7 +36,8 @@ const ENGINE=()=>{const uni=(...ls)=>[...new Set(ls.flat())];
  const by=l=>Object.fromEntries(l.map(r=>[r.pn,pick(r)]));
  /* המבנה שהמעתד קבע (1.11) — כל נושא הוא בורר של המנוע המשותף */
  return {cust:by(QF.all.filter(r=>r.custGap)),
-  trend:by(uni(riseRows(),trendRows())),
+  /* 18.11: ∪ «צריכה ראשונה» (FIRST_USE) */
+  trend:by(uni(riseRows(),trendRows(),QF.all.filter(tpFirst))),
   /* 2.11: ∪ «ייגמר לפני האספקה הבאה» — ריק בלי דוח ETA (כאן לא נטען); נבדק ב-topics-eta */
   short:by(uni(decisionList('short'),QF.all.filter(tpBeforeEta))),
   fix:by(uni(profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),QF.all.filter(r=>r.ltBad&&!r.noStock)))}};
@@ -113,7 +114,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
   return {
    /* 1.11: טיוב נתונים = שינוי פרופיל (מונה המסילה) ∪ שורות קובץ ה-SAP עם המלצה ∪ זמן אספקה חסר */
    fix:uni(ids(profRows().filter(profActive)),ids(decisionList('fix').filter(r=>!recNA(r))),ids(QF.all.filter(r=>r.ltBad&&!r.noStock))),
-   trend:uni(ids(riseRows()),ids(trendRows())),
+   trend:uni(ids(riseRows()),ids(trendRows()),ids(QF.all.filter(tpFirst))),
    cust:ids(QF.all.filter(r=>r.custGap)),
    short:uni(ids(decisionList('short')),ids(QF.all.filter(tpBeforeEta))),
    prof:navCount('prof').n,
@@ -164,7 +165,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     both:up.filter(r=>down.includes(r)).map(r=>r.pn)}});
   ok('ארבעת הנושאים בסדר שנקבע: הזמנות לקוח · חריגת צריכה · מלאי 0/צפוי להיגמר · טיוב נתונים',
    JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify(r.order),r.tabs.join(','));
-  ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד'],
+  ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד','צריכה ראשונה'],
    short:['מלאי 0 עכשיו','צפוי להיגמר החודש','ייגמר לפני האספקה הבאה'],fix:['שינוי פרופיל MRP','עדכון SS ו-ROP','נתונים שבורים']}),JSON.stringify(r.cats));
   ok(`«אין רכש כלל» (${r.none}): בכל שורה אין רכש פתוח, ומלאי + רכש קטנים מההזמנה`,r.none>0&&!r.noneBad.length,r.noneBad.join(','));
   ok(`«כיסוי חלקי» (${r.part}): בכל שורה יש רכש, ומלאי + רכש יחד קטנים מההזמנה`,r.part>0&&!r.partBad.length,r.partBad.join(','));
