@@ -2,7 +2,7 @@
    תצוגה בלבד: אין חישוב, סף או סיווג חדשים — כל מספר נבדק כאן מול השדה של המנוע.
      #1 פעולה לפי הנושא (ב-CSV נשארת גם «פעולה» של המנוע)
      #2 מיון ברירת מחדל לפי דחיפות + שווי ההזמנה בהזמנות לקוח
-     #3 «להזמין» במלאי 0 = הכמות שבפעולה (actQty)
+     #3 «להזמין» במלאי 0 = הכמות שבפעולה (actQty) — מ-18.11 ב-CSV בלבד (SHORT_ONE)
      #4 סרגל אחד: שבבי תת-קטגוריה, המסננים מקופלים
      #5 שורת הסבר אחת, ההסבר המלא מאחורי ⓘ
      #6 שורה אחת לפריט
@@ -32,13 +32,18 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
     fixBad:t==='fix'?list.filter(r=>/הזמנת רכש|רכש יזום|להשלים/.test(tpTopicAct(t,r))).map(r=>r.pn):[],
     fixCat:t==='fix'?{prof:list.filter(r=>profActive(r)&&!(tpLtMissing(r)||tpSrvMissing(r))&&!(tpInFix(r)&&!recNA(r))).every(r=>/פרופיל:/.test(tpTopicAct(t,r))),
      data:list.filter(r=>tpLtMissing(r)||tpSrvMissing(r)).every(r=>/^להזין /.test(tpTopicAct(t,r)))}:null,
-    same:(t==='cust'||t==='short')?list.every(r=>tpTopicAct(t,r)===tpAct(r)):true,
+    same:t==='cust'?list.every(r=>tpTopicAct(t,r)===tpAct(r)):true,
+    /* SHORT_ONE (18.11): במלאי 0 — פעולת אספקה אחת מתוך חמש, בלי ספרה ובלי פעולת פרמטר */
+    shortOne:t==='short'?list.filter(r=>{const a=tpTopicAct(t,r);
+     return !/^(לפתוח הזמנת רכש|למסור ללקוח תאריך: \d|לבקש ETA מהספק|לזרז ספק|לבדוק Back Order אצל היצרן)/.test(a)
+      ||/נקודת הזמנה|מלאי ביטחון|יח׳/.test(a)||(/\d/.test(a)&&!/^למסור ללקוח תאריך: /.test(a))}).map(r=>r.pn):[],
     engineDiffers:list.filter(r=>tpTopicAct(t,r)!==tpAct(r)).length}}
   return R});
  ok('#1 כל תא «פעולה» בטבלה = הפעולה של הנושא',Object.values(A).every(x=>x.cellsMatch),JSON.stringify(Object.fromEntries(Object.entries(A).map(([k,v])=>[k,v.cellsMatch]))));
  ok('#1 חריגת צריכה: «לבחון העלאת/הורדת נק׳ הזמנה ל-N», N = נקודת ההזמנה המייעצת של המנוע',A.trend.n>0&&!A.trend.trendBad.length&&!A.trend.trendNum.length,[...A.trend.trendBad,...A.trend.trendNum].slice(0,3).join(','));
  ok('#1 טיוב נתונים: אף פעולת רכש; פרופיל ← «… פרופיל:», נתונים שבורים ← «להזין …»',A.fix.n>0&&!A.fix.fixBad.length&&A.fix.fixCat.prof&&A.fix.fixCat.data,JSON.stringify(A.fix.fixCat));
- ok('#1 הזמנות לקוח ומלאי 0: הפעולה של המנוע כמו שהיא',A.cust.same&&A.short.same);
+ ok('#1 הזמנות לקוח: הפעולה של המנוע כמו שהיא',A.cust.same);
+ ok('#1 מלאי 0 (SHORT_ONE): פעולת אספקה אחת, בלי כמות ובלי פעולת פרמטר',A.short.n>0&&!A.short.shortOne.length,A.short.shortOne.slice(0,3).join(','));
  ok('#1 ההבדל מהמנוע אמיתי (יש שורות בטיוב ובחריגה שבהן הפעולה הוחלפה)',A.fix.engineDiffers>0&&A.trend.engineDiffers>0,`טיוב ${A.fix.engineDiffers} · חריגה ${A.trend.engineDiffers}`);
 
  /* #1 + CSV: «פעולה בנושא» ו«פעולה» של המנוע */
@@ -72,15 +77,16 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('#2 חריגת צריכה: לפי ההשפעה על נקודת ההזמנה, מהגדולה',S.trendOrder);
  ok('#2 הסרגל אומר לפי מה ממוין, ונעלם כשממיינים ידנית',/^ממוין: /.test(S.label)&&S.manualHidesLabel,S.label);
 
- /* #3 — «להזמין» = הכמות שבפעולה */
+ /* #3 — «להזמין» = הכמות שבפעולה. SHORT_ONE (18.11): לא בטבלה, רק ב-CSV */
  await tab('short');
- const Q=await p.evaluate(()=>{const ths=[...document.querySelectorAll('#lite thead th')].map(t=>t.textContent.trim()),i=ths.findIndex(t=>t.startsWith('להזמין'));
-  const trs=[...document.querySelectorAll('#lite tbody tr')];
-  return {i,noUns:!ths.some(t=>t.startsWith('לא יסופק')),bad:trs.map((tr,j)=>{const r=TP.shown[j],q=actQty(r),c=tr.children[i].textContent.trim();return c===(q>0?tpN(q):'—')?null:r.pn}).filter(Boolean)}});
- ok('#3 מלאי 0: עמודת «להזמין» = הכמות שבפעולה (actQty), ו«לא יסופק החודש» ירד מהטבלה',Q.i>=0&&Q.noUns&&!Q.bad.length,Q.bad.slice(0,3).join(','));
+ const Q=await p.evaluate(()=>{const ths=[...document.querySelectorAll('#lite thead th')].map(t=>t.textContent.trim());
+  return {buy:ths.some(t=>t.startsWith('להזמין')),noUns:!ths.some(t=>t.startsWith('לא יסופק')),n:TP.shown.length}});
+ ok('#3 מלאי 0 (SHORT_ONE): «להזמין» ו«לא יסופק החודש» אינם בטבלה',Q.n>0&&!Q.buy&&Q.noUns,JSON.stringify(Q));
  {const [dl]=await Promise.all([p.waitForEvent('download'),p.click('#lite [data-tp="csv"]')]);
-  const H=fs.readFileSync(await dl.path(),'utf8').replace(/^﻿/,'').split('\r\n')[0];
-  ok('#3 ה-CSV שומר גם «לא יסופק החודש»',/להזמין/.test(H)&&/לא יסופק החודש/.test(H))}
+  const L=fs.readFileSync(await dl.path(),'utf8').replace(/^﻿/,'').split('\r\n'),H=L[0].split(','),iB=H.indexOf('"להזמין"');
+  const E=await p.evaluate(()=>TP.shown.map(r=>{const q=actQty(r);return q==null?'':String(q)}));
+  const col=L.slice(1,1+E.length).map(l=>(l.match(/("([^"]|"")*"|[^,]*)(,|$)/g)||[])[iB]).map(c=>c==null?null:c.replace(/,$/,'').replace(/^"|"$/g,''));
+  ok('#3 ה-CSV שומר «להזמין» (= actQty) ו«לא יסופק החודש»',iB>=0&&H.includes('"לא יסופק החודש"')&&col.every((c,j)=>c===E[j]),`עמודה ${iB}`)}
 
  /* #4 #5 #6 — סרגל אחד, שורת הסבר, שורה אחת */
  await tab('cust');
