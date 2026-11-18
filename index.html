@@ -3966,7 +3966,8 @@ const SHARP_MIN_PRE=6;
    מזיזים את הקצב, ואיתו את נקודת ההזמנה. הקצב ל-ROP ולסיכון הספק משוקלל משלוש
    תקופות: 70% — הקצב של המנוע (6 החודשים המנוקים) · 20% — השנה הקודמת, בלי
    החודשים שלה שכבר בחלון · 10% — לפני שנתיים (העמודה השנתית ÷ 12).
-   רק בנתיב 6 החודשים (d12>3), רק כשיש שלוש עמודות שנתיות, ולא בירידה חדה
+   רק בנתיב 6 החודשים (d12>3) ורק כשיש קצב (פריט שקט ב-6 החודשים נשאר על 0 —
+   השקלול אינו ממציא ביקוש), רק כשיש שלוש עמודות שנתיות, ולא בירידה חדה
    (SHARP_DROP קובע שם את הקצב). σ — כמו קודם, מהחודשים. רצפות ה-SS נשמרות.
    `rate`, הכיסוי, המגמה והסיווג לא זזים. השדה rateW — רק בפריט שבו הכלל חל.
    בדיקה לאחור (כיול על 8 החודשים הישנים, בחינה על חלונות LT שמתחילים ב-3
@@ -5456,7 +5457,8 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const sdLTEff=sharpDrop?sdSample(sdR3)*Math.sqrt(Math.max(ltM,0)):sdLT;
     /* RATE_W — ראה ההגדרה ליד SHARP_MIN_PRE */
     let rateW=null;
-    if(!noRec&&!sharpDrop&&!rateFrom3y&&d12>3&&has3y&&A&&RATE_W_PAT.includes(A.pattern)){
+    /* rate>0: פריט שקט ב-6 החודשים נשאר בלי קצב — השקלול אינו ממציא ביקוש מהשנים הקודמות */
+    if(rate>0&&!noRec&&!sharpDrop&&!rateFrom3y&&d12>3&&has3y&&A&&RATE_W_PAT.includes(A.pattern)){
      const An=ANCHOR.getMonth()+1,lastIn=Math.max(0,11-An);
      const rawLast=months.slice(Math.min(An,11),11).reduce((a,v)=>a+Math.max(0,v),0);
      const ry1=Math.max(0,y3[1]-rawLast)/(12-lastIn),ry2=y3[2]/12;
@@ -5575,12 +5577,15 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const sugSSCalc=sugSS;
     if(ltBad&&!noRec){sugSS=NUM(r[m.ss]);sugROP=NUM(r[m.rop])}
     const rateT=rate*trendF;
-    const sugROPT=(trendF<1&&!noRec&&!ltBad)?Math.max(sugSS,Math.ceil(rateT*ltM+sugSS)):sugROP;
+    /* המייעץ «אם הירידה תימשך» לעולם לא מעל ההמלצה, ו«אם העלייה תימשך» לעולם לא מתחתיה.
+       עד RATE_W/SHARP_DROP זה נבע מהנוסחה (אותו קצב); כשה-ROP נבנה על קצב אחר
+       (משוקלל / 3 החודשים) — זו תקרה/רצפה מפורשת. */
+    const sugROPT=(trendF<1&&!noRec&&!ltBad)?Math.min(sugROP,Math.max(sugSS,Math.ceil(rateT*ltM+sugSS))):sugROP;
     /* ראה RISE_ASYM. riseF אינו נוגע ב-rate, ב-trendF ולא ב-sugROP. */
     const riseF=(rate>0&&!noRec&&!ltBad&&tRatio!=null&&tRatio>TREND_RISE&&tPre>=TREND_BASE)
       ?Math.min(TREND_CEIL,1+(tRatio-1)*TREND_DAMP):1;
     const rateU=rate*riseF;
-    const sugROPU=riseF>1?Math.max(sugSS,Math.ceil(rateU*ltM+sugSS)):sugROP;
+    const sugROPU=riseF>1?Math.max(sugROP,sugSS,Math.ceil(rateU*ltM+sugSS)):sugROP;
     /* BASE_MONTH: הגיל נספר מתאריך הייחוס של הדוח, לא מיום הטעינה. תנועה
        שאחרי תאריך הייחוס (למשל מכירה באוקטובר בדוח שחודש הבסיס שלו
        ספטמבר) אינה שגויה ואינה «עתידית»: הגיל שלה 0, והיא מסומנת

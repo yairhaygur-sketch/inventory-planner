@@ -111,12 +111,13 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
 
  /* 3 · הדוח הסינתטי עצמו: אין בו פריט בנתיב הדעיכה, ולכן אף פריט לא זז */
  const D=await p.evaluate(()=>({n:ALL.length,dec:ALL.filter(x=>x.rateDecay).length,
-  diff:ALL.filter(x=>!x.rateDecay&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
+  /* 18.11: גם קצב משוקלל (RATE_W) וירידה חדה (SHARP_DROP) בונים את ה-ROP על קצב אחר — נבדקים בקבצים שלהם */
+  diff:ALL.filter(x=>!x.rateDecay&&x.rateW==null&&!x.sharpDrop&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
  ok('בכל פריט שאינו בדעיכה: ביקוש בזמן אספקה = rate × LT, כמו קודם',D.diff===0,`${D.n} פריטים · ${D.dec} בדעיכה`);
  const FP=await p.evaluate(()=>({why:ALL.filter(x=>(x.why||[]).some(w=>/פוטנציאל הפחתה/.test(String(w[1])))).length,
    none:ALL.filter(x=>!x.rateDecay&&floorPotential(x)).length}));
  ok('שלב 2: השורה אינה בנימוקי המנוע (לכן לא בייצוא), ואינה מופיעה בפריט שאינו בדעיכה',FP.why===0&&FP.none===0,JSON.stringify(FP));
- const G=await p.evaluate(()=>{const sc=ALL.filter(ropScope);return {n:sc.length,diff:sc.filter(x=>!x.rateDecay&&!(Math.abs(ropDry(x)-(x.ltM-((x.rop||0)/x.rate)))<1e-9)).length}});
+ const G=await p.evaluate(()=>{const sc=ALL.filter(ropScope);return {n:sc.length,diff:sc.filter(x=>!x.rateDecay&&x.rateW==null&&!x.sharpDrop&&!(Math.abs(ropDry(x)-(x.ltM-((x.rop||0)/x.rate)))<1e-9)).length}});
  ok('ROP קצר: בכל פריט בתחום שאינו בדעיכה — «בלי מלאי» כמו קודם',G.diff===0&&G.n>0,`${G.n} בתחום · ${G.diff} שונים`);
  ok('אין שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();

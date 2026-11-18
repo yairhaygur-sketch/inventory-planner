@@ -82,7 +82,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
 
  /* בדוח הסינתטי: כל פריט שאינו בירידה חדה ואינו בדעיכה — dLT = rate × LT */
  const D=await p.evaluate(()=>({n:ALL.length,sh:ALL.filter(x=>x.sharpDrop).length,
-  diff:ALL.filter(x=>!x.sharpDrop&&!x.rateDecay&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
+  diff:ALL.filter(x=>!x.sharpDrop&&!x.rateDecay&&x.rateW==null&&Math.abs(x.dLT-x.rate*x.ltM)>1e-9).length}));
  ok('בכל פריט אחר בדוח הסינתטי: ביקוש בזמן אספקה = rate × LT',D.diff===0,`${D.n} פריטים · ${D.sh} בירידה חדה`);
 
  /* DROP_NO_RAISE — דרך classify: פריט בדלת «ירידה בביקוש» שהמנוע מחשב לו ROP מעל SAP */

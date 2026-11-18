@@ -536,10 +536,15 @@ Changes to these areas require explicit business approval.
     starting in the 3 latest; two real reports): lumpy — coverage 88.9% →
     88.2% with −6% units in one report, 90.2% → 91.6% with +4% in the other;
     sporadic — 94.1% → 93.0% (−4.5%) and 95.6% → 97.0% (−2%).
-  - **Measured against main:** report A — 246 reorder points down, 77 up, net
-    −600 units (about −$22K FOB); in the SAP update file 13 in / 12 out, 41
-    down / 12 up. Report B — 93 down, 265 up, net +295 units (about +SEK 230K);
-    in the SAP file 27 in / 15 out, 47 down / 131 up. Demo: 30 items.
+  - **Only with a current rate:** an item silent for the last six months keeps
+    rate 0 — the weighting never invents demand from earlier years.
+  - **The advisory trend numbers** are bounded by the recommendation: «if the
+    decline continues» is never above it, «if the rise continues» never below
+    (needed now that the reorder point can use another rate).
+  - **Measured against main:** report A — 246 reorder points down, 50 up, net
+    −633 units (about −$23K and −₪4K FOB); in the SAP update file 11 in / 12
+    out, 41 down / 9 up. Report B — 93 down, 211 up, net +221 units (about
+    +SEK 217K); in the SAP file 25 in / 15 out, 47 down / 129 up. Demo: 29 items.
   - Rejected in the same study: an empirical quantile of lead-time sums (−4%
     to −8% units, −1 to −2 points coverage); σ measured on lead-time windows
     (no difference); the three-year average alone (coverage −5 points in a
