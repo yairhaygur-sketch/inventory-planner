@@ -56,12 +56,13 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  const F={};
  for(const t of ['cust','trend','short','fix']){await tab(t);
   F[t]=await p.evaluate(()=>{const ths=[...document.querySelectorAll('#lite thead th')].map(t=>t.textContent.trim());
-   /* עמודה אחת: המחיר (מעל 100 בלי אגורות) והמטבע לצדו; ב-CSV שני שדות */
+   /* עמודה אחת: סימן המטבע (או קוד) והמחיר, מעל 100 בלי אגורות; ב-CSV שני שדות */
    const iP=ths.findIndex(t=>t.startsWith('מחיר FOB'));
    const trs=[...document.querySelectorAll('#lite tbody tr')];
    const fmt=v=>Number(v).toLocaleString('he-IL',{maximumFractionDigits:Math.abs(v)<100?2:0});
    const bad=iP<0?['no-col']:trs.map((tr,j)=>{const r=TP.shown[j],P=tr.children[iP].textContent.replace(/\s+/g,' ').trim();
-    const eP=r.priceMissing?'—':(fmt(r.price)+(r.currency?' '+r.currency:''));
+    const k=String(r.currency||'').trim().toUpperCase(),sym=CURSYM[k];
+    const eP=r.priceMissing?'—':((sym||(k?k+' ':''))+fmt(r.price)).replace(/\s+/g,' ');
     return P===eP?null:r.pn+':'+P+'≠'+eP}).filter(Boolean);
    /* ה-CSV: כל כותרת פעם אחת, וההסרה נוגעת רק ל«מטבע» הכפול */
    const cols=TP_HEAD.concat(TOPICS[TP.tab].cols),raw=cols.flatMap(c=>c.x||[[c.l,c.v]]).map(x=>x[0]);

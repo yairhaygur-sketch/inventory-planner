@@ -490,9 +490,10 @@ Changes to these areas require explicit business approval.
     after ETA deliveries, or runs out before the next delivery) → «expedite the
     supplier»; otherwise → «check back order with the manufacturer».
   - The «to order» column leaves the table; it stays in the CSV export.
-  - «FOB price» (BZ) with the currency (BE) next to it, one column in all four
-    topics (two columns did not fit «data quality» at 1366px). Prices of 100
-    and above show without decimals; the exact price is in the CSV, where price
+  - «FOB price» (BZ) with its currency (BE), one column in all four topics:
+    the currency sign as everywhere in the tool ($ € ₪), or a small code when
+    there is no sign (e.g. SEK), and the code on hover. Two columns did not fit
+    «data quality» at 1366px. Prices of 100 and above show without decimals; the exact price is in the CSV, where price
     and currency are two fields and a duplicate «currency» header appears once.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.

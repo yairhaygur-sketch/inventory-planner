@@ -14384,11 +14384,15 @@ function tpTopicAct(t,r){
    אותם שדות שהמנוע כבר קורא (price/currency). מחיר חסר — «—», לא 0. */
 /* מעל 100 — בלי אגורות (הרוחב ב-1366); המחיר המדויק ב-CSV ובכרטיס */
 const tpFob=v=>Number(v).toLocaleString('he-IL',{maximumFractionDigits:Math.abs(v)<100?2:0});
+/* סימן כשיש ($ € ₪ £ ¥, כמו money()); קוד בלי סימן (SEK…) — באות קטנה. הכול ב-.88em: הרוחב ב-1366 */
+const tpFobCell=r=>{const k=String(r.currency||'').trim().toUpperCase(),sym=CURSYM[k];
+ return `<span style="font-size:.88em;white-space:nowrap" title="${esc(k)}">${sym?esc(sym):k?`<small>${esc(k)}</small>&thinsp;`:''}${tpFob(r.price)}</span>`};
 const tpFobCols=()=>[
- /* עמודה אחת בטבלה — המספר והמטבע לצדו (ב-1366 שתי עמודות חותכות את «טיוב נתונים»);
+ /* עמודה אחת בטבלה — סימן המטבע לפני המספר, כמו money() בכל הכלי (ב-1366 שתי עמודות,
+    וגם «1,159 USD», חותכים את «טיוב נתונים»); קוד המטבע ב-title;
     ב-CSV שני שדות נפרדים */
  {k:'fob',l:'מחיר FOB',n:1,v:r=>r.priceMissing?null:r.price,
-  h:r=>r.priceMissing?'—':`${tpFob(r.price)}${r.currency?`&thinsp;<small style="font-size:.72em">${esc(r.currency)}</small>`:''}`,
+  h:r=>r.priceMissing?'—':tpFobCell(r),
   x:[['מחיר FOB',r=>r.priceMissing?'':r.price],['מטבע',r=>r.currency||'']]}];
 const tpActCol=t=>({k:'act',l:'פעולה',v:r=>tpTopicAct(t,r),c:'d',h:r=>{const a=tpTopicAct(t,r);return `<span title="${esc(a)}">${esc(a)}</span>`},
  x:[['פעולה בנושא',r=>tpTopicAct(t,r)],['פעולה',tpAct]]});
