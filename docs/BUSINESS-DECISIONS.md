@@ -496,6 +496,17 @@ Changes to these areas require explicit business approval.
     «data quality» at 1366px. Prices of 100 and above show without decimals; the exact price is in the CSV, where price
     and currency are two fields and a duplicate «currency» header appears once.
 
+- **2026-11-18 · The 4-topics view: the planner arranges the columns
+  (approved 18.11).** Display only.
+  - Drag a column header to a new place, or open «columns» to show / hide a
+    column, move it earlier / later, or return to the default. Columns that
+    are hidden by default (for example «to order») can be shown from there.
+  - Saved in the browser, per topic. «Part number» is always shown and first.
+    The context rules stay: ETA columns only with an ETA report, «planner»
+    only with more than one planner, «status» only under «all».
+  - The CSV export does not depend on the arrangement.
+  - First in the 4-topics view; the full tool can use the same mechanism later.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
