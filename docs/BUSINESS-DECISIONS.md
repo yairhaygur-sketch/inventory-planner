@@ -448,8 +448,8 @@ Changes to these areas require explicit business approval.
     a line says why (re-derived from consumption; the floor is minimum SS).
 
 - **2026-11-18 · Sharp drop within the six-month window (SHARP_DROP, option B)
-  and no «raise» inside «demand decline» (DROP_NO_RAISE) — prepared for the
-  planner's approval in the PR; not merged without it.**
+  and no «raise» inside «demand decline» (DROP_NO_RAISE) — approved by the
+  planner 18.11 (PR #177).**
   - **The problem:** on the six-month path (more than 3 units in 11 months),
     the rate is the average of the last six cleaned months. When demand
     collapses inside that window, the average and σ still carry the strong
