@@ -3333,6 +3333,12 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite table{border-collapse:collapse;width:100%}
 #lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
 #lite th.on{color:var(--accent-ink)}
+#lite th[draggable=true]{cursor:grab} #lite th.dragging{opacity:.45} #lite th.dropto{box-shadow:inset -3px 0 0 var(--accent-ink)}
+#lite .tpcols{display:block;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:-4px 0 10px}
+#lite .tpcols ol{list-style:none;margin:6px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px 16px}
+#lite .tpcols li{display:flex;align-items:center;gap:6px;padding:2px 0} #lite .tpcols li label{flex:1;display:flex;gap:6px;align-items:center}
+#lite .tpcols li.off label{color:var(--ink-2)} #lite .tpcols .mv{font:inherit;border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:0 6px;cursor:pointer;color:var(--ink)}
+#lite .tpcols .mv:disabled{opacity:.35;cursor:default} #lite .tpcols .ft{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #lite td{padding:5px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;white-space:nowrap}
 #lite td.n,#lite th.n{text-align:end;font-variant-numeric:tabular-nums}
 #lite td.n{white-space:nowrap}
@@ -14243,7 +14249,40 @@ applyLayout();
    הם בכלי המלא, והקישור «לכלי המלא» פותח אותו על אותו דוח (הדוח
    נטען מחדש — אין שיתוף זיכרון בין לשוניות).
    כסף: לפריט בלבד, במטבע שלו (money). אין סכום על פני פריטים. */
-const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null};
+const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null,colsOpen:false};
+/* ============ TP_COLS — סדר העמודות ומה מוצג, לכל נושא בנפרד (החלטת המעתד 18.11) ============
+   המעתד גורר כותרת למקום אחר, או פותח «עמודות» ומסמן / מזיז / מחזיר לברירת המחדל.
+   נשמר בדפדפן (planner_tpcols_v1), לכל נושא בנפרד; שומרים רק את מה ששונה מברירת המחדל.
+   ברירת המחדל = הסדר בקוד, ועמודה עם hide:1 מוסתרת (אפשר להציג אותה מכאן).
+   «מק״ט» תמיד מוצג ותמיד ראשון. כללי ההקשר נשארים: עמודות ETA רק עם דוח ETA,
+   «מתכנן» רק כשיש יותר מאחד, «מצב» רק בלי תת-קטגוריה. ה-CSV אינו תלוי בסידור. */
+const TP_COLS_KEY='planner_tpcols_v1';
+function tpColsSaved(){try{const o=JSON.parse(localStorage.getItem(TP_COLS_KEY)||'{}');return o&&typeof o==='object'?o:{}}catch(_){return {}}}
+function tpColsState(t){const pool=TP_HEAD.concat(TOPICS[t].cols),keys=pool.map(c=>c.k),sv=tpColsSaved()[t]||{};
+ const vis=sv.vis&&typeof sv.vis==='object'?sv.vis:{};
+ const out=(Array.isArray(sv.order)?sv.order:[]).filter((k,i,A)=>keys.includes(k)&&A.indexOf(k)===i);
+ /* עמודה שנוספה אחרי שהסידור נשמר — ליד השכנה שלה בברירת המחדל */
+ keys.forEach((k,i)=>{if(out.includes(k))return;const prev=keys.slice(0,i).reverse().find(x=>out.includes(x));
+  out.splice(prev==null?0:out.indexOf(prev)+1,0,k)});
+ return ['pn',...out.filter(k=>k!=='pn')].map(k=>{const c=pool.find(x=>x.k===k);
+  return {c,on:k==='pn'||(Object.prototype.hasOwnProperty.call(vis,k)?!!vis[k]:!c.hide)}})}
+function tpColsPut(t,st){const all=tpColsSaved();
+ all[t]={order:st.map(x=>x.c.k),vis:Object.fromEntries(st.filter(x=>x.c.k!=='pn'&&x.on===!!x.c.hide).map(x=>[x.c.k,x.on]))};
+ try{localStorage.setItem(TP_COLS_KEY,JSON.stringify(all))}catch(_){toast('הדפדפן חוסם שמירה — הסידור יחזור לברירת המחדל בטעינה הבאה')}
+ tpRender()}
+function tpColsMove(t,k,to){const st=tpColsState(t),i=st.findIndex(x=>x.c.k===k);
+ if(i<1||to<1||to>=st.length||i===to)return;const [x]=st.splice(i,1);st.splice(to,0,x);tpColsPut(t,st)}
+function tpColsVis(t,k,on){if(k==='pn')return;const st=tpColsState(t),x=st.find(y=>y.c.k===k);if(!x)return;x.on=on;tpColsPut(t,st)}
+function tpColsReset(t){const all=tpColsSaved();delete all[t];try{localStorage.setItem(TP_COLS_KEY,JSON.stringify(all))}catch(_){}tpRender()}
+function tpColsPanel(t,plOne){const st=tpColsState(t),seen=x=>x.on&&(ETA||!x.c.eta);
+ return `<div class="tpcols" role="region" aria-label="עמודות"><b>עמודות — ${esc(TOPICS[t].t)}</b>
+  <ol>${st.map((x,i)=>{const c=x.c,why=c.eta&&!ETA?' <span class="mini">(רק עם דוח ETA)</span>'
+    :c.k==='planner'&&plOne?' <span class="mini">(כשיש יותר ממתכנן אחד)</span>':c.kind&&TP.cat[t]?' <span class="mini">(רק ב«הכול»)</span>':'';
+   return `<li class="${x.on?'':'off'}"><label><input type="checkbox" data-tpc-vis="${c.k}" ${x.on?'checked':''} ${c.k==='pn'?'disabled title="«מק״ט» נשאר תמיד"':''}>${esc(c.l)}${why}</label>
+    <button type="button" class="mv" data-tp="colup" data-k="${c.k}" ${i<1||!st.slice(1,i).some(seen)?'disabled':''} aria-label="להזיז את ${esc(c.l)} מוקדם יותר">↑</button>
+    <button type="button" class="mv" data-tp="coldn" data-k="${c.k}" ${i<1||!st.slice(i+1).some(seen)?'disabled':''} aria-label="להזיז את ${esc(c.l)} מאוחר יותר">↓</button></li>`}).join('')}</ol>
+  <div class="ft"><button class="btn" type="button" data-tp="colreset">חזרה לברירת המחדל</button>
+   <span class="mini">אפשר גם לגרור כותרת בטבלה. הסידור נשמר בדפדפן הזה, לכל נושא בנפרד; ייצוא ה-CSV לא משתנה.</span></div></div>`}
 /* ============ TP_FILT — סינון לפי שדות הפריט (11.11) ============
    אותם שדות ואותם שמות של מסנני הכלי המלא (FDEF), בלי «יבוא/מקומי» ו«מעתד»
    (למתכנן יש בחירה משלו). חל על כל הנושאים, על המונים ועל ה-CSV — ואינו נוגע
@@ -14736,7 +14775,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  /* TOPICS_UX #10/#11: עמודה שערכה יחיד (מתכנן אחד, או מתכנן שנבחר) ועמודת «מצב» כשכבר סיננת
     לתת-קטגוריה — לא בטבלה. «hide»: בכרטיס וב-CSV, לא בטבלה. */
  const plOne=pls.length<=1||!!TP.pl;
- const cols=TP_HEAD.concat(T.cols).filter(c=>(ETA||!c.eta)&&!c.hide&&!(c.k==='planner'&&plOne)&&!(c.kind&&TP.cat[t]));
+ const cols=tpColsState(t).filter(x=>x.on).map(x=>x.c).filter(c=>(ETA||!c.eta)&&!(c.k==='planner'&&plOne)&&!(c.kind&&TP.cat[t]));
  const rowsBy={};for(const k of Object.keys(TOPICS))rowsBy[k]=tpRows(k,true);
  TP.inSets=Object.fromEntries(Object.entries(rowsBy).map(([k,l])=>[k,new Set(l)]));
  /* TOPICS_UX #11: בלשונית — גם החלק הדחוף, באדום */
@@ -14748,7 +14787,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const fOn=TP_FILT.filter(([k])=>TP.f[k]),fOpen=!!TP.fOpen;
  const fchips=fOn.map(([k,l])=>`<span class="fchip">${esc(l)}: ${esc(TP.f[k])}<button type="button" data-tp="funset" data-k="${k}" aria-label="הסרת סינון ${esc(l)}">✕</button></span>`).join('');
  const shown=list.slice(0,TP.lim);
- const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
+ const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" ${c.k==='pn'?'':`draggable="true" data-tp-col="${c.k}" title="לחיצה ממיינת · גרירה מזיזה"`} aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
  /* דוח חדש נטען — האובייקטים התחלפו, והכרטיס הפתוח שייך לדוח הקודם */
  if(TP.open&&!(QF.all||[]).includes(TP.open))tpdClose();
  const body=shown.map((r,i)=>
@@ -14760,12 +14799,13 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
    <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
    <div class="tiles" role="group" aria-label="תת-קטגוריה">${tiles}</div>
    <button class="btn ftog ${fOn.length?'on':''}" type="button" data-tp="ftog" aria-expanded="${fOpen}">סינון${fOn.length?` (${fOn.length})`:''} ${fOpen?'▴':'▾'}</button>${fchips}
+   <button class="btn ${TP.colsOpen?'on':''}" type="button" data-tp="cols" aria-expanded="${!!TP.colsOpen}">עמודות ${TP.colsOpen?'▴':'▾'}</button>
    <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span>
    ${s.k?'':`<span class="sortl">ממוין: ${esc((TP_URG[t]||{}).l||'')}</span>`}</div>
   <div class="bar flt" ${fOpen?'':'hidden'}>${TP_FILT.map(([k,l,all])=>{const vals=[...new Set(((QF&&QF.all)||[]).map(r=>r[k]).filter(v=>v!=null&&v!==''))].map(String).sort((a,b)=>a.localeCompare(b,'he'));
     return `<select data-tpf="${k}" aria-label="${esc(l)}" class="${TP.f[k]?'on':''}"><option value="">${esc(all)}</option>${vals.map(v=>`<option value="${esc(v)}" ${TP.f[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select>`}).join('')}
    ${Object.values(TP.f).some(Boolean)?'<button class="btn" type="button" data-tp="fclear">נקה סינון</button>':''}</div>
-  ${t==='fix'?tpOffList():''}${tpDoneList()}
+  ${TP.colsOpen?tpColsPanel(t,plOne):''}${t==='fix'?tpOffList():''}${tpDoneList()}
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
   ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
   <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · C העתקת מק״ט · D «טופל» ומעבר לבא · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
@@ -14795,6 +14835,12 @@ if(LITE){
   else if(a.tp==='demo')demoStart();
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
+  else if(a.tp==='cols'){TP.colsOpen=!TP.colsOpen;tpRender()}
+  else if(a.tp==='colup'||a.tp==='coldn'){const st=tpColsState(TP.tab),i=st.findIndex(x=>x.c.k===a.k),d=a.tp==='colup'?-1:1;
+   /* מעבר על עמודה מוסתרת אינו משנה דבר בטבלה — קופצים אל מעבר לעמודה המוצגת הבאה */
+   const seen=x=>x.on&&(ETA||!x.c.eta);let j=i+d;while(j>0&&j<st.length&&!seen(st[j]))j+=d;
+   if(j>0&&j<st.length)tpColsMove(TP.tab,a.k,j);const f=el.querySelector(`[data-tp="${a.tp}"][data-k="${a.k}"]`);if(f&&!f.disabled)f.focus()}
+  else if(a.tp==='colreset'){tpColsReset(TP.tab);toast('סדר העמודות חזר לברירת המחדל')}
   else if(a.tp==='more'){TP.lim+=200;tpRender()}
   else if(a.tp==='copy')tpCopy(a.pn);
   else if(a.tp==='fclear'){TP.f={};TP.lim=200;tpRender()}
@@ -14822,8 +14868,20 @@ if(LITE){
   else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
    toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
   else if(k==='copy'&&TP.open)tpCopy(TP.open.pn)});
- el.addEventListener('change',e=>{if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}
+ el.addEventListener('change',e=>{if(e.target.dataset.tpcVis){tpColsVis(TP.tab,e.target.dataset.tpcVis,e.target.checked);
+   const f=el.querySelector(`[data-tpc-vis="${e.target.dataset.tpcVis}"]`);if(f)f.focus();return}
+  if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}
   else if(e.target.dataset.tpf){TP.f[e.target.dataset.tpf]=e.target.value;TP.lim=200;tpRender()}});
+ /* TP_COLS: גרירת כותרת — העמודה נכנסת במקום של זו שעליה שחררו */
+ let dragCol=null;
+ el.addEventListener('dragstart',e=>{const th=e.target.closest&&e.target.closest('th[data-tp-col]');if(!th)return;
+  dragCol=th.dataset.tpCol;th.classList.add('dragging');e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragCol)}catch(_){}});
+ el.addEventListener('dragover',e=>{if(!dragCol)return;const th=e.target.closest&&e.target.closest('th[data-tp-col]');if(!th)return;
+  e.preventDefault();e.dataTransfer.dropEffect='move';el.querySelectorAll('th.dropto').forEach(x=>x!==th&&x.classList.remove('dropto'));th.classList.add('dropto')});
+ el.addEventListener('dragend',()=>{dragCol=null;el.querySelectorAll('th.dragging,th.dropto').forEach(x=>x.classList.remove('dragging','dropto'))});
+ el.addEventListener('drop',e=>{const th=e.target.closest&&e.target.closest('th[data-tp-col]');if(!dragCol||!th)return;e.preventDefault();
+  const k=dragCol,to=tpColsState(TP.tab).findIndex(x=>x.c.k===th.dataset.tpCol);dragCol=null;
+  if(k!==th.dataset.tpCol)tpColsMove(TP.tab,k,to)});
  let qt=null;
  el.addEventListener('input',e=>{if(e.target.dataset.tp!=='q')return;TP.q=e.target.value;clearTimeout(qt);
   qt=setTimeout(()=>{tpRender();const i=el.querySelector('[data-tp="q"]');if(i){i.focus();i.setSelectionRange(TP.q.length,TP.q.length)}},250)});
