@@ -14344,7 +14344,22 @@ const TP_HEAD=[
      ב-CSV ובכרטיס).
    · שורה אחת לפריט, סרגל אחד, שורת הסבר במקום פסקה, פס «אין דוח ETA» ועמודות
      ETA מוסתרות בלעדיו, וקיצורי מקלדת C / D. */
+/* ============ SHORT_ONE — פעולה אחת, בלי כמויות (החלטת המעתד 18.11) ============
+   בנושא «מלאי 0 / צפוי להיגמר» (שלושת החלקים) מוצגת פעולת אספקה אחת,
+   מילולית: מספר יחידות בפעולה נקרא כהוראה ומאומץ בלי בדיקה. פעולות פרמטרים
+   (נקודת הזמנה / מלאי ביטחון) שייכות ל«טיוב נתונים» ואינן כאן. הסדר, מהדחוף:
+   אין רכש פתוח → לקוח ממתין ויש ETA → רכש בלי ETA → ETA מאוחר מדי → Back Order.
+   «מאוחר מדי» = המדף כבר ריק, או שגם אחרי האספקות שבדוח ה-ETA יחסר החודש,
+   או שהמלאי ייגמר לפני האספקה הבאה. ההמלצות של המנוע עצמן לא משתנות. */
+function tpShortAct(r){
+ if(!(r.po>0))return 'לפתוח הזמנת רכש';
+ const eta=!!(ETA&&r.etaHas&&r.etaFirst);
+ if(r.cust>0&&eta)return `למסור ללקוח תאריך: ${tpdDate(r.etaFirst)}`;
+ if(!eta)return 'לבקש ETA מהספק';
+ if(shelfQty(r)<=0||(r.unsQty||0)>0||tpBeforeEta(r))return 'לזרז ספק';
+ return 'לבדוק Back Order אצל היצרן'}
 function tpTopicAct(t,r){
+ if(t==='short')return tpShortAct(r);
  /* 17.11: שני מספרים, שתי משמעויות — ההמלצה (נכנסת לקובץ SAP) והמספר המייעץ «אם המגמה תימשך».
     רוב פריטי חריגת הצריכה אינם בקובץ העדכון ל-SAP (המנוע מטפל בהם אחרת: עודף מלאי,
     לקוח ממתין…). אצלם אין «המלצה לקובץ SAP» — רק הערך ב-SAP היום, והמספר המייעץ */
@@ -14365,6 +14380,12 @@ function tpTopicAct(t,r){
   for(const c of ['data','param','prof'])if(has[c])return one[c]();
   return tpAct(r)}
  return tpAct(r)}
+/* FOB_COLS (החלטת המעתד 18.11): מחיר FOB (BZ) ומטבע (BE) בכל ארבעת הנושאים —
+   אותם שדות שהמנוע כבר קורא (price/currency). מחיר חסר — «—», לא 0. */
+const tpFobCols=()=>[
+ {k:'fob',l:'מחיר FOB',n:1,v:r=>r.priceMissing?null:r.price,
+  h:r=>r.priceMissing?'—':Number(r.price).toLocaleString('he-IL',{maximumFractionDigits:2})},
+ {k:'cur',l:'מטבע',v:r=>r.currency||'',h:r=>r.currency?esc(r.currency):'—'}];
 const tpActCol=t=>({k:'act',l:'פעולה',v:r=>tpTopicAct(t,r),c:'d',h:r=>{const a=tpTopicAct(t,r);return `<span title="${esc(a)}">${esc(a)}</span>`},
  x:[['פעולה בנושא',r=>tpTopicAct(t,r)],['פעולה',tpAct]]});
 /* מיון ברירת מחדל — הדחוף למעלה. כסף: בלוקים לפי מטבע (curPos), כמו בכלי המלא */
@@ -14391,6 +14412,7 @@ const TOPICS={
    {k:'cval',l:'שווי ההזמנה',n:1,v:r=>r.priceMissing?null:custVal(r),h:r=>r.priceMissing?'—':money(custVal(r),r.currency),
     x:[['שווי ההזמנה',r=>r.priceMissing?'':Math.round(custVal(r))],['מטבע',r=>r.currency]]},
    {k:'eta',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
+   ...tpFobCols(),
    tpActCol('cust')]},
  trend:{t:'חריגת צריכה',short:'3 החודשים המלאים האחרונים מול 3 שלפניהם — רק כשהמגמה משנה את נקודת ההזמנה.',
   lead:'אותו חישוב מגמה ואותם ספים של הכלי המלא: 3 החודשים המלאים האחרונים (בלי החודש הנוכחי) מול 3 שלפניהם, ורק כשהמגמה משנה את נקודת ההזמנה המייעצת. הסכומים מחושבים על סדרה מנוקה: חודש שבו כנראה אזל המלאי מוחלף בחציון, קפיצה נחתכת לפעמיים החציון, והחזרות נספרות כ-0. כשהסכום בדוח שונה, הוא מוצג לידו («בדוח»), ובכרטיס הפריט — איזה חודש תוקן ולמה.',
@@ -14412,6 +14434,7 @@ const TOPICS={
     h:r=>r.tRatio==null?'—':`${r.tRatio>1?'+':''}${Math.round((r.tRatio-1)*100)}%`},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
+   ...tpFobCols(),
    tpActCol('trend')]},
  short:{t:'מלאי 0 / צפוי להיגמר',short:'מדף ריק, או מלאי שלא יחזיק עד סוף החודש או עד האספקה הבאה.',
   lead:'אותה רשימת «חוסר» של הכלי המלא — פריטים מנוהלי מלאי. «מלאי 0 עכשיו»: המדף ריק, ויש לקוח ממתין או צריכה שלא תכוסה החודש. «צפוי להיגמר החודש»: יש מלאי, אבל הקצב החודשי גדול מהמלאי הפנוי ומהאספקה המתוארכת שתגיע עד סוף החודש. רכש בלי תאריך אינו נספר. «ייגמר לפני האספקה הבאה» (דורש דוח ETA): יש מלאי, אבל לפי הקצב החודשי הוא ייגמר לפני התאריך של האספקה הקרובה בדוח ה-ETA — גם אם זה אחרי סוף החודש. פריט יכול להופיע בשתי קטגוריות.',
@@ -14423,14 +14446,16 @@ const TOPICS={
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
    {k:'etaM',l:'אספקה עד סוף החודש (ETA)',eta:1,n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
-   /* «להזמין» = הכמות שבפעולה עצמה (actQty), לא חישוב חדש; «לא יסופק החודש» — ב-CSV ובכרטיס */
-   {k:'buy',l:'להזמין',n:1,v:r=>actQty(r),h:r=>{const q=actQty(r);return q>0?`<b>${tpN(q)}</b>`:'—'},
+   /* «להזמין» = הכמות שבפעולה עצמה (actQty), לא חישוב חדש; «לא יסופק החודש» — ב-CSV ובכרטיס.
+      SHORT_ONE (18.11): העמודה ירדה מהטבלה — מספר בטבלה מאומץ בלי בדיקה. נשארת ב-CSV בלבד. */
+   {k:'buy',l:'להזמין',hide:1,n:1,v:r=>actQty(r),h:r=>{const q=actQty(r);return q>0?`<b>${tpN(q)}</b>`:'—'},
     x:[['להזמין',r=>actQty(r)],['לא יסופק החודש',r=>Math.ceil(r.unsQty||0)]]},
    {k:'zd',l:'צפי סיום מלאי',v:r=>tpZeroDate(r),h:r=>{const d=tpZeroDate(r);return d?tpdDate(d):'—'}},
    {k:'en',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?(tpBeforeEta(r)?`<b>${tpdDate(r.etaFirst)}</b>`:tpdDate(r.etaFirst)):'—'},
    {k:'lt',l:'זמן אספקה (ימים)',hide:1,n:1,v:r=>r.ltD},
    {k:'cust',l:'הזמנת לקוח',n:1,v:r=>r.cust,h:r=>r.cust?tpN(r.cust):'—'},
    {k:'po',l:'רכש פתוח',n:1,v:r=>r.po,h:r=>r.po?tpN(r.po):'—'},
+   ...tpFobCols(),
    tpActCol('short')]},
  fix:{t:'טיוב נתונים',short:'פרופיל MRP, מלאי ביטחון ונקודת הזמנה לעדכון ב-SAP, ונתונים חסרים.',
   lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP, או רמת שירות חסרה או 0 בפריט מנוהל מלאי עם צריכה — בלי שניהם אין המלצת SS/ROP תקפה. פריט יכול להופיע ביותר מקטגוריה אחת.',
@@ -14453,6 +14478,7 @@ const TOPICS={
     /* TOPICS_UX #14: 0 = אין שינוי — אותו «—» של «אין» */
     h:r=>{const v=tpRecVal(r);return v==null||v===0?'—':(v>0?'+':'−')+money(Math.abs(v),r.currency)},
     x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
+   ...tpFobCols(),
    tpActCol('fix')]}};
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
@@ -14601,7 +14627,7 @@ function tpdMissing(r){const m=[r.ltBad?`זמן אספקה מתוכנן ב-SAP �
  return `<ul class="miss">${m.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`}
 function tpdBody(t,r){
  const why=(r.why||[]).filter(Boolean).map(w=>Array.isArray(w)?w:['info',String(w)]);
- const act=(r.act||[]).filter(Boolean);
+ const act=t==='short'?[tpShortAct(r)]:(r.act||[]).filter(Boolean);
  const k=tpKind(r),tone=k[2]==='red'?'red':k[2]==='amb'?'amb':'';
  const cons=tpdHasCons(r)?`<section><h3>צריכה חודשית — 11 חודשים ${TPD_SRC.sap}</h3><canvas data-ch="bar"></canvas>
    <div class="key"><span style="color:var(--high)">● פיק</span><span style="color:var(--trend)">● חשד אזילה</span><span>‒ ‒ חציון</span>${r.curMonth!=null?'<span>▢ החודש הנוכחי — חלקי, אינו נכלל בחישוב</span>':''}</div></section>`
@@ -14618,7 +14644,7 @@ function tpdBody(t,r){
     ${why.length?`<ul>${why.map(([c,m])=>`<li class="${esc(c)}">${esc(m)}</li>`).join('')}</ul>`:''}</div>
    <div class="qa"><h3>למה זה חשוב</h3>${tpdImpact(t,r)}</div>
    <div class="qa act"><h3>מה לעשות ${TPD_SRC.rec}</h3>${act.length?`<ol>${act.map(a=>`<li>${esc(a)}</li>`).join('')}</ol>`:'<p class="note">המנוע לא נתן פעולה לפריט הזה.</p>'}
-    <p class="note">המלצת המנוע של הכלי המלא — לשיקול המתכנן. דבר לא משתנה ב-SAP מכאן.</p></div></section>
+    <p class="note">${t==='short'?'פעולת אספקה אחת, בלי כמות — את הכמות קובעים מול הספק והמלאי. דבר לא משתנה ב-SAP מכאן.':'המלצת המנוע של הכלי המלא — לשיקול המתכנן. דבר לא משתנה ב-SAP מכאן.'}</p></div></section>
   ${tpdIssues(r)}
   <section><h3>SAP מול המלצה <button type="button" data-tpd="explain">🔍 מאחורי החישוב</button></h3>${tpdParams(r)}</section>
   ${charts}${supply}
@@ -14746,7 +14772,8 @@ function tpOffList(){const l=profOffRows();if(!l.length)return '';
   `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))} <button type="button" class="btn" data-tp="profon" data-pn="${esc(markKey(r))}">↺ החזר המלצה</button></li>`).join('')}</ul></details>`}
 function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
  /* שלב 2: שדה סטטוס נפרד — הסבר למה אין מספר, בלי לשים טקסט בתא מספרי */
- const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]).concat([['סטטוס המלצה',r=>recStatus(r)]]);
+ const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]).concat([['סטטוס המלצה',r=>recStatus(r)]])
+  .filter((x,i,A)=>A.findIndex(y=>y[0]===x[0])===i); /* FOB_COLS: «מטבע» פעם אחת */
  const lines=[xs.map(x=>q(x[0])).join(',')];
  for(const r of tpSorted(t,tpRows(t,false)))lines.push(xs.map(x=>q(x[1](r))).join(','));
  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');

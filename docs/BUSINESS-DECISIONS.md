@@ -478,6 +478,21 @@ Changes to these areas require explicit business approval.
     Report A (about 10,000 items) — 15 items change, all ROP down; «raise» inside
     «demand decline» 6 → 0. Demo report: no change (business guard clean).
 
+- **2026-11-18 · The 4-topics view: one supply action in «zero stock /
+  running out», and FOB price and currency columns (approved 18.11).**
+  Display only; the engine, the recommendations and the SAP file are unchanged.
+  - In all three parts of «zero stock / running out»: one action per item, in
+    words, with no quantity (a number in the action is adopted unchecked).
+    Parameter actions (reorder point / safety stock) belong to «data quality».
+    Order: no open purchase → «open a purchase order»; customer waiting and an
+    ETA → «give the customer a date: dd.mm.yyyy»; purchase without an ETA →
+    «ask the supplier for an ETA»; ETA too late (shelf empty, short this month
+    after ETA deliveries, or runs out before the next delivery) → «expedite the
+    supplier»; otherwise → «check back order with the manufacturer».
+  - The «to order» column leaves the table; it stays in the CSV export.
+  - «FOB price» (BZ) and «currency» (BE) columns in all four topics. In the CSV
+    export a duplicate «currency» header appears once.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
