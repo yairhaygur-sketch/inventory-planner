@@ -3931,6 +3931,27 @@ const LOWDEM_MAX=3;
    שינויים. PN-07: ROP 37 → 12, SS 11. מלאי יעד כ-‎-$6.3K ו-₪3.4K.
    בבדיקה לאחור (4 חלונות של 3 חודשים) Fill 92.3% → 92.2%. */
 const RATE_DECAY=0.25,RATE_HALF=4;
+/* ============ SHARP_DROP — ירידה חדה בתוך חלון 6 החודשים ============
+   הנתיב הרגיל (d12>3) נותן קצב = ממוצע 6 החודשים המנוקים. כשהביקוש
+   קרס בתוך החלון — שלושת החודשים האחרונים ≤ RATE_DECAY מהשלושה
+   שלפניהם — הממוצע עדיין נושא את החודשים החזקים, וגם σ נושא את הקפיצה
+   עצמה, ולכן ה-SS הסטטיסטי מתנפח. נמדד על דוח אמיתי (17.11, כ-40 אלף פריטים): 24 פריטים
+   בירידה חדה, ל-19 מהם ROP מוצע מעל SAP (אחרי: 3); פריט המבחן PN-07: 3 חודשים
+   אחרונים 10 יח׳ מול 346 — ROP מוצע 318 מול 60 ב-SAP.
+
+   התיקון (אפשרות ב׳, אישור המעתד): לפריט כזה
+   · הקצב ל-ROP = סכום 3 החודשים האחרונים ÷ 3 (`rateDrop`);
+   · σ למרכיב הסטטיסטי = סטיית התקן של 3 החודשים האחרונים בלבד;
+   · סיכון הספק מחושב על `rateDrop`.
+   רצפות ה-SS (ssMin, רצפת המדיניות) נשארות: SS ≥ ssMin.
+   `rate` — ואיתו הכיסוי, הסיווג, המגמה והמלאי האיטי — לא זז.
+   שערים: נתיב 6 החודשים בלבד (לא RATE_3Y — שם חל RATE_DECAY), בסיס של
+   SHARP_MIN_PRE יח׳ לפחות בשלושת החודשים שלפני (בסיס זעיר הוא רעש),
+   ובלי מכירה בחודש הנוכחי (מכירה עכשיו פירושה שהביקוש לא נעלם).
+   השדות sharpDrop/rateDrop נוספים רק לפריט שבו התיקון חל. */
+const SHARP_MIN_PRE=6;
+function sdSample(a){const n=a.length;if(n<2)return 0;const m=a.reduce((x,y)=>x+y,0)/n;
+ return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/(n-1))}
 /* ============ RATE_DECAY — מתי אסור לקבוע דעיכה ============
    λ נבנה מהחודשים המלאים ומהעמודה השנתית. «אפס» שבא מנתון חסר או סותר
    אינו אפס ביקוש, ולכן לפני שקובעים דעיכה:
@@ -5404,9 +5425,14 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        המלאי עצמו נשאר גלוי — קטלוג, כסף תקוע, וכרטיס הפריט. */
     const noRec=isODStatic||noStock;
     /* SS_LTVAR — ראה ההגדרות ליד zFor */
-    const rateSS=decayed?rateRecent:rate;
+    /* SHARP_DROP — ראה ההגדרה ליד RATE_DECAY */
+    const sdR3=clean.slice(0,3),sdRec3=sdR3.reduce((a,b)=>a+b,0),sdPre3=clean.slice(3,6).reduce((a,b)=>a+b,0);
+    const sharpDrop=!noRec&&!rateFrom3y&&d12>3&&!(curMonth>0)&&sdPre3>=SHARP_MIN_PRE&&sdRec3<=RATE_DECAY*sdPre3;
+    const rateDrop=sharpDrop?sdRec3/3:null;
+    const sdLTEff=sharpDrop?sdSample(sdR3)*Math.sqrt(Math.max(ltM,0)):sdLT;
+    const rateSS=decayed?rateRecent:sharpDrop?rateDrop:rate;
     const ltvP=LTV_P[matType]??LTV_P_DEF,sdSup=d12>0?rateSS*ltvP*Math.max(ltM,0):0;
-    const sdTot=Math.sqrt(sdLT*sdLT+sdSup*sdSup);
+    const sdTot=Math.sqrt(sdLTEff*sdLTEff+sdSup*sdSup);
     const srvAct=rateSS>=SS_ACT_RATE&&zFor(SS_ACT_SRV)>z,zEff=srvAct?zFor(SS_ACT_SRV):z;
     const ssStat=(rate>0&&!noRec)?Math.ceil(zEff*sdTot):0;
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
@@ -5421,8 +5447,9 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        rateROP, dLT ו-sugROP נגזרים כולם מאותו קצב. */
     const ropDecay=(decayed&&!noRec)?Math.ceil(rateRecent*ltM+sugSS):null;
     const rateDecay=ropDecay!==null&&ropDecay!==Math.ceil(dLT+sugSS);
-    const rateROP=rateDecay?rateRecent:rate;
+    const rateROP=rateDecay?rateRecent:sharpDrop?rateDrop:rate;
     if(rateDecay)dLT=rateRecent*ltM;
+    if(sharpDrop)dLT=rateDrop*ltM;
     let sugROP=noRec?0:Math.ceil(dLT+sugSS);
     /* מי קבע את הרצפה — לשקיפות בכרטיס, בטבלה ובייצוא. */
     const ssSrc=isODStatic?'od':noStock?'nostock':ltBad?'nolt':sugSS<=0?'none'
@@ -5569,13 +5596,14 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       /* RATE_DECAY: השדות קיימים רק בפריט שההחלפה חלה עליו — כל פריט אחר
          נשאר זהה לחלוטין, כולל טביעת האצבע של business-golden */
       ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
+      ...(sharpDrop?{rateROP,sharpDrop,rateDrop,sd3:sdSample(sdR3)}:{}),
       /* BASE_MONTH: רק בפריט שבו זה קרה — כמו RATE_DECAY */
       ...(saleAfter?{saleAfterRef:true}:{}),...(entAfter?{entAfterRef:true}:{}),
       /* שלב 2 (PD/LT): כמו RATE_DECAY — רק בפריט שבו זה רלוונטי, כדי שכל פריט
          אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
       ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
       ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT:sdLTEff,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 /* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
@@ -5725,7 +5753,7 @@ function ropGapWhy(it){
     rop/rate חודשים, והמשלוח מגיע אחרי ltM. נאמר רק כשהוא חיובי
     ורק כשיש קצב מדיד — בלי קצב אין מה לחשב. */
  /* ROP_GAP × RATE_DECAY — אותו קצב כמו הדלת והעמודות (ropRate) */
- const q=it.rateDecay?it.rateRecent:it.rate;
+ const q=it.rateDecay?it.rateRecent:it.sharpDrop?it.rateDrop:it.rate;
  const dry=(q>0&&it.ltM>0)?(it.ltM-(it.rop/q)):null;
  return ['warn',`נקודת הזמנה ${it.rop} נמוכה מהנדרש ${it.sugROP} — הרכש הפתוח מכסה את המחזור הזה, ה-ROP מנהל את הבא`
   +((dry!==null&&dry>0)
@@ -6182,8 +6210,12 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
             ['idea','ירידה מתמשכת לפני שנוצר עודף — זה הרגע הנכון להקטין פרמטרים, לא אחרי שהמחסן מלא']];
     /* הכיוון נגזר מהמספרים. ביקוש יורד לא תמיד אומר ROP נמוך יותר — אם ה-ROP
        הקיים נמוך מדי מלכתחילה, ההמלצה היא להעלות. */
+    /* DROP_NO_RAISE (אישור המעתד): אבל לא בתוך הדלת הזאת. «ירידה בביקוש»
+       שאומרת «לשקול העלאת נקודת הזמנה» סותרת את עצמה — החישוב שמעל ROP
+       של SAP עדיין נושא את החודשים שלפני הירידה. ההוראה היא להשאיר. */
     it.act=[it.sugROP===it.rop?'נקודת ההזמנה תקינה'
-            :`לשקול ${it.sugROP<it.rop?'הקטנת':'העלאת'} נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`,
+            :it.sugROP<it.rop?`לשקול הקטנת נקודת הזמנה מ-${it.rop} ל-${it.sugROP}`
+            :`להשאיר את נקודת ההזמנה ב-SAP (${it.rop}) — לא מעלים בזמן ירידה בביקוש (החישוב, ${it.sugROP}, עדיין כולל את החודשים שלפני הירידה)`,
       'לבדוק אם הדגם יצא מהשוק או שיש חלק חלופי','לבדוק רכש פתוח'];
     it.excessQty=Math.max(0,Math.round(it.free-it.rate*12));it.expCap=it.excessQty*it.price;Q.excess.push(it);continue}
   /* פיק היסטורי מעניין רק אם הזמין היום (מלאי + רכש בדרך) לא מכסה חזרה שלו */
@@ -9345,7 +9377,7 @@ function floorPotential(r){
  return `פוטנציאל הפחתה: רצפת ה-SS ב-SAP (${fl.toLocaleString('he-IL')}) גבוהה ב-${up.toLocaleString('he-IL')} יח׳ מהנדרש לפי הביקוש העדכני${val}.`
   +(ropT<(r.sugROP||0)?` בלי הרצפה ה-ROP היה ${ropT.toLocaleString('he-IL')}.`:'')
   +' הכלי אינו משנה את הרצפה; שינוי נעשה ידנית ב-SAP — זו אינה המלצה נוספת.'}
-function ropRate(r){return r&&r.rateDecay?r.rateRecent:r.rate}
+function ropRate(r){return r&&r.rateDecay?r.rateRecent:r&&r.sharpDrop?r.rateDrop:r.rate}
 function ropDry(r){if(!ropScope(r))return null;const q=ropRate(r);return q>0?(r.ltM-((r.rop||0)/q)):null}
 function ropAll(){return (QF&&QF.all?QF.all:[]).filter(ropScope)}
 function ropPick(list,k){return k==='ropThin'
@@ -11846,7 +11878,7 @@ function explain(r){const A=r.A;
    «אספ.מתוכנ.» ב-SAP: ${r.ltRaw===''?'ריק':esc(String(r.ltRaw))}. בלי זמן אספקה אין ביקוש בזמן אספקה ואין מרכיב סטטיסטי, ולכן אין מלאי ביטחון ונקודת הזמנה מוצעים.</div>
    <div class="flag info">ב-SAP (קיים): נקודת הזמנה ${r.rop} · מלאי ביטחון ${r.ss} · מלאי ביטחון מינימלי ${r.ssMin}. ${esc(ltValuesMsg(r))}</div>`;
   document.getElementById('modalwrap').classList.add('open');return}
- const active=A.active,med=A.med,sd=+A.sd.toFixed(2),ltM=+r.ltM.toFixed(2),sqrtLT=+Math.sqrt(Math.max(r.ltM,0)).toFixed(3);
+ const active=A.active,med=A.med,sd=+(r.sharpDrop?r.sd3:A.sd).toFixed(2),ltM=+r.ltM.toFixed(2),sqrtLT=+Math.sqrt(Math.max(r.ltM,0)).toFixed(3);
  /* SS_LTVAR: Z בתוקף (95% לפריט פעיל) וסיכון הספק — אותם שדות ש-build חישב */
  const z=r.zEff??r.z, sdLT=+r.sdLT.toFixed(2), dLT=+r.dLT.toFixed(2);
  const ltvPct=Math.round((r.ltvP??LTV_P_DEF)*100), sdSup=+(r.sdSup||0).toFixed(2), sdTot=+(r.sdTot??r.sdLT).toFixed(2);
@@ -11905,10 +11937,10 @@ function explain(r){const A=r.A;
  else if(r.tRatio!=null&&r.tRatio>=1.6&&r.tPre>=3&&r.rate>0&&!r.isOD)flags+=`<div class="flag info">🛈 <b>${r.tRatio>=4?`הביקוש גדל פי ${fmt1(r.tRatio)}`:`זינוק של ${Math.round((r.tRatio-1)*100)}%`} בשלושת החודשים האחרונים</b> (${fmt1(r.tRec)} יח׳ מול ${fmt1(r.tPre)}) — הקצב <u>לא</u> הוגבר בעקבותיו. נמדד על הדוח שלך: פריטים שזינקו כך חזרו אחר כך, בממוצע, לכ-58% מרמת השיא, והגברת הקצב לפי הזינוק הרעה את דיוק התחזית ב-18%-25%. אם הזינוק אמיתי ונמשך — זו החלטה אנושית, לא אוטומטית.</div>`;
  const ssRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא מלאי ביטחון':isPDItem?'PD — לפי הזמנה, ללא מלאי ביטחון':'לפי דרישה — ללא מלאי ביטחון'}</td><td>SS=0</td></tr><tr class="total"><td>מלאי ביטחון מוצע</td><td>0</td></tr>`
   :`<tr><td>רמת שירות</td><td>${r.srvAct?`${r.srv}% ב-SAP → <b>${SS_ACT_SRV}%</b> · פריט פעיל (${SS_ACT_RATE} יח׳ בחודש ומעלה)`:`${r.srv}%${r.srv===50?' (ברירת מחדל!)':''}`}</td></tr><tr><td>מקדם Z</td><td>${z}</td></tr>
-    <tr><td>σ (11 חודשים, כולל אפסים)</td><td>${sd}</td></tr>
+    <tr><td>${r.sharpDrop?'σ (3 החודשים האחרונים בלבד — ירידה חדה)':'σ (11 חודשים, כולל אפסים)'}</td><td>${sd}</td></tr>
     <tr><td>LT בחודשים</td><td>${r.ltD}÷30 = ${ltM}</td></tr>
     <tr><td>תנודת הביקוש בזמן האספקה = σ × √LT</td><td>${sd} × ${sqrtLT} = ${sdLT}</td></tr>
-    <tr><td>סיכון הספק = קצב × (${ltvPct}% × LT) · ${esc(r.matType||'')}</td><td>${!(r.d12>0)?'0 — אין צריכה ב-11 החודשים (קצב מהיסטוריית 3 השנים בלבד)':`${fmt1(r.rateSS??r.rate)}${r.rateSS!=null&&r.rateSS!==r.rate?' (קצב עדכני — דעיכה)':''} × (${ltvPct}% × ${ltM}) = ${sdSup}`}</td></tr>
+    <tr><td>סיכון הספק = קצב × (${ltvPct}% × LT) · ${esc(r.matType||'')}</td><td>${!(r.d12>0)?'0 — אין צריכה ב-11 החודשים (קצב מהיסטוריית 3 השנים בלבד)':`${fmt1(r.rateSS??r.rate)}${r.rateSS!=null&&r.rateSS!==r.rate?(r.sharpDrop?' (קצב 3 החודשים האחרונים — ירידה חדה)':' (קצב עדכני — דעיכה)'):''} × (${ltvPct}% × ${ltM}) = ${sdSup}`}</td></tr>
     <tr><td>סיכון כולל = √( תנודת הביקוש² + סיכון הספק² )</td><td>√(${sdLT}² + ${sdSup}²) = ${sdTot}</td></tr>
     <tr class="step"><td>① SS סטטיסטי = ⌈ Z × סיכון כולל ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdTot}⌉ = ${ssStatV}`}</td></tr>
     <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
@@ -11929,8 +11961,9 @@ function explain(r){const A=r.A;
      ייצרה, ומסתירה את המקור האמיתי. */
   :`<tr><td>${r.rateFrom3y?'קצב חודשי · חלון 3 שנים':'קצב חודשי מתוקן'}</td><td>${r.rate.toFixed(2)}${r.rateFrom3y?` <span style="color:#7c3aed">(${r.cons3y} יח׳ ב-3 שנים · החלון הקצר ${r.d12} יח׳ ב-11 חודשים)</span>`:(r.rate!==r.rawRate?` <span style="color:#7c3aed">(גולמי ${r.rawRate.toFixed(2)})</span>`:'')}</td></tr>
     ${r.rateDecay?`<tr><td>קצב ל-ROP · קצב עדכני</td><td>${r.rateROP.toFixed(2)} <span style="color:#7c3aed">(הביקוש דעך: הקצב העדכני הוא ${Math.round(100*r.rateROP/r.rate3y)}% מקצב 3 השנים, פחות מ-${Math.round(100*RATE_DECAY)}% — ROP ו-SS מחושבים עליו. הסיווג והכיסוי נשארים על קצב 3 השנים)</span></td></tr>`:''}
+    ${r.sharpDrop?`<tr><td>קצב ל-ROP · 3 החודשים האחרונים</td><td>${r.rateROP.toFixed(2)} <span style="color:#7c3aed">(ירידה חדה: ${fmt1(r.tRec)} יח׳ בשלושת החודשים האחרונים מול ${fmt1(r.tPre)} בשלושה שלפניהם — ROP ו-SS מחושבים על הקצב והתנודה שאחרי הירידה; רצפת ssMin נשמרת)</span></td></tr>`:''}
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
-    <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':'קצב'} × LT</td><td>${(r.rateDecay?r.rateROP:r.rate).toFixed(2)} × ${ltM} = ${dLT}</td></tr>
+    <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':r.sharpDrop?'קצב 3 החודשים האחרונים':'קצב'} × LT</td><td>${(r.rateDecay||r.sharpDrop?r.rateROP:r.rate).toFixed(2)} × ${ltM} = ${dLT}</td></tr>
     <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
     <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${ropCalc}</td></tr>
     ${r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
@@ -11948,7 +11981,7 @@ function explain(r){const A=r.A;
     <tr><td>סדרת צריכה</td><td style="direction:ltr">${r.months.join(' · ')}</td></tr>
     ${r.curMonth!=null?`<tr><td>חודש נוכחי (חלקי — מוחרג)</td><td>${r.curMonth}</td></tr>`:''}${mvRow}
     <tr><td>דפוס</td><td>${A.pattern} · ADI ${A.adi} · CV² ${A.cv2}</td></tr></table>
-   <div class="mrpline">σ מחושב על כל 11 החודשים כולל אפסים — והוא <b>כבר</b> מכיל גם את השכיחות וגם את הגודל: p×E[q²] − (p×μq)² שווה לו בדיוק. לכן אין רצפת-פיק ואין תוספת לגושי/ספורדי; פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר מעצם החישוב. חודשי אזילה הוחלפו בחציון — חודש בלי מלאי אינו חודש בלי ביקוש. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. רצפת SS מאושרת היא כרית <b>מעבר</b> לצריכה הצפויה בזמן האספקה, ולא יעד למלאי הכולל — ולכן היא נשמרת גם כשהקצב אפס והמרכיב הסטטיסטי מתאפס. פיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
+   <div class="mrpline">${r.sharpDrop?'בירידה חדה σ מחושב על 3 החודשים שאחרי הירידה בלבד; בכל פריט אחר — ':''}σ מחושב על כל 11 החודשים כולל אפסים — והוא <b>כבר</b> מכיל גם את השכיחות וגם את הגודל: p×E[q²] − (p×μq)² שווה לו בדיוק. לכן אין רצפת-פיק ואין תוספת לגושי/ספורדי; פריט שנדרש לעתים רחוקות ובכמות גדולה מקבל ביטחון גבוה יותר מעצם החישוב. חודשי אזילה הוחלפו בחציון — חודש בלי מלאי אינו חודש בלי ביקוש. פריטי PD (לפי הזמנה) לא מקבלים מלאי ביטחון אוטומטי. רצפת SS מאושרת היא כרית <b>מעבר</b> לצריכה הצפויה בזמן האספקה, ולא יעד למלאי הכולל — ולכן היא נשמרת גם כשהקצב אפס והמרכיב הסטטיסטי מתאפס. פיקים נחתכו לפי-2 חציון בחישוב הקצב.</div></div>`;
  document.getElementById('modalwrap').classList.add('open')}
 document.getElementById('dchip').onclick=()=>toggleDiag();
 document.getElementById('dclose').onclick=()=>closeDetail();

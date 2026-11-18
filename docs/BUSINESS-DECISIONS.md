@@ -447,6 +447,37 @@ Changes to these areas require explicit business approval.
   - Card: when moving PD → ZM-C lowers safety stock below today's SAP value,
     a line says why (re-derived from consumption; the floor is minimum SS).
 
+- **2026-11-18 · Sharp drop within the six-month window (SHARP_DROP, option B)
+  and no «raise» inside «demand decline» (DROP_NO_RAISE) — prepared for the
+  planner's approval in the PR; not merged without it.**
+  - **The problem:** on the six-month path (more than 3 units in 11 months),
+    the rate is the average of the last six cleaned months. When demand
+    collapses inside that window, the average and σ still carry the strong
+    months, so the statistical SS and the ROP rise. Test item PN-07 (real
+    report, 17.11): 10 units in the last 3 months vs 346 before; suggested
+    ROP 318 vs 60 in SAP, while the card said «demand decline».
+  - **The rule:** when the last 3 cleaned months sum to at most 25% of the 3
+    before them (RATE_DECAY), the 3 before sum to at least 6 units
+    (SHARP_MIN_PRE), and there is no sale in the current month: the ROP rate
+    is the last-3-months rate, σ for the statistical SS is the sample
+    standard deviation of those 3 months, and supplier risk uses the same
+    rate. The «ROP shorter than lead time» check uses the same rate.
+  - **Unchanged:** `rate`, coverage, trend, slow stock, classification
+    inputs; SAP `ssMin` and the low-demand policy floor (SS ≥ ssMin in every
+    SAP row); items on the three-year path (RATE_DECAY applies there).
+    The new fields exist only on affected items.
+  - **DROP_NO_RAISE:** in «demand decline», when the calculation is above
+    the SAP ROP, the action is «keep the SAP reorder point — do not raise
+    during a demand decline», instead of «consider raising».
+  - **Measured against main (real reports, outside the repo):** report B
+    (about 40,000 items) — 24 items change, all ROP down, none up; items with a
+    suggested ROP above SAP among them 19 → 3; in the SAP update file 10 → 2
+    such items, +57 → +2 units above SAP; 8 items leave the SAP file (their
+    suggestion now equals or is close to SAP); «consider raising» inside
+    «demand decline» 48 → 0. PN-07: ROP 318 → 47, SS 40 (the SAP floor).
+    Report A (about 10,000 items) — 15 items change, all ROP down; «raise» inside
+    «demand decline» 6 → 0. Demo report: no change (business guard clean).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
