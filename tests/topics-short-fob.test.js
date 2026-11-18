@@ -1,7 +1,7 @@
 /* ============ SHORT_ONE + FOB_COLS (החלטות המעתד 18.11) ============
    SHORT_ONE — בנושא «מלאי 0 / צפוי להיגמר»: פעולת אספקה אחת, בלי כמות,
    לפי הסדר: אין רכש → לקוח ממתין ויש ETA → רכש בלי ETA → ETA מאוחר → Back Order.
-   FOB_COLS — «מחיר FOB» (BZ) ו«מטבע» (BE) בכל ארבעת הנושאים.
+   FOB_COLS — «מחיר FOB» (BZ) והמטבע (BE) לצדו בכל ארבעת הנושאים; ב-CSV שני שדות.
    תצוגה בלבד: המנוע, ההמלצות וקובץ SAP לא נוגעים. */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
 const SD=__dirname,XL=path.join(SD,'zmrp-demo.xlsx'),ETAX=path.join(SD,'zmrp-demo-eta.xlsx');
@@ -56,16 +56,18 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  const F={};
  for(const t of ['cust','trend','short','fix']){await tab(t);
   F[t]=await p.evaluate(()=>{const ths=[...document.querySelectorAll('#lite thead th')].map(t=>t.textContent.trim());
-   const iP=ths.findIndex(t=>t.startsWith('מחיר FOB')),iC=ths.findIndex(t=>t==='מטבע'||t.startsWith('מטבע'));
+   /* עמודה אחת: המחיר (מעל 100 בלי אגורות) והמטבע לצדו; ב-CSV שני שדות */
+   const iP=ths.findIndex(t=>t.startsWith('מחיר FOB'));
    const trs=[...document.querySelectorAll('#lite tbody tr')];
-   const bad=iP<0||iC<0?['no-col']:trs.map((tr,j)=>{const r=TP.shown[j],P=tr.children[iP].textContent.trim(),Cc=tr.children[iC].textContent.trim();
-    const eP=r.priceMissing?'—':Number(r.price).toLocaleString('he-IL',{maximumFractionDigits:2}),eC=r.currency||'—';
-    return P===eP&&Cc===eC?null:r.pn}).filter(Boolean);
+   const fmt=v=>Number(v).toLocaleString('he-IL',{maximumFractionDigits:Math.abs(v)<100?2:0});
+   const bad=iP<0?['no-col']:trs.map((tr,j)=>{const r=TP.shown[j],P=tr.children[iP].textContent.replace(/\s+/g,' ').trim();
+    const eP=r.priceMissing?'—':(fmt(r.price)+(r.currency?' '+r.currency:''));
+    return P===eP?null:r.pn+':'+P+'≠'+eP}).filter(Boolean);
    /* ה-CSV: כל כותרת פעם אחת, וההסרה נוגעת רק ל«מטבע» הכפול */
    const cols=TP_HEAD.concat(TOPICS[TP.tab].cols),raw=cols.flatMap(c=>c.x||[[c.l,c.v]]).map(x=>x[0]);
    const dup=[...new Set(raw.filter((h,i)=>raw.indexOf(h)!==i))];
    return {n:trs.length,bad,dup}})}
- ok('«מחיר FOB» ו«מטבע» בכל ארבעת הנושאים, ערכים = price/currency',Object.values(F).every(x=>x.n>0&&!x.bad.length),
+ ok('«מחיר FOB» (עם המטבע) בכל ארבעת הנושאים, ערכים = price/currency',Object.values(F).every(x=>x.n>0&&!x.bad.length),
    JSON.stringify(Object.fromEntries(Object.entries(F).map(([k,v])=>[k,v.bad.length?v.bad.slice(0,2):v.n]))));
  ok('ב-CSV הכותרת הכפולה היחידה היא «מטבע», והיא יוצאת פעם אחת',Object.values(F).every(x=>x.dup.every(h=>h==='מטבע')),
    JSON.stringify(Object.fromEntries(Object.entries(F).map(([k,v])=>[k,v.dup]))));

@@ -14382,10 +14382,14 @@ function tpTopicAct(t,r){
  return tpAct(r)}
 /* FOB_COLS (החלטת המעתד 18.11): מחיר FOB (BZ) ומטבע (BE) בכל ארבעת הנושאים —
    אותם שדות שהמנוע כבר קורא (price/currency). מחיר חסר — «—», לא 0. */
+/* מעל 100 — בלי אגורות (הרוחב ב-1366); המחיר המדויק ב-CSV ובכרטיס */
+const tpFob=v=>Number(v).toLocaleString('he-IL',{maximumFractionDigits:Math.abs(v)<100?2:0});
 const tpFobCols=()=>[
+ /* עמודה אחת בטבלה — המספר והמטבע לצדו (ב-1366 שתי עמודות חותכות את «טיוב נתונים»);
+    ב-CSV שני שדות נפרדים */
  {k:'fob',l:'מחיר FOB',n:1,v:r=>r.priceMissing?null:r.price,
-  h:r=>r.priceMissing?'—':Number(r.price).toLocaleString('he-IL',{maximumFractionDigits:2})},
- {k:'cur',l:'מטבע',v:r=>r.currency||'',h:r=>r.currency?esc(r.currency):'—'}];
+  h:r=>r.priceMissing?'—':`${tpFob(r.price)}${r.currency?`&thinsp;<small style="font-size:.72em">${esc(r.currency)}</small>`:''}`,
+  x:[['מחיר FOB',r=>r.priceMissing?'':r.price],['מטבע',r=>r.currency||'']]}];
 const tpActCol=t=>({k:'act',l:'פעולה',v:r=>tpTopicAct(t,r),c:'d',h:r=>{const a=tpTopicAct(t,r);return `<span title="${esc(a)}">${esc(a)}</span>`},
  x:[['פעולה בנושא',r=>tpTopicAct(t,r)],['פעולה',tpAct]]});
 /* מיון ברירת מחדל — הדחוף למעלה. כסף: בלוקים לפי מטבע (curPos), כמו בכלי המלא */
