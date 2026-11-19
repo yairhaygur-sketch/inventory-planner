@@ -523,6 +523,33 @@ Changes to these areas require explicit business approval.
     the item». Without the 3-year columns the rule does not apply. Measured:
     report A 133 items, report B 143 (demo 108).
 
+- **2026-11-18 · Weighted rate for lumpy and sporadic items (RATE_W, approved
+  18.11).** For items whose demand pattern is lumpy or sporadic, on the
+  six-month path and with all three annual columns, the rate used for the
+  reorder point and the supplier risk is 70% the engine rate (six cleaned
+  months), 20% last year (without its months already in the window) and 10%
+  two years ago (annual column ÷ 12). σ, the SAP `ssMin` floor, the policy
+  floor, `rate`, coverage, trend and classification are unchanged. Not on
+  smooth items (in the backtest it hurt their coverage) and not on a sharp
+  drop (SHARP_DROP sets the rate there).
+  - **Backtest** (calibrate on the 8 oldest months, test on lead-time windows
+    starting in the 3 latest; two real reports): lumpy — coverage 88.9% →
+    88.2% with −6% units in one report, 90.2% → 91.6% with +4% in the other;
+    sporadic — 94.1% → 93.0% (−4.5%) and 95.6% → 97.0% (−2%).
+  - **Only with a current rate:** an item silent for the last six months keeps
+    rate 0 — the weighting never invents demand from earlier years.
+  - **The advisory trend numbers** are bounded by the recommendation: «if the
+    decline continues» is never above it, «if the rise continues» never below
+    (needed now that the reorder point can use another rate).
+  - **Measured against main:** report A — 246 reorder points down, 50 up, net
+    −633 units (about −$23K and −₪4K FOB); in the SAP update file 11 in / 12
+    out, 41 down / 9 up. Report B — 93 down, 211 up, net +221 units (about
+    +SEK 217K); in the SAP file 25 in / 15 out, 47 down / 129 up. Demo: 29 items.
+  - Rejected in the same study: an empirical quantile of lead-time sums (−4%
+    to −8% units, −1 to −2 points coverage); σ measured on lead-time windows
+    (no difference); the three-year average alone (coverage −5 points in a
+    growing report, +14% stock in the other).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

@@ -49,7 +49,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    pOK:live.filter(r=>r.ltvP!==(P[r.matType]??0.25)).map(r=>r.pn),
    act:live.filter(r=>r.srvAct).length,
    actOK:live.filter(r=>r.srvAct!==(r.rateSS>=5&&Z95>r.z)).map(r=>r.pn),
-   rssOK:live.filter(r=>r.rateSS!==(r.rateRecent!=null&&r.rateRecent<RATE_DECAY*r.rate3y?r.rateRecent:r.rate)).map(r=>r.pn),
+   /* 18.11: ובפריט עם קצב משוקלל (RATE_W) — rateW; בירידה חדה — rateDrop */
+   rssOK:live.filter(r=>r.rateSS!==(r.rateRecent!=null&&r.rateRecent<RATE_DECAY*r.rate3y?r.rateRecent:r.sharpDrop?r.rateDrop:r.rateW!=null?r.rateW:r.rate)).map(r=>r.pn),
    zEffOK:live.filter(r=>r.zEff!==(r.srvAct?Z95:r.z)).map(r=>r.pn),
    keepHigher:live.filter(r=>r.rateSS>=5&&r.z>Z95).filter(r=>r.zEff!==r.z).map(r=>r.pn),
    slowSap:live.filter(r=>r.rateSS>0&&r.rateSS<5&&r.zEff!==r.z).map(r=>r.pn),
@@ -66,7 +67,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('p נקבע לפי סוג החומר: 25% יבוא, 10% מקומי',!R.pOK.length,R.pOK.join(','));
  ok('יש פריטים פעילים שרמת השירות שלהם הועלתה ל-95%',R.act>0,R.act);
  ok('הועלתה בדיוק כשהקצב ≥5 ו-SAP מתחת ל-95%',!R.actOK.length&&!R.zEffOK.length,[...R.actOK,...R.zEffOK].join(','));
- ok('הקצב לסיכון הספק ולסף: הקצב העדכני כשזוהתה דעיכה, אחרת rate',!R.rssOK.length,R.rssOK.join(','));
+ ok('הקצב לסיכון הספק ולסף: הקצב העדכני כשזוהתה דעיכה, הקצב המשוקלל בגושי/ספורדי, אחרת rate',!R.rssOK.length,R.rssOK.join(','));
  ok('רמת SAP גבוהה מ-95% נשמרת',!R.keepHigher.length,R.keepHigher.join(','));
  ok('מתחת ל-5 יח׳ בחודש — רמת השירות מ-SAP כמו קודם',!R.slowSap.length,R.slowSap.join(','));
  ok('השינוי מעלה מרכיב סטטיסטי בפריטים בפיקסצ׳ר',R.raised>0,R.raised);
