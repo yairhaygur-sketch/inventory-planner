@@ -621,6 +621,28 @@ Changes to these areas require explicit business approval.
   - **Demo:** 196 items, SS and ROP down (−842 units), none up; one item moves
     «מספר לתקן ב-SAP» → «הפרש קטן מכדי לתקן».
 
+- **2026-11-19 · Supplier-delay assumption raised to 10% for every material
+  type (LTV_10, approved 19.11, the same day as LTV_5).** After LTV_5 the
+  planner felt 5% was too low, and asked for a simulation on a slow item.
+  - **Simulation (the engine itself; 4 units a month, lead time 60 days,
+    import, 80% service):** safety stock at 5% / 10% / 25% — steady demand
+    1 / 2 / 2, moderate 2 / 3 / 3, volatile 4 / 4 / 4, lumpy 6 / 6 / 7. At 95%:
+    steady 2 / 2 / 4, moderate 4 / 4 / 6. In such an item the delay percentage
+    moves safety stock by one unit at most; demand variation and the service
+    level decide. The planner chose 10% for all material types.
+  - **Measured against main (5%):** report A — 63 items, +172 units of SS and
+    the same in reorder points (about +$4K and +₪1K); SAP file stays at 254
+    rows. Report B — 93 items, +495 units (about +SEK 94K); SAP file 1,351 →
+    1,352 rows (2 in, 1 out). No SS goes down. Median safety cushion in items
+    selling 30+ a month: about 42 → 45 days of sales (A), 16 → 19 (B).
+  - **Demo:** 150 items, SS and ROP up (+236 units), none down.
+  - **Test fix found on the way:** the hand-computed oracle in
+    `tests/ss-ltvar.test.js` used the plain rate also for RATE_W and SHARP_DROP
+    items. It passed only because rounding never crossed a whole unit; at 10%
+    one sporadic item did (2.996 against 3.003). The oracle now follows the
+    approved rate rule (λ / three-month rate / rateW / rate, and σ from three
+    months in a sharp drop), and it also passes against main's engine.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
