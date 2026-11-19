@@ -6,8 +6,9 @@
    הדוח: הסינתטי ועוד ארבעה פריטים (tests/lib/decay-fixture.js), שניים
    מהם בדעיכה חדה. נבדק:
      · ROP/SS שהמנוע חישב — כצפוי, וזהה למה שנכתב בקובץ ובאקסל
-     · ssMin בקובץ SAP = הערך מהדוח, בלי שינוי
-     · בכל שורה של כל קובץ SAP, בכל 26 המסכים: SS ≥ ssMin */
+     · ssMin בקובץ SAP = הערך מהדוח, בלי שינוי — אלא אם ה-SS המוצע נמוך ממנו (SS_STAT, 19.11):
+       אז ה-SS המוצע
+     · בכל שורה של כל קובץ SAP, בכל 26 המסכים: SS ≥ ssMin (שבאותה שורה) */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
 const XLSX=require('xlsx');
 const {ITEMS,writeDecayReport}=require('./lib/decay-fixture.js');
@@ -31,14 +32,18 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
 
  /* 1 · המנוע */
  const E=await p.evaluate(pns=>Object.fromEntries(ALL.filter(x=>pns.includes(x.pn)).map(x=>[x.pn,
-  {rop:x.sugROP,ss:x.sugSS,ssMin:x.ssMin,dec:!!x.rateDecay,rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,dLT:x.dLT,ltM:x.ltM,paramFix:!!x.paramFix,cat:x.cat}])),ITEMS.map(i=>i.pn));
+  {rop:x.sugROP,ss:x.sugSS,ssMin:x.ssMin,dec:!!x.rateDecay,rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,dLT:x.dLT,ltM:x.ltM,paramFix:!!x.paramFix,cat:x.cat,
+   statOnly:x.rate>0&&!x.rateFrom3y,ssStat:x.ssStat||0,lowFloor:x.lowFloor||0}])),ITEMS.map(i=>i.pn));
  ok('ארבעת הפריטים נטענו',ITEMS.every(i=>E[i.pn]),Object.keys(E).join(', '));
  for(const i of ITEMS){const e=E[i.pn];if(!e)continue;
   if(i.decay)ok(`${i.pn}: דעיכה — ROP ${i.expROP}, SS ${i.expSS}`,e.dec===true&&e.rop===i.expROP&&e.ss===i.expSS,
    `קצב ${e.rate.toFixed(2)} → ל-ROP ${e.rateROP!=null?e.rateROP.toFixed(3):'—'} · ROP ${e.rop} · SS ${e.ss}`);
   else ok(`${i.pn}: אין דעיכה — ROP/SS על הקצב הקיים, כמו קודם`,e.dec===false&&Math.abs(e.dLT-e.rate*e.ltM)<1e-9&&e.rop===Math.ceil(e.dLT+e.ss-1e-9),
    `ROP ${e.rop} · SS ${e.ss}`);
-  ok(`${i.pn}: ssMin = הערך מהדוח, ו-SS ≥ ssMin`,e.ssMin===i.ssMin&&e.ss>=e.ssMin,`ssMin ${e.ssMin} · SS ${e.ss}`)}
+  /* SS_STAT (19.11): פריט עם צריכה עדכנית (נתיב 6 החודשים) — SS סטטיסטי, רצפת ssMin אינה קובעת;
+     פריט בנתיב 3 השנים (כולל הדעיכה) — SS ≥ ssMin כמו קודם. ssMin עצמו תמיד הערך מהדוח. */
+  if(e.statOnly)ok(`${i.pn}: ssMin = הערך מהדוח; פריט עם צריכה — SS = max(סטטיסטי, רצפת מדיניות)`,e.ssMin===i.ssMin&&e.ss===Math.max(e.ssStat,e.lowFloor),`ssMin ${e.ssMin} · SS ${e.ss} · סטטיסטי ${e.ssStat}`);
+  else ok(`${i.pn}: ssMin = הערך מהדוח, ו-SS ≥ ssMin`,e.ssMin===i.ssMin&&e.ss>=e.ssMin,`ssMin ${e.ssMin} · SS ${e.ss}`)}
 
  /* 2 · קובצי SAP — כל המסכים, שני הקבצים */
  const S=await p.evaluate(()=>{const res=[];
@@ -62,6 +67,10 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  for(const i of fixItems){const all=seen[i.pn]||[];const e=E[i.pn];
   ok(`${i.pn} בקובץ SAP: SS ${e.ss}, ssMin ${i.ssMin} (ללא שינוי), ROP ${e.rop}`,
    all.length>0&&all.every(x=>x.ss===e.ss&&x.min===i.ssMin&&x.rop===e.rop),all.slice(0,2).map(x=>`${x.where}: ${x.ss}/${x.min}/${x.rop}`).join(' · '))}
+ /* SS_STAT: פריט עם צריכה שבקובץ, וה-SS שלו מתחת ל-ssMin — המינימום בקובץ = ה-SS המוצע */
+ for(const i of ITEMS.filter(i=>E[i.pn]&&E[i.pn].statOnly&&E[i.pn].ss<i.ssMin&&seen[i.pn])){const e=E[i.pn],all=seen[i.pn];
+  ok(`${i.pn} בקובץ SAP: SS ${e.ss}, מינימום ${e.ss} (היה ${i.ssMin}), ROP ${e.rop}`,all.every(x=>x.ss===e.ss&&x.min===e.ss&&x.rop===e.rop),
+   all.slice(0,2).map(x=>`${x.where}: ${x.ss}/${x.min}/${x.rop}`).join(' · '))}
  /* פריט שאינו «לתקן ב-SAP» לא נכנס לקובץ — גם כשה-ROP שלו ירד */
  for(const i of ITEMS.filter(i=>E[i.pn]&&!E[i.pn].paramFix))
   ok(`${i.pn}: אינו «לתקן ב-SAP» (${E[i.pn].cat}) — ולכן אינו בקובץ`,!seen[i.pn]);

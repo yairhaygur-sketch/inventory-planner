@@ -42,7 +42,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   const No3=one('W-NO3Y',{m:lumpyM,y:Y},hdrNo);
   const St04=one('W-04',{m:lumpyM,y:Y,st:'04'});
   const Fl=one('W-FLOOR',{m:lumpyM,y:Y,ssMin:30});
-  const pick=x=>({pat:x.A.pattern,rate:x.rate,rateW:x.rateW??null,rateROP:x.rateROP??null,dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,
+  const pick=x=>({statOnly:!!x.ssStatOnly,pat:x.A.pattern,rate:x.rate,rateW:x.rateW??null,rateROP:x.rateROP??null,dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,
    ssMin:x.ssMin,ssStat:x.ssStat,lowFloor:x.lowFloor||0,rateSS:x.rateSS,sdSup:x.sdSup,ltvP:x.ltvP??LTV_P_DEF,ropRate:ropRate(x),months:x.months,
    has3y:x.has3y,noW:!('rateW' in x)});
   const sp=pick(Sp);sp.exp=0.7*Sp.rate+0.2*(Math.max(0,120-Sp.months.slice(Math.min(An,11),11).reduce((a,v)=>a+Math.max(0,v),0))/(12-Math.max(0,11-An)))+0.1*96/12;
@@ -61,7 +61,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  ok('פריט חלק — הכלל אינו חל, הנוסחה כמו קודם',Sm.pat==='חלק'&&Sm.noW&&near(Sm.dLT,Sm.rate*Sm.ltM),Sm.pat);
  ok('בלי שלוש עמודות שנתיות — הכלל אינו חל',No3.has3y===false&&No3.noW&&near(No3.dLT,No3.rate*No3.ltM));
  ok('סטטוס 04 — אין המלצה ואין שדה',St04.noW&&St04.sugROP===0);
- ok('רצפת ssMin נשמרת (SS = 30)',Fl.rateW!=null&&Fl.sugSS===30&&Fl.sugROP===Math.ceil(Fl.dLT+30),`ROP ${Fl.sugROP}`);
+ /* SS_STAT (19.11): לפני — «רצפת ssMin נשמרת (SS = 30)». עכשיו פריט עם צריכה: SS סטטיסטי */
+ ok('ssMin=30 אינו רצפה לפריט עם צריכה: SS = max(סטטיסטי, רצפת מדיניות)',Fl.rateW!=null&&Fl.statOnly&&Fl.sugSS===Math.max(Fl.ssStat,Fl.lowFloor)&&Fl.sugSS<30&&Fl.sugROP===Math.max(Fl.sugSS,Math.ceil(Fl.dLT+Fl.sugSS)),`SS ${Fl.sugSS} · ROP ${Fl.sugROP}`);
 
  /* בדוח הסינתטי: כל פריט בלי rateW / דעיכה / ירידה חדה — dLT = rate × LT; לכל פריט עם rateW — הדפוס גושי/ספורדי */
  const D=await p.evaluate(()=>({n:ALL.length,w:ALL.filter(x=>x.rateW!=null).length,

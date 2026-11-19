@@ -14700,12 +14700,14 @@ function tpdParams(r){const N=tpN,q=tpRec(r);
    :`<td class="v rec${sap!==v?' diff':''}"><b>${N(v)}</b>${sap===v?' <span class="note">זהה</span>':''}${q.src==='sim'?' <span class="note">אחרי ZM-C</span>':''}</td>`;
  const row=(l,sap,recTd)=>`<tr><th scope="row">${l}</th><td class="v">${sap}</td>${recTd}</tr>`;
  const na='<td class="v note">—</td>';
- const ssMinNote=(!q.na&&q.src==='engine'&&r.ssMinEff!==r.ssMin)?` <span class="note">(לא חל)</span>`:'';
+ const ssMinNote=(!q.na&&q.src==='engine'&&r.ssMinEff!==r.ssMin)?` <span class="note">${r.ssStatOnly?'(לא קובע — פריט עם צריכה, מלאי ביטחון סטטיסטי)':'(לא חל)'}</span>`:'';
+ /* SS_STAT: כשה-SS המוצע נמוך מ-ssMin, הקובץ ל-SAP מציע גם את המינימום — אותו ערך כאן */
+ const minRec=(!q.na&&q.src==='engine'&&r.ssMin>0&&sapSsMin(r)<r.ssMin)?`<td class="v rec diff"><b>${N(sapSsMin(r))}</b> <span class="note">בקובץ SAP</span></td>`:null;
  const ltSap=r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:N(ltRawOf(r))+' ימים';
  return `<table><thead><tr><th></th><th>${TPD_SRC.sap}${q.na==='lt'?' <span class="note">ערכים קיימים</span>':''}</th><th>${TPD_SRC.rec}</th></tr></thead><tbody>
   ${row('נקודת הזמנה',N(r.rop),rec(r.rop,q.rop))}
   ${row('מלאי ביטחון',N(r.ss),rec(r.ss,q.ss))}
-  ${row('מלאי ביטחון מינימלי',N(r.ssMin)+ssMinNote,na)}
+  ${row('מלאי ביטחון מינימלי',N(r.ssMin)+ssMinNote,minRec||na)}
   ${row('רמת שירות',r.srvMissing?'<span class="note">חסרה</span>':N(r.srv)+'%',q.src==='sim'?`<td class="v note">80% ב-ZM-C</td>`:na)}
   ${row('זמן אספקה מתוכנן',ltSap,r.ltBad?`<td class="v note"><b style="color:var(--critical)">${LT_MSG}</b></td>`:`<td class="v note">אין המלצה · זמן בפועל אינו בדוח</td>`)}
   ${row('סוג MRP',esc(r.mrp||'—'),pdUpgrade(r)?`<td class="v rec diff"><b>ZM-C</b></td>`:na)}</tbody></table>
