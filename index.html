@@ -3304,11 +3304,18 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tph .btn{background:var(--shell-btn);color:var(--shell-ink);border:1px solid var(--shell-track);border-radius:var(--r-ctl);padding:6px 14px;cursor:pointer;font:inherit;text-decoration:none}
 #lite .tph .btn:hover{background:var(--shell-btn-h)}
 #lite .tph .btn.pri{background:var(--accent);color:var(--on-fill);border-color:var(--accent)}
-#lite nav{background:var(--shell);padding:0 24px;display:flex;gap:2px;flex-wrap:wrap;border-bottom:3px solid var(--shell-acc)}
-#lite nav button{background:none;border:0;color:var(--shell-dim);padding:10px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px}
-#lite nav button.on{color:var(--shell-ink);border-bottom-color:var(--shell-warn);font-weight:600}
+#lite .tpstick{position:sticky;top:0;z-index:30}
+#lite nav{background:var(--shell);padding:0 24px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:3px solid var(--shell-acc)}
+#lite nav button{background:none;border:0;color:var(--shell-dim);padding:13px 18px;font:inherit;font-size:calc(var(--f-base) * 1.15);font-weight:600;cursor:pointer;border-bottom:4px solid transparent;margin-bottom:-3px}
+#lite nav button.on{color:var(--shell-ink);border-bottom-color:var(--shell-warn);font-weight:700}
+#lite nav button:hover{color:var(--shell-ink)}
+#lite .burn{background:var(--critical-bg);border-bottom:1px solid var(--line);padding:7px 24px;display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;color:var(--ink)}
+#lite .burn b.t{color:var(--critical)} #lite .burn .bi{font:inherit;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:2px 10px;cursor:pointer;color:var(--ink);font-size:var(--f-sm)}
+#lite .burn .bi b{font-variant-numeric:tabular-nums} #lite .burn .bi.nopo{border-color:var(--critical)} #lite .burn .bx{margin-inline-start:auto;padding:3px 12px}
+#lite .burn.ok{background:var(--surface-2)}
 #lite nav .n{margin-inline-start:6px;background:var(--shell-track);border-radius:10px;padding:0 8px;font-size:var(--f-sm)}
 #lite main{padding:14px 24px 48px;max-width:1900px;margin:0 auto}
+#lite main:has(> .tw){padding-bottom:8px} #lite .tw .more{padding:8px 10px} #lite .hint{margin:0 0 6px}
 #lite .lead{color:var(--ink-2);max-width:1050px;margin:0 0 10px}
 /* TOPICS_UX (15.11): שורה אחת במקום פסקה — ההסבר המלא מאחורי ⓘ */
 #lite details.lead summary{cursor:pointer;list-style:none} #lite details.lead summary::-webkit-details-marker{display:none}
@@ -3329,7 +3336,9 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite .tile.on{outline:2px solid var(--accent);outline-offset:-2px}
 #lite .tile.red{border-inline-start-color:var(--critical)} #lite .tile.amb{border-inline-start-color:var(--high)}
 #lite .tile.blu{border-inline-start-color:var(--steady)} #lite .tile.vio{border-inline-start-color:var(--trend)} #lite .tile.gry{border-inline-start-color:var(--calm)}
-#lite .tw{overflow-x:auto;background:var(--surface);border:1px solid var(--line)}
+/* STICKY_HEAD (18.11): הטבלה גוללת בתוך עצמה, והכותרת שלה נשארת למעלה; שורת הנושאים
+   קבועה בראש הדף (.tpstick). --tpstick נמדד אחרי כל ציור. */
+#lite .tw{overflow:auto;max-height:calc(100vh - var(--tpstick,120px) - 8px);position:sticky;top:var(--tpstick,120px);background:var(--surface);border:1px solid var(--line)}
 #lite table{border-collapse:collapse;width:100%}
 #lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
 #lite th.on{color:var(--accent-ink)}
@@ -14827,6 +14836,22 @@ function tpArrivals(){const D=tpArrData();
  return `<h2 class="arrh">לוח הגעות <span class="mini">${tpN(fut.length)} תאריכי הגעה קרובים · ${tpN(new Set(fut.flatMap(x=>x.ls.map(e=>e.r))).size)} פריטים · רק פריטים שבארבעת הנושאים</span></h2>
   ${past.length?`<h3 class="arrh3">תאריכים שעברו (${tpN(past.length)})</h3>${past.map(day).join('')}`:''}
   ${fut.length?`<h3 class="arrh3">הגעות קרובות</h3>${fut.map(day).join('')}`:'<p class="mini">אין הגעות עתידיות.</p>'}`}
+/* ============ BURN — «בוער עכשיו» (החלטת המעתד 18.11) ============
+   פס קבוע מעל שורת הנושאים, בכל נושא: הזמנות לקוח ללא כיסוי — שני הסוגים («אין רכש
+   כלל» ו«כיסוי חלקי»), אותה רשימה ואותו סדר כמו נושא 1 (בלי «טופל», לפי המתכנן
+   שנבחר). מונה, שווי ההזמנות לפי מטבע, וחמשת הדחופים — לחיצה פותחת את הכרטיס.
+   חוסרים בלי ETA בכוונה לא כאן: ETA יכול להיפתח בעוד יום-יומיים. */
+function tpBurnRows(){const L=TOPICS.cust.rows().filter(r=>!tpDone(r)&&(!TP.pl||r.planner===TP.pl));
+ return L.map((r,i)=>[r,i]).sort((a,b)=>TP_URG.cust.f(a[0],b[0])||a[1]-b[1]).map(x=>x[0])}
+function tpBurn(){const L=tpBurnRows();
+ if(!L.length)return '<div class="burn ok" role="status"><b>אין הזמנות לקוח ללא כיסוי</b></div>';
+ const none=L.filter(r=>r.burn).length,val={};for(const r of L)if(!r.priceMissing)val[r.currency||'']=(val[r.currency||'']||0)+custVal(r);
+ const vtxt=Object.entries(val).sort((a,b)=>b[1]-a[1]).map(([c,v])=>money(v,c)).join(' · ');
+ /* שורה אחת: שלושת הדחופים; גבול אדום = בלי רכש כלל */
+ const top=L.slice(0,3).map(r=>`<button type="button" class="bi${r.burn?' nopo':''}" data-tp="burnpn" data-key="${esc(markKey(r))}" title="${esc(r.desc||'')}${r.burn?' · אין רכש פתוח':''}">${esc(r.pn)} · <b>${tpN(r.miss||tpdGap(r)||r.cust)}</b> חסר</button>`).join('');
+ return `<div class="burn" role="region" aria-label="בוער עכשיו"><b class="t">בוער עכשיו:</b>
+  <span><b>${tpN(L.length)}</b> הזמנות ללא כיסוי${none?` · <b>${tpN(none)}</b> בלי רכש`:''}${vtxt?` · ${vtxt}`:''}</span>
+  ${top}<button type="button" class="btn bx" data-tp="burnall">לכל ההזמנות ←</button></div>`}
 function tpEtaState(){if(!ETA)return '<span class="src eta">אין דוח ETA</span>';
  const c=document.getElementById('etachip'),t=(c&&c.textContent)||('ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים');
  return `<span class="src eta${/⚠/.test(t)?' warn':''}">${esc(t)}</span>`}
@@ -14857,7 +14882,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   return `<button type="button" class="${k===t&&TP.view!=='arr'?'on':''}" data-tp-tab="${k}">${i+1}. ${esc(TOPICS[k].t)}<span class="n">${rowsBy[k].length.toLocaleString('he-IL')}</span>${un?`<span class="u">${un.toLocaleString('he-IL')} ${u[1]}</span>`:''}</button>`}).join('');
  /* ARRIVALS: לוח ההגעות במקום הטבלה — עם אותו מתכנן ואותו חיפוש */
  if(TP.view==='arr'){if(TP.open)tpdClose();
-  el.innerHTML=head+`<nav aria-label="נושאים">${nav}</nav><main>
+  el.innerHTML=head+`<div class="tpstick">${tpBurn()}<nav aria-label="נושאים">${nav}</nav></div><main>
    <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
     <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש"></div>
    ${tpArrivals()}</main>`;return}
@@ -14871,7 +14896,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  if(TP.open&&!(QF.all||[]).includes(TP.open))tpdClose();
  const body=shown.map((r,i)=>
   `<tr class="r${TP.open===r?' on':''}" tabindex="0" data-tp-row="${i}">${cols.map(c=>`<td class="${c.n?'n':''} ${c.c||''}">${c.h?c.h(r):(c.n?tpN(c.v(r)):esc(c.v(r)==null?'—':c.v(r)))}</td>`).join('')}</tr>`).join('');
- el.innerHTML=head+`<nav aria-label="נושאים">${nav}</nav><main>
+ el.innerHTML=head+`<div class="tpstick">${tpBurn()}<nav aria-label="נושאים">${nav}</nav></div><main>
   <details class="lead"><summary title="הסבר מלא">${esc(T.short||'')}<span class="i" aria-hidden="true">ⓘ</span></summary><p>${esc(T.lead)}</p></details>
   ${ETA?'':`<div class="etab" role="status"><b>אין דוח ETA</b><span>אספקות מתוכננות לא מקוזזות, ועמודות ה-ETA מוסתרות.</span><label class="btn" for="fe">העלאת דוח ETA</label></div>`}
   <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
@@ -14885,10 +14910,10 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
     return `<select data-tpf="${k}" aria-label="${esc(l)}" class="${TP.f[k]?'on':''}"><option value="">${esc(all)}</option>${vals.map(v=>`<option value="${esc(v)}" ${TP.f[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select>`}).join('')}
    ${Object.values(TP.f).some(Boolean)?'<button class="btn" type="button" data-tp="fclear">נקה סינון</button>':''}</div>
   ${TP.colsOpen?tpColsPanel(t,plOne):''}${t==='fix'?tpOffList():''}${tpDoneList()}
-  ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}
-  ${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}
-  <p class="mini">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · C העתקת מק״ט · D «טופל» ומעבר לבא · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p></main>`;
+  <p class="mini hint">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · C העתקת מק״ט · D «טופל» ומעבר לבא · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p>
+  ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}</div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}</main>`;
  TP.shown=shown;TP.list=list;
+ {const st=el.querySelector('.tpstick');if(st)el.style.setProperty('--tpstick',Math.ceil(st.getBoundingClientRect().height)+'px')}
  /* הכרטיס נשאר פתוח מעל רשימה שהסינון או המיון שינו — רק המיקום שלו מתעדכן */
  if(TP.open){const p=document.querySelector('#tpd .pos');if(p)p.textContent=tpdPos().txt;
   const pv=document.querySelector('#tpd [data-tpd="prev"]'),nx=document.querySelector('#tpd [data-tpd="next"]'),q=tpdPos();
@@ -14914,6 +14939,8 @@ if(LITE){
   else if(a.tp==='demo')demoStart();
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
+  else if(a.tp==='burnall'){if(TP.open)tpdClose();TP.view='';TP.tab='cust';TP.cat={};TP.q='';TP.lim=200;tpRender();window.scrollTo(0,0)}
+  else if(a.tp==='burnpn'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;TP.view='';TP.tab='cust';TP.cat={};TP.lim=200;tpRender();tpdShow(r)}
   else if(a.tp==='arr'){TP.view=TP.view==='arr'?'':'arr';tpRender()}
   else if(a.tp==='arrpn'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;TP.view='';TP.tab=a.t;TP.cat={};TP.lim=200;tpRender();tpdShow(r)}
   else if(a.tp==='cols'){TP.colsOpen=!TP.colsOpen;tpRender()}

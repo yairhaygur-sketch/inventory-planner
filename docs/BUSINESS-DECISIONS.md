@@ -550,6 +550,19 @@ Changes to these areas require explicit business approval.
     (no difference); the three-year average alone (coverage −5 points in a
     growing report, +14% stock in the other).
 
+- **2026-11-19 · The 4-topics view: «burning now» strip and a frozen topics row
+  (approved 18.11).** Display only.
+  - A strip above the topics row, on every topic: customer orders without
+    coverage — both kinds (no purchase at all / partial cover) — the same list
+    and order as topic 1, without items marked «handled», for the selected
+    planner. It shows the count, how many have no purchase, the order value
+    per currency, and the three most urgent (red border = no purchase); a click
+    opens the card, «to all orders» opens topic 1. Shortages without an ETA are
+    deliberately not here (an ETA may open within a day or two).
+  - The topics row is larger and bolder, and stays at the top together with the
+    strip while scrolling; the table scrolls inside its own area and its header
+    row stays visible.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
