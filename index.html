@@ -3342,6 +3342,9 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite table{border-collapse:collapse;width:100%}
 #lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
 #lite th.on{color:var(--accent-ink)}
+#tpd .dneu{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px} #tpd .dneu button{font:inherit;font-size:var(--f-sm);border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:2px 10px;cursor:pointer;color:var(--ink)}
+#tpd .dneu button:hover{border-color:var(--ink)}
+#lite .neul{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px} #lite .neul h2{font-size:var(--f-lg);margin:0 0 6px} #lite .neul h2 .mini{font-weight:400}
 #lite .arrh{font-size:var(--f-lg,1.1rem);margin:4px 0 8px} #lite .arrh .mini{font-weight:400;margin-inline-start:8px} #lite .arrh3{font-size:var(--f-md,1rem);margin:14px 0 6px;color:var(--ink-2)}
 #lite details.arr{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:0 0 6px}
 #lite details.arr summary{display:flex;gap:18px;align-items:center;padding:8px 12px;cursor:pointer;list-style:none} #lite details.arr summary::-webkit-details-marker{display:none}
@@ -4933,7 +4936,8 @@ function profOffBtn(r,cls){const mk=profOffMark(r);
 function profMarkWhy(r){if(!r||typeof MARKS==='undefined')return '';
  const mk=MARKS[markKey(r)]||MARKS[r.pn];
  if(!mk||!mk.t||markExpired(mk))return '';
- if(mk.t==='campaign'||mk.t==='handled')return MARK_LABEL[mk.t]||mk.t;
+ /* NEUTRAL: גם «נטרול — כללי» ו«עונתיות» (קמפיין כבר היה) */
+ if(mk.t==='campaign'||mk.t==='handled'||mk.t==='neutral'||mk.t==='season')return MARK_LABEL[mk.t]||mk.t;
  return String(mk.note||'').trim()?'סימון עם הערה':''}
 function profExcl(r){return profOff(r)||!!profMarkWhy(r)}
 function pdUpgradeRaw(r){return !!r&&isPD(r.mrp)&&!r.noStock&&r.net12!=null&&r.net12>=PD_NET_MIN}
@@ -5666,7 +5670,7 @@ function cleanSeries(months,A){
   return Math.max(0,v)})}
 function stCode(s){const n=parseInt(String(s).replace(/[^\d]/g,''),10);return isNaN(n)?null:n}
 function isPD(mrp){return /^\s*pd\s*$/i.test(String(mrp||''))}
-const MARK_LABEL={campaign:'קמפיין',treatment:'לאישור טיפול',ignore:'הוצא ידנית מהרשימה',handled:'טופל',
+const MARK_LABEL={campaign:'קמפיין',neutral:'נטרול — כללי',season:'עונתיות',treatment:'לאישור טיפול',ignore:'הוצא ידנית מהרשימה',handled:'טופל',
  ondemand:'לפי דרישה',checking:'בבדיקה',supplier:'ממתין לספק',ordered:'הוזמן'};
 /* ============ מצב טיפול — סימון שאינו מסתיר ============
    עד כאן כל סימון הוציא את הפריט מתור העבודה ברונג הראשון של
@@ -5724,9 +5728,14 @@ const OD_TTL=183*864e5;                      /* חצי שנה */
    חודש שלם אינו «בטיפול». כשהוא פג הפריט קורא «חדש» שוב — ולא
    נעלם, כי הוא ממילא לא יצא מהתור. */
 const WIP_TTL=30*864e5;
-const MARK_TTL={ondemand:OD_TTL,campaign:OD_TTL,ignore:OD_TTL,treatment:OD_TTL,
+/* NEUTRAL (החלטת המעתד 18.11): נטרול — «כללי», «עונתיות», «קמפיין» — בלי תפוגה, עד
+   שהמעתד מבטל. הפריט יוצא מכל התורים, מארבעת הנושאים ומקובץ העדכון ל-SAP, בשני הכלים
+   (סימון רגיל: ענף Q.marked ב-classify). «קמפיין» היה פג אחרי חצי שנה — כבר לא. */
+const NEUTRAL_T=['neutral','season','campaign'];
+const MARK_TTL={ondemand:OD_TTL,campaign:Infinity,neutral:Infinity,season:Infinity,ignore:OD_TTL,treatment:OD_TTL,
   handled:7*864e5,checking:WIP_TTL,supplier:WIP_TTL,ordered:WIP_TTL};
 function markTTL(t){const v=MARK_TTL[t];return v==null?OD_TTL:v}
+function isNeutral(r){const mk=r&&(r.mark||MARKS[markKey(r)]);return !!mk&&NEUTRAL_T.includes(mk.t)}
 /* ימים מתוך TTL — כדי שמספר הימים בממשק ייגזר מההגדרה ולא יקובע שוב */
 function DAYS(ms){return Math.round(ms/864e5)}
 function markExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>markTTL(mk.t)}
@@ -9183,7 +9192,7 @@ function rowColor(r){return r.mark&&r.mark.t==='handled'?'var(--grn)':r.sev===3?
 /* שלושת הראשונים אינם מוציאים מהתור — ראה WIPMARK. הכיתוב בתפריט
    אומר את ההבדל, כי «סמן 140 פריטים» שמעלים אותם הוא פעולה אחרת
    לגמרי מ«סמן 140 פריטים» שמשנה את מצב הטיפול שלהם. */
-const BULKMARKS=[['checking','בבדיקה · נשאר בתור'],['supplier','ממתין לספק · נשאר בתור'],['ordered','הוזמן · נשאר בתור'],['ondemand','לפי דרישה'],['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
+const BULKMARKS=[['checking','בבדיקה · נשאר בתור'],['supplier','ממתין לספק · נשאר בתור'],['ordered','הוזמן · נשאר בתור'],['ondemand','לפי דרישה'],['neutral','נטרול — כללי'],['season','עונתיות'],['campaign','קמפיין'],['treatment','לאישור טיפול'],['ignore','התעלם'],['handled','טופל']];
 function markTabsOverflow(){const t=document.getElementById('tabs');if(!t)return;
  const q=t.closest('.qbody');if(!q)return;
  q.classList.toggle('tabsover',t.scrollWidth-t.clientWidth>4)}
@@ -11550,6 +11559,8 @@ function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:
  return `<details class="dsec"${r.mark?' open':''}><summary>סימון והחרגה<span class="sumnote"> · נשמר בכלי בלבד ואינו מעדכן את SAP</span>${r.mark?` · ${esc(r.cat)}`:''}</summary>
   <div class="marks">
    <button data-t="handled" class="dn2 ${t==='handled'?'on':''}">✓ טופל</button>
+   <button data-t="neutral" class="${t==='neutral'?'on':''}">נטרול — כללי</button>
+   <button data-t="season" class="${t==='season'?'on':''}">עונתיות</button>
    <button data-t="campaign" class="${t==='campaign'?'on':''}">קמפיין</button>
    <button data-t="treatment" class="${t==='treatment'?'on':''}">לאישור טיפול</button>
    <button data-t="ignore" class="${t==='ignore'?'on':''}">התעלם</button>
@@ -11559,7 +11570,9 @@ function marksPanel(r){const t=r.mark?r.mark.t:'';const note=r.mark?r.mark.note:
   <div class="legend">${t==='handled'
     ?`<b>סומן כטופל</b> — הפריט יצא מתור העבודה. הוא אינו «השינוי זוהה בדוח SAP הבא»: הכלי לא בדק דבר, הוא רק מקבל את מה שאמרת. הסימון מסתיר אותו ל-${Math.round(markTTL('handled')/864e5)} ימים, ואז הוא חוזר לסיווג האמיתי שלו — כדי שהדוח הבא יוכל להראות אם השינוי אכן בוצע. «בטל סימון» מחזיר אותו מיד.`
     :t
-    ?`מסומן «${esc(MARK_LABEL[t]||t)}» — מוחרג מהתרעות מחסור ועודף למשך ${Math.round(markTTL(t)/864e5)} ימים, ואז הסימון פג והפריט חוזר לסיווג הרגיל. «בטל סימון» מחזיר אותו מיד.`
+    ?(markTTL(t)===Infinity
+      ?`מנוטרל «${esc(MARK_LABEL[t]||t)}» — מוחרג מהתרעות, מהתורים ומקובץ העדכון ל-SAP עד שתבטל את הסימון (בלי תפוגה). «בטל סימון» מחזיר אותו מיד.`
+      :`מסומן «${esc(MARK_LABEL[t]||t)}» — מוחרג מהתרעות מחסור ועודף למשך ${Math.round(markTTL(t)/864e5)} ימים, ואז הסימון פג והפריט חוזר לסיווג הרגיל. «בטל סימון» מחזיר אותו מיד.`)
     :'סימון מוציא את הפריט מהתרעות עד שהוא פג או מבוטל. «טופל» — שבוע; שאר הסוגים — חצי שנה.'} נשמר בדפדפן הזה ושורד רענון.${r.mark?` · סומן ${new Date(r.mark.ts).toLocaleDateString('he-IL')}`:''}</div></details>`}
 function movePanel(r){if(r.sales==null&&r.entries==null)return '';
  const sd=(r.sales&&r.sales.date&&r.entries&&r.entries.date&&sameDay(r.sales.date,r.entries.date));
@@ -14292,7 +14305,7 @@ applyLayout();
    הם בכלי המלא, והקישור «לכלי המלא» פותח אותו על אותו דוח (הדוח
    נטען מחדש — אין שיתוף זיכרון בין לשוניות).
    כסף: לפריט בלבד, במטבע שלו (money). אין סכום על פני פריטים. */
-const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null,colsOpen:false,view:''};
+const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null,colsOpen:false,view:'',neuOpen:false};
 /* ============ TP_COLS — סדר העמודות ומה מוצג, לכל נושא בנפרד (החלטת המעתד 18.11) ============
    המעתד גורר כותרת למקום אחר, או פותח «עמודות» ומסמן / מזיז / מחזיר לברירת המחדל.
    נשמר בדפדפן (planner_tpcols_v1), לכל נושא בנפרד; שומרים רק את מה ששונה מברירת המחדל.
@@ -14593,7 +14606,7 @@ function tpCopy(t){
   try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}
 function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
   cat=k?T.cats.find(c=>c[0]===k):null;
- return T.rows().filter(r=>!tpDone(r)&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
+ return T.rows().filter(r=>!tpDone(r)&&!isNeutral(r)&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
   &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
 function tpSorted(t,list){const s=TP.sort[t];
  if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);
@@ -14789,7 +14802,10 @@ function tpdShow(r,keepFocus){const el=document.getElementById('tpd');if(!el)ret
   <div class="dpn"><bdi id="tpdT" tabindex="-1">${esc(r.pn)}</bdi><button type="button" data-tpd="copy">העתק</button></div>
   <h2>${esc(r.desc)}${(r.desc2&&r.desc2!==r.desc)?` · <bdi>${esc(r.desc2)}</bdi>`:''}</h2>
   <div class="chips">${tpP(tpKind(r)[2],tpKind(r)[1])}<span class="chip">${esc(r.mrp||'—')}</span><span class="chip">${esc(r.planner||'—')}</span>
-   <span class="chip">${esc(r.supplier||'—')}</span><span class="chip" title="הסיווג שהמנוע נתן לפריט">${esc(r.cat||'—')}</span></div></div>
+   <span class="chip">${esc(r.supplier||'—')}</span><span class="chip" title="הסיווג שהמנוע נתן לפריט">${esc(r.cat||'—')}</span></div>
+  <div class="dneu" role="group" aria-label="נטרול מחישוב"><span>נטרול:</span>${[['neutral','כללי'],['season','עונתיות'],['campaign','קמפיין']].map(([k,l])=>
+   `<button type="button" data-tpd="neu" data-t="${k}" title="הפריט יוצא מכל הנושאים ומקובץ העדכון ל-SAP, בשני הכלים, עד שתבטל">${l}</button>`).join('')}
+   <span class="mini">יוצא מהנושאים ומקובץ SAP עד ביטול</span></div></div>
   <div class="db">${tpdBody(t,r)}</div>`;
  el.hidden=false;
  el.querySelectorAll('canvas[data-ch]').forEach(cv=>(cv.dataset.ch==='bar'?barChart:projChart)(cv,r));
@@ -14841,7 +14857,7 @@ function tpArrivals(){const D=tpArrData();
    כלל» ו«כיסוי חלקי»), אותה רשימה ואותו סדר כמו נושא 1 (בלי «טופל», לפי המתכנן
    שנבחר). מונה, שווי ההזמנות לפי מטבע, וחמשת הדחופים — לחיצה פותחת את הכרטיס.
    חוסרים בלי ETA בכוונה לא כאן: ETA יכול להיפתח בעוד יום-יומיים. */
-function tpBurnRows(){const L=TOPICS.cust.rows().filter(r=>!tpDone(r)&&(!TP.pl||r.planner===TP.pl));
+function tpBurnRows(){const L=TOPICS.cust.rows().filter(r=>!tpDone(r)&&!isNeutral(r)&&(!TP.pl||r.planner===TP.pl));
  return L.map((r,i)=>[r,i]).sort((a,b)=>TP_URG.cust.f(a[0],b[0])||a[1]-b[1]).map(x=>x[0])}
 function tpBurn(){const L=tpBurnRows();
  if(!L.length)return '<div class="burn ok" role="status"><b>אין הזמנות לקוח ללא כיסוי</b></div>';
@@ -14852,6 +14868,15 @@ function tpBurn(){const L=tpBurnRows();
  return `<div class="burn" role="region" aria-label="בוער עכשיו"><b class="t">בוער עכשיו:</b>
   <span><b>${tpN(L.length)}</b> הזמנות ללא כיסוי${none?` · <b>${tpN(none)}</b> בלי רכש`:''}${vtxt?` · ${vtxt}`:''}</span>
   ${top}<button type="button" class="btn bx" data-tp="burnall">לכל ההזמנות ←</button></div>`}
+/* NEUTRAL — הרשימה: מק״ט, תיאור, סיבה, מתי סומן, וביטול. נמשכת מכל הפריטים (גם מחוץ לנושאים) */
+function tpNeuRows(){return ((QF&&QF.all)||[]).filter(isNeutral)}
+function tpNeuPanel(){const L=tpNeuRows().slice().sort((a,b)=>((b.mark||{}).ts||0)-((a.mark||{}).ts||0));
+ return `<section class="neul" aria-label="מנוטרלים"><h2>מנוטרלים <span class="mini">${tpN(L.length)} פריטים · מחוץ לכל הנושאים ולקובץ העדכון ל-SAP, בשני הכלים, עד ביטול</span></h2>
+  ${L.length?`<table><thead><tr><th>מק״ט</th><th>תיאור</th><th>סיבה</th><th>סומן</th><th class="n">ימים</th><th></th></tr></thead><tbody>${L.map(r=>{const mk=r.mark||MARKS[markKey(r)]||{};
+   return `<tr><td><b>${esc(r.pn)}</b></td><td class="d">${esc(r.desc||'')}</td><td>${esc(MARK_LABEL[mk.t]||mk.t||'')}</td>
+    <td>${mk.ts?esc(new Date(mk.ts).toLocaleDateString('he-IL')):'—'}</td><td class="n">${mk.ts?tpN(markAgeD(mk)):'—'}</td>
+    <td><button type="button" class="btn" data-tp="neuoff" data-key="${esc(markKey(r))}">↺ בטל נטרול</button></td></tr>`}).join('')}</tbody></table>`
+   :'<p class="mini">אין פריטים מנוטרלים. מנטרלים מכרטיס הפריט: «נטרול: כללי · עונתיות · קמפיין».</p>'}</section>`}
 function tpEtaState(){if(!ETA)return '<span class="src eta">אין דוח ETA</span>';
  const c=document.getElementById('etachip'),t=(c&&c.textContent)||('ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים');
  return `<span class="src eta${/⚠/.test(t)?' warn':''}">${esc(t)}</span>`}
@@ -14862,6 +14887,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   <label class="btn" for="fe" title="דוח אספקות מתוכננות — אותו קובץ ואותה קריאה כמו בכלי המלא. נשמר בין העלאות">⭱ דוח ETA</label>
   ${tpEtaState()}
   ${QF?`<button class="btn ${TP.view==='arr'?'on':''}" type="button" data-tp="arr" aria-pressed="${TP.view==='arr'}">לוח הגעות</button>`:''}
+  ${QF?`<button class="btn ${TP.neuOpen?'on':''}" type="button" data-tp="neulist" aria-expanded="${!!TP.neuOpen}">מנוטרלים (${tpNeuRows().length.toLocaleString('he-IL')})</button>`:''}
   ${QF?'':'<button class="btn" type="button" data-tp="demo">נתוני הדגמה</button>'}
   <button class="btn" type="button" data-tp="dark">מצב כהה / בהיר</button>
   <a class="btn" href="${esc(location.pathname)}">לכלי המלא</a></header>`;
@@ -14885,7 +14911,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   el.innerHTML=head+`<div class="tpstick">${tpBurn()}<nav aria-label="נושאים">${nav}</nav></div><main>
    <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
     <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש"></div>
-   ${tpArrivals()}</main>`;return}
+   ${TP.neuOpen?tpNeuPanel():''}${tpArrivals()}</main>`;return}
  const tiles=[['','הכול','gry',()=>true]].concat(T.cats).map(([k,l,c,f])=>
   `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}" aria-pressed="${(TP.cat[t]||'')===k}"><span>${esc(l)}</span><span class="v">${all.filter(f).length.toLocaleString('he-IL')}</span></button>`).join('');
  const fOn=TP_FILT.filter(([k])=>TP.f[k]),fOpen=!!TP.fOpen;
@@ -14909,7 +14935,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   <div class="bar flt" ${fOpen?'':'hidden'}>${TP_FILT.map(([k,l,all])=>{const vals=[...new Set(((QF&&QF.all)||[]).map(r=>r[k]).filter(v=>v!=null&&v!==''))].map(String).sort((a,b)=>a.localeCompare(b,'he'));
     return `<select data-tpf="${k}" aria-label="${esc(l)}" class="${TP.f[k]?'on':''}"><option value="">${esc(all)}</option>${vals.map(v=>`<option value="${esc(v)}" ${TP.f[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select>`}).join('')}
    ${Object.values(TP.f).some(Boolean)?'<button class="btn" type="button" data-tp="fclear">נקה סינון</button>':''}</div>
-  ${TP.colsOpen?tpColsPanel(t,plOne):''}${t==='fix'?tpOffList():''}${tpDoneList()}
+  ${TP.neuOpen?tpNeuPanel():''}${TP.colsOpen?tpColsPanel(t,plOne):''}${t==='fix'?tpOffList():''}${tpDoneList()}
   <p class="mini hint">לחיצה על שורה (או Enter) פותחת את כרטיס הפריט בצד · ↑↓ מעבר בין פריטים · C העתקת מק״ט · D «טופל» ומעבר לבא · Esc סגירה. מיון — לחיצה על כותרת העמודה.</p>
   ${list.length?`<div class="tw"><table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>${list.length>TP.lim?`<div class="more"><button class="btn" type="button" data-tp="more">הצג עוד 200</button><span class="mini">מוצגות ${TP.lim.toLocaleString('he-IL')} מתוך ${list.length.toLocaleString('he-IL')}</span></div>`:''}</div>`:'<p class="mini">אין שורות בסינון הנוכחי.</p>'}</main>`;
  TP.shown=shown;TP.list=list;
@@ -14939,6 +14965,8 @@ if(LITE){
   else if(a.tp==='demo')demoStart();
   else if(a.tp==='dark')document.getElementById('darkToggle').click();
   else if(a.tp==='csv')tpCsv();
+  else if(a.tp==='neulist'){TP.neuOpen=!TP.neuOpen;tpRender()}
+  else if(a.tp==='neuoff'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;setMark(r,'','');toast(`${r.pn} חזר לחישוב — בשני הכלים`)}
   else if(a.tp==='burnall'){if(TP.open)tpdClose();TP.view='';TP.tab='cust';TP.cat={};TP.q='';TP.lim=200;tpRender();window.scrollTo(0,0)}
   else if(a.tp==='burnpn'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;TP.view='';TP.tab='cust';TP.cat={};TP.lim=200;tpRender();tpdShow(r)}
   else if(a.tp==='arr'){TP.view=TP.view==='arr'?'':'arr';tpRender()}
@@ -14975,7 +15003,11 @@ if(LITE){
   else if(k==='explain'&&TP.open)explain(TP.open);
   else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
    toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
-  else if(k==='copy'&&TP.open)tpCopy(TP.open.pn)});
+  else if(k==='copy'&&TP.open)tpCopy(TP.open.pn)
+  /* NEUTRAL: הפריט יוצא מהרשימה — הכרטיס עובר לבא, כמו «טופל» */
+  else if(k==='neu'&&TP.open){const r=TP.open,L0=TP.list||[],i0=L0.indexOf(r);setMark(r,b.dataset.t,'');
+   toast(`${r.pn} נוטרל («${MARK_LABEL[b.dataset.t]}») — יצא מהנושאים ומקובץ SAP, בשני הכלים. ביטול: «מנוטרלים» בכותרת`);
+   const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(nx&&nx!==r)tpdShow(nx);else tpdClose()}});
  el.addEventListener('change',e=>{if(e.target.dataset.tpcVis){tpColsVis(TP.tab,e.target.dataset.tpcVis,e.target.checked);
    const f=el.querySelector(`[data-tpc-vis="${e.target.dataset.tpcVis}"]`);if(f)f.focus();return}
   if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}
