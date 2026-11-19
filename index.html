@@ -5655,6 +5655,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
       ...(sharpDrop?{rateROP,sharpDrop,rateDrop,sd3:sdSample(sdR3)}:{}),
       ...(rateW!=null?{rateROP,rateW}:{}),
+      ...(ssStatOnly&&ssMin>0?{ssStatOnly:true}:{}),
       /* BASE_MONTH: רק בפריט שבו זה קרה — כמו RATE_DECAY */
       ...(saleAfter?{saleAfterRef:true}:{}),...(entAfter?{entAfterRef:true}:{}),
       /* שלב 2 (PD/LT): כמו RATE_DECAY — רק בפריט שבו זה רלוונטי, כדי שכל פריט
@@ -12010,7 +12011,9 @@ function explain(r){const A=r.A;
     <tr><td>סיכון הספק = קצב × (${ltvPct}% × LT) · ${esc(r.matType||'')}</td><td>${!(r.d12>0)?'0 — אין צריכה ב-11 החודשים (קצב מהיסטוריית 3 השנים בלבד)':`${fmt1(r.rateSS??r.rate)}${r.rateSS!=null&&r.rateSS!==r.rate?(r.sharpDrop?' (קצב 3 החודשים האחרונים — ירידה חדה)':r.rateW!=null?' (קצב משוקלל — גושי/ספורדי)':' (קצב עדכני — דעיכה)'):''} × (${ltvPct}% × ${ltM}) = ${sdSup}`}</td></tr>
     <tr><td>סיכון כולל = √( תנודת הביקוש² + סיכון הספק² )</td><td>√(${sdLT}² + ${sdSup}²) = ${sdTot}</td></tr>
     <tr class="step"><td>① SS סטטיסטי = ⌈ Z × סיכון כולל ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdTot}⌉ = ${ssStatV}`}</td></tr>
-    <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
+    <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`
+     :r.ssStatOnly?`${r.ssMin} ב-SAP → 0 · פריט עם צריכה: מלאי הביטחון סטטיסטי, הרצפה מ-SAP אינה קובעת${r.sugSS<r.ssMin?` · בקובץ העדכון יוצע מינימום ${r.sugSS}`:''}`
+     :ssMinEffV}</td></tr>
     <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${tierNote}</td></tr>
     <tr class="total"><td>SS סופי = max( ① , ② , ③ )</td><td>max(${ssStatV}, ${ssMinEffV}, ${lowFloorV}) = ${ssMax}${r.ssSrc!=='none'?` · קבע: ${SS_SRC[r.ssSrc]}`:''}</td></tr>
     ${r.sugSS!==ssMax?`<tr class="total"><td>נוכחות מינימלית — SS ב-SAP = ${ROP_MIN_ACT}, לא מורידים</td><td>SS מוצע = ${r.sugSS}</td></tr>`:''}`;
@@ -12283,7 +12286,8 @@ function sapRowsBy(list,pred){
   /* «זמן אספקה מתוכנן» = השדה המקורי `אספ.מתוכנ.` (ltPlanned) — לא ltD.
      ltD כולל את זמן עיבוד הקבלה, וכתיבתו לשדה הזה הגדילה את זמן האספקה
      ב-SAP בכל העלאה (שלב 2). שורה נכנסת רק כש-ltPlanned>0 (sapUsableBase).
-     (ssMin||0) נשאר כפי שהוא — סמנטיקת היבוא של שדה ריק טרם אומתה. */
+     «מלאי ביטחון מינימלי» = sapSsMin: הערך ב-SAP, או ה-SS המוצע כשהוא נמוך ממנו (SS_STAT,
+     19.11). לעולם לא שדה ריק — סמנטיקת היבוא של שדה ריק טרם אומתה. */
   out.push([String(r.pn||''), r.site||'', r.sugSS, sapSsMin(r),
             r.sugROP, r.pGroup||'', '', ltPlan(r)]);
  return out}
