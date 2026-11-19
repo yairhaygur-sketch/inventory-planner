@@ -44,11 +44,11 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
   const curm=one('S-CURM',{...base,cm:5});
   /* סטטוס 04 — אין המלצה */
   const st04=one('S-04',{...base,st:'04'});
-  /* רצפת ssMin נשמרת */
+  /* ssMin=40 — מ-19.11 (SS_STAT) אינו רצפה לפריט עם צריכה */
   const flo=one('S-FLOOR',{...base,ssMin:40});
   /* צריכה סדירה */
   const reg=one('S-REG',{...base,m:Array(11).fill(20)});
-  const pick=x=>({sharp:!!x.sharpDrop,rate:x.rate,rateDrop:x.rateDrop,rateROP:x.rateROP,dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,
+  const pick=x=>({statOnly:!!x.ssStatOnly,sharp:!!x.sharpDrop,rate:x.rate,rateDrop:x.rateDrop,rateROP:x.rateROP,dLT:x.dLT,ltM:x.ltM,sugSS:x.sugSS,sugROP:x.sugROP,
    ssStat:x.ssStat,ssMin:x.ssMin,lowFloor:x.lowFloor,sdLT:x.sdLT,sdTot:x.sdTot,zEff:x.zEff??x.z,ltvP:x.ltvP??LTV_P_DEF,cov:x.cov,free:x.free,
    tRec:x.tRec,tPre:x.tPre,trendF:x.trendF,ropRate:ropRate(x),clean:cleanSeries(x.months,x.A),rateFrom3y:x.rateFrom3y,
    keys:['sharpDrop','rateDrop','sd3'].filter(k=>k in x).length});
@@ -77,7 +77,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  ok('בסיס זעיר (5 יח׳ < 6) — לא חל',!tiny.sharp&&tiny.keys===0);
  ok('מכירה בחודש הנוכחי — לא חל',!curm.sharp&&near(curm.dLT,curm.rate*curm.ltM)&&curm.keys===0);
  ok('סטטוס 04 — אין המלצה ואין סימון',!st04.sharp&&st04.sugROP===0&&st04.sugSS===0&&st04.keys===0);
- ok('רצפת ssMin נשמרת: SS = 40',flo.sharp&&flo.sugSS===40&&flo.sugROP===Math.ceil(flo.dLT+40),`ROP ${flo.sugROP}`);
+ /* SS_STAT (19.11): לפני — «רצפת ssMin נשמרת: SS = 40». עכשיו פריט עם צריכה: SS סטטיסטי (עם רצפת המדיניות) */
+ ok('ssMin=40 אינו רצפה לפריט עם צריכה: SS = max(סטטיסטי, רצפת מדיניות), ROP = ⌈ביקוש_LT + SS⌉',flo.sharp&&flo.statOnly&&flo.sugSS===Math.max(flo.ssStat,flo.lowFloor)&&flo.sugSS<40&&flo.sugROP===Math.max(flo.sugSS,Math.ceil(flo.dLT+flo.sugSS)),`SS ${flo.sugSS} · ROP ${flo.sugROP}`);
  ok('צריכה סדירה — לא חל, הנוסחה כמו קודם',!reg.sharp&&near(reg.dLT,reg.rate*reg.ltM)&&reg.keys===0);
 
  /* בדוח הסינתטי: כל פריט שאינו בירידה חדה ואינו בדעיכה — dLT = rate × LT */

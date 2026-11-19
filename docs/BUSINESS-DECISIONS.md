@@ -180,7 +180,8 @@ Changes to these areas require explicit business approval.
   is a sale in the current month, and not when annual and monthly columns
   are inconsistent. Safety Stock, SAP `ssMin`, `rate`, coverage and the SAP
   field mapping are unchanged. Every SAP file row keeps SS ≥ ssMin.
-- **2026-10-31 · SAP ssMin is not changed by the tool.** The tool shows one
+- **2026-10-31 · SAP ssMin is not changed by the tool.** *(Superseded on
+  2026-11-19 by SS_STAT for items with consumption — see below.)* The tool shows one
   official, SAP-applicable recommendation. A reduction potential for stale
   SAP floors may be shown separately, never as a second recommendation.
 
@@ -578,6 +579,27 @@ Changes to these areas require explicit business approval.
     card says «until you cancel», with no number of days.
   - Saved in the browser, like every mark. The demo report has no marks, so
     the engine output and exports do not change.
+
+- **2026-11-19 · Statistical safety stock for items with consumption (SS_STAT,
+  approved 19.11). Replaces «SAP ssMin is not changed by the tool» (31.10).**
+  For an item with current consumption (six-month path, rate > 0) the safety
+  stock is max(statistical, low-demand policy floor); the SAP `ssMin` floor is
+  no longer decisive. Items without consumption in the last six months (rate 0,
+  or a rate from the three-year history, including RATE_DECAY items) keep the
+  SAP floor, as before. Unchanged: the policy floor, minimum reorder point 1
+  (ROP_MIN_ACT and PD→ZM-C), SS ≤ ROP.
+  - **SAP update file:** when the proposed SS is below `ssMin`, the «minimum
+    safety stock» column carries the proposed SS (otherwise SAP would keep the
+    old floor); a row also enters when only the minimum changes. In every row
+    SS ≥ the minimum in that row.
+  - **Measured against main:** report A — 419 items, −4,257 SS units (about
+    −$104K and −₪96K FOB), 419 reorder points down (361 below SAP's current
+    value); SAP file 192 → 252 rows, 98 with a lowered minimum. Report B — 344
+    items, −9,063 units (about −SEK 1.96M), 344 reorder points down (153 below
+    SAP); SAP file 1,365 → 1,356 rows, 112 with a lowered minimum. No SS rises.
+  - **Demo:** 284 items with consumption and an `ssMin` (the effective floor
+    becomes 0); in 45 of them, where the SAP floor decided before, SS and ROP
+    drop. The «SS floor» screen in the full tool goes 52 → 7.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 

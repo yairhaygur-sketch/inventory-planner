@@ -129,7 +129,13 @@ const SNAP=()=>{
  for(const pn of ['PF-TOOL','PF-ACC'])
   ok(`${pn} — מוחרג, ולכן ROP=0 ו-SS=0`,sp[pn].sim.rop===0&&sp[pn].sim.ss===0);
  ok('PF-LOWCHEAP — רצפת מדרגה A: SS=3, ROP=3',sp['PF-LOWCHEAP'].sim.ss===3&&sp['PF-LOWCHEAP'].sim.rop===3,`${sp['PF-LOWCHEAP'].sim.ss}/${sp['PF-LOWCHEAP'].sim.rop}`);
- ok('PF-SSMIN7 — רצפת SAP נשמרת: SS=7',sp['PF-SSMIN7'].sim.ss===7&&sp['PF-SSMIN7'].sim.ssSrc==='sap',`${sp['PF-SSMIN7'].sim.ss} ${sp['PF-SSMIN7'].sim.ssSrc}`);
+ /* SS_STAT (19.11): פריט עם צריכה — מלאי הביטחון סטטיסטי, רצפת ssMin=7 מ-SAP אינה קובעת.
+    3–4 יח׳ בחודש, LT 62 ימים: σ≈0.39 → 0.39·√2.07≈0.56; סיכון ספק 3.17·10%·2.07≈0.66;
+    ⌈0.84·√(0.56²+0.66²)⌉ = 1 (לפני: 7, «רצפת SAP נשמרת») */
+ {const x=sp['PF-SSMIN7'].sim,mu=[3,3,3,4,3,3,3,4,3,3,3],m=mu.reduce((a,b)=>a+b,0)/11,
+   sdm=Math.sqrt(mu.reduce((a,b)=>a+(b-m)**2,0)/10),r6=mu.slice(0,6).reduce((a,b)=>a+b,0)/6,L=62/30,
+   want=Math.ceil(0.84*Math.sqrt(sdm*sdm*L+(r6*0.10*L)**2));
+  ok('PF-SSMIN7 — פריט עם צריכה: SS סטטיסטי (1), רצפת SAP (7) אינה קובעת',x.ss===want&&want===1&&x.ssSrc==='stat',`${x.ss} ${x.ssSrc} · אורקל ${want}`)}
  ok('PF-ROP1 — נוכחות מינימלית: ROP=1, SS=0',sp['PF-ROP1'].sim.rop===1&&sp['PF-ROP1'].sim.ss===0);
  ok('PF-FLAT — σ=0, ולכן SS הוא סיכון הספק בלבד: ⌈0.84 × 1 × 10% × LT⌉ = 1',sp['PF-FLAT'].sim.ss===Math.ceil(0.84*1*0.10*(62/30))&&sp['PF-FLAT'].sim.ss===1,`${sp['PF-FLAT'].sim.rop}/${sp['PF-FLAT'].sim.ss}`);
  ok('PF-HIST — בלי צריכה ב-11 חודשים: אין סיכון ספק, ROP≥2 ו-SS=0',sp['PF-HIST'].sim.rop>=2&&sp['PF-HIST'].sim.ss===0,`${sp['PF-HIST'].sim.rop}/${sp['PF-HIST'].sim.ss}`);

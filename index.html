@@ -5485,7 +5485,13 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=noRec?0:lowDemFloor(d12,price,currency);
     const lowBand=lowFloor?lowDemBand(price,currency):null;
-    const ssMinEff=noRec?0:ssMin;
+    /* SS_STAT (החלטת המעתד 19.11): בפריט עם צריכה עדכנית (נתיב 6 החודשים, קצב >0) מלאי
+       הביטחון הוא הסטטיסטי — רצפת ssMin מ-SAP כבר אינה המדד המכריע. נשארות: רצפת המדיניות
+       לביקוש זעום (lowFloor), ROP_MIN_ACT ו-SS≤ROP. פריט בלי צריכה ב-6 החודשים (קצב 0, או
+       קצב מהיסטוריית 3 השנים) — אין לו סטטיסטיקה, ורצפת SAP נשארת כמו קודם. בקובץ העדכון
+       ל-SAP, כשה-SS המוצע נמוך מ-ssMin, עמודת «מלאי ביטחון מינימלי» מקבלת את ה-SS המוצע. */
+    const ssStatOnly=!noRec&&rate>0&&!rateFrom3y;
+    const ssMinEff=noRec||ssStatOnly?0:ssMin;
     let sugSS=noRec?0:Math.max(ssStat,ssMinEff,lowFloor);
     /* RATE_DECAY: הקצב העדכני מחליף את קצב 3 השנים רק כשהוא משנה את
        ההמלצה — פריט בלי המלצה (OD/PD/04-14), או פריט שה-ROP שלו יוצא
@@ -5649,6 +5655,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
       ...(rateDecay?{rateROP,rateDecay,rateRecent}:{}),
       ...(sharpDrop?{rateROP,sharpDrop,rateDrop,sd3:sdSample(sdR3)}:{}),
       ...(rateW!=null?{rateROP,rateW}:{}),
+      ...(ssStatOnly&&ssMin>0?{ssStatOnly:true}:{}),
       /* BASE_MONTH: רק בפריט שבו זה קרה — כמו RATE_DECAY */
       ...(saleAfter?{saleAfterRef:true}:{}),...(entAfter?{entAfterRef:true}:{}),
       /* שלב 2 (PD/LT): כמו RATE_DECAY — רק בפריט שבו זה רלוונטי, כדי שכל פריט
@@ -12004,7 +12011,9 @@ function explain(r){const A=r.A;
     <tr><td>סיכון הספק = קצב × (${ltvPct}% × LT) · ${esc(r.matType||'')}</td><td>${!(r.d12>0)?'0 — אין צריכה ב-11 החודשים (קצב מהיסטוריית 3 השנים בלבד)':`${fmt1(r.rateSS??r.rate)}${r.rateSS!=null&&r.rateSS!==r.rate?(r.sharpDrop?' (קצב 3 החודשים האחרונים — ירידה חדה)':r.rateW!=null?' (קצב משוקלל — גושי/ספורדי)':' (קצב עדכני — דעיכה)'):''} × (${ltvPct}% × ${ltM}) = ${sdSup}`}</td></tr>
     <tr><td>סיכון כולל = √( תנודת הביקוש² + סיכון הספק² )</td><td>√(${sdLT}² + ${sdSup}²) = ${sdTot}</td></tr>
     <tr class="step"><td>① SS סטטיסטי = ⌈ Z × סיכון כולל ⌉</td><td>${rateZero?`0 — קצב חודשי = 0`:`⌈${z} × ${sdTot}⌉ = ${ssStatV}`}</td></tr>
-    <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`:ssMinEffV}</td></tr>
+    <tr class="step"><td>② רצפת ssMin מ-SAP</td><td>${(r.noStock&&r.ssMin>0)?`${r.ssMin} → 0 · סטטוס שאינו לחידוש מלאי`
+     :r.ssStatOnly?`${r.ssMin} ב-SAP → 0 · פריט עם צריכה: מלאי הביטחון סטטיסטי, הרצפה מ-SAP אינה קובעת${r.sugSS<r.ssMin?` · בקובץ העדכון יוצע מינימום ${r.sugSS}`:''}`
+     :ssMinEffV}</td></tr>
     <tr class="step"><td>③ רצפת מדיניות נוספת</td><td>${tierNote}</td></tr>
     <tr class="total"><td>SS סופי = max( ① , ② , ③ )</td><td>max(${ssStatV}, ${ssMinEffV}, ${lowFloorV}) = ${ssMax}${r.ssSrc!=='none'?` · קבע: ${SS_SRC[r.ssSrc]}`:''}</td></tr>
     ${r.sugSS!==ssMax?`<tr class="total"><td>נוכחות מינימלית — SS ב-SAP = ${ROP_MIN_ACT}, לא מורידים</td><td>SS מוצע = ${r.sugSS}</td></tr>`:''}`;
@@ -12264,18 +12273,22 @@ function sapUsableBase(r){
  if(r.ltBad||!(r.ltD>0))return false;
  const ss=r.sugSS,rop=r.sugROP;
  if(!(ss>0)&&!(rop>0))return false;
- return ss!==r.ss||rop!==r.rop}
+ return ss!==r.ss||rop!==r.rop||sapSsMin(r)!==(r.ssMin||0)}
 function sapMassUsable(r){return sapUsableBase(r)&&!SAP_CAP_CATS.has(r.cat)&&!r.tierFloor}
 function sapSlowUsable(r){return sapUsableBase(r)&&SAP_CAP_CATS.has(r.cat)}
 function sapTierUsable(r){return sapUsableBase(r)&&!!r.tierFloor}
+/* SS_STAT (19.11): «מלאי ביטחון מינימלי» בקובץ — הערך ב-SAP, אלא אם ה-SS המוצע נמוך
+   ממנו: אז ה-SS המוצע, כדי ש-SAP לא יחזיק את הרצפה הישנה. בכל שורה SS ≥ המינימום שבה. */
+function sapSsMin(r){const m=r.ssMin||0;return (r.sugSS!=null&&r.sugSS<m)?r.sugSS:m}
 function sapRowsBy(list,pred){
  const out=[SAP_COLS.slice()];
  for(const r of (list||[]).filter(pred))
   /* «זמן אספקה מתוכנן» = השדה המקורי `אספ.מתוכנ.` (ltPlanned) — לא ltD.
      ltD כולל את זמן עיבוד הקבלה, וכתיבתו לשדה הזה הגדילה את זמן האספקה
      ב-SAP בכל העלאה (שלב 2). שורה נכנסת רק כש-ltPlanned>0 (sapUsableBase).
-     (ssMin||0) נשאר כפי שהוא — סמנטיקת היבוא של שדה ריק טרם אומתה. */
-  out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
+     «מלאי ביטחון מינימלי» = sapSsMin: הערך ב-SAP, או ה-SS המוצע כשהוא נמוך ממנו (SS_STAT,
+     19.11). לעולם לא שדה ריק — סמנטיקת היבוא של שדה ריק טרם אומתה. */
+  out.push([String(r.pn||''), r.site||'', r.sugSS, sapSsMin(r),
             r.sugROP, r.pGroup||'', '', ltPlan(r)]);
  return out}
 function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
@@ -14687,12 +14700,14 @@ function tpdParams(r){const N=tpN,q=tpRec(r);
    :`<td class="v rec${sap!==v?' diff':''}"><b>${N(v)}</b>${sap===v?' <span class="note">זהה</span>':''}${q.src==='sim'?' <span class="note">אחרי ZM-C</span>':''}</td>`;
  const row=(l,sap,recTd)=>`<tr><th scope="row">${l}</th><td class="v">${sap}</td>${recTd}</tr>`;
  const na='<td class="v note">—</td>';
- const ssMinNote=(!q.na&&q.src==='engine'&&r.ssMinEff!==r.ssMin)?` <span class="note">(לא חל)</span>`:'';
+ const ssMinNote=(!q.na&&q.src==='engine'&&r.ssMinEff!==r.ssMin)?` <span class="note">${r.ssStatOnly?'(לא קובע — פריט עם צריכה, מלאי ביטחון סטטיסטי)':'(לא חל)'}</span>`:'';
+ /* SS_STAT: כשה-SS המוצע נמוך מ-ssMin, הקובץ ל-SAP מציע גם את המינימום — אותו ערך כאן */
+ const minRec=(!q.na&&q.src==='engine'&&r.ssMin>0&&sapSsMin(r)<r.ssMin)?`<td class="v rec diff"><b>${N(sapSsMin(r))}</b> <span class="note">בקובץ SAP</span></td>`:null;
  const ltSap=r.ltBad?`<b style="color:var(--critical)">${r.ltRaw===''?'ריק':'0'}</b>`:N(ltRawOf(r))+' ימים';
  return `<table><thead><tr><th></th><th>${TPD_SRC.sap}${q.na==='lt'?' <span class="note">ערכים קיימים</span>':''}</th><th>${TPD_SRC.rec}</th></tr></thead><tbody>
   ${row('נקודת הזמנה',N(r.rop),rec(r.rop,q.rop))}
   ${row('מלאי ביטחון',N(r.ss),rec(r.ss,q.ss))}
-  ${row('מלאי ביטחון מינימלי',N(r.ssMin)+ssMinNote,na)}
+  ${row('מלאי ביטחון מינימלי',N(r.ssMin)+ssMinNote,minRec||na)}
   ${row('רמת שירות',r.srvMissing?'<span class="note">חסרה</span>':N(r.srv)+'%',q.src==='sim'?`<td class="v note">80% ב-ZM-C</td>`:na)}
   ${row('זמן אספקה מתוכנן',ltSap,r.ltBad?`<td class="v note"><b style="color:var(--critical)">${LT_MSG}</b></td>`:`<td class="v note">אין המלצה · זמן בפועל אינו בדוח</td>`)}
   ${row('סוג MRP',esc(r.mrp||'—'),pdUpgrade(r)?`<td class="v rec diff"><b>ZM-C</b></td>`:na)}</tbody></table>
