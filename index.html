@@ -5485,7 +5485,13 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     /* רצפת מדיניות לביקוש זעום — ראה LOWDEM_CHEAP */
     const lowFloor=noRec?0:lowDemFloor(d12,price,currency);
     const lowBand=lowFloor?lowDemBand(price,currency):null;
-    const ssMinEff=noRec?0:ssMin;
+    /* SS_STAT (החלטת המעתד 19.11): בפריט עם צריכה עדכנית (נתיב 6 החודשים, קצב >0) מלאי
+       הביטחון הוא הסטטיסטי — רצפת ssMin מ-SAP כבר אינה המדד המכריע. נשארות: רצפת המדיניות
+       לביקוש זעום (lowFloor), ROP_MIN_ACT ו-SS≤ROP. פריט בלי צריכה ב-6 החודשים (קצב 0, או
+       קצב מהיסטוריית 3 השנים) — אין לו סטטיסטיקה, ורצפת SAP נשארת כמו קודם. בקובץ העדכון
+       ל-SAP, כשה-SS המוצע נמוך מ-ssMin, עמודת «מלאי ביטחון מינימלי» מקבלת את ה-SS המוצע. */
+    const ssStatOnly=!noRec&&rate>0&&!rateFrom3y;
+    const ssMinEff=noRec||ssStatOnly?0:ssMin;
     let sugSS=noRec?0:Math.max(ssStat,ssMinEff,lowFloor);
     /* RATE_DECAY: הקצב העדכני מחליף את קצב 3 השנים רק כשהוא משנה את
        ההמלצה — פריט בלי המלצה (OD/PD/04-14), או פריט שה-ROP שלו יוצא
@@ -12264,10 +12270,13 @@ function sapUsableBase(r){
  if(r.ltBad||!(r.ltD>0))return false;
  const ss=r.sugSS,rop=r.sugROP;
  if(!(ss>0)&&!(rop>0))return false;
- return ss!==r.ss||rop!==r.rop}
+ return ss!==r.ss||rop!==r.rop||sapSsMin(r)!==(r.ssMin||0)}
 function sapMassUsable(r){return sapUsableBase(r)&&!SAP_CAP_CATS.has(r.cat)&&!r.tierFloor}
 function sapSlowUsable(r){return sapUsableBase(r)&&SAP_CAP_CATS.has(r.cat)}
 function sapTierUsable(r){return sapUsableBase(r)&&!!r.tierFloor}
+/* SS_STAT (19.11): «מלאי ביטחון מינימלי» בקובץ — הערך ב-SAP, אלא אם ה-SS המוצע נמוך
+   ממנו: אז ה-SS המוצע, כדי ש-SAP לא יחזיק את הרצפה הישנה. בכל שורה SS ≥ המינימום שבה. */
+function sapSsMin(r){const m=r.ssMin||0;return (r.sugSS!=null&&r.sugSS<m)?r.sugSS:m}
 function sapRowsBy(list,pred){
  const out=[SAP_COLS.slice()];
  for(const r of (list||[]).filter(pred))
@@ -12275,7 +12284,7 @@ function sapRowsBy(list,pred){
      ltD כולל את זמן עיבוד הקבלה, וכתיבתו לשדה הזה הגדילה את זמן האספקה
      ב-SAP בכל העלאה (שלב 2). שורה נכנסת רק כש-ltPlanned>0 (sapUsableBase).
      (ssMin||0) נשאר כפי שהוא — סמנטיקת היבוא של שדה ריק טרם אומתה. */
-  out.push([String(r.pn||''), r.site||'', r.sugSS, (r.ssMin||0),
+  out.push([String(r.pn||''), r.site||'', r.sugSS, sapSsMin(r),
             r.sugROP, r.pGroup||'', '', ltPlan(r)]);
  return out}
 function sapMassRows(list){return sapRowsBy(list,sapMassUsable)}
