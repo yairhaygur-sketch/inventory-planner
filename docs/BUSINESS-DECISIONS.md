@@ -601,6 +601,26 @@ Changes to these areas require explicit business approval.
     becomes 0); in 45 of them, where the SAP floor decided before, SS and ROP
     drop. The «SS floor» screen in the full tool goes 52 → 7.
 
+- **2026-11-19 · Supplier-delay assumption lowered to 5% for every material
+  type (LTV_5, approved 19.11). Changes the default p of SS_LTVAR (12.11).**
+  σ_LT = p × lead time was 25% for imports (Z001) and unknown types, 10% for
+  local purchase (Z004). It is now 5% for all three, until σ_LT is measured from
+  ETA history. Unchanged: the formula, the 95% service level for active items,
+  the exceptions (no consumption in 11 months; decay), the floors and SS_STAT.
+  - **Before deciding (main after SS_STAT, two real reports):** at 25%/10% the
+    delay term added about 1,170 units (about $32K) in report A and about 3,060
+    units (about SEK 770K) in report B, almost all on imports and in a few dozen
+    fast, long-lead-time items. Alternatives shown for imports: 20% (about a
+    third less), 15% (more than half less), 10% (about 80% less). The planner
+    chose 5%, and 5% for local purchase too, so one percentage covers all.
+  - **Measured against main:** report A — 149 items, −1,108 units of SS and the
+    same in reorder points (about −$31K and −₪1K); SAP file 252 → 254 rows
+    (4 in, 2 out). Report B — 264 items, −2,872 units (about −SEK 739K); SAP file
+    1,356 → 1,351 rows (14 in, 19 out). No SS rises. Median safety cushion in
+    items selling 30+ a month: about 64 → 42 days of sales (A), 30 → 16 (B).
+  - **Demo:** 196 items, SS and ROP down (−842 units), none up; one item moves
+    «מספר לתקן ב-SAP» → «הפרש קטן מכדי לתקן».
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
