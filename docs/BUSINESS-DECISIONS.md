@@ -563,6 +563,22 @@ Changes to these areas require explicit business approval.
     strip while scrolling; the table scrolls inside its own area and its header
     row stays visible.
 
+- **2026-11-19 · Neutralizing an item: «general», «seasonality», «campaign»
+  (NEUTRAL, approved 18.11).** A neutralized item leaves every work queue, the
+  four topics, the «burning now» strip, the SAP update file and the profile-
+  change recommendation — in both tools — until the planner cancels it (no
+  expiry). It uses the existing mark mechanism (the item goes to «marked»,
+  like «campaign» did). Changes:
+  - Two new mark types, «neutralize — general» and «seasonality»; «campaign»
+    no longer expires after half a year. «Handled» (7 days), «on demand» and
+    the other marks are unchanged.
+  - The 4-topics view: three buttons in the item card; «neutralized (N)» in
+    the header lists them with reason, date and days, and «cancel».
+  - The full tool: the two new types in the card and in bulk marking; the
+    card says «until you cancel», with no number of days.
+  - Saved in the browser, like every mark. The demo report has no marks, so
+    the engine output and exports do not change.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

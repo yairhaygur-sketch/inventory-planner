@@ -427,18 +427,19 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
       note:(r.why||[]).map(w=>w[1]).find(x=>/פג/.test(x))||''}};
   const run=(type,days)=>{MARKS[k]={t:type,ts:ago(days)};Q=classify(ALL);return snap()};
   const o={base:(()=>{delete MARKS[k];Q=classify(ALL);return snap()})(),
-   ttl:{handled:markTTL('handled')/864e5,campaign:markTTL('campaign')/864e5,
+   ttl:{handled:markTTL('handled')/864e5,campaign:markTTL('campaign')===Infinity?'∞':markTTL('campaign')/864e5,
         ignore:markTTL('ignore')/864e5,ondemand:markTTL('ondemand')/864e5},
    handledFresh:run('handled',2), handledStale:run('handled',10),
-   campFresh:run('campaign',100), campStale:run('campaign',200),
+   campFresh:run('campaign',100), campStale:run('campaign',200), campOld:run('campaign',2000),
    ignoreStale:run('ignore',200)};
   MARKS[k]={t:'ondemand',ts:ago(200)};Q=classify(ALL);
   o.odStale=(()=>{const r=ALL.find(x=>x.pn===t.pn);return {cat:r.cat,odStale:!!r.odStale}})();
   delete MARKS[k];Q=classify(ALL);o.after=snap();
   return o});
  ok('«טופל» פג אחרי שבוע — נגזר מקצב של שני דוחות ביום',mkx.ttl.handled===7,`${mkx.ttl.handled} ימים`);
- ok('שאר הסוגים פגים אחרי חצי שנה',
-    mkx.ttl.campaign===183&&mkx.ttl.ignore===183&&mkx.ttl.ondemand===183,JSON.stringify(mkx.ttl));
+ /* NEUTRAL (19.11): «קמפיין» הוא נטרול — אינו פג, עד שהמעתד מבטל. «התעלם» ו«לפי דרישה» — חצי שנה כמו קודם */
+ ok('«התעלם» ו«לפי דרישה» פגים אחרי חצי שנה; «קמפיין» — בלי תפוגה',
+    mkx.ttl.campaign==='∞'&&mkx.ttl.ignore===183&&mkx.ttl.ondemand===183,JSON.stringify(mkx.ttl));
  ok('«טופל» בן יומיים עדיין מסתיר',mkx.handledFresh.q==='marked'&&mkx.handledFresh.cat==='טופל',
     `${mkx.handledFresh.q} · ${mkx.handledFresh.cat}`);
  ok('«טופל» בן 10 ימים מחזיר את הפריט לסיווג האמיתי',
@@ -446,8 +447,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
     `${mkx.handledStale.q} · ${mkx.handledStale.cat} (בסיס: ${mkx.base.cat})`);
  ok('וההסבר אומר שהסימון פג',/פג/.test(mkx.handledStale.note),mkx.handledStale.note);
  ok('«קמפיין» בן 100 יום עדיין מסתיר',mkx.campFresh.q==='marked',mkx.campFresh.q);
- ok('«קמפיין» בן 200 יום פג',mkx.campStale.q!=='marked'&&mkx.campStale.stale,
-    `${mkx.campStale.q} · ${mkx.campStale.note}`);
+ ok('«קמפיין» בן 200 יום — וגם בן 2000 — עדיין מסתיר (נטרול עד ביטול)',mkx.campStale.q==='marked'&&mkx.campOld.q==='marked'&&!mkx.campStale.stale&&!mkx.campOld.stale,
+    `${mkx.campStale.q} · ${mkx.campOld.q}`);
  ok('«הוצא ידנית מהרשימה» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
     `${mkx.ignoreStale.q} · ${mkx.ignoreStale.note}`);
  ok('«לפי דרישה» שפג ממשיך למסלול שלו ולא לסיווג רגיל',
