@@ -643,6 +643,28 @@ Changes to these areas require explicit business approval.
     approved rate rule (λ / three-month rate / rateW / rate, and σ from three
     months in a sharp drop), and it also passes against main's engine.
 
+- **2026-11-20 · Supplier-delay assumption raised to 15% for every material
+  type (LTV_15, approved 20.11, after LTV_10).** The planner reviewed 10% and
+  asked what 15%, 20% and 25% would add, and which items move most.
+  - **What was shown:** against 10%, 15% / 20% / 25% add about 260 / 600 / 980
+    units in report A and about 680 / 1,490 / 2,380 units in report B. The ten
+    items that move most at 15% are all fast, steady imports (50–650 units a
+    month, lead time 60–120 days, mostly at 95% service). In report B, items
+    with a 60-day lead time had only 11–22 days of sales as cushion at 10%, and
+    even at 15% the tool's SS stays well below what SAP holds today. On a
+    two-month lead time 10% means a typical delay of 6 days, 15% of 9 days,
+    25% of 15 days. The planner chose 15%.
+  - **Measured against main (10%):** report A — 81 items, +261 units of SS and
+    the same in reorder points (about +$8K and +₪2K); SAP file 254 → 253 rows
+    (one out). Report B — 111 items, +678 units (about +SEK 159K); SAP file
+    1,352 → 1,350 rows (3 in, 5 out). No SS goes down. Median safety cushion in
+    items selling 30+ a month: about 45 → 50 days of sales (A), 19 → 22 (B).
+  - **Demo:** 170 items, SS and ROP up (+353 units), none down.
+  - **Tests:** besides the p table, `tests/statuses.test.js` holds an exact
+    control value for an active sporadic item; at 15% its SS is
+    ⌈66.55⌉ = 67 (was 66) and its ROP 120 (was 119). The expected values were
+    updated with the computation beside them.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
