@@ -1293,6 +1293,16 @@ body.freeze:not(.freeze3) #tbl thead th:nth-child(2){
 .colspick label:hover{background:var(--surface-2)}
 .colspick label.off{opacity:.45;cursor:default}
 .colspick label .cwhy{margin-inline-start:auto;font-size:var(--f-xs);color:var(--ink-3)}
+/* COL_ORDER: שורה = התיבה ושני חצים; הכותרת הנגררת והיעד שלה */
+.colspick .cprow{display:flex;align-items:center;gap:2px}
+.colspick .cprow label{flex:1;min-width:0}
+.colspick .cpmv{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:var(--r-ctl);
+ width:24px;height:24px;padding:0;cursor:pointer;font-family:inherit;font-size:var(--f-sm);line-height:1;flex:0 0 auto}
+.colspick .cpmv:hover:not([disabled]){background:var(--accent-bg);color:var(--accent-ink)}
+.colspick .cpmv[disabled]{opacity:.35;cursor:default}
+#tbl thead th[draggable="true"],#movtbl thead th[draggable="true"]{cursor:grab}
+#tbl thead th.dragging,#movtbl thead th.dragging{opacity:.45}
+#tbl thead th.dropto,#movtbl thead th.dropto{box-shadow:inset 0 0 0 2px var(--accent)}
 .colspick .cpa{display:flex;justify-content:space-between;gap:8px;margin-top:8px;
  border-top:1px solid var(--line2);padding-top:8px}
 .colspick .cpa button{border:1px solid var(--line);background:var(--surface);
@@ -7205,17 +7215,26 @@ function colsOpen(on){
  /* הבורר נבנה מחדש אחרי כל שינוי. מי שעבד בו במקלדת לא מאבד את מקומו:
     המיקוד חוזר לאותו פקד (לפי מזהה או data-ck) אחרי הבנייה */
  const fa=pk.contains(document.activeElement)?document.activeElement:null;
- const fKey=fa&&(fa.id?'#'+fa.id:fa.dataset.ck?`input[data-ck="${fa.dataset.ck}"]`:fa.dataset.cpa?`[data-cpa="${fa.dataset.cpa}"]`:null);
+ const fKey=fa&&(fa.id?'#'+fa.id:fa.dataset.ck?`input[data-ck="${fa.dataset.ck}"]`:fa.dataset.cpa?`[data-cpa="${fa.dataset.cpa}"]`
+  :fa.dataset.cmv?`[data-cmv="${fa.dataset.cmv}"]`:null);
  const keep=['kpiTog','denTog'].map(id=>document.getElementById(id)).filter(Boolean);
  keep.forEach(x=>x.remove());
  const reg=colReg();
  pk.innerHTML=`<p class="cph">תצוגה</p><div class="cpview"></div>
   ${reg?`<p class="cph">עמודות הטבלה</p>
-  <p class="cpn">${esc(colViewName(v))} — הבחירה נשמרת לתצוגה הזאת בנפרד.</p>
-  <div class="cplist">${colChoices(v).map(k=>{const ok=colUsable(k);
-    return `<label class="${ok?'':'off'}"><input type="checkbox" data-ck="${k}"
-      ${vis.includes(k)?'checked':''} ${ok?'':'disabled'}><span>${esc(SCOL[k].t)}</span>
-      ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`}).join('')}</div>`:''}
+  <p class="cpn">${esc(colViewName(v))} — הבחירה נשמרת לתצוגה הזאת בנפרד. החצים מזיזים עמודה; אפשר גם לגרור כותרת בטבלה.</p>
+  <div class="cplist">${(()=>{
+    /* COL_ORDER: קודם העמודות המוצגות, בסדר שלהן — עם חצים; אחריהן שאר האפשרויות */
+    const ch=colChoices(v),shown=vis.filter(k=>ch.includes(k)),rest=ch.filter(k=>!shown.includes(k));
+    const mov=k=>!COL_PIN.has(k);
+    return shown.concat(rest).map(k=>{const ok=colUsable(k),on=vis.includes(k),i=shown.indexOf(k);
+     const lb=`<label class="${ok?'':'off'}"><input type="checkbox" data-ck="${k}"
+      ${on?'checked':''} ${ok?'':'disabled'}><span>${esc(SCOL[k].t)}</span>
+      ${ok?'':`<span class="cwhy">${esc(why(k))}</span>`}</label>`;
+     if(!on||!mov(k))return `<div class="cprow">${lb}</div>`;
+     const up=i>0&&mov(shown[i-1]),dn=i<shown.length-1;
+     return `<div class="cprow">${lb}<button type="button" class="cpmv" data-cmv="${k}:-1" ${up?'':'disabled'} aria-label="להזיז את ${esc(SCOL[k].t)} מוקדם יותר">↑</button>`
+      +`<button type="button" class="cpmv" data-cmv="${k}:1" ${dn?'':'disabled'} aria-label="להזיז את ${esc(SCOL[k].t)} מאוחר יותר">↓</button></div>`}).join('')})()}</div>`:''}
   <div class="cpa">${reg?'<button type="button" data-cpa="reset">חזרה לברירת המחדל</button>':''}
    <button type="button" class="ok" data-cpa="close">סגור</button></div>`;
  const cv=pk.querySelector('.cpview');keep.forEach(x=>cv.appendChild(x));
@@ -7238,14 +7257,25 @@ function colsOpen(on){
       דוח ETA) נשמרת במקומה. */
    const cur3=colSaved()[colViewKey()]||SCOL_DEF[colViewKey()]||[];
    const order=cur3.filter(k=>picked.includes(k)||!colUsable(k));
+   /* COL_ORDER: נכנסת מיד אחרי השכנה הקודמת לה ב-SCOL_ORDER (ולא לפני המוצמדות). הכלל
+      הקודם — «לפני הראשונה שאחריה» — נתקע על «דגם», שיושב שני בכל ברירת מחדל ואחרון
+      ב-SCOL_ORDER: כל עמודה שסומנה נחתה מיד אחרי המק״ט. נמדד: «מחיר FOB» נחת לפני «דגם»;
+      עכשיו הוא נכנס אחרי «שווי» */
    for(const k of picked.filter(x=>!cur3.includes(x))
        .sort((a,b)=>SCOL_ORDER.indexOf(a)-SCOL_ORDER.indexOf(b))){
-    const at=order.findIndex(x=>SCOL_ORDER.indexOf(x)>SCOL_ORDER.indexOf(k));
-    if(at<0)order.push(k);else order.splice(at,0,k)}
+    const ix=SCOL_ORDER.indexOf(k);let at=-1;
+    order.forEach((x,i)=>{if(COL_PIN.has(x)||SCOL_ORDER.indexOf(x)<ix)at=i});
+    order.splice(at+1,0,k)}
    colSaveSet(colViewKey(),order);render();colsOpen(true)});
  pk.querySelectorAll('[data-cpa]').forEach(x=>x.onclick=()=>{
    if(x.dataset.cpa==='reset'){colReset(colViewKey());render();colsOpen(true)}
-   else colsOpen(false)})}
+   else colsOpen(false)});
+ /* COL_ORDER: חץ — צעד אחד בין העמודות המוצגות; הבורר נבנה מחדש והמיקוד נשאר על החץ */
+ pk.querySelectorAll('[data-cmv]').forEach(x=>x.onclick=()=>{
+   const [k,d]=x.dataset.cmv.split(':');if(!colStep(colViewKey(),k,+d))return;render();colsOpen(true);
+   /* הגיע לקצה — החץ שנלחץ כבוי עכשיו, אז המיקוד עובר לחץ השני או לתיבה של אותה עמודה */
+   const p2=document.getElementById('colspick');
+   if(p2&&!p2.contains(document.activeElement)){const o=p2.querySelector(`[data-cmv="${k}:${-d}"]:not([disabled])`)||p2.querySelector(`input[data-ck="${k}"]`);if(o)o.focus()}})}
 /* לחיצה על ⓘ או על המשפט עצמו פותחת וסוגרת. שני היעדים, כי
    המשפט החתוך הוא הרמז הראשון שיש עוד. */
 function phdSubWire(){
@@ -7284,7 +7314,22 @@ function colsWire(){
        ברורים — ולא תפריט שחוסם את המיון בלחיצה אחת. */
     if(e.target.closest('.wfil')){e.stopPropagation();
       openColPop(t,'c:'+t.dataset.ck);return}
-    wsortClick(t.dataset.ck)})});
+    wsortClick(t.dataset.ck)});
+  /* COL_ORDER: גרירת כותרת. גרירה שמתחילה בידית הרוחב (.colrz) אינה גרירת עמודה */
+  let dragK=null,fromRz=false;
+  /* בשלב הלכידה: הידית עוצרת את ה-pointerdown שלה (stopPropagation), ובלי לכידה הדגל לא היה נדלק */
+  th0.addEventListener('pointerdown',e=>{fromRz=!!(e.target.closest&&e.target.closest('.colrz'))},true);
+  th0.addEventListener('dragstart',e=>{const t=e.target.closest&&e.target.closest('th[data-ck][draggable="true"]');
+    if(!t||!colReg())return;if(fromRz){e.preventDefault();return}
+    dragK=t.dataset.ck;t.classList.add('dragging');e.dataTransfer.effectAllowed='move';
+    try{e.dataTransfer.setData('text/plain',dragK)}catch(_){}});
+  th0.addEventListener('dragover',e=>{if(!dragK)return;const t=e.target.closest&&e.target.closest('th[data-ck][draggable="true"]');if(!t)return;
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    th0.querySelectorAll('th.dropto').forEach(x=>x!==t&&x.classList.remove('dropto'));if(t.dataset.ck!==dragK)t.classList.add('dropto')});
+  th0.addEventListener('dragend',()=>{dragK=null;th0.querySelectorAll('th.dragging,th.dropto').forEach(x=>x.classList.remove('dragging','dropto'))});
+  th0.addEventListener('drop',e=>{const t=e.target.closest&&e.target.closest('th[data-ck][draggable="true"]');if(!dragK||!t)return;
+    e.preventDefault();const k=dragK;dragK=null;
+    if(colMove(colViewKey(),k,t.dataset.ck)){render();if(document.getElementById('colspick').classList.contains('open'))colsOpen(true)}})});
  const pk0=document.getElementById('colspick');
  if(pk0)pk0.addEventListener('click',e=>e.stopPropagation());
  document.addEventListener('click',()=>colsOpen(false));
@@ -10117,6 +10162,12 @@ const SCOL={
  custVal:{t:'שווי ההזמנה',ttl:'שווי הזמנת הלקוח שאין לה כיסוי, לפי מחיר FOB',
   val:r=>custVal(r),xval:r=>Math.round(custVal(r)),
   cell:r=>`<td class="num val">${money(custVal(r),r.currency)}</td>`},
+ /* FOB_COL (20.11, החלטת המעתד — כמו בתצוגת 4 הנושאים): מחיר FOB ליחידה, במטבע של
+    הפריט, באותו עיצוב (tpFobCell). לבחירה מהבורר, לא בברירת המחדל. noX — במסך בלבד:
+    לאקסל של הכלי המלא לא נוספות עמודות (החלטת המעתד 1.11) */
+ fob:{t:'מחיר FOB',noX:1,ttl:'מחיר FOB ליחידה (BZ), במטבע של הפריט. פריט בלי מחיר — מקף. במסך בלבד — אינו יוצא לאקסל',
+  val:r=>r.priceMissing?-1:(r.price||0),
+  cell:r=>`<td class="num">${r.priceMissing?'—':tpFobCell(r)}</td>`},
  apRop:{t:'נקודת הזמנה',ttl:'הערך שהיה בהעלאה הקודמת ← הערך היום. בסוגריים מה שהוצע אז',
   val:r=>{const q=r.apPrev;return q?(r.rop||0)-(q.rop||0):0},
   xval:r=>r.rop||0,
@@ -10315,7 +10366,7 @@ const SCOL_ORDER=['sel','profCur','profTgt','profH','profSt','profWhy','profSimR
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
- 'cRisk','capVal','capPct','capCov','val','custVal','act','fix','cCat','cat','capType','apDrift','apState','state','markLbl','markWhen','undo','age',
+ 'cRisk','capVal','capPct','capCov','val','custVal','fob','act','fix','cCat','cat','capType','apDrift','apState','state','markLbl','markWhen','undo','age',
  'model','sdate','edate','mage','mdelta','mlast','abc','mrp'];
 /* ברירת המחדל בכל תצוגה = בדיוק העמודות שהיו בה לפני הבורר */
 const SCOL_DEF={
@@ -10380,7 +10431,7 @@ function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
    המק״ט. כעמודה אמיתית הוא גם ממוין, מסונן, מקובץ ומיוצא — מה
    שקישוט ליד המק״ט לא היה נותן. */
 const SCOL_POOL=['model','sup','covbar','spark','free','cust','po','tr','eta','cova','val','act',
- 'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq'];
+ 'cat','state','age','lt','d12','rop','ss','need','ssMin','miss','missq','fob'];
 /* עמודות התנועות מוצעות רק בטבלת התנועות: מחוץ לה «Δ כניסה→מכירה»
    הוא עמודה שרירותית, ובתוכה שלושת הטאבים חולקים את כולן — טאב
    המכירות יכול להוסיף את תאריך הכניסה ולהפך. */
@@ -10453,6 +10504,30 @@ function colSaveSet(v,list){const o=colSaved();o[v]=list;
  try{localStorage.setItem(COLKEY,JSON.stringify(o))}catch(_){}}
 function colReset(v){const o=colSaved();delete o[v];
  try{localStorage.setItem(COLKEY,JSON.stringify(o))}catch(_){}}
+/* ============ COL_ORDER — סידור עמודות בכלי המלא (החלטת המעתד 20.11, כמו בתצוגת 4 הנושאים) ============
+   חצים בבורר, או גרירת כותרת בטבלה. הסדר נשמר לכל תצוגה בנפרד, באותה רשימה שהבורר
+   כבר שומר (planner_cols_v1). העמודות המוצמדות — בחירה, נקודת התנועה ומק״ט — נשארות
+   ראשונות ואינן זזות. גיליון «התצוגה» בייצוא הולך אחרי מה שעל המסך, כמו קודם.
+   רוחב שנגרר ביד נשמר לפי מיקום (CW_KEY), ולכן הרוחבים זזים יחד עם העמודה. */
+const COL_PIN=new Set(['sel','mdot','pn','pnPlain','cPn']);
+function colOrderNow(v){const s=colSaved()[v];return (Array.isArray(s)&&s.length?s:(SCOL_DEF[v]||[])).slice()}
+function cwPermute(vk,after){const want=String(vk).slice(0,3)==='mv_'?'movtbl':'tbl';
+ for(const tbl of cwTables()){if(tbl.id!==want)continue;
+  const v=tbl.id==='movtbl'?'moves|'+movTab:cwView(),w=cwGet(v);if(!w)continue;
+  const ths=[...tbl.querySelectorAll('thead th')],slots=[],at={};
+  ths.forEach((t,i)=>{if(t.dataset.ck){slots.push(i);at[t.dataset.ck]=i}});
+  const nw=w.slice();after.filter(k=>k in at).forEach((k,i)=>{if(slots[i]!=null)nw[slots[i]]=w[at[k]]??null});
+  cwSet(v,nw)}}
+/* k תופסת את המקום של to (כמו בגרירה): נשלפת ומוכנסת במיקום של to */
+function colMove(v,k,to){
+ if(k===to||COL_PIN.has(k)||COL_PIN.has(to))return false;
+ const L=colOrderNow(v),i=L.indexOf(k),j=L.indexOf(to);if(i<0||j<0)return false;
+ L.splice(i,1);L.splice(j,0,k);cwPermute(v,L.filter(colUsable));colSaveSet(v,L);return true}
+/* צעד אחד בין העמודות המוצגות: dir=-1 מוקדם יותר, ‎+1 מאוחר יותר */
+function colStep(v,k,dir){const vis=visCols(v),i=vis.indexOf(k),to=vis[i+dir];
+ if(i<0||!to||COL_PIN.has(k)||COL_PIN.has(to))return false;
+ const L=colOrderNow(v),a=L.indexOf(k),b=L.indexOf(to);if(a<0||b<0)return false;
+ L[a]=to;L[b]=k;cwPermute(v,L.filter(colUsable));colSaveSet(v,L);return true}
 /* הרשימה השמורה עוברת סינון לפי מצב ה-ETA: «מכוסה» ו«ללא תאריך»
    קיימות רק כשנטען דוח, ו«בדרך ⌛» רק כשלא. זה אינו העדפה של
    המשתמש אלא עובדה על הנתונים. */
@@ -10473,7 +10548,9 @@ function colHeadHTML(vk){
   const arr=on?(WSORT.dir==='asc'?'▲':'▼'):'';
   const filt=!!colFilters['c:'+k];
   const tip=(ttl||'')+(srt?`${ttl?' · ':''}לחיצה — מיון · ▾ — סינון`:'');
-  return `<th data-ck="${k}" class="${srt?'wsrt':''}${on?' act':''}${filt?' filt':''}">`
+  /* COL_ORDER: כותרת שאינה מוצמדת נגררת — היא תופסת את המקום של זו שעליה משחררים */
+  const drg=!COL_PIN.has(k);
+  return `<th data-ck="${k}" class="${srt?'wsrt':''}${on?' act':''}${filt?' filt':''}"${drg?' draggable="true"':''}>`
    +`<div class="thc"${tip?` title="${esc(tip)}"`:''}>${c.head?c.head():esc(c.t)}`
    +(arr?`<span class="warr">${arr}</span>`:'')
    +'</div>'+(srt?`<button type="button" class="wfil" title="סינון העמודה" aria-label="סינון ${esc(c.t)}"></button>`:'')+'</th>'}).join('')}
@@ -12227,7 +12304,8 @@ function exportRows(rows){const header=XCOLS.map(c=>c[0]);
 /* הגיליון מייצג את מה שרואים: אותן עמודות, אותו סדר, אותו מיון
    ואותו סינון. קודם הוא היה רשימה קבועה של 11 עמודות בסדר אחר. */
 function movExportRows(){const list=movRows();
- const keys=visCols('mv_'+movTab).filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val));
+ /* noX — כמו בגיליון «התצוגה»: עמודת מסך בלבד (מחיר FOB) אינה יוצאת לאקסל */
+ const keys=visCols('mv_'+movTab).filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&!SCOL[k].noX);
  if(!keys.length)return [];
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.fval||c.val)(r)}catch(_){return ''}};
  return [keys.map(k=>SCOL[k].t),...list.map(r=>keys.map(k=>val(k,r)))]}

@@ -665,6 +665,32 @@ Changes to these areas require explicit business approval.
     ⌈66.55⌉ = 67 (was 66) and its ROP 120 (was 119). The expected values were
     updated with the computation beside them.
 
+- **2026-11-20 · The full tool: the planner arranges the columns, and an
+  optional «FOB price» column, as in the 4-topics view (COL_ORDER / FOB_COL,
+  approved 20.11).** Display only; the engine, the counters, the SAP file and
+  the default Excel export are unchanged. This is the first of four PRs that
+  bring the 4-topics display features to the full tool (next: the arrivals
+  board and ETA by date in the card; «first consumption»; one supply action
+  in words for «zero stock»).
+  - **Column order:** ↑ / ↓ beside every shown column in «columns», or drag a
+    header in the table, in the work tables and in the movements table. Saved
+    in the browser, per view, in the same list the picker already keeps.
+    «Part number» stays first and cannot move; so do the selection box and the
+    movements dot. A column width set by hand moves with its column; dragging
+    the width handle does not move a column. «Back to default» restores the
+    original order.
+  - **«FOB price»:** offered in the picker of every table, in no default. The
+    unit price (BZ) in the item's currency, in the same format as the 4-topics
+    view; «—» when there is no price. Sortable. Screen only: it does not go to
+    the «view» sheet or the movements sheet (decision 1.11: no new columns in
+    the full tool's Excel).
+  - **The «view» sheet** keeps following the screen: the shown columns in the
+    shown order, as it already did with show / hide.
+  - **Fixed on the way:** a column ticked in the picker now lands right after
+    its nearest preceding column in the tool's column order («FOB price» after
+    «value»). Before, every ticked column landed right after the part number,
+    because «model» sits second in every default but last in that order.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
