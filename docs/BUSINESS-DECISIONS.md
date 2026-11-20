@@ -691,6 +691,27 @@ Changes to these areas require explicit business approval.
     «value»). Before, every ticked column landed right after the part number,
     because «model» sits second in every default but last in that order.
 
+- **2026-11-20 · The full tool: an arrivals board, and deliveries grouped by
+  date in the item card, as in the 4-topics view (ARRIVALS_FULL, approved
+  20.11).** Display only; the engine, the counters, the SAP file and the Excel
+  exports are unchanged. The second of the four PRs.
+  - **Arrivals board:** a «arrivals board» button in the header of «purchasing
+    and deliveries» replaces the table with the board; a second click brings
+    the table back (the planner's choice: a button there, not a new door in
+    the rail). Leaving the screen, or picking a station on the band above it,
+    also brings the table back.
+  - **Which items:** every item that has lines in the ETA report, after the
+    search and the filters (the planner's choice; the 4-topics view shows only
+    items in its four topics). One row per arrival date: number of items and
+    units. Dates that passed come first, marked «check if received». A date
+    opens its lines (part number, description, quantity, delivery, purchase
+    order, supplier), largest first; a part number opens its card. Without an
+    ETA report the board says so and offers the upload.
+  - **The card:** «deliveries by date» — one line per date with the total
+    units, the number of lines and the delivery numbers; a date that passed is
+    marked «check if received». The same list as the 4-topics card. Items with
+    no open purchase and no ETA lines get no such section.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
