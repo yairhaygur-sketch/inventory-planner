@@ -7,7 +7,8 @@
      · כל פריט — גיבוב של כל השדות המחושבים שלו (סיווג, SS/ROP, כמויות,
        כסף, נימוקים, פעולה, המלצת פרופיל)
      · כל תור ודלת — רשימת המק״טים
-     · כל אחד מ-26 המסכים — מונה, מספר פריטים, גיבוב הסדר, סכומים לפי מטבע
+     · כל אחד מ-27 המסכים — מונה, מספר פריטים, גיבוב הסדר, סכומים לפי מטבע
+       (27 מ-20.11: נוספה הדלת «צריכה ראשונה», FIRST_FULL)
      · כל קובץ שהכלי מוציא — אקסל, SAP, מלאי איטי לכל מסך; דוח זירוז;
        טיוטת המייל — לכל גיליון: מספר שורות וגיבוב התוכן
 
@@ -62,8 +63,8 @@ const D={n:S.n,
  queues:Object.fromEntries(Object.entries(S.queues).map(([k,v])=>[k,Array.isArray(v)?{n:v.length,h:H(v)}:v])),
  screens:Object.fromEntries(Object.entries(S.screens).map(([k,s])=>[k,s.err?{err:s.err}:{nav:s.nav,count:s.count,order:H(s.pns),sums:s.sums}])),
  exports:Object.fromEntries(Object.entries(S.exports).map(([k,x])=>[k,k==='__mail'?{lines:String(x||'').split('\n').length,h:H(x)}:k==='__expedite'?fileDigest(x):{excel:fileDigest(x.excel),sap:fileDigest(x.sap),slow:fileDigest(x.slow)}]))};
-ok('26 מסכים בצילום',Object.keys(D.screens).length===26,Object.keys(D.screens).length);
-ok('כל מסך נותן ייצוא לאקסל',Object.values(D.exports).filter(x=>x&&x.excel).length===26);
+ok('27 מסכים בצילום',Object.keys(D.screens).length===27,Object.keys(D.screens).length);
+ok('כל מסך נותן ייצוא לאקסל',Object.values(D.exports).filter(x=>x&&x.excel).length===27);
 ok('טיוטת המייל לספקים לא ריקה',D.exports.__mail.lines>3,D.exports.__mail.lines+' שורות');
 ok('דוח זירוז נוצר',Array.isArray(D.exports.__expedite)&&D.exports.__expedite.length>0);
 

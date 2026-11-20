@@ -8,7 +8,7 @@
      · ROP/SS שהמנוע חישב — כצפוי, וזהה למה שנכתב בקובץ ובאקסל
      · ssMin בקובץ SAP = הערך מהדוח, בלי שינוי — אלא אם ה-SS המוצע נמוך ממנו (SS_STAT, 19.11):
        אז ה-SS המוצע
-     · בכל שורה של כל קובץ SAP, בכל 26 המסכים: SS ≥ ssMin (שבאותה שורה) */
+     · בכל שורה של כל קובץ SAP, בכל 27 המסכים: SS ≥ ssMin (שבאותה שורה) */
 const {chromium}=require('playwright');const fs=require('fs'),path=require('path');
 const XLSX=require('xlsx');
 const {ITEMS,writeDecayReport}=require('./lib/decay-fixture.js');

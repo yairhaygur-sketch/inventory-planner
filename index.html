@@ -1421,6 +1421,8 @@ body:not(.dark) tbody tr.sel{background:var(--accL)}
 .anom{font-size:var(--f-md);font-weight:700;padding:7px 10px;border-inline-start:3px solid var(--c)}
 .anom.s{--c:var(--high);background:var(--high-bg);color:var(--high)}
 .anom.d{--c:var(--trend);background:var(--trend-bg);color:var(--trend)}
+/* FIRST_FULL — «צריכה ראשונה»: עובדה על ההיסטוריה, כמו פיק וצניחה; בצבע משלה */
+.anom.f{--c:var(--purple);background:var(--purpleL);color:var(--purple)}
 
 /* ============ פיק וצניחה — שפה אחת בשני המסכים ============
    נמדד לפני: בספארקליין הפיק היה --acc (כחול המערכת) והצניחה --red,
@@ -7000,7 +7002,7 @@ const NAV=[
  ['catalog','קטלוג פריטים',    '☰','var(--calm)']];
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'today',
- line:'line',rise:'line',ropGap:'line',ropThin:'line',month:'month',floor:'month',trend:'month',applied:'month',
+ line:'line',rise:'line',ropGap:'line',ropThin:'line',month:'month',floor:'month',trend:'month',first:'month',applied:'month',
  over3y:'month',tier:'month',floorNR:'month',
  qual:'qual',stale:'qual',prof:'month',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
@@ -7077,7 +7079,7 @@ const SUBNAV={
    ['ropGap','ROP קצר מזמן האספקה'],['ropThin','ROP נמוך מהמומלץ']],
  month:[['month','מספר לתקן ב-SAP'],['over3y','מעל מכירות 3 שנים'],['tier','מינימום לפי מחיר'],
    ['floor','מלאי ביטחון ידני'],['floorNR','מינימום בלי דרישה'],
-   ['trend','ביקוש יורד'],['applied','יושמו ב-SAP'],
+   ['trend','ביקוש יורד'],['first','צריכה ראשונה'],['applied','יושמו ב-SAP'],
    /* UX6 — בקרה תקופתית (בערך פעם בחודש), בקבוצה נפרדת בתחום התכנון. היה תחת «איכות נתונים». */
    ['@','בקרה תקופתית'],['prof','שינוי פרופיל MRP']],
  qual:[['qual','נתון שבור ב-SAP'],['stale','אספקות שתאריכן עבר']],
@@ -7105,6 +7107,7 @@ const NAV_WHAT={
  floorNR:'רצפה בלי דרישה סטטיסטית להשוות אליה — יש רצפה, ואין למה למדוד אותה',
 
  trend:'הביקוש ירד בתוך חלון הקצב',
+ first:'פריט שלא נצרך מעולם ועכשיו נצרך לראשונה — לבדוק אם להגדיר לו תכנון',
  rise:'הביקוש עלה ונקודת ההזמנה מפגרת',
  applied:'מה מההמלצות הקודמות יושם ב-SAP',
  done:'פריטים שסימנת כטופלו',
@@ -7419,6 +7422,7 @@ function navCount(k){
  if(k==='floor'||k==='floorNR'){const r=floorPick(floorAll(),k);
   return {n:r.length,hot:hot(r)}}
  if(k==='trend'){const r=trendRows();return {n:r.length,hot:hot(r)}}
+ if(k==='first'){const r=firstRows();return {n:r.length,hot:0}}
  /* המונה הוא אורך הרשימה עצמה. קודם הוא היה סכום של שני מקורות
     בלי ניכוי חפיפה, והמסך הציג משהו אחר לגמרי. */
  if(k==='home'){const r=agendaRows();return {n:r.length,hot:r.filter(x=>x.sev===3).length}}
@@ -7480,6 +7484,8 @@ const MODESET={
  floor:{cur:'all',track:'floor'},floorNR:{cur:'all',track:'floor'},
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
+ /* FIRST_FULL — צריכה ראשונה, כמו בתצוגת 4 הנושאים: כל הפריטים, לא תור עבודה */
+ first:{cur:'all',track:'first'},
  /* לקוח ממתין — חוצה סיווג, ולכן כל הפריטים ולא תור עבודה */
  cust:{cur:'all',track:'cust'},
  /* הדלי הבוער: הזמנת לקוח שהמלאי אינו מכסה, ואין מולה שום רכש */
@@ -9292,6 +9298,10 @@ function currentRows(){
  if(track==='trend'){const by=trendRows().filter(passColFilters)
    .sort((a,b)=>trendGap(b)*(b.price||0)-trendGap(a)*(a.price||0));
    return sortCol==='sev'?by:sortRowsBy(by)}
+ /* FIRST_FULL — הצריכה הגדולה קודם (החודש המלא האחרון והנוכחי יחד) */
+ if(track==='first'){const by=firstRows().filter(passColFilters)
+   .sort((a,b)=>(firstM0(b)+firstCm(b))-(firstM0(a)+firstCm(a))||String(a.pn).localeCompare(String(b.pn)));
+   return sortCol==='sev'?by:sortRowsBy(by)}
  /* ממוין לפי הפער ביחידות ולא לפי שוויו: כאן המספר הוא סיכון מדף,
     לא הון שמשתחרר, והיחידות הן מה שקובע אם תיגמר הסחורה. */
  /* ROP_BRIDGE — הגרוע ביותר קודם: מי שיישאר יבש הכי הרבה זמן */
@@ -9736,6 +9746,13 @@ function floorTotals(rows){const cur={};let units=0;
 function trendPct(r){return r.tRatio==null?null:Math.round((r.tRatio-1)*100)}
 function trendGap(r){return (!r.isOD&&r.trendF<1&&r.sugROP>r.sugROPT)?r.sugROP-r.sugROPT:0}
 function trendRows(){return (QF&&QF.all?QF.all:[]).filter(r=>trendGap(r)>0)}
+/* ============ FIRST_FULL — «צריכה ראשונה» בכלי המלא (החלטת המעתד 20.11, כמו בתצוגת 4 הנושאים) ============
+   אותו כלל בדיוק (tpFirst): פריט שלא נצרך מעולם — לא ב-11 החודשים ולא ב-3 השנים שבדוח —
+   ויש לו עכשיו צריכה ראשונה, בחודש המלא האחרון או בחודש הנוכחי. כולם, בלי סינון: המטרה
+   היא המשכיות — לבדוק אם להגדיר לפריט תכנון. דלת ב«תכנון ו-MRP» ליד «ביקוש יורד» (בחירת
+   המעתד), ושורה בכרטיס. בלי חישוב חדש ובלי שינוי בסיווג, בתורים או בקובץ SAP. */
+const firstM0=r=>Math.max(0,+((r.months||[])[0])||0),firstCm=r=>Math.max(0,+r.curMonth||0);
+function firstRows(){return (QF&&QF.all?QF.all:[]).filter(tpFirst)}
 /* הצד העולה — ראה RISE_ASYM. הפער הוא כמה יחידות נקודת ההזמנה מפגרת
    אחרי הביקוש שנמדד, ולא כמה להזמין. */
 function risePct(r){return r.tRatio==null?null:Math.round((r.tRatio-1)*100)}
@@ -10394,6 +10411,12 @@ const SCOL={
   cell:r=>`<td>${esc(r.abc||'—')}</td>`},
  mrp:{t:'MRP',val:r=>String(r.mrp||''),ttl:'סוג ה-MRP מה-SAP',
   cell:r=>`<td>${esc(r.mrp||'—')}</td>`},
+ /* FIRST_FULL — שתי עמודות הכמות של «צריכה ראשונה». noX: לאקסל של הכלי המלא לא נוספות
+    עמודות (החלטת המעתד 1.11); המספרים בכרטיס ובמסך */
+ fM0:{t:'חודש מלא אחרון',noX:1,ttl:'הצריכה בחודש המלא האחרון שבדוח',
+  val:firstM0,cell:r=>`<td class="num">${firstM0(r)?`<b>${firstM0(r).toLocaleString('he-IL')}</b>`:'—'}</td>`},
+ fCm:{t:'החודש הנוכחי',noX:1,ttl:'הצריכה בחודש הנוכחי — חלקי, עד תאריך הדוח',
+  val:firstCm,cell:r=>`<td class="num">${firstCm(r)?`<b>${firstCm(r).toLocaleString('he-IL')}</b>`:'—'}</td>`},
  /* ============ עמודות הקטלוג ============
     עשר עמודות שהיו כתובות ישירות בתוך המרנדר הגנרי — המסך שמשרת
     את «קטלוג פריטים» ואת כל דליי הסיווג. הן מקבלות מפתחות משלהן
@@ -10454,6 +10477,8 @@ const SCOL_DEF={
  fix:['sel','pn','model','desc','rop','ss','need','lt','fix'],
  floor:['pnPlain','model','desc','ssMin','need','fgap','fval','eta','d12'],
  trend:['pnPlain','model','desc','tpct','trate','trop','tgap','tval','eta'],
+ /* FIRST_FULL — כמה נצרך ומתי, מה יש ומה בדרך, ואיך הפריט מוגדר היום ב-SAP */
+ first:['pnPlain','model','desc','fM0','fCm','free','poPlain','mrp','cat'],
  rise:['pnPlain','model','desc','upct','urate','urop','ugap','eta','freeRop'],
  /* ROP_BRIDGE — השאלה בשורה: כמה נמכר בזמן האספקה, מה ה-ROP, וכמה
     זמן תהיה יבש. «מדף» ו«בדרך» כי הם קובעים אם זה דחוף עכשיו. */
@@ -10512,7 +10537,7 @@ function colChoices(v){const d=SCOL_DEF[v]||[];
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */
-const REGTRACK=new Set(['floor','trend','rise','cust','applied','done','agenda','qual','stale','ropb','prof']);
+const REGTRACK=new Set(['floor','trend','first','rise','cust','applied','done','agenda','qual','stale','ropb','prof']);
 function colViewKey(){
  /* טבלת התנועות ראשונה: היא חולקת track עם מסכים אחרים, ובדיקת
     «קטלוג» שלמטה חטפה אותה והחזירה 'catalog' — כלומר בלי רישום,
@@ -11179,6 +11204,9 @@ function renderDecisions(rows){
         :'אין פריט שנקודת ההזמנה שלו נמוכה מהביקוש בזמן האספקה — כל נקודת הזמנה מגשרת.')
      :track==='rise'?'אין פריט שבו הביקוש עלה מספיק כדי שנקודת ההזמנה תפגר אחריו — או שהרבעון הקודם דק מכדי למדוד עלייה.'
      :track==='trend'?'אין פריט שבו הביקוש ירד בתוך חלון הקצב — הממוצע השטוח מייצג את הרמה הנוכחית.'
+     :track==='first'?((QF&&QF.all||[]).some(r=>r.has3y)
+        ?'אין פריט שנצרך עכשיו לראשונה — לכל פריט שנצרך יש צריכה קודמת בדוח.'
+        :'בדוח אין עמודות 3 השנים, ולכן אי אפשר לומר על פריט שלא נצרך מעולם.')
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
      :track==='prof'?'אין פריט שהפרופיל שלו שונה ממה שתדירות הצריכה מצדיקה.'
      :track==='stale'?(ETA?'אף שורה בדוח ה-ETA אינה נושאת תאריך שכבר עבר — הדוח נקי.':'לא נטען דוח ETA, ולכן אין תאריכי הגעה לבדוק.')
@@ -11201,7 +11229,8 @@ function renderDecisions(rows){
    extra=` · בנוסף ${moneyMix(yg,r=>r.price*r.stock)} ב-${yg.length.toLocaleString('he-IL')} פריטים שטרם הוכיחו את עצמם — לא נספרים לפי מדיניות 3 השנים`}}
  const m1dry=track==='m1'?rows.filter(r=>r.free<=0).length:0;
  /* כל ענף שמסתיים בסכום מקבל את הסייג. «done» ו«fix» אינם כספיים. */
- const npx=(track==='done'||FIXLIKE())?'':noPriceTxt(rows);
+ /* FIRST_FULL — «צריכה ראשונה» אינה רשימה כספית, ולכן גם בלי סייג «בלי מחיר» */
+ const npx=(track==='done'||track==='first'||FIXLIKE())?'':noPriceTxt(rows);
  /* «רכש בדרך לעודף» — המספר שמכריע הוא הכמות שעוד לא נכנסה.
     `po` הוא הרכש הפתוח כפי שהדוח מדווח אותו, בלי תאריך הגעה
     ובלי להניח אחד. */
@@ -11227,6 +11256,8 @@ function renderDecisions(rows){
    ?(()=>{const inc=trendIncoming(rows);
       return `${trendTotals(rows).units.toLocaleString('he-IL')} יח׳ פחות בנקודת ההזמנה · ${moneyMix(rows,r=>trendGap(r)*(r.price||0))}`
        +(inc.n?` · ומעבר לזה: ${inc.n.toLocaleString('he-IL')} פריטים · ${inc.units.toLocaleString('he-IL')} יח׳ · ${moneyMix(inc.list,r=>r.etaQty*(r.price||0))} כבר בדרך לתוך הביקוש היורד`:'')})()
+   :track==='first'
+   ?`${rows.reduce((a,r)=>a+firstM0(r),0).toLocaleString('he-IL')} יח׳ בחודש המלא האחרון · ${rows.reduce((a,r)=>a+firstCm(r),0).toLocaleString('he-IL')} יח׳ בחודש הנוכחי · ${rows.filter(r=>r.po>0).length.toLocaleString('he-IL')} עם רכש פתוח`
    :track==='prof'
    ?(()=>{const c={};for(const r of rows){const st=profInfo(r).state;c[st]=(c[st]||0)+1}
       const off=profExclRows().length;
@@ -11258,6 +11289,8 @@ function renderDecisions(rows){
   ?(mode==='floorNR'
    ?'לפריטים האלה אין דרישה סטטיסטית להשוות אליה — אין קצב מדיד, או שהקצב קטן מכדי לייצר דרישה בזמן האספקה — ולכן אפשר לומר שיש רצפה, לא שהיא גבוהה מדי · ההחלטה כאן היא מדיניות (להחזיק או לא), ולא מספר · ממוין לפי שווי הרצפה'
    :'רצפת מלאי הביטחון שהגדרת ב-SAP גבוהה מהדרישה הסטטיסטית — ממוין לפי שווי הפער · עמודת ההגעה כאן היא הקשר בלבד: תאריך משלוח אינו משנה אם הרצפה גבוהה מדי')
+  :track==='first'
+  ?'פריט שלא נצרך מעולם — לא ב-11 החודשים ולא ב-3 השנים שבדוח — ועכשיו נצרך לראשונה, בחודש המלא האחרון או בחודש הנוכחי · לבדוק אם להגדיר לו תכנון · ממוין לפי הצריכה'
   :track==='trend'
   ?'הביקוש ירד בתוך ששת החודשים שמהם נגזר הקצב · ההמלצה לא שונתה אוטומטית · עמודת ההגעה אומרת מה כבר בדרך לתוך הירידה — תחזית עודף, לא בקשה לבטל'
   :track==='rise'
@@ -11363,6 +11396,9 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
    renderDecisions(rows);return}
  if(track==='trend'){const tk2=document.getElementById('track');
    if(tk2){tk2.innerHTML='';tk2.style.display='none'}
+   renderDecisions(rows);return}
+ if(track==='first'){const tkF=document.getElementById('track');
+   if(tkF){tkF.innerHTML='';tkF.style.display='none'}
    renderDecisions(rows);return}
  if(track==='rise'){const tkR=document.getElementById('track');
    if(tkR){tkR.innerHTML='';tkR.style.display='none'}
@@ -11936,6 +11972,9 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
  const notes=[];
  if(A.spikes.length)notes.push(`<span class="anom s">▲ ${A.spikes.map(s=>`פיק ב${LABELS[s.i-1].name}: ${s.q} יח׳ — פי ${s.x} מהחציון`).join(' · ')}</span>`);
  if(A.drops.length)notes.push(`<span class="anom d">▼ ${A.drops.map(s=>`צניחה ב${LABELS[s.i-1].name}: ${s.q} יח׳ — חשד אזילה`).join(' · ')}</span>`);
+ /* FIRST_FULL — אותו משפט כמו בכרטיס של 4 הנושאים, ואותה פעולה */
+ if(tpFirst(r)){const m0=firstM0(r),cm=firstCm(r),N=n=>n.toLocaleString('he-IL');
+  notes.push(`<span class="anom f">✦ צריכה ראשונה: ${[m0?`${N(m0)} יח׳ בחודש המלא האחרון`:'',cm?`${N(cm)} יח׳ בחודש הנוכחי`:''].filter(Boolean).join(' ו-')}. לא נרשמה צריכה קודמת — לא ב-11 החודשים ולא ב-3 השנים שבדוח. לבדוק אם להגדיר תכנון לפריט.</span>`)}
  const anomHTML=notes.length?`<div class="anoms">${notes.join('')}</div>`:'';
  const isDone=r.mark&&r.mark.t==='handled';
  document.getElementById('detail').innerHTML=`
@@ -13842,6 +13881,9 @@ const XP={
  'nav-cust':{t:'כיסוי חלקי',
   see:'הזמנת לקוח פתוחה שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים. זה חוצה את כל הסיווגים — פריט יכול להיות «תקין» לפי כל מדד ועדיין להיות כאן. קודם ההגדרה הייתה «מלאי פנוי אפס בדיוק», והיא החמיצה כל פריט שנשארה עליו יחידה אחת מול עשרים שהוזמנו.',
   chk:'הקבוצה העליונה, «אין רכש», היא אותה רשימה שיושבת בדלת «אין רכש כלל» בתוך «חוסרים ולקוחות» — שם לא הוזמנה אף יחידה. השאר מקובצים לפי ספק, והכותרת של כל ספק אומרת לכמה מהם יש תאריך אספקה בדוח ה-ETA ולכמה צריך לדרוש אחד.'},
+ 'nav-first':{t:'צריכה ראשונה',
+  see:'פריטים שלא נצרכו מעולם — לא ב-11 החודשים ולא ב-3 השנים שבדוח — ועכשיו נצרכו לראשונה, בחודש המלא האחרון או בחודש הנוכחי. אותו כלל כמו בתצוגת 4 הנושאים.',
+  chk:'זו שאלה של המשכיות: האם הפריט הזה יחזור? אם כן — לבדוק אם להגדיר לו תכנון (סוג MRP, נקודת הזמנה). אם זו הזמנה חד-פעמית — אין מה לשנות.'},
  'nav-rise':{t:'ביקוש עולה',
   see:'פריטים שהביקוש שלהם עלה בתוך חלון הקצב, ונקודת ההזמנה ב-SAP מפגרת אחריו. המספר מייעץ בלבד — הכלי אינו מרים את ההמלצה לבד.',
   chk:'פתח את הפריט וראה בגרף אם העלייה נמשכת או שזה חודש אחד. אם היא נמשכת, זו נקודת הזמנה שצריך להעלות לפני שהיא מייצרת חוסר.'},

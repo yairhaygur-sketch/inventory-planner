@@ -2,7 +2,7 @@
    לפני ההורדה מוצג כמה פריטים ייכללו, כמה לא, ולמה. הבדיקה הזאת
    מוודאה שאין פער בין מה שמוצג למה שיוצא:
 
-     · בכל אחד מ-26 המסכים, לשני הקבצים (עדכון ל-SAP · מלאי איטי):
+     · בכל אחד מ-27 המסכים, לשני הקבצים (עדכון ל-SAP · מלאי איטי):
          «ייכללו» = מספר השורות בקובץ ש-doSapMass כותב בפועל
          «ייכללו» + «לא ייכללו» = כל הפריטים בתצוגה
          אין אף פריט בסיבה «לא מזוהה» — כל פסילה מוסברת
@@ -47,7 +47,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      sumWhy:Object.values(P.why).reduce((a,b)=>a+b,0),other:P.why.other||0,view:view.length})}}
   return res});
  const screens=new Set(R.map(r=>r.m)).size;
- ok('נבדקו כל 26 המסכים, שני הקבצים בכל אחד',screens===26&&R.length===52,`${screens} מסכים · ${R.length} מקרים`);
+ ok('נבדקו כל 27 המסכים, שני הקבצים בכל אחד',screens===27&&R.length===54,`${screens} מסכים · ${R.length} מקרים`);
  const thr=R.filter(r=>r.throws);
  ok('מסך שאינו רשימת פריטים: אין קובץ SAP, ואין שגיאה',thr.every(r=>r.both),thr.map(r=>r.m+'/'+r.kind).join(', ')||'אין');
  const RR=R.filter(r=>!r.throws);
