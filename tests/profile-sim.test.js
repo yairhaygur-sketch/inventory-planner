@@ -130,23 +130,23 @@ const SNAP=()=>{
   ok(`${pn} — מוחרג, ולכן ROP=0 ו-SS=0`,sp[pn].sim.rop===0&&sp[pn].sim.ss===0);
  ok('PF-LOWCHEAP — רצפת מדרגה A: SS=3, ROP=3',sp['PF-LOWCHEAP'].sim.ss===3&&sp['PF-LOWCHEAP'].sim.rop===3,`${sp['PF-LOWCHEAP'].sim.ss}/${sp['PF-LOWCHEAP'].sim.rop}`);
  /* SS_STAT (19.11): פריט עם צריכה — מלאי הביטחון סטטיסטי, רצפת ssMin=7 מ-SAP אינה קובעת.
-    3–4 יח׳ בחודש, LT 62 ימים: σ≈0.39 → 0.39·√2.07≈0.56; סיכון ספק 3.17·5%·2.07≈0.33
-    (LTV_5, 19.11; ב-10%: 0.66); ⌈0.84·√(0.56²+0.33²)⌉ = 1 (לפני: 7, «רצפת SAP נשמרת») */
+    3–4 יח׳ בחודש, LT 62 ימים: σ≈0.39 → 0.39·√2.07≈0.56; סיכון ספק 3.17·10%·2.07≈0.66
+    (LTV_10, 19.11; ב-5%: 0.33); ⌈0.84·√(0.56²+0.66²)⌉ = 1 (לפני: 7, «רצפת SAP נשמרת») */
  {const x=sp['PF-SSMIN7'].sim,mu=[3,3,3,4,3,3,3,4,3,3,3],m=mu.reduce((a,b)=>a+b,0)/11,
    sdm=Math.sqrt(mu.reduce((a,b)=>a+(b-m)**2,0)/10),r6=mu.slice(0,6).reduce((a,b)=>a+b,0)/6,L=62/30,
-   want=Math.ceil(0.84*Math.sqrt(sdm*sdm*L+(r6*0.05*L)**2));
+   want=Math.ceil(0.84*Math.sqrt(sdm*sdm*L+(r6*0.10*L)**2));
   ok('PF-SSMIN7 — פריט עם צריכה: SS סטטיסטי (1), רצפת SAP (7) אינה קובעת',x.ss===want&&want===1&&x.ssSrc==='stat',`${x.ss} ${x.ssSrc} · אורקל ${want}`)}
  ok('PF-ROP1 — נוכחות מינימלית: ROP=1, SS=0',sp['PF-ROP1'].sim.rop===1&&sp['PF-ROP1'].sim.ss===0);
- ok('PF-FLAT — σ=0, ולכן SS הוא סיכון הספק בלבד: ⌈0.84 × 1 × 5% × LT⌉ = 1',sp['PF-FLAT'].sim.ss===Math.ceil(0.84*1*0.05*(62/30))&&sp['PF-FLAT'].sim.ss===1,`${sp['PF-FLAT'].sim.rop}/${sp['PF-FLAT'].sim.ss}`);
+ ok('PF-FLAT — σ=0, ולכן SS הוא סיכון הספק בלבד: ⌈0.84 × 1 × 10% × LT⌉ = 1',sp['PF-FLAT'].sim.ss===Math.ceil(0.84*1*0.10*(62/30))&&sp['PF-FLAT'].sim.ss===1,`${sp['PF-FLAT'].sim.rop}/${sp['PF-FLAT'].sim.ss}`);
  ok('PF-HIST — בלי צריכה ב-11 חודשים: אין סיכון ספק, ROP≥2 ו-SS=0',sp['PF-HIST'].sim.rop>=2&&sp['PF-HIST'].sim.ss===0,`${sp['PF-HIST'].sim.rop}/${sp['PF-HIST'].sim.ss}`);
  ok('כל הסימולציות על רמת שירות 80 ו-z=0.84',Object.values(sp).filter(x=>x&&x.sim).every(x=>x.sim.srv===80&&x.sim.z===0.84));
 
  /* ---- 3. אורקל ידני: הנוסחה מחושבת כאן, לא רק משווים את הקוד לעצמו ---- */
  const reg=sp['PF-REG'].sim,ltM=62/30,mu=REG.reduce((a,b)=>a+b,0)/11;
  const sd=Math.sqrt(REG.reduce((a,b)=>a+(b-mu)**2,0)/10),rate=REG.slice(0,6).reduce((a,b)=>a+b,0)/6;
- /* SS_LTVAR: Z בתוקף 95% כשהקצב ≥5 (כאן כ-6), וסיכון הספק ב-5% מזמן האספקה
-    (LTV_5, 19.11; עד אז 10% ב-Z004 — אז יצא 4/17, היום 3/16) */
- const zE=rate>=5?1.65:0.84,ssX=Math.ceil(zE*Math.sqrt(sd*sd*ltM+(rate*0.05*ltM)**2)),ropX=Math.ceil(rate*ltM+ssX);
+ /* SS_LTVAR: Z בתוקף 95% כשהקצב ≥5 (כאן כ-6), וסיכון הספק ב-10% מזמן האספקה
+    (LTV_10, 19.11 — יוצא 4/17; ב-5% של #186 יצא 3/16) */
+ const zE=rate>=5?1.65:0.84,ssX=Math.ceil(zE*Math.sqrt(sd*sd*ltM+(rate*0.10*ltM)**2)),ropX=Math.ceil(rate*ltM+ssX);
  ok('PF-REG — SS = ⌈Z·√(LT·σ² + (קצב·p·LT)²)⌉ ו-ROP = ⌈קצב·LT + SS⌉, מחושב ידנית',reg.ss===ssX&&reg.rop===ropX&&ssX>0,`${reg.ss}/${reg.rop} מול ${ssX}/${ropX}`);
  /* ואותו build() על אותה שורה, כשמשנים את שלושת התאים ביד */
  const same=await p.evaluate(()=>{const m=mapCols(ALL_RAW.hdr);const r0=Object.assign({},ROWS),d0=DIAG;
