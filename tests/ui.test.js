@@ -274,11 +274,14 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('פילטר "דגם" קיים בסרגל',f.keys.includes('model')&&f.labels.includes('דגם'),f.labels.join(' · '));
  ok('ולפילטר הדגם יש ערכים אמיתיים',f.modelOpts>1,f.modelOpts+' דגמים');
  // חותמת הגרסה — הדרך היחידה לדעת איזו גרסה הדפדפן מגיש
+ /* BRAND (21.11): שורת המותג מתחת לשם הוסרה, והחותמת עברה לתפריט «עזרה ועוד».
+    נבדק: היא שם, בפורמט, וגלויה כשהתפריט פתוח; הכותרת נשארת בשורה אחת. */
  const bld=await p.evaluate(()=>{const e=document.getElementById('bld');
-   const b=e.getBoundingClientRect(),hd=document.querySelector('.top').getBoundingClientRect();
-   return {txt:e.textContent,over:b.right>hd.right+1||b.left<hd.left-1,h:hd.height}});
- ok('חותמת גרסה מוצגת בכותרת',/^\d{2}\.\d{2} \d{2}:\d{2}$/.test(bld.txt),bld.txt);
- ok('החותמת אינה חורגת משורת הכותרת',!bld.over&&bld.h<=60,`גובה ${bld.h}`);
+   const hd=document.querySelector('.top').getBoundingClientRect();
+   const m=e&&e.closest('.menu');
+   return {txt:e?e.textContent:'',inMenu:!!m,brand:(document.querySelector('.brand .nm')||{}).textContent||'',h:hd.height}});
+ ok('חותמת גרסה קיימת, בתפריט «עזרה ועוד»',bld.inMenu&&/^\d{2}\.\d{2} \d{2}:\d{2}$/.test(bld.txt),bld.txt);
+ ok('שורת המותג הוסרה — רק «Inventory Planner», והכותרת בשורה אחת',bld.brand.trim()==='Inventory Planner'&&bld.h<=60,`«${bld.brand}» · גובה ${bld.h}`);
  /* ============ ROW_AUDIT · המשוואה על המסך ============
     «הכלי לא יודע לקרוא יותר מ-7,594 פריטים» — מה שחסר אז לא
     היה הנתון אלא הדיווח: המשוואה הייתה ב-`title` בלבד. שתי

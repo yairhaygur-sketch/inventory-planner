@@ -76,5 +76,8 @@ const OLD=['מרכז עבודה','רכש ואספקות','תכנון ו-MRP','א
   for(const b of document.querySelectorAll('#tabs .navtab .bdg, #railsub .railsub2 .bdg')){const k=b.closest('[data-nav]').dataset.nav;o[k]=+b.dataset.count}}return o});
  const mism=T.counts.filter(([k,n])=>shown[k]!==undefined&&shown[k]!==n);
  ok('כל מונה במסילה = navCount של אותה דלת',!mism.length&&Object.keys(shown).length>=20,mism.map(x=>x.join('=')).join(',')||Object.keys(shown).length);
+ /* 21.11: הדלת בעודף אינה «ללא פעולה» — זה שם סיווג של המנוע שמופיע באותה טבלה */
+ const cn=await p.evaluate(()=>{setMode('cap');const e=document.querySelector('#railsub [data-nav="capNone"] .t');return e?e.textContent:''});
+ ok('«אין פרמטר לשנות» — ולא «ללא פעולה», שהוא שם סיווג',cn==='אין פרמטר לשנות',cn);
  ok('0 שגיאות JS',!errs.length,errs.join('|'));
  await b.close();console.log(out.join('\n'));console.log(`\n${out.length-bad}/${out.length}`);process.exit(bad?1:0)})();

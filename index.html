@@ -97,6 +97,8 @@ body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f
 .menu{display:none;position:absolute;top:38px;inset-inline-start:0;z-index:80;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadowH);padding:8px;width:210px}
 .menu.open{display:block}
 .menu .mi{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 8px;border-radius:7px;cursor:pointer}
+/* BRAND — שורת הגרסה בתפריט העזרה: מידע, לא פעולה */
+.menu .mi.ver{cursor:default;color:var(--dim);font-size:12px}
 /* כפתור שנראה כפריט תפריט — אותו מראה, אבל מגיעים אליו במקלדת */
 .menu button.mi{width:100%;border:0;background:none;font-family:inherit;font-size:12.5px;
  text-align:start;color:inherit}
@@ -3597,7 +3599,7 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
      דק שמציע להציג אותו. ?nobrief=1 מדלג עליו לגמרי (הבדיקות משתמשות
      בזה, ויש בדיקה ייעודית שטוענת *בלי* הפרמטר ובודקת את המספרים). -->
 <div class="top">
-  <div class="brand"><div class="mk">מ</div><div class="nm"><b>Inventory Planner</b><span>תכנון מלאי חלפים · ZT ולינק אנד קו <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></span></div></div>
+  <div class="brand"><div class="mk">מ</div><div class="nm"><b>Inventory Planner</b></div></div>
 <div class="fgroup qwrap" id="qwrap">
     <label class="tl" for="q">חיפוש מהיר<span class="qkbd" title="קיצור מקלדת">/</span></label>
     <div class="qbox" id="qbox">
@@ -3643,6 +3645,9 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="topicsOpen" title="תכנון מלאי — 4 נושאים: טיוב נתוני תכנון · חריגת צריכה · הזמנות לקוח ללא כיסוי · מלאי 0 או צפוי להיגמר. נפתח בלשונית חדשה, על אותו מנוע — מעלים בה את הדוח שוב"><span aria-hidden="true">◫</span><span class="lbl"> תכנון מלאי — 4 נושאים ↗</span></button></div>
         <div class="msec" role="presentation">הגדרות</div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="darkToggle" title="החלפת ערכת צבעים"><span aria-hidden="true">🌙</span><span class="lbl"> מצב כהה</span></button></div>
+        <!-- BRAND (21.11): שורת המותג מתחת לשם הוסרה — הכלי משמש גם אחרים. חותמת הגרסה,
+             הדרך היחידה לדעת איזו גרסה הדפדפן מגיש, עברה לכאן. -->
+        <div class="mi ver" role="none">גרסה <span class="bld" id="bld" title="גרסת הקוד שהדפדפן טוען כרגע. אם היא לא מתעדכנת אחרי מיזוג — רענון קשיח: Ctrl+Shift+R">—</span></div>
         <div class="mi act" role="none"><button class="btn" role="menuitem" id="stBtn" title="גיבוי והעברה של הסימונים והזיכרון — מה שהחלטת, לא איך המסך נראה"><span aria-hidden="true">⇅</span><span class="lbl"> גיבוי והעברה</span></button></div>
       </div></div>
     <button class="btn" id="xpBtn" aria-pressed="false" aria-label="מצב הסבר" hidden title="מצב הסבר">?</button>
@@ -7135,7 +7140,8 @@ const SUBNAV={
    ['floorNR','ביטחון מינימלי ללא ביקוש','מלאי ביטחון מינימלי (SS) ללא ביקוש מדיד'],
    ['rise','ביקוש עולה'],['trend','ביקוש יורד'],['first','צריכה ראשונה'],['prof','שינוי סוג MRP']],
  cap:[['cap','כל המלאי העודף'],['capPO','ביטול/דחיית רכש','ביטול או דחיית הזמנות רכש'],['capStop','הקטנת נקודת הזמנה'],
-   ['capBiz','מימוש מלאי'],['capNone','ללא פעולה']],
+   /* «אין פרמטר לשנות» ולא «ללא פעולה»: זה שם סיווג של המנוע, שמופיע באותה טבלה (21.11) */
+   ['capBiz','מימוש מלאי'],['capNone','אין פרמטר לשנות']],
  catalog:[['catalog','כל הפריטים'],['moves','תנועות אחרונות']],
  applied:[['applied','יושמו ב-SAP'],['done','טופלו']]};
 /* ============ מה כל מסלול הוא ============
@@ -9683,7 +9689,7 @@ const XDOORS=[['today','חוסרים והזמנות לקוח'],['burn','ללא �
  ['floor','מלאי ביטחון מינימלי מעל הצורך'],['floorNR','מלאי ביטחון מינימלי ללא ביקוש מדיד'],['trend','ביקוש יורד'],
  ['qual','נתוני אב חסרים'],['stale','הזמנות רכש באיחור'],
  ['capPO','ביטול או דחיית הזמנות רכש'],['capStop','הקטנת נקודת הזמנה'],
- ['capBiz','מימוש מלאי'],['capNone','ללא פעולה']];
+ ['capBiz','מימוש מלאי'],['capNone','אין פרמטר לשנות']];
 const XNAME=Object.fromEntries(XDOORS);
 let XMAP=null;
 function xRows(k){try{
@@ -9781,7 +9787,7 @@ const CAP_DOORS={
  capPO:['ביטול או דחיית הזמנות רכש','רכש פתוח שימשיך להיכנס למלאי שכבר עודף — הידית היחידה שיש לה ספק, כמות ותאריך · ממוין לפי הכסף התקוע בתוך כל מטבע'],
  capStop:['הקטנת נקודת הזמנה','נקודת ההזמנה חיה והמנוע עצמו מציע מספר נמוך ממנה — זו החלטת פרמטר של המעתד, והיא זו שעוצרת את ההזמנה הבאה'],
  capBiz:['מימוש מלאי','מלאי מת שה-ROP שלו כבר כבוי, או שיש בו התנגשות מדיניות — אין פרמטר לשנות. מה שנותר הוא חיסול, החזרה לספק, קמפיין או הכרעת מדיניות, ואלה אינם של המעתד'],
- capNone:['ללא פעולה','מלאי עודף שאין מולו שום מספר להציע — ROP כבר כבוי, המנוע ממליץ לא להקטין, או שחסר זמן אספקה ב-SAP. מוצג כדי שלא יתחפש לרשימת עבודה בתוך הדלת הכוללת']};
+ capNone:['אין פרמטר לשנות','מלאי עודף שאין מולו שום מספר להציע — ROP כבר כבוי, המנוע ממליץ לא להקטין, או שחסר זמן אספקה ב-SAP. מוצג כדי שלא יתחפש לרשימת עבודה בתוך הדלת הכוללת']};
 function capAct(r){
  /* הסדר הוא סדר הדחיפות, ולכן הוא גם מה שהופך את זה לחלוקה ולא
     לארבעה מסננים חופפים: רכש בדרך קודם לכל — הוא הכסף היחיד שעוד
