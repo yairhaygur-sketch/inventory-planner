@@ -860,18 +860,23 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* בדיקות קודמות בקובץ מסמנות פריטים — מתחילים מלוח נקי */
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.evaluate(()=>setMode('today'));await p.waitForTimeout(600);
- const dTab=()=>navSeen('done');
+ /* TERMS (21.11): «טופלו» עבר מ«חוסרים ולקוחות» ל«בקרת יישום». הדלת נקראת
+    מהמסילה של התחום שלה, והעבודה (הסימון) נשארת בתור החוסרים. */
+ const inDone=async f=>{await p.evaluate(()=>setMode('applied'));await p.waitForTimeout(300);
+  const v=await f();await p.evaluate(()=>setMode('today'));await p.waitForTimeout(300);return v};
+ const dTab=()=>inDone(()=>navSeen('done'));
+ const dBdg=()=>inDone(()=>navBdg('done'));
  /* היה: «בלי סימונים הטאב אינו קיים». הכלל הוחלף בהחלטת המתכנן —
     «היעדים אינם נעלמים כשהמונה אפס». דלת שנעלמת מסתירה מהמעתד
     שהיכולת קיימת, וזו בדיוק הסיבה שהמסלול הזה נבנה מלכתחילה. */
  ok('בלי סימונים דלת «טופלו» קיימת עם מונה אפס',
-    (await dTab())&&'0'===(await navBdg('done')),'מונה '+(await navBdg('done')));
+    (await dTab())&&'0'===(await dBdg()),'מונה '+(await dBdg()));
  const n0=await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length);
  for(let k=0;k<3;k++){
   await p.evaluate(()=>document.querySelector('#tbl tbody tr[data-i] .dn[data-done]').click());
   await p.waitForTimeout(400)}
  ok('אחרי סימון הדלת עדיין שם',await dTab());
- ok('תג הדלת מציג את המספר הנכון','3'===await navBdg('done'),'מונה '+(await navBdg('done')));
+ ok('תג הדלת מציג את המספר הנכון','3'===await dBdg(),'מונה '+(await dBdg()));
  ok('הפריטים ירדו מתור העבודה',
    (await p.evaluate(()=>document.querySelectorAll('#tbl tbody tr[data-i]').length))===n0-3);
  await navTo('done');await p.waitForTimeout(600);
@@ -896,7 +901,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.evaluate(()=>{Object.keys(MARKS).forEach(k=>delete MARKS[k]);saveMarks();apply()});
  await p.waitForTimeout(600);
  ok('ניקוי הסימונים מחזיר את המונה לאפס, והדלת נשארת',
-    (await dTab())&&'0'===(await navBdg('done')),'מונה '+(await navBdg('done')));
+    (await dTab())&&'0'===(await dBdg()),'מונה '+(await dBdg()));
 
  /* ============ מלאי · בדרך · לקוח ממתין ============
     שלוש העמודות שמכריעות אם לפתוח הזמנה. "בדרך" מעומעם בכוונה:
@@ -1256,10 +1261,12 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  /* «איכות נתונים» נוסף כתחום שביעי: 249 פריטים שהגיעו עד היום
     דרך «תכנון ו-MRP» (870) ומעורבבים בעבודת תכנון רגילה, בזמן
     שפרמטר שגוי ב-SAP מרעיל כל המלצה שנגזרת ממנו. */
- const AREAN=['מרכז עבודה','חוסרים ולקוחות','רכש ואספקות','תכנון ו-MRP',
-              'איכות נתונים','בריאות המלאי','קטלוג פריטים'];
- ok('המסילה נושאת את שבעת שמות התחומים שנקבעו',
-    ux.tabNames.length===7&&AREAN.every((n,i)=>ux.tabNames[i]===n),
+ /* TERMS (21.11): מונחי רכש ותכנון חומרים, לפי הפעולה שבסוף, ו«בקרת יישום»
+    כתחום שמיני. אלה השמות הקצרים שבמסילה; השמות המלאים — terms.test. */
+ const AREAN=['חריגים לטיפול','חוסרים ולקוחות','מעקב רכש','פרמטרי תכנון',
+              'מלאי עודף ומת','נתוני אב חסרים','קטלוג פריטים','בקרת יישום'];
+ ok('המסילה נושאת את שמונת שמות התחומים שנקבעו',
+    ux.tabNames.length===8&&AREAN.every((n,i)=>ux.tabNames[i]===n),
     ux.tabNames.join(' | '));
  ok('ואין בשמות שם שנקרא כחלון זמן',
     !ux.tabNames.some(t=>/לטיפול היום|ציר הזמן|היום|החודש/.test(t)),
@@ -2241,8 +2248,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
       areas:tabs.length}});
   ok(`${vw}px · אין גלילה אופקית של הדף ואין חיתוך בסרגל העליון`,
     m.pageOv<=0&&m.topClip<=0,`דף ${m.pageOv}px · סרגל ${m.topClip}px`);
-  ok(`${vw}px · שבעה תחומים, ואף שם אינו נחתך`,
-    m.areas===7&&!m.clipped.length,m.clipped.join(' · ')||'—');
+  /* TERMS (21.11): שמונה תחומים */
+  ok(`${vw}px · שמונה תחומים, ואף שם אינו נחתך`,
+    m.areas===8&&!m.clipped.length,m.clipped.join(' · ')||'—');
   /* מתחת ל-1100 המסילה עוברת לרצועה אופקית: אותם תחומים, אותם
      מונים, בשורה שנגללת במקום בעמודה שגוזלת 38% מהרוחב. */
   ok(`${vw}px · המסילה בכיוון הנכון למסך הזה`,

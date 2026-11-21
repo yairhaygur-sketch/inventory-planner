@@ -56,10 +56,10 @@ const snap=p=>p.evaluate(()=>{
  return {main,sub,title,greet,qsub,scr,monthFile,monthSub,all:QF.all.length}});
 
 function invariants(tag,R){
- const g=R.greet.match(/([\d,]+) דורשים החלטה(?: · ([\d,]+) פריטים בכסף תקוע)?/)||[];
- ok(`${tag} · הברכה: «דורשים החלטה» = «מרכז עבודה», «פריטים בכסף תקוע» = «בריאות המלאי»`,
+ const g=R.greet.match(/([\d,]+) דורשים החלטה(?: · ([\d,]+) פריטים במלאי עודף)?/)||[];
+ ok(`${tag} · הברכה: «דורשים החלטה» = «חריגים לטיפול», «פריטים במלאי עודף» = «מלאי עודף, איטי תנועה ומת»`,
    !!g[0]&&gn(g[1])===R.main.home&&gn(g[2])===R.main.cap,`${R.greet.replace(/^.*?· /,'')} · מסילה ${R.main.home} / ${R.main.cap}`);
- const q=R.qsub.match(/([\d,]+) דורשים החלטה · ([\d,]+) פריטים בכסף תקוע/)||[];
+ const q=R.qsub.match(/([\d,]+) דורשים החלטה · ([\d,]+) פריטים במלאי עודף/)||[];
  ok(`${tag} · כותרת התור — אותם שני מספרים`,gn(q[1])===R.main.home&&gn(q[2])===R.main.cap);
  const all={...R.main,...R.sub};
  const b1=Object.entries(all).filter(([m,n])=>m!=='moves'&&m!=='prof'&&R.scr[m]&&R.scr[m].n!==n);
@@ -100,7 +100,8 @@ function invariants(tag,R){
  const fk=await p.evaluate(()=>{const k=FDEF[0][0];const c={};for(const r of ALL)c[r[k]]=(c[r[k]]||0)+1;
   const v=Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];SEL[k]=new Set([v]);apply();return {k,n:c[v]}});
  const R2=await snap(p);invariants('סינון',R2);
- ok('סינון · המונים באמת התעדכנו',R2.all===fk.n&&R2.all<R1.all&&R2.main.catalog===fk.n,`${R1.all} → ${R2.all}`);
+ /* TERMS: לקטלוג אין מונה במסילה — מה שהוא מציג נבדק במסך עצמו */
+ ok('סינון · המונים באמת התעדכנו',R2.all===fk.n&&R2.all<R1.all&&R2.scr.catalog.n===fk.n&&R2.main.catalog==null&&R2.sub.catalog===fk.n,`${R1.all} → ${R2.all}`);
  /* ---- 3. סינון שמרוקן הכול: אפס פריטים ---- */
  await p.evaluate(k=>{SEL[k]=new Set(['__אין_כזה__']);apply()},fk.k);
  const R3=await p.evaluate(()=>{const T=s=>(document.querySelector(s)||{}).textContent?.replace(/\s+/g,' ').trim()||'';
@@ -130,7 +131,7 @@ function invariants(tag,R){
   /* כל הטאבים, גם הסמויים: פריט עם המלצת פרמטר, כמו שההיכרות אומרת */
   const fx=QF.all.find(r=>r.paramFix);const det0=(document.getElementById('detail').textContent||'');
   if(fx)detail(fx);
-  const names={};for(const [k,n] of NAV)names[k]=n;for(const a in SUBNAV)for(const [k,n] of SUBNAV[a])if(!names[k])names[k]=n;
+  const names={};for(const [k,n] of NAV)names[k]=n;for(const a in SUBNAV)for(const [k,n,full] of SUBNAV[a])if(!names[k])names[k]=full||n;
   const nav=Object.entries(XP).filter(([k])=>k.startsWith('nav-')).map(([k,d])=>({k:k.slice(4),t:d.t,name:names[k.slice(4)]}));
   const det=(document.getElementById('detail').innerText||'');
   const tabs=Object.entries(XP).filter(([k])=>k.startsWith('dt-')).map(([k,d])=>({k,t:(d.t.match(/«(.+?)»/)||[])[1],
