@@ -819,6 +819,35 @@ Changes to these areas require explicit business approval.
     and declared in their own PR. The 57 items where the tool suggests raising
     ROP on stock it classifies as excess or slow are examined first.
 
+- **2026-11-21 · TERMS, stage 2: one parameter list equal to the SAP file,
+  supplier expediting in purchasing, and missing master data that is really
+  missing.** Screen membership and rail counts change; the engine (every item
+  field, every queue) and the SAP files are unchanged (business-guard on the
+  real report: items and queues identical; the parameter screen's SAP file is
+  the same 256 rows).
+  - **«המלצות לעדכון פרמטרים» = exactly the SAP mass-update file**
+    (`sapMassUsable`): 444 → 256 on the real report. The 180 delivery
+    follow-up items left it, and so did items that have no SAP row.
+  - **Reason filters instead of doors:** «ROP short of lead time», «ROP below
+    recommended», «ROP above recommended», «safety stock to update» and
+    «parameter above 3-year sales» are buttons above the list, each with its
+    count. The doors `ropGap`, `ropThin` and `over3y` were removed (their
+    dedicated screens, including the «months without stock» column of the
+    ROP-gap door, are gone by this decision).
+  - **«זירוז ספקים» (supplier expediting)** — a new door in purchase-order
+    follow-up: the engine's follow queue (customer waiting, shelf empty, a
+    purchase order covers it). 180 items on the real report. It uses the
+    shortage-screen columns and the expediting report.
+  - **«נתוני אב חסרים» shows only a missing lead time or service level:**
+    235 → 1 on the real report. Correction to stage 1: the engine's
+    «quality» queue held every ROP/SS gap (194) and «small difference» (40) —
+    those were never missing data; they stay in the parameter list.
+  - **Decided, not yet built:** an item classified as excess or slow stock
+    whose stock still covers more than 12 months above the suggested ROP gets
+    no «raise ROP» (57 items on the real report, 24 of them in the slow/dead
+    SAP file); the card says «fine for now — returns when stock falls». It
+    changes the SAP file and will come in its own PR.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
