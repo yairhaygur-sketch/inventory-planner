@@ -737,6 +737,26 @@ Changes to these areas require explicit business approval.
   - **Measured:** report A — 133 items (68 slow stock, 24 no action, 15 OK…;
     45 with an open purchase, 47 with no free stock); demo — 108 items.
 
+- **2026-11-21 · The full tool: one supply action in words in the shortage
+  screens, as in «zero stock» of the 4-topics view (SHORT_ACT_FULL, approved
+  21.11).** Display only; the engine, the recommendations, the counters and
+  the SAP file are unchanged. The last of the four PRs.
+  - **Where:** the «next action» column in «shortages to handle» and in
+    «purchasing and deliveries». It now says one supply action in words, with
+    no quantity — the same rule as the 4-topics view: no open purchase → «open
+    a purchase order»; customer waiting and an ETA → «give the customer a date:
+    dd.mm.yyyy»; purchase without an ETA → «ask the supplier for an ETA»; ETA
+    too late → «expedite the supplier»; otherwise → «check back order with the
+    manufacturer». A number in the action is adopted unchecked; the quantity is
+    set against the supplier and the stock.
+  - **Not changed (the planner's choice):** the item card keeps the decision
+    with its quantity, and the other screens keep the engine's sentence. The
+    Excel export keeps the engine's full sentence in every screen.
+  - **«Quantity to order»** leaves the default columns of «by supplier» (as
+    «to order» left the 4-topics table). It stays in the column picker and in
+    the «all data» sheet. The «view» sheet of «by supplier» no longer carries
+    it — the planner approved this one export change.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
