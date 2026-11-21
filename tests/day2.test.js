@@ -18,8 +18,10 @@ const MODES=['home','today','line','month','qual','stale','cap','catalog',
   'moves','burn','cust','done','floor','trend','rise','applied',
   /* דלתות שנוספו אחרי שהרשימה נכתבה ולא נכנסו אליה: הפיצולים.
      מסך שאינו ברשימה הזאת אינו נבדק כמצב שמור בכלל. */
-  'over3y','tier','floorNR','capPO','capStop','capBiz','capNone',
-  'ropGap','ropThin'];
+  'tier','floorNR','capPO','capStop','capBiz','capNone',
+  /* TERMS שלב 2 (21.11): ropGap / ropThin / over3y הפכו לסינון ברשימת הפרמטרים;
+     «זירוז ספקים» נוסף */
+  'follow'];
 const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_history_v1',
   'planner_params_v1','planner_layout_v2','planner_cols_v1','planner_colw_v1',
   'planner_ledger_v1','planner_dark_v1','planner_groups_v1','planner_band_v1',
