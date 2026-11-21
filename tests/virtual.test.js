@@ -53,6 +53,8 @@ async function open(b,file,W,H){
        אחרי מעבר לקטלוג, ולכן לא ממנו. */
     const k=/^cap/.test(m)&&TRACKKEY[track];let want;
     if(cur==='moves')want=movRows().length;
+    /* ZMC_PR2 (21.11): ב«שינוי פרופיל MRP» הטבלה מציגה את הטאב הפתוח (אושר) — profTabRows */
+    else if(track==='prof')want=profTabRows(currentRows()).length;
     else{const rows=currentRows();want=k?capView(rows,cut80(rows,track)).length:rows.length}
     const box=s.box,n=s.items.length,sel='[data-row]';
     const ths=()=>[...s.tb.parentNode.querySelectorAll('thead th')].map(t=>t.getBoundingClientRect().width);
