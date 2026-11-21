@@ -197,7 +197,8 @@ const out=[],ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']':''))
  /* ============ UX1 · תת-כותרות שהיו של מסך אחר ============ */
  const subs=await p.evaluate(()=>{const s=k=>{setMode(k);return document.getElementById('phdSub').textContent.trim()};
   return {qual:s('qual'),cap:s('cap'),burn:s('burn'),catalog:s('catalog')}});
- ok('«איכות נתונים» — תת-כותרת משלה, לא של «בריאות המלאי»',subs.qual!==subs.cap&&/פרמטרים ב-SAP/.test(subs.qual),subs.qual.slice(0,80));
+ /* TERMS שלב 2: «נתוני אב חסרים» = זמן אספקה או רמת שירות חסרים, והתת-כותרת אומרת זאת */
+ ok('«נתוני אב חסרים» — תת-כותרת משלה, לא של «מלאי עודף»',subs.qual!==subs.cap&&/זמן אספקה או רמת שירות חסרים ב-SAP/.test(subs.qual),subs.qual.slice(0,80));
  ok('«אין רכש כלל» — תת-כותרת משלה, לא של הקטלוג',subs.burn!==subs.catalog&&/אין מולה שום הזמנת רכש/.test(subs.burn),subs.burn.slice(0,80));
  ok('אין שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));
  console.log(out.join('\n'));
