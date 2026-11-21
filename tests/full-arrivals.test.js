@@ -95,13 +95,14 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  /* 8 · הכרטיס: «אספקות לפי תאריך» */
  const C=await p.evaluate(()=>{const r=QF.all.find(x=>x.po>0&&ETA.byPn[etaKey(x.pn)]);const k=etaKey(r.pn),keep=ETA.byPn[k];
   const y=(etaToday().slice(0,4)|0)+1;
-  ETA.byPn[k]=[[5,`${y}-01-10`,'D-1','PO-1'],[3,`${y}-01-10`,'D-2','PO-1'],[4,`${y}-02-15`,'D-3','PO-2'],[2,'2000-01-05','D-0','PO-0']];
+  /* ETA_SHIP (21.11): בדוח ההדגמה יש עמודת «משלוח» — המזהה שמוצג הוא מספר המשלוח (השדה החמישי), לא האספקה */
+  ETA.byPn[k]=[[5,`${y}-01-10`,'D-1','PO-1','SH-1'],[3,`${y}-01-10`,'D-2','PO-1','SH-2'],[4,`${y}-02-15`,'D-3','PO-2','SH-3'],[2,'2000-01-05','D-0','PO-0','SH-0']];
   detail(r);const li=[...document.querySelectorAll('#detail .etad li')].map(x=>x.textContent.replace(/\s+/g,' ').trim());
   const sec=document.querySelector('#detail .etad'),dt=sec&&sec.dataset.dt;
   ETA.byPn[k]=keep;return {li,dt,h:sec&&sec.querySelector('h3').textContent,y}});
  ok('כרטיס: שורה לכל תאריך, בסדר עולה',C.li.length===3&&/^05\.01\.2000/.test(C.li[0])&&C.li[1].startsWith(`10.01.${C.y}`)&&C.li[2].startsWith(`15.02.${C.y}`),C.li.join(' | '));
- ok('כרטיס: שתי שורות באותו תאריך — סכום, מספר השורות ומספרי המשלוחים',/8 יח׳/.test(C.li[1])&&/2 שורות/.test(C.li[1])&&/D-1, D-2/.test(C.li[1]),C.li[1]);
- ok('כרטיס: שורה אחת — המשלוח שלה; תאריך שעבר — «לבדוק אם נקלט»',/4 יח׳/.test(C.li[2])&&/משלוח D-3/.test(C.li[2])&&/לבדוק אם נקלט/.test(C.li[0])&&!/לבדוק/.test(C.li[2]),C.li[0]);
+ ok('כרטיס: שתי שורות באותו תאריך — סכום, מספר השורות ומספרי המשלוחים',/8 יח׳/.test(C.li[1])&&/2 שורות/.test(C.li[1])&&/משלוחים SH-1, SH-2/.test(C.li[1])&&!/D-1|D-2/.test(C.li[1]),C.li[1]);
+ ok('כרטיס: שורה אחת — המשלוח שלה; תאריך שעבר — «לבדוק אם נקלט»',/4 יח׳/.test(C.li[2])&&/משלוח SH-3/.test(C.li[2])&&!/D-3/.test(C.li[2])&&/לבדוק אם נקלט/.test(C.li[0])&&!/לבדוק/.test(C.li[2]),C.li[0]);
  ok('כרטיס: המקטע בלשוניות «החלטה» ו«נתונים», עם כותרת',C.dt==='why data'&&/אספקות לפי תאריך/.test(C.h),`${C.dt} · ${C.h}`);
  const C2=await p.evaluate(()=>{const a=QF.all.find(x=>!(x.po>0)&&!x.etaHas);detail(a);const none=!document.querySelector('#detail .etad');
   const c=QF.all.find(x=>x.po>0&&!ETA.byPn[etaKey(x.pn)]);detail(c);const t=(document.querySelector('#detail .etad')||{}).textContent||'';

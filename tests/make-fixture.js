@@ -132,13 +132,15 @@ const RLM=x=>'\u200e'+x+'\u200f';
 const etaNow=Date.now();
 const day=n=>{const d=new Date(etaNow+n*DAY);return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
 const erows=[];
+/* ETA_SHIP (21.11) — עמודה A היא «משלוח», כמו בגיליון של המעתד: משלוח אחד נושא כמה אספקות.
+   כאן כל ארבע אספקות רצופות הן משלוח אחד (SH-…, סינתטי). שאר העמודות כמו שהיו. */
 withPo.forEach((r,i)=>{const q=+r[PO];
  const mode=i%3;                       // 0 מלא · 1 חלקי · 2 עבר
  const qty=mode===1?Math.max(1,Math.floor(q/2)):q;
- erows.push([`419000${1000+i}`,'000010',RLM(r[0]),String(r[2]),qty,'EA',
+ erows.push([`SH-${700+Math.floor(i/4)}`,`419000${1000+i}`,'000010',RLM(r[0]),String(r[2]),qty,'EA',
    day(mode===2?-20:7+(i%30))])});
 XLSX.writeFile((()=>{const w=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(w,XLSX.utils.aoa_to_sheet(
-  [['אספקה','פריט','חומר','תיאור','כמות באספקה',"א'",'תארי.אספקה'],...erows]),'גיליון1');return w})(),
+  [['משלוח','אספקה','פריט','חומר','תיאור','כמות באספקה',"א'",'תארי.אספקה'],...erows]),'גיליון1');return w})(),
  __dirname+'/zmrp-demo-eta.xlsx');
 console.log('wrote',rows.length,'rows,',hdr.length,'cols · ETA:',erows.length,'שורות · day2:',day2.length,'שורות');
