@@ -93,7 +93,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     ופרמטר שגוי ב-SAP מרעיל כל המלצה שנגזרת ממנו, כלומר זו עבודה
     אחרת בסדר גודל אחר של דחיפות. הסיווג והחישוב היו קיימים; חסר
     להם בית. */
- const NAVEXP=['home','today','line','month','qual','cap','catalog'];
+ /* ============ שמונה תחומים (TERMS, 21.11) ============
+    הסדר לפי הפעולה שבסוף: עודף לפני נתוני אב, ו«בקרת יישום» (טופלו +
+    יושמו ב-SAP) בתחתית. «קטלוג פריטים» אינו רשימת עבודה — בלי תג. */
+ const NAVEXP=['home','today','line','month','cap','qual','catalog','applied'];
  const nav=await p.evaluate(exp=>{
   const ids=()=>[...document.querySelectorAll('#tabs .tab')].map(e=>e.dataset.m);
   const areas=ids(),subs={},cnt={};
@@ -118,11 +121,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    mini:document.querySelectorAll('#tabs .tab.mini').length,
    inRail:!!document.querySelector('#rail #tabs'),
    noArea:legacy.filter(k=>!AREA_OF[k])}},NAVEXP);
- ok('שבעה תחומי עבודה במסילה, בסדר שנקבע',nav.areas.join(',')===NAVEXP.join(','),
+ ok('שמונה תחומי עבודה במסילה, בסדר שנקבע',nav.areas.join(',')===NAVEXP.join(','),
     nav.areas.join(' · '));
  ok('המסילה אנכית — #tabs יושב בתוך #rail',nav.inRail);
  ok('תחום עם מונה אפס נשאר על המסילה, עם תג כבוי שמראה 0',
-    nav.zTabs.length===NAVEXP.length&&nav.zTabs.every(t=>t.zero&&t.txt==='0'),
+    nav.zTabs.length===NAVEXP.length&&nav.zTabs.filter(t=>t.m!=='catalog').every(t=>t.zero&&t.txt==='0')
+     /* הקטלוג — בלי תג בכלל (TERMS); terms.test נועל את זה גם במונה מלא */
+     &&nav.zTabs.filter(t=>t.m==='catalog').every(t=>!t.zero&&t.txt===''),
     nav.zTabs.length+' תחומים כשכל המונים אפס · '
       +nav.zTabs.filter(t=>t.zero).length+' עם תג כבוי');
  ok('כל מסלול ותיק נגיש — כתחום או כדלת משנה',!nav.lost.length,

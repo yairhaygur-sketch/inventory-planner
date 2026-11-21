@@ -60,7 +60,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     groups:gs.length,coll:JSON.stringify(c)===JSON.stringify(a),shownColl}}
   return res});
  const ms=Object.keys(R);
- ok('נבדקו 26 מסכי פריטים',ms.length===26,ms.length);
+ /* TERMS שלב 2 (21.11): 24 מסכי פריטים — שלוש דלתות הפכו לסינון, נוספה «זירוז ספקים» */
+ ok('נבדקו 24 מסכי פריטים',ms.length===24,ms.length);
  const f=(k,pred)=>ms.filter(m=>!pred(R[m]));
  let x=f('err',v=>!v.err);ok('הייצוא רץ בלי שגיאה בכל מסך',!x.length,x.join(', '));
  x=f('prev',v=>v.prev);ok('הגיליון לא תלוי במסך שהיה פתוח קודם',!x.length,x.join(', ')||'26 מסכים');

@@ -83,8 +83,10 @@ const out=[];const ok=(n,c,d)=>out.push(`${c?'PASS':'FAIL'} · ${n}${d?'  ['+d+'
    'moves','burn','cust','done','floor','trend','rise','applied',
   /* דלתות שנוספו אחרי שהרשימה נכתבה ולא נכנסו אליה: הפיצולים.
      מסך שאינו ברשימה הזאת אינו נבדק כמצב שמור בכלל. */
-  'over3y','tier','floorNR','capPO','capStop','capBiz','capNone',
-  'ropGap','ropThin'];
+  'tier','floorNR','capPO','capStop','capBiz','capNone',
+  /* TERMS שלב 2 (21.11): ropGap / ropThin / over3y הפכו לסינון ברשימת הפרמטרים;
+     «זירוז ספקים» נוסף */
+  'follow'];
  const bad=[];
  for(const m of MODES){
   const c2=await b.newContext({viewport:{width:1512,height:860}});

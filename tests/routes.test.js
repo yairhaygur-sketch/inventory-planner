@@ -191,10 +191,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
       vis:!!e&&e.offsetParent!==null,tag:e?e.tagName:'',
       name:e?((e.querySelector('.t')||{}).textContent||''):'' ,
       bdg:e?((e.querySelector('.bdg')||{}).textContent||''):''}});
-  ok('«אין רכש כלל» הוא הדלת הראשונה בתוך «חוסרים ולקוחות»',
+  ok('«ללא הזמנת רכש» הוא הדלת הראשונה בתוך «חוסרים והזמנות לקוח לא מכוסות»',
     nav.first==='burn'&&nav.areaFirstVisible,nav.first);
   ok('והיא גלויה, כפתור, עם שם ומונה',
-    nav.vis&&nav.tag==='BUTTON'&&/אין רכש כלל/.test(nav.name)&&nav.bdg.length>0,
+    nav.vis&&nav.tag==='BUTTON'&&/ללא הזמנת רכש/.test(nav.name)&&nav.bdg.length>0,
     `${nav.tag} "${nav.name}" מונה=${nav.bdg}`);
 
   /* --- לחיצה מגיעה בדיוק לדלי, והייצוא הוא בדיוק הוא --- */
@@ -274,7 +274,9 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   /* היה: הכותרת של fixBtn פירקה את הרשימה לשני חלקים בריחוף. במסילה
      הפירוק גלוי בעין — דלתות המשנה של התחום — ולא מוסתר בתוך title. */
   ok('והתחום מפרק את עצמו לדלתות משנה גלויות',
-    /מספר לתקן ב-SAP/.test(f.sub)&&/מלאי ביטחון ידני/.test(f.sub)&&/יושמו ב-SAP/.test(f.sub),f.sub);
+    /* TERMS: «יושמו ב-SAP» עבר ל«בקרת יישום»; מלאי הביטחון המינימלי — ב«בקרה תקופתית» */
+    /* TERMS שלב 2: «ROP קצרה/נמוכה» הפכו לסינון ברשימה (terms2.test) */
+    /המלצות לעדכון פרמטרים/.test(f.sub)&&/ביטחון מינימלי מעל הצורך/.test(f.sub)&&/חלק זול ללא נק׳ הזמנה/.test(f.sub),f.sub);
 
   /* מקלדת — כפתור תקני, בלי preventDefault שחוסם את ה-click */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
@@ -317,8 +319,9 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
          return s&&s.offsetParent!==null&&s.textContent.trim().length>2}).length,
        cols:new Set(tabs.map(e=>Math.round(e.getBoundingClientRect().left))).size,
        ov:rail.scrollWidth-rail.clientWidth}});
-    ok(`${W} · ${m} · שבעה תחומים בעמודה אחת, כולם נושאים שם`,
-      r.n===7&&r.named===7&&r.cols===1&&r.ov<=1,
+    /* TERMS (21.11): שמונה תחומים — נוסף «בקרת יישום» */
+    ok(`${W} · ${m} · שמונה תחומים בעמודה אחת, כולם נושאים שם`,
+      r.n===8&&r.named===8&&r.cols===1&&r.ov<=1,
       `תחומים=${r.n} · עם שם=${r.named} · עמודות=${r.cols} · גלישה=${r.ov}`);}
    await p2.close();}
   await ctx.close()}
@@ -429,13 +432,13 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     gaps:(document.querySelector('.abgap')||{}).textContent||'',
     noPx:(QF.all||[]).filter(r=>r.priceMissing).length,
     hasEta:!!ETA}));
-  ok('«מרכז עבודה» הוא רשימת סדר היום, לא תור העבודה הכללי',
+  ok('«חריגים לטיפול» הוא רשימת סדר היום, לא תור העבודה הכללי',
     h.mode==='home'&&h.track==='agenda'&&h.rows===h.agenda,
     `mode=${h.mode} track=${h.track} · ${h.rows} שורות מתוך ${h.agenda}`);
   ok('המונה במסילה הוא אורך הרשימה עצמה',
     h.badge===h.agenda,`תג ${h.badge} · רשימה ${h.agenda}`);
   ok('והוא אומר את שמו ואת חודש הדוח',
-    /מרכז עבודה/.test(h.title)&&/^\d{4}-\d{2}$/.test(h.month),
+    /חריגים לטיפול/.test(h.title)&&/^\d{4}-\d{2}$/.test(h.month),
     `${h.title} · ${h.month}`);
   /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא
      היחיד שבו ההבטחה כבר ניתנה ואין מולה כלום. */
@@ -545,22 +548,23 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     all:currentRows().every(ropUpRow),
     lc:document.getElementById('lc').textContent,
     lcW:document.getElementById('lc').getBoundingClientRect().width,
-    chip:!document.getElementById('subChip').hidden,
+    /* TERMS שלב 2: התווית «מסונן ✕» הוחלפה בכפתורי הסיבה — «ROP נמוכה מהמומלץ» פעיל */
+    chip:!!document.querySelector('#mrRow [data-mr="ropUp"].on'),
     full:modeRows('month').length}));
   ok('שבב מגיע לתחום הנכון',ru.mode==='month',ru.mode);
   ok('UX4 · ופותח בדיוק את מספר הפריטים שעל השבב — אותם פריטים',
     ru.rows===h.chips[0].n&&ru.trs===ru.rows&&ru.all&&ru.lc.startsWith('('+ru.rows.toLocaleString('he-IL')+')')&&ru.lcW>0,
     `שבב ${h.chips[0].n} · נפתחו ${ru.rows} (${ru.trs} שורות) · כותרת ${ru.lc} · התחום כולו ${ru.full}`);
-  ok('UX4 · ותווית «מסונן» גלויה, עם ✕',ru.chip&&await p.evaluate(()=>{const x=document.querySelector('#subChip .subx'),c=document.querySelector('#subChip .chip');
-    if(!x||!c)return false;const a=x.getBoundingClientRect(),b=c.getBoundingClientRect();return a.width>0&&a.left>=b.left-1&&a.right<=b.right+1}));
-  await p.click('#subChip .subx');await p.waitForTimeout(400);
-  const rx=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!document.getElementById('subChip').hidden}));
-  ok('UX4 · ✕ מחזיר את כל «תכנון ו-MRP»',rx.rows===rx.nav&&rx.rows===ru.full&&!rx.chip,JSON.stringify(rx));
+  ok('UX4 · והכפתור «ROP נמוכה מהמומלץ» גלוי ופעיל',ru.chip&&await p.evaluate(()=>{const b=document.querySelector('#mrRow [data-mr="ropUp"]');
+    if(!b)return false;const a=b.getBoundingClientRect();return a.width>0&&b.getAttribute('aria-pressed')==='true'}));
+  await p.click('#mrRow [data-mr=""]');await p.waitForTimeout(400);
+  const rx=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!!document.querySelector('#mrRow [data-mr="ropUp"].on')}));
+  ok('UX4 · «הכל» מחזיר את כל «פרמטרי תכנון (MRP)»',rx.rows===rx.nav&&rx.rows===ru.full&&!rx.chip,JSON.stringify(rx));
   await p.click('.abchip[data-go="month"]').catch(()=>{});
   await p.evaluate(()=>setMode('home'));await p.waitForTimeout(300);
   await p.click('.abchip[data-go="month"]');await p.waitForTimeout(300);
   await p.evaluate(()=>{setMode('today');setMode('month')});await p.waitForTimeout(300);
-  const rn=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!document.getElementById('subChip').hidden}));
+  const rn=await p.evaluate(()=>({rows:currentRows().length,nav:navCount('month').n,chip:!!document.querySelector('#mrRow [data-mr="ropUp"].on')}));
   ok('UX4 · הסינון אינו נשאר אחרי מעבר מסך',rn.rows===rn.nav&&!rn.chip,JSON.stringify(rn));
   await p.click('#tabs .tab[data-m="home"]');await p.waitForTimeout(600);
   const pn=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');
@@ -859,27 +863,20 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('«ROP קצר מזמן האספקה» מכילה אך ורק פריטים שהיובש שלהם חיובי',rb.gapBad===0,rb.gapBad+' חריגות');
   ok('ו«מתחת למוצע» אך ורק פער בלי יובש',rb.thinBad===0,rb.thinBad+' חריגות');
   ok('וחישוב היובש הוא בדיוק זמן האספקה פחות ROP÷קצב',rb.formula);
-  /* המסך: הגרוע ביותר קודם, והעמודה שמכריעה מציגה מספר */
-  await p.evaluate(()=>setMode('ropGap'));await p.waitForTimeout(700);
+  /* TERMS שלב 2 (אושר 21.11): «ROP קצרה מזמן האספקה» אינה דלת — היא כפתור סינון
+     ברשימת הפרמטרים, שהיא קובץ SAP. הייתה כאן בדיקה של מסך הדלת (עמודת «בלי
+     מלאי», מיון לפי יובש, תת-כותרת וסיכום); המסך הוסר בהחלטה. מה שנבדק עכשיו:
+     הכפתור מציג בדיוק את הפריטים של הדלת שנמצאים בקובץ SAP, ורק אותם. */
+  await p.evaluate(()=>setMode('month','ropGap'));await p.waitForTimeout(700);
   const rv=await p.evaluate(()=>{
-   const view=currentRows();
-   const tr=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
-   const HX=n=>[...document.querySelectorAll('#tbl thead th')].map(t=>t.textContent.trim()).indexOf(n);
-   const i=HX('בלי מלאי');
-   const shown=tr.map(t=>view[+t.dataset.i]);
-   return {rows:tr.length,hasCol:i>=0,
-    /* ממוין לפי חודשי היובש, הגרוע קודם */
-    sorted:shown.every((r,k)=>!k||ropDry(shown[k-1])>=ropDry(r)-1e-9),
-    /* ובכל שורה התא מראה מספר, לא «—» */
-    cells:i<0?null:tr.filter(t=>/[\d.]+ חו׳/.test(t.children[i].textContent)).length,
-    over:(()=>{const t=document.getElementById('tbl');return t.scrollWidth-t.clientWidth>2})(),
-    sub:document.getElementById('phdSub').textContent,
-    pgR:document.getElementById('pgR').textContent}});
-  ok('עמודת «בלי מלאי» קיימת ומציגה מספר בכל שורה',
-    rv.hasCol&&rv.cells===rv.rows,`${rv.cells}/${rv.rows}`);
-  ok('והדלת ממוינת כך שהגרוע ביותר ראשון',rv.sorted);
-  ok('התת-כותרת אומרת מה ההגדרה',/נמוכה מהביקוש בזמן האספקה/.test(rv.sub),rv.sub.slice(0,90));
-  ok('והסיכום אומר כמה כבר בלי מלאי',/כבר בלי מלאי/.test(rv.pgR),rv.pgR.slice(0,90));
+   const view=currentRows(),list=decisionList('month');
+   const want=ropPick(ropAll(),'ropGap').filter(r=>list.includes(r));
+   return {rows:view.length,want:want.length,same:view.length===want.length&&want.every(r=>view.includes(r)),
+    dry:view.every(r=>ropDry(r)>0),inFile:view.every(sapMassUsable),
+    trs:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+    over:(()=>{const t=document.getElementById('tbl');return t.scrollWidth-t.clientWidth>2})()}});
+  ok('«ROP קצרה מזמן האספקה»: הכפתור = פריטי הדלת שבקובץ SAP, כולם עם יובש חיובי',
+    rv.same&&rv.dry&&rv.inFile&&rv.trs===rv.rows,`${rv.rows} מוצגים · ${rv.want} צפויים`);
   ok('ואין גלישה אופקית',!rv.over);
   /* ============ XDOOR — אותו פריט, כמה דלתות ============
      נמדד על הדוח של 5.10: שתים עשרה דלתות העבודה מחזיקות 5,660 שורות

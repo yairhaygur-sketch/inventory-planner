@@ -169,8 +169,10 @@ const act=p=>p.evaluate(()=>{const a=document.activeElement;return a.id||a.datas
   {const g=await p.evaluate(()=>{setMode('prof');const ks=[...document.querySelectorAll('#railsub > *')].map(e=>e.classList.contains('railgrp')?'@'+e.textContent.trim():e.dataset.m);
     setMode('qual');const qs=[...document.querySelectorAll('#railsub [data-m]')].map(e=>e.dataset.m);setMode('prof');
     return {ks,qs,area:AREA_OF.prof,title:document.getElementById('lt').textContent}});
-   ok('UX6 · «שינוי פרופיל MRP» בקבוצה «בקרה תקופתית» בתוך «תכנון ו-MRP», ולא תחת «איכות נתונים»',
-    g.area==='month'&&g.ks.indexOf('@בקרה תקופתית')>=0&&g.ks.indexOf('prof')===g.ks.indexOf('@בקרה תקופתית')+1&&!g.qs.includes('prof')&&/^תכנון ו-MRP · שינוי פרופיל MRP$/.test(g.title),JSON.stringify(g));
+   /* TERMS (21.11): «שינוי סוג MRP» סוגר את קבוצת «בקרה תקופתית» — אחרי רשימות העיון
+      שהצטרפו אליה — והתחום נקרא «פרמטרי תכנון (MRP)» */
+   ok('UX6 · «שינוי סוג MRP» בקבוצה «בקרה תקופתית» בתוך «פרמטרי תכנון (MRP)», ולא תחת «נתוני אב חסרים»',
+    g.area==='month'&&g.ks.indexOf('@בקרה תקופתית')>=0&&g.ks.indexOf('prof')>g.ks.indexOf('@בקרה תקופתית')&&g.ks.indexOf('prof')===g.ks.length-1&&!g.qs.includes('prof')&&/^פרמטרי תכנון \(MRP\) · שינוי סוג MRP$/.test(g.title),JSON.stringify(g));
    const e=await p.evaluate(()=>{const act=profRows().filter(profActive);if(act.length<4)return null;const [a,b,c,d]=act,n0=navCount('prof').n;
      setMark(a,'campaign');setMark(b,'handled');setMark(c,'checking','לבדוק מול הספק');setMark(d,'checking');
      const n1=navCount('prof').n,ex=profExclRows(),gone=[a,b,c].every(r=>!profActive(r)&&!profRows().includes(r)),keep=profActive(d);

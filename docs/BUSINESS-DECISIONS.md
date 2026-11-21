@@ -785,6 +785,77 @@ Changes to these areas require explicit business approval.
     and SS of 0 with no consumption in six months, 2 tools/accessories, 2 too
     little consumption, 1 SS of 0) and 7 downgrade items (all «waiting»).
 
+- **2026-11-21 · Formal purchasing and inventory-planning terms, and the rail
+  arranged by the action at the end (TERMS, stage 1 of 2).** Names and
+  placement only: every count, list, Excel export and SAP file is unchanged
+  (business-guard on the real report: 0 differences).
+  - **Eight areas, in this order:** exceptions to handle («חריגים לטיפול») ·
+    shortages and uncovered customer orders · purchase-order follow-up ·
+    planning parameters (MRP) · excess, slow-moving and dead stock · missing
+    master data · item catalog · implementation control («בקרת יישום»).
+  - **Moved:** «ROP short of lead time» and «ROP below recommended» from
+    purchasing to planning parameters; overdue deliveries from data quality to
+    purchase-order follow-up; «demand rising» joins «demand falling», the two
+    SAP minimum-safety-stock lists, first consumption and the MRP-type change
+    in the «periodic review» group (the tool never changes minimum safety
+    stock, and the trends are advisory); «handled» and «applied in SAP» to
+    implementation control.
+  - **Terms:** Hebrew with the abbreviation in brackets — «נקודת הזמנה (ROP)»,
+    «מלאי ביטחון (SS)»; SAP's own «מלאי ביטחון מינימלי» instead of «floor» or
+    «minimum»; «סוג MRP» for PD / ZM-A/B/C; the value of excess stock is
+    «שווי עודף» on screen.
+  - **The rail shows a short name** (the counter must stay visible at 1366,
+    where the rail is 186px); the screen title and the tooltip carry the full
+    name.
+  - **«Item catalog» has no counter and no red mark** — it is search, not a
+    work list.
+  - **Not in this stage, on purpose:** Excel column headers, engine category
+    names and «why» texts, and the 4-topics view keep their wording — changing
+    them changes the exports and needs its own declaration.
+  - **Stage 2 (approved 21.11, not yet built):** one parameter-update list
+    equal to the SAP file, with the old doors as reason filters; the 180
+    delivery follow-up items move to purchase-order follow-up; missing master
+    data appears only in its own area. These change counts and will be measured
+    and declared in their own PR. The 57 items where the tool suggests raising
+    ROP on stock it classifies as excess or slow are examined first.
+
+- **2026-11-21 · TERMS, stage 2: one parameter list equal to the SAP file,
+  supplier expediting in purchasing, and missing master data that is really
+  missing.** Screen membership and rail counts change; the engine (every item
+  field, every queue) and the SAP files are unchanged (business-guard on the
+  real report: items and queues identical; the parameter screen's SAP file is
+  the same 256 rows).
+  - **«המלצות לעדכון פרמטרים» = exactly the SAP mass-update file**
+    (`sapMassUsable`): 444 → 256 on the real report. The 180 delivery
+    follow-up items left it, and so did items that have no SAP row.
+  - **Reason filters instead of doors:** «ROP short of lead time», «ROP below
+    recommended», «ROP above recommended», «safety stock to update» and
+    «parameter above 3-year sales» are buttons above the list, each with its
+    count. The doors `ropGap`, `ropThin` and `over3y` were removed (their
+    dedicated screens, including the «months without stock» column of the
+    ROP-gap door, are gone by this decision).
+  - **«זירוז ספקים» (supplier expediting)** — a new door in purchase-order
+    follow-up: the engine's follow queue (customer waiting, shelf empty, a
+    purchase order covers it). 180 items on the real report. It uses the
+    shortage-screen columns and the expediting report.
+  - **«נתוני אב חסרים» shows only a missing lead time or service level:**
+    235 → 1 on the real report. Correction to stage 1: the engine's
+    «quality» queue held every ROP/SS gap (194) and «small difference» (40) —
+    those were never missing data; they stay in the parameter list.
+  - **Decided, not yet built:** an item classified as excess or slow stock
+    whose stock still covers more than 12 months above the suggested ROP gets
+    no «raise ROP» (57 items on the real report, 24 of them in the slow/dead
+    SAP file); the card says «fine for now — returns when stock falls». It
+    changes the SAP file and will come in its own PR.
+
+- **2026-11-21 · No brand line under the tool name; «אין פרמטר לשנות».**
+  The line «תכנון מלאי חלפים · ZT ולינק אנד קו» under «Inventory Planner» was
+  removed — the tool is used by others too. The build stamp, the only way to
+  see which version the browser serves, moved to the «עזרה ועוד» menu. The
+  excess-stock door «ללא פעולה» (stage 1) is renamed «אין פרמטר לשנות»: «ללא
+  פעולה» is an engine category shown in the same table, with a different
+  meaning. Display only (business-guard: 0 differences).
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —
