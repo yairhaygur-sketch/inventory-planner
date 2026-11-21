@@ -14919,7 +14919,7 @@ const TOPICS={
    ['data','נתונים שבורים','red',r=>tpLtMissing(r)||tpSrvMissing(r)]],
   cols:[
    {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
-   /* ZMC_TOPICS — הסטטוס והסיבה מ-profStatus, כמו במסך «שינוי פרופיל MRP» של הכלי המלא */
+   /* ZMC_TOPICS — הסטטוס והסיבה מ-profStatus, כמו במסך «שינוי סוג MRP» של הכלי המלא */
    {k:'prof',l:'שינוי פרופיל',c:'w',v:r=>{const x=profActive(r)?profStatus(r):null;return x?x.t:null},
     h:r=>{const x=profActive(r)?profStatus(r):null;return x?`<span title="${esc(x.why||'')}">${esc(x.t)}</span>`:'—'},
     x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${profStatus(r).t}`:''}]]},

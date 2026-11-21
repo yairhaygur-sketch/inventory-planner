@@ -863,7 +863,9 @@ Changes to these areas require explicit business approval.
   profile: PD → ZM-C»), in the item card («check — do not change the profile
   automatically», with every reason) and in the CSV («PD → ZM-C · check»).
   Before, these showed «raise». The topic's items, its counters and the
-  profile states are unchanged; report A has 9 such items.
+  profile states are unchanged. Measured: report A — 9 of the 36 candidates;
+  report B — 78 of 88 (51 tools/accessories, 21 ROP and SS of 0 with no
+  consumption in six months, 6 too little consumption).
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
