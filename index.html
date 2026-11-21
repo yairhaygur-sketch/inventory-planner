@@ -282,6 +282,15 @@ button.kpi:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #subChip{flex:0 1 auto;min-width:7em}
 /* UX6 — תיקון ל-UX4: .chips.inline{display:flex} גבר על [hidden], והתווית המוסתרת תפסה 91px */
 #subChip[hidden]{display:none}
+/* TERMS שלב 2 — כפתורי הסיבה ברשימת הפרמטרים */
+.mrrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 2px 8px}
+.mrrow[hidden]{display:none}
+.mrrow .mrlbl{font-size:var(--f-sm);color:var(--dim);font-weight:600}
+.mrrow .mrbtn{font:inherit;font-size:var(--f-sm);padding:3px 10px;border-radius:var(--r-pill,999px);border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
+.mrrow .mrbtn b{font-variant-numeric:tabular-nums;margin-inline-start:4px}
+.mrrow .mrbtn.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.mrrow .mrbtn:disabled{opacity:.5;cursor:default}
+.mrrow .mrbtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .phd.tight .phdexp .lbl{display:none}
 .phd.tight .phdexp .lbs{display:inline}
 .phd.wrap2{flex-wrap:wrap;row-gap:6px}
@@ -3722,6 +3731,8 @@ body:not(.dense) #tbl tbody tr[data-i],body:not(.dense) #movtbl tbody tr[data-mi
           <button class="btn" id="riseBtn" hidden title="פריטים שהביקוש שלהם עלה בתוך חלון הקצב — נקודת ההזמנה מפגרת אחריו. מספר מייעץ: הכלי אינו מרים את ההמלצה לבד"><span class="di">↗</span><span class="fn" id="riseN">0</span><span class="dl"> ביקוש עולה</span><span class="lbl" id="riseV"></span></button>
           <button class="btn" id="doneBtn" hidden title="פריטים שסימנת כטופל — לחץ כדי לבטל סימון"><span class="di">✓</span><span class="fn" id="doneN">0</span><span class="dl"> טופלו</span></button></span>
           </div>
+        <!-- TERMS שלב 2 · סינון לפי סיבה ברשימת הפרמטרים (MREASONS) — שורה משלו, כדי שלא ייחתך בכותרת -->
+        <div class="mrrow" id="mrRow" role="group" aria-label="סינון לפי סיבה" hidden></div>
         <div class="line" id="line" hidden></div>
         <!-- בריאות המלאי — רצועת סקירה מעל טבלת ההון הכלוא -->
         <div class="captop" id="capTop" hidden></div>
@@ -7036,8 +7047,8 @@ const NAV=[
  ['applied','בקרת יישום',                     '✓','var(--calm)',    'בקרת יישום']];
 /* הדלתות שבתוך כל תחום — כל מסלול ותיק מופיע כאן, ולכן נגיש. */
 const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'applied',
- line:'line',rise:'month',ropGap:'month',ropThin:'month',month:'month',floor:'month',trend:'month',first:'month',applied:'applied',
- over3y:'month',tier:'month',floorNR:'month',
+ line:'line',follow:'line',rise:'month',month:'month',floor:'month',trend:'month',first:'month',applied:'applied',
+ tier:'month',floorNR:'month',
  qual:'qual',stale:'line',prof:'month',cap:'cap',catalog:'catalog',moves:'catalog',
  /* CAP_SPLIT — ארבע הידיות, כולן בתוך «בריאות המלאי» */
  capPO:'cap',capStop:'cap',capBiz:'cap',capNone:'cap'};
@@ -7109,15 +7120,14 @@ const AREA_OF={home:'home',today:'today',burn:'today',cust:'today',done:'applied
    מצב טיפול · ירידה בביקוש · מעקב אספקה.                          */
 const SUBNAV={
  today:[['burn','ללא הזמנת רכש'],['cust','כיסוי חלקי ברכש']],
- line:[['line','הזמנות רכש פתוחות'],['stale','הזמנות רכש באיחור']],
+ line:[['line','הזמנות רכש פתוחות'],['follow','זירוז ספקים'],['stale','הזמנות רכש באיחור']],
  /* TERMS — מה שנכנס לקובץ SAP למעלה; רשימות העיון (מלאי ביטחון מינימלי,
     מגמות ביקוש, צריכה ראשונה) ב«בקרה תקופתית», כי הכלי אינו משנה מלאי
     ביטחון מינימלי והמגמות מייעצות בלבד. */
  /* שדה שלישי, כשקיים: השם המלא לכותרת המסך ולבועית; השני הוא הקצר שבמסילה. */
+ /* TERMS שלב 2 — «ROP קצרה», «ROP נמוכה» ו«פרמטר מעל מכירות 3 שנים» אינם
+    דלתות: הם כפתורי סינון בתוך הרשימה האחת (MREASONS), שהיא קובץ SAP. */
  month:[['month','המלצות לעדכון פרמטרים'],
-   ['ropGap','נקודת הזמנה קצרה','נקודת הזמנה (ROP) קצרה מזמן האספקה'],
-   ['ropThin','נקודת הזמנה נמוכה','נקודת הזמנה (ROP) נמוכה מהמומלץ'],
-   ['over3y','פרמטר מעל מכירות 3 שנים'],
    ['tier','חלק זול ללא נק׳ הזמנה','חלק זול ללא נקודת הזמנה (ROP)'],
    /* UX6 — בקרה תקופתית (בערך פעם בחודש), בקבוצה נפרדת בתחום התכנון. היה תחת «איכות נתונים». */
    ['@','בקרה תקופתית'],
@@ -7137,8 +7147,9 @@ const NAV_WHAT={
  home:'מה דורש החלטה עכשיו — לקוח ממתין וחוסר צפוי',
  today:'הזמנות לקוח שאינן מכוסות, וחוסר צפוי החודש',
  line:'הזמנות רכש פתוחות, תאריכי הגעה, איחורים וזירוז',
- month:'נקודת הזמנה (ROP) ומלאי ביטחון (SS) — קיים מול מוצע, לעדכון ב-SAP',
- qual:'זמן אספקה, רמת שירות או נתון אב אחר חסרים ב-SAP — בלעדיהם אין המלצה אמינה',
+ month:'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון — בדיוק השורות שבקובץ SAP',
+ follow:'לקוח ממתין והמדף ריק, אבל יש רכש שמכסה — לבדוק Back Order, לבקש ETA ולזרז ספק',
+ qual:'זמן אספקה או רמת שירות חסרים ב-SAP — בלעדיהם אין חישוב ואין שורה בקובץ SAP',
  cap:'מלאי עודף, איטי תנועה ומת — שווי לפי מטבע',
  catalog:'חיפוש ובדיקה של כל הפריטים — אינו רשימת עבודה',
  burn:'הזמנת לקוח שהמלאי אינו מכסה, ואין מולה הזמנת רכש',
@@ -7486,7 +7497,6 @@ function navCount(k){
   return {n,hot:0}}
  if(k==='rise'){const r=riseRows();return {n:r.length,hot:hot(r)}}
  /* כמו floor: הספירה אינה יכולה לקרוא ל-ropRows() שנשען על `mode`. */
- if(k==='ropGap'||k==='ropThin'){const r=ropPick(ropAll(),k);return {n:r.length,hot:hot(r)}}
  /* «תנועות» מציגה את הטאב הפעיל בלבד (מכירות / כניסות / תקוע), ולכן
     המונה סופר אותו ולא את הקטלוג כולו. MODESET לבדו היה נותן 7,548. */
  if(k==='moves'){const base=(QF&&QF.all?QF.all:[]).filter(passColFilters);
@@ -7522,7 +7532,7 @@ const MODESET={
  /* cur:'today' ולא 'all': עם 'all' גם currentRows גם modeRows
     מחזירים את הקטלוג כולו, והמונה היה מראה 7,987 במקום 118.
     הדלתות האלה הן רשימות החלטה, כמו «תיקוני פרמטרים» שלידן. */
- over3y:{cur:'today',track:'over3y'},tier:{cur:'today',track:'tier'},
+ tier:{cur:'today',track:'tier'},
  floor:{cur:'all',track:'floor'},floorNR:{cur:'all',track:'floor'},
  /* מגמת ירידה — כנ״ל, כל הפריטים */
  trend:{cur:'all',track:'trend'},
@@ -7533,8 +7543,6 @@ const MODESET={
  /* הדלי הבוער: הזמנת לקוח שהמלאי אינו מכסה, ואין מולה שום רכש */
  burn:{cur:'all',track:'burn'},
  rise:{cur:'all',track:'rise'},
- /* ROP_BRIDGE — אותו track לשתיהן, כמו floor/floorNR; `mode` מבדיל. */
- ropGap:{cur:'all',track:'ropb'},ropThin:{cur:'all',track:'ropb'},
  /* מה יושם מאז ההעלאה הקודמת */
  applied:{cur:'all',track:'applied'},
  /* היו חסרים. navCount נופל ל-modeRows, ושם MODESET[m] היה undefined
@@ -7543,6 +7551,9 @@ const MODESET={
     שנראית ריקה אינה נפתחת. */
  moves:{cur:'moves',track:'cap'},
  qual:{cur:'today',track:'qual'},
+ /* TERMS שלב 2 — «זירוז ספקים»: תור follow של המנוע, במעקב הזמנות רכש. עד
+    כאן הוא ישב בתוך רשימת הפרמטרים. עמודות מסך החוסרים (SHORTLIKE). */
+ follow:{cur:'today',track:'follow'},
  /* ממצא איכות נתונים, ולכן כל הפריטים ולא תור עבודה */
  stale:{cur:'all',track:'stale'},
  prof:{cur:'all',track:'prof'}};
@@ -7634,7 +7645,7 @@ function modeRows(m){const c=MODESET[m];if(!c||!QF)return [];
 const MODE_KEY='planner_mode_v1';
 function modeSaved(){try{const m=localStorage.getItem(MODE_KEY);return MODESET[m]?m:null}catch(_){return null}}
 function setMode(m,sub){if(!MODESET[m])return;mode=m;const c=MODESET[m];
- ROPUP_ONLY=m==='month'&&sub==='ropUp';
+ MREASON=(m==='month'&&MREASONS.some(x=>x[0]===sub))?sub:'';
  try{localStorage.setItem(MODE_KEY,m)}catch(_){}
  cur=c.cur;track=c.track;trackPicked=true;closeDetail();
  MODES.forEach(([k])=>document.body.classList.toggle('mode-'+k,k===m));
@@ -7771,7 +7782,7 @@ function lineModel(){
 let LINE_SEL='stuck', LINE_M=null;
 /* רמה 2 של הציר היא בדיוק מסך הבוקר: אותן עמודות, אותה חלוקה לשכבות,
    אותה מגירה. מה שהשתנה הוא *מי* ברשימה — הבחירה על הרצועה. */
-function SHORTLIKE(){return track==='short'||(track==='line'&&LINE_SEL!=='recur')}
+function SHORTLIKE(){return track==='short'||track==='follow'||(track==='line'&&LINE_SEL!=='recur')}
 /* «יחזור» אינו רשימת חוסרים אלא רשימת תיקונים ל-SAP, ולכן הוא מרונדר
    בעמודות של מסלול הפרמטרים — ROP, SS, הדרישה, ומה לתקן. זה השדרוג
    שהמתכנן ביקש: הפרמטר מפסיק להיות מסלול תחזוקה נפרד ונעשה הסיבה
@@ -8160,12 +8171,20 @@ function decisionList(tr){if(DL_CACHE[tr])return DL_CACHE[tr];
     מהר יותר להתעלם מרשימה מאשר רשימה שהכפתור שלה אינו מסכים איתה.
     אותו בורר בדיוק בשני המקומות. */
  const capCat=r=>SAP_CAP_CATS.has(r.cat)||!!r.tierFloor;
+ /* TERMS שלב 2 (אושר 21.11) — הרשימה היא בדיוק קובץ SAP (sapMassUsable): בלי
+    «מעקב אספקה» (עבר ל«זירוז ספקים»), ובלי פריט שאין לו שורה בקובץ — נתון
+    אב חסר נמצא בתחום שלו. capCat נשאר לתיעוד: sapMassUsable מחריג אותם. */
  const out=(tr==='fix'||tr==='month')
-    ?base.filter(r=>(r.paramFix&&!capCat(r))||(tr==='month'&&qf('follow').includes(r)))
+    ?base.filter(sapMassUsable)
     .sort((a,b)=>(b.sev-a.sev)||((b.rate||0)-(a.rate||0)))
+  :tr==='follow'?qf('follow').filter(passColFilters)
+    .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0))||cmpMoneyDesc(a,b,'unsVal'))
   :tr==='agenda'?agendaRows()
   /* תור `quality` כפי שהמנוע כבר בנה אותו — לא סף חדש ולא סיווג חדש */
-  :tr==='qual'?qf('quality').filter(passColFilters)
+  /* TERMS שלב 2 — «נתוני אב חסרים» הוא נתון חסר באמת. תור quality של המנוע
+     מכיל גם את כל פערי ה-ROP/SS (194 מתוך 235 בדוח האמיתי) — הם ברשימת
+     הפרמטרים — ואת «הפרש קטן». */
+  :tr==='qual'?qf('quality').filter(r=>(r.serviceMissing||r.ltMissing)&&passColFilters(r))
      .sort((a,b)=>(b.sev-a.sev)||((b.miss||0)-(a.miss||0)))
   /* שתי הדלתות החדשות נשענות על התורים שהמנוע בנה, כמו `qual` —
      לא על סינון חוזר של הקטלוג. הסדר: הגדול בשווי הפער קודם. */
@@ -9330,7 +9349,7 @@ function currentRows(){
     לפי שווי בבלוקי מטבע; capPick רק מצמצם אותה לידית אחת. */
  if(cur==='today'&&track==='cap')return capRows();
  if(cur==='today'){const l=decisionList(track);
-   return ROPUP_ONLY&&track==='month'?l.filter(ropUpRow):l}
+   return MREASON&&track==='month'?l.filter(mreasonFn(MREASON)):l}
  /* הדלי הבוער — ממוין לפי שווי הפער, בתוך בלוק המטבע (מדיניות BZ) */
  if(track==='burn'){const by=burnRows().sort((a,b)=>(curPos(a)-curPos(b))||(burnVal(b)-burnVal(a)));
    return sortCol==='sev'?by:sortRowsBy(by)}
@@ -9659,7 +9678,8 @@ function ropRows(){return ropPick(ropAll(),mode)}
    דלת שמסוננת מסננת גם כאן, ולכן «גם ב» תמיד מסכים עם המונה. */
 const XDOORS=[['today','חוסרים והזמנות לקוח'],['burn','ללא הזמנת רכש'],['cust','כיסוי חלקי ברכש'],
  ['line','הזמנות רכש פתוחות'],['rise','ביקוש עולה'],
- ['month','המלצות לעדכון פרמטרים'],['over3y','פרמטר מעל מכירות 3 שנים'],['tier','חלק זול ללא נקודת הזמנה'],
+ ['follow','זירוז ספקים'],
+ ['month','המלצות לעדכון פרמטרים'],['tier','חלק זול ללא נקודת הזמנה'],
  ['floor','מלאי ביטחון מינימלי מעל הצורך'],['floorNR','מלאי ביטחון מינימלי ללא ביקוש מדיד'],['trend','ביקוש יורד'],
  ['qual','נתוני אב חסרים'],['stale','הזמנות רכש באיחור'],
  ['capPO','ביטול או דחיית הזמנות רכש'],['capStop','הקטנת נקודת הזמנה'],
@@ -11444,7 +11464,7 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
     שורת המצב של אותו תחום, זו שכבר כתובה ב-title של המסילה. אותה
     פונקציה, אותם מספרים. רק בחוסרים ובתכנון: בקטלוג שורת המצב היא
     «כסף תקוע», וזה לא מה שהמסך הזה עוסק בו. */
- {let st='';try{if(mode==='today'||(mode==='month'&&!ROPUP_ONLY))st=navSub(mode)}catch(_){}
+ {let st='';try{if(mode==='today'||(mode==='month'&&!MREASON))st=navSub(mode)}catch(_){}
   /* UX4 — מסונן: שורת המצב מתארת את כל התחום, ולכן אינה מוצגת ליד מונה של חלק ממנו */
   {const lc=document.getElementById('lc'),cnt='('+rows.length.toLocaleString('he-IL')+')';lc.textContent=cnt+(st?' · '+st:'');
    /* UX4 — המשפט שאחרי המונה מתקצר, המונה עצמו לעולם לא (ב-1440, עם תווית «מסונן», הוא ירד ל-0px) */
@@ -12593,9 +12613,10 @@ function sapNoBase(){return !!BASE&&!BASE.verified}
    «תנועות אחרונות» נשאר עם הקטלוג; שם כפתורי SAP מסומנים כלא זמינים
    ואומרים למה (SAP_NO_LIST), כמו קודם. */
 const EXPSET={
- sap:new Set(['line','today','month','catalog','over3y','tier','floor','floorNR','trend','rise','ropGap','ropThin','qual']),
- slow:new Set(['cap','capPO','capStop','capNone','catalog','floor','floorNR','ropGap','ropThin','prof']),
- exp:new Set(['home','today','burn','cust','line','stale','catalog']),
+ sap:new Set(['line','today','month','catalog','tier','floor','floorNR','trend','rise','qual']),
+ slow:new Set(['cap','capPO','capStop','capNone','catalog','floor','floorNR','prof']),
+ /* TERMS שלב 2 — «זירוז ספקים» מקבל את דוח הזירוז; דלתות ה-ROP הפכו לסינון ב«פרמטרי תכנון» */
+ exp:new Set(['home','today','burn','cust','line','follow','stale','catalog']),
  mail:new Set(['line']),
  /* ARRIVALS_FULL — לוח ההגעות אינו קובץ, אבל הוא פעולה של המסך הזה בלבד */
  arr:new Set(['line'])};
@@ -13931,8 +13952,8 @@ const XP={
   see:'מסך הנחיתה. המונה סופר את מה שאין לו מענה — הזמנות לקוח שאין מולן שום רכש, ועוד הפריטים שהמלאי הפנוי שלהם לא יחזיק את החודש. אלה שתי הקבוצות שאי אפשר לדחות.',
   chk:'אם המונה אפס, אין היום החלטה דחופה — וזה מידע בפני עצמו. התחום נשאר על המסילה גם אז, כדי שתדע שבדקת ולא שכחת.'},
  'nav-qual':{t:'נתוני אב חסרים',
-  see:'פריטים שהפרמטרים שלהם ב-SAP אינם עומדים במבחן: נקודת הזמנה או מלאי ביטחון שאינם מתיישבים עם הצריכה המדודה, זמן אספקה חסר, או קצב שאין לו על מה להישען. לכל שורה מוצג מה קיים היום, מה הדרישה, ומה מוצע במקומו.',
-  chk:'זה התחום שקודם לכל השאר. פרמטר שבור ב-SAP מרעיל כל המלצה שנגזרת ממנו — נקודת הזמנה שגויה תייצר חוסר או עודף בכל חודש מחדש, ותחזור לתור העבודה שוב ושוב. עד היום הפריטים האלה היו מעורבבים בתוך תחום התכנון, וזו עבודה אחרת בסדר גודל אחר של דחיפות.'},
+  see:'פריטים שחסר להם ב-SAP זמן אספקה או רמת שירות. בלי הנתון אין חישוב של נקודת הזמנה ומלאי ביטחון, ואין להם שורה בקובץ SAP. פער בין ה-ROP/SS הקיים למוצע אינו כאן — הוא ב«המלצות לעדכון פרמטרים».',
+  chk:'השלם את הנתון ב-SAP, וטען דוח חדש: הפריט יעבור לחישוב רגיל ולרשימת הפרמטרים. רשימה ריקה כאן היא חדשות טובות.'},
  'nav-cap':{t:'מלאי עודף, איטי תנועה ומת',
   see:'הצד השני של המאזן: עודף, מלאי איטי, מלאי מת והכסף התקוע בהם. המספרים כספיים ומופרדים לפי מטבע — דולר, אירו ושקל אינם מתחברים.',
   chk:'זה לא תור עבודה יומי. זו התמונה שמסבירה למה תקציב הרכש נגמר, ומאיפה משחררים כסף בלי לפגוע בזמינות.'},
@@ -13955,6 +13976,9 @@ const XP={
  'nav-trend':{t:'ביקוש יורד',
   see:'פריטים שהביקוש שלהם ירד בתוך אותם 11 חודשים. הממוצע השטוח עדיין גבוה, כי הוא זוכר את החודשים החזקים — אז הכלי עלול להמליץ להזמין לפי עבר שכבר לא קיים.',
   chk:'אלה המועמדים להורדת פרמטרים. לפני שאתה מוריד — פתח את הפריט וראה בגרף אם הירידה אמיתית או שזה חודש אחד חריג.'},
+ 'nav-follow':{t:'זירוז ספקים',
+  see:'לקוח ממתין והמדף ריק, אבל יש הזמנת רכש פתוחה שמכסה אותו — או רכש שמכסה את זמן האספקה. אין כאן מה להזמין; יש מה לזרז. עד TERMS שלב 2 הפריטים האלה ישבו בתוך רשימת הפרמטרים.',
+  chk:'בדוק Back Order אצל היצרן, בקש ETA וזרז. אם יש דוח ETA, השורה אומרת מה כבר מתוארך. דוח הזירוז (כפתור הייצוא) בונה מזה מכתב לכל ספק.'},
  'nav-cust':{t:'כיסוי חלקי ברכש',
   see:'הזמנת לקוח פתוחה שהמלאי הפנוי והרכש הפתוח יחד אינם מכסים. זה חוצה את כל הסיווגים — פריט יכול להיות «תקין» לפי כל מדד ועדיין להיות כאן. קודם ההגדרה הייתה «מלאי פנוי אפס בדיוק», והיא החמיצה כל פריט שנשארה עליו יחידה אחת מול עשרים שהוזמנו.',
   chk:'הקבוצה העליונה, «אין רכש», היא אותה רשימה שיושבת בדלת «ללא הזמנת רכש» בתוך «חוסרים והזמנות לקוח לא מכוסות» — שם לא הוזמנה אף יחידה. השאר מקובצים לפי ספק, והכותרת של כל ספק אומרת לכמה מהם יש תאריך אספקה בדוח ה-ETA ולכמה צריך לדרוש אחד.'},
@@ -14399,12 +14423,28 @@ function renderCapTop(){
    אוכלוסייה בדיוק, עם תווית «מסונן: … ✕». הסינון אינו נשמר: כל מעבר
    מסך או דלת מנקה אותו. אין שינוי בסיווג, במונה או בדירוג. */
 function ropUpRow(r){return !!r.paramFix&&(r.sugROP||0)>(r.rop||0)}
-let ROPUP_ONLY=false;
-function subChipSync(){const el=document.getElementById('subChip');if(!el)return;
- const on=ROPUP_ONLY&&mode==='month'&&track==='month';
+/* ============ TERMS שלב 2 · סינון לפי סיבה ברשימת הפרמטרים (אושר 21.11) ============
+   הדלתות «ROP קצרה מזמן האספקה», «ROP נמוכה מהמומלץ» ו«פרמטר מעל מכירות
+   3 שנים» הפכו לכפתורים מעל הרשימה האחת — שהיא קובץ SAP. פריט יכול לענות
+   על כמה סיבות; כפתור אחד פעיל בכל פעם. הסינון אינו נשמר, כמו UX4. */
+const MREASONS=[
+ ['ropGap','ROP קצרה מזמן האספקה',r=>ropDry(r)>0],
+ ['ropUp','ROP נמוכה מהמומלץ',ropUpRow],
+ ['ropDown','ROP גבוהה מהמומלץ',r=>!!r.paramFix&&(r.sugROP||0)<(r.rop||0)],
+ ['ss','מלאי ביטחון לעדכון',r=>!!r.paramFix&&(r.sugSS||0)!==(r.ss||0)],
+ ['over3y','פרמטר מעל מכירות 3 שנים',r=>!!r.over3y]];
+let MREASON='';
+function mreasonFn(k){const x=MREASONS.find(y=>y[0]===k);return x?x[2]:()=>true}
+function subChipSync(){const el=document.getElementById('mrRow');if(!el)return;
+ const sc=document.getElementById('subChip');if(sc){sc.hidden=true;sc.innerHTML=''}
+ const on=mode==='month'&&track==='month';
  el.hidden=!on;
- el.innerHTML=on?`<div class="chip" title="מסונן: נקודת הזמנה נמוכה מהנדרש"><b>מסונן:</b><span class="sct">נקודת הזמנה נמוכה מהנדרש</span><button type="button" class="subx" aria-label="הסר את הסינון — הצג את כל «תכנון ו-MRP»" title="הצג את כל «תכנון ו-MRP»">✕</button></div>`:'';
- const x=el.querySelector('.subx');if(x)x.onclick=()=>{ROPUP_ONLY=false;render()}}
+ if(on){const base=decisionList('month');
+  el.innerHTML='<span class="mrlbl">סיבה:</span>'+[['','הכל',()=>true]].concat(MREASONS).map(([k,l,f])=>{const n=base.filter(f).length;
+   return `<button type="button" class="mrbtn${MREASON===k?' on':''}" data-mr="${k}" aria-pressed="${MREASON===k}"${n||!k?'':' disabled'}>${esc(l)} <b>${n.toLocaleString('he-IL')}</b></button>`}).join('');
+  el.querySelectorAll('[data-mr]').forEach(b=>b.onclick=()=>{MREASON=b.dataset.mr;render()});
+  return}
+ el.innerHTML=''}
 function homeRows(k){
  if(!QF)return [];
  if(k==='burn')return burnRows().slice().sort((a,b)=>(b.miss||0)*(b.price||0)-(a.miss||0)*(a.price||0));

@@ -19,8 +19,9 @@ const AREAS=[['home','חריגים לטיפול','חריגים לטיפול'],['
  ['line','מעקב הזמנות רכש','מעקב רכש'],['month','פרמטרי תכנון (MRP)','פרמטרי תכנון'],
  ['cap','מלאי עודף, איטי תנועה ומת','מלאי עודף ומת'],['qual','נתוני אב חסרים','נתוני אב חסרים'],
  ['catalog','קטלוג פריטים','קטלוג פריטים'],['applied','בקרת יישום','בקרת יישום']];
-const SUBS={today:['burn','cust'],line:['line','stale'],
- month:['month','ropGap','ropThin','over3y','tier','floor','floorNR','rise','trend','first','prof'],
+/* שלב 2 (21.11): «זירוז ספקים» במעקב רכש; דלתות ה-ROP ו«מעל מכירות 3 שנים» — סינון ברשימה */
+const SUBS={today:['burn','cust'],line:['line','follow','stale'],
+ month:['month','tier','floor','floorNR','rise','trend','first','prof'],
  cap:['cap','capPO','capStop','capBiz','capNone'],catalog:['catalog','moves'],applied:['applied','done']};
 /* מה שהיה לפני TERMS — אסור שיופיע במסילה או בכותרת */
 const OLD=['מרכז עבודה','רכש ואספקות','תכנון ו-MRP','איכות נתונים','בריאות המלאי','כסף תקוע',
@@ -55,16 +56,16 @@ const OLD=['מרכז עבודה','רכש ואספקות','תכנון ו-MRP','א
   ok(`${area}: כותרת המסך = השם המלא`,S.lt===AREAS.find(a=>a[0]===area)[1],S.lt);
  }
  const T=await p.evaluate(()=>{const o={};
-  for(const [k,full] of [['ropGap','נקודת הזמנה (ROP) קצרה מזמן האספקה'],['floor','מלאי ביטחון מינימלי (SS) מעל הצורך'],['stale','הזמנות רכש באיחור'],['done','טופלו']]){
+  for(const [k,full] of [['tier','חלק זול ללא נקודת הזמנה (ROP)'],['floor','מלאי ביטחון מינימלי (SS) מעל הצורך'],['stale','הזמנות רכש באיחור'],['done','טופלו']]){
    setMode(k);o[k]=[document.getElementById('lt').textContent,full]}
   /* «בקרה תקופתית»: הקבוצה בתוך פרמטרי תכנון, ואחריה כל רשימות העיון */
   setMode('month');const seq=[...document.querySelectorAll('#railsub > *')].map(e=>e.classList.contains('railgrp')?'@':e.dataset.nav||'');
   o.grp=seq.slice(seq.indexOf('@')+1);
   o.txt=document.querySelector('.rail').textContent+' '+document.getElementById('lt').textContent;
-  o.counts=['home','today','line','month','qual','cap','burn','cust','ropGap','ropThin','over3y','tier','floor','floorNR','trend','rise','first','prof','applied','done','stale','capPO','capStop','capBiz','capNone']
+  o.counts=['home','today','line','month','qual','cap','burn','cust','follow','tier','floor','floorNR','trend','rise','first','prof','applied','done','stale','capPO','capStop','capBiz','capNone']
    .map(k=>[k,navCount(k).n]);
   return o});
- ok('כותרת דלת = התחום · השם המלא של הדלת',['ropGap','floor'].every(k=>T[k][0].endsWith(' · '+T[k][1])),JSON.stringify([T.ropGap,T.floor]));
+ ok('כותרת דלת = התחום · השם המלא של הדלת',['tier','floor'].every(k=>T[k][0].endsWith(' · '+T[k][1])),JSON.stringify([T.tier,T.floor]));
  ok('«הזמנות רכש באיחור» תחת מעקב הזמנות רכש',T.stale[0]==='מעקב הזמנות רכש · הזמנות רכש באיחור',T.stale[0]);
  ok('«טופלו» תחת בקרת יישום',T.done[0]==='בקרת יישום · טופלו',T.done[0]);
  ok('בקרה תקופתית: מלאי ביטחון מינימלי, מגמות, צריכה ראשונה, סוג MRP',JSON.stringify(T.grp)===JSON.stringify(['floor','floorNR','rise','trend','first','prof']),T.grp.join(','));
