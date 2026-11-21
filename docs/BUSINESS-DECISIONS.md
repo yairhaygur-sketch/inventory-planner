@@ -848,6 +848,14 @@ Changes to these areas require explicit business approval.
     SAP file); the card says «fine for now — returns when stock falls». It
     changes the SAP file and will come in its own PR.
 
+- **2026-11-21 · No brand line under the tool name; «אין פרמטר לשנות».**
+  The line «תכנון מלאי חלפים · ZT ולינק אנד קו» under «Inventory Planner» was
+  removed — the tool is used by others too. The build stamp, the only way to
+  see which version the browser serves, moved to the «עזרה ועוד» menu. The
+  excess-stock door «ללא פעולה» (stage 1) is renamed «אין פרמטר לשנות»: «ללא
+  פעולה» is an engine category shown in the same table, with a different
+  meaning. Display only (business-guard: 0 differences).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
