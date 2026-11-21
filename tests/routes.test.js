@@ -191,10 +191,10 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
       vis:!!e&&e.offsetParent!==null,tag:e?e.tagName:'',
       name:e?((e.querySelector('.t')||{}).textContent||''):'' ,
       bdg:e?((e.querySelector('.bdg')||{}).textContent||''):''}});
-  ok('«אין רכש כלל» הוא הדלת הראשונה בתוך «חוסרים ולקוחות»',
+  ok('«ללא הזמנת רכש» הוא הדלת הראשונה בתוך «חוסרים והזמנות לקוח לא מכוסות»',
     nav.first==='burn'&&nav.areaFirstVisible,nav.first);
   ok('והיא גלויה, כפתור, עם שם ומונה',
-    nav.vis&&nav.tag==='BUTTON'&&/אין רכש כלל/.test(nav.name)&&nav.bdg.length>0,
+    nav.vis&&nav.tag==='BUTTON'&&/ללא הזמנת רכש/.test(nav.name)&&nav.bdg.length>0,
     `${nav.tag} "${nav.name}" מונה=${nav.bdg}`);
 
   /* --- לחיצה מגיעה בדיוק לדלי, והייצוא הוא בדיוק הוא --- */
@@ -274,7 +274,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   /* היה: הכותרת של fixBtn פירקה את הרשימה לשני חלקים בריחוף. במסילה
      הפירוק גלוי בעין — דלתות המשנה של התחום — ולא מוסתר בתוך title. */
   ok('והתחום מפרק את עצמו לדלתות משנה גלויות',
-    /מספר לתקן ב-SAP/.test(f.sub)&&/מלאי ביטחון ידני/.test(f.sub)&&/יושמו ב-SAP/.test(f.sub),f.sub);
+    /* TERMS: «יושמו ב-SAP» עבר ל«בקרת יישום»; מלאי הביטחון המינימלי — ב«בקרה תקופתית» */
+    /המלצות לעדכון פרמטרים/.test(f.sub)&&/ביטחון מינימלי מעל הצורך/.test(f.sub)&&/נקודת הזמנה קצרה/.test(f.sub),f.sub);
 
   /* מקלדת — כפתור תקני, בלי preventDefault שחוסם את ה-click */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);
@@ -317,8 +318,9 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
          return s&&s.offsetParent!==null&&s.textContent.trim().length>2}).length,
        cols:new Set(tabs.map(e=>Math.round(e.getBoundingClientRect().left))).size,
        ov:rail.scrollWidth-rail.clientWidth}});
-    ok(`${W} · ${m} · שבעה תחומים בעמודה אחת, כולם נושאים שם`,
-      r.n===7&&r.named===7&&r.cols===1&&r.ov<=1,
+    /* TERMS (21.11): שמונה תחומים — נוסף «בקרת יישום» */
+    ok(`${W} · ${m} · שמונה תחומים בעמודה אחת, כולם נושאים שם`,
+      r.n===8&&r.named===8&&r.cols===1&&r.ov<=1,
       `תחומים=${r.n} · עם שם=${r.named} · עמודות=${r.cols} · גלישה=${r.ov}`);}
    await p2.close();}
   await ctx.close()}
@@ -429,13 +431,13 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     gaps:(document.querySelector('.abgap')||{}).textContent||'',
     noPx:(QF.all||[]).filter(r=>r.priceMissing).length,
     hasEta:!!ETA}));
-  ok('«מרכז עבודה» הוא רשימת סדר היום, לא תור העבודה הכללי',
+  ok('«חריגים לטיפול» הוא רשימת סדר היום, לא תור העבודה הכללי',
     h.mode==='home'&&h.track==='agenda'&&h.rows===h.agenda,
     `mode=${h.mode} track=${h.track} · ${h.rows} שורות מתוך ${h.agenda}`);
   ok('המונה במסילה הוא אורך הרשימה עצמה',
     h.badge===h.agenda,`תג ${h.badge} · רשימה ${h.agenda}`);
   ok('והוא אומר את שמו ואת חודש הדוח',
-    /מרכז עבודה/.test(h.title)&&/^\d{4}-\d{2}$/.test(h.month),
+    /חריגים לטיפול/.test(h.title)&&/^\d{4}-\d{2}$/.test(h.month),
     `${h.title} · ${h.month}`);
   /* «לקוח ממתין ללא רכש» ראשון — לא כי הוא גדול, אלא כי הוא
      היחיד שבו ההבטחה כבר ניתנה ואין מולה כלום. */

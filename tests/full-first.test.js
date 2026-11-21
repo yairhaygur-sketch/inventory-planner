@@ -48,7 +48,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    heads,n:rows.length,trs:trs.length,sorted:tot.every((v,i)=>i===0||tot[i-1]>=v),cellsOk,pgR:document.getElementById('pgR').textContent,
    m0:rows.reduce((a,r)=>a+firstM0(r),0),cm:rows.reduce((a,r)=>a+firstCm(r),0),po:rows.filter(r=>r.po>0).length,
    btns:['exportXls','sapXls','sapSlowXls','expXls','lmailBtn','arrBtn'].filter(id=>!document.getElementById(id).hidden)}});
- ok('המסך: «תכנון ו-MRP · צריכה ראשונה»',S.mode==='first'&&S.track==='first'&&S.view==='first'&&S.title==='תכנון ו-MRP · צריכה ראשונה',S.title);
+ ok('המסך: «פרמטרי תכנון (MRP) · צריכה ראשונה»',S.mode==='first'&&S.track==='first'&&S.view==='first'&&S.title==='פרמטרי תכנון (MRP) · צריכה ראשונה',S.title);
  ok('תת-הכותרת אומרת את הכלל ואת הפעולה',/לא נצרך מעולם/.test(S.sub)&&/3 השנים/.test(S.sub)&&/להגדיר לו תכנון/.test(S.sub),S.sub.slice(0,60));
  ok('העמודות: מק״ט, דגם, תיאור, שני החודשים, מלאי, בדרך, MRP, סיווג',JSON.stringify(S.heads)===JSON.stringify(['pnPlain','model','desc','fM0','fCm','free','poPlain','mrp','cat']),S.heads.join(','));
  ok('כל הפריטים ברשימה, מהצריכה הגדולה לקטנה',S.n===R.n&&S.trs===S.n&&S.sorted,`${S.trs}/${S.n}`);

@@ -103,10 +103,12 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
      לתקן שמות שנקראו כחלון זמן — «לטיפול היום» ו«החודש». השמות
      החדשים אינם נקראים כך, ולכן מה שנבדק הוא המקור ולא התיקון. */
   ok(`${W} · אין שם תחום שנקרא כחלון זמן`,
-    nav.areaNames.length===7&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
+    /* TERMS (21.11): שמונה תחומים — נוסף «בקרת יישום» */
+    nav.areaNames.length===8&&!nav.areaNames.some(t=>/לטיפול היום|היום|החודש/.test(t)),
     nav.areaNames.join(' · '));
   ok(`${W} · ופרמטרים, אספקות, טופלו ותנועות יושבים במסילה בשמם`,
-    ['מספר לתקן ב-SAP','מתי מה אמור להגיע','טופלו','תנועות אחרונות']
+    /* TERMS (21.11): «מספר לתקן ב-SAP» → «המלצות לעדכון פרמטרים»; «מתי מה אמור להגיע» → «הזמנות רכש פתוחות» */
+    ['המלצות לעדכון פרמטרים','הזמנות רכש פתוחות','טופלו','תנועות אחרונות']
       .every(n=>nav.subLbl.includes(n)),nav.subLbl.join(' · '));
   ok(`${W} · «חודש בסיס» קיבל תווית גלויה והסבר`,
     /חודש בסיס/.test(nav.rdLabel)&&/החודש המלא האחרון/.test(nav.rdTitle),
@@ -171,11 +173,11 @@ const load=async p=>{await p.setInputFiles('#f',SD+'/zmrp-demo.xlsx');await p.wa
       return !!b&&/בטל סימון טופל/.test(b.textContent||'')}));
   /* --- פותחים אותו מתוך «טופלו», דרך לחיצה על רכיב גלוי --- */
   await p.evaluate(()=>closeDetail());await p.waitForTimeout(250);
-  /* «טופלו» היא דלת משנה בתוך «חוסרים ולקוחות» במסילה האנכית. היא
-     קיימת תמיד (יעד אינו נעלם כשהמונה אפס), והמונה הוא מה שמשתנה
-     אחרי הסימון. */
+  /* «טופלו» היא דלת משנה במסילה האנכית — מ-TERMS (21.11) בתוך «בקרת
+     יישום» (קודם: «חוסרים ולקוחות»). היא קיימת תמיד (יעד אינו נעלם
+     כשהמונה אפס), והמונה הוא מה שמשתנה אחרי הסימון. */
   await p.evaluate(()=>{const a=[...document.querySelectorAll('#tabs .tab')]
-    .find(t=>t.dataset.m==='today');if(a)a.click()});
+    .find(t=>t.dataset.m==='applied');if(a)a.click()});
   await p.waitForTimeout(400);
   const doneTab=await p.evaluate(()=>{
     const e=document.querySelector('#railsub .railsub2[data-m="done"]');

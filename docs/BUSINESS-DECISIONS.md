@@ -785,6 +785,40 @@ Changes to these areas require explicit business approval.
     and SS of 0 with no consumption in six months, 2 tools/accessories, 2 too
     little consumption, 1 SS of 0) and 7 downgrade items (all «waiting»).
 
+- **2026-11-21 · Formal purchasing and inventory-planning terms, and the rail
+  arranged by the action at the end (TERMS, stage 1 of 2).** Names and
+  placement only: every count, list, Excel export and SAP file is unchanged
+  (business-guard on the real report: 0 differences).
+  - **Eight areas, in this order:** exceptions to handle («חריגים לטיפול») ·
+    shortages and uncovered customer orders · purchase-order follow-up ·
+    planning parameters (MRP) · excess, slow-moving and dead stock · missing
+    master data · item catalog · implementation control («בקרת יישום»).
+  - **Moved:** «ROP short of lead time» and «ROP below recommended» from
+    purchasing to planning parameters; overdue deliveries from data quality to
+    purchase-order follow-up; «demand rising» joins «demand falling», the two
+    SAP minimum-safety-stock lists, first consumption and the MRP-type change
+    in the «periodic review» group (the tool never changes minimum safety
+    stock, and the trends are advisory); «handled» and «applied in SAP» to
+    implementation control.
+  - **Terms:** Hebrew with the abbreviation in brackets — «נקודת הזמנה (ROP)»,
+    «מלאי ביטחון (SS)»; SAP's own «מלאי ביטחון מינימלי» instead of «floor» or
+    «minimum»; «סוג MRP» for PD / ZM-A/B/C; the value of excess stock is
+    «שווי עודף» on screen.
+  - **The rail shows a short name** (the counter must stay visible at 1366,
+    where the rail is 186px); the screen title and the tooltip carry the full
+    name.
+  - **«Item catalog» has no counter and no red mark** — it is search, not a
+    work list.
+  - **Not in this stage, on purpose:** Excel column headers, engine category
+    names and «why» texts, and the 4-topics view keep their wording — changing
+    them changes the exports and needs its own declaration.
+  - **Stage 2 (approved 21.11, not yet built):** one parameter-update list
+    equal to the SAP file, with the old doors as reason filters; the 180
+    delivery follow-up items move to purchase-order follow-up; missing master
+    data appears only in its own area. These change counts and will be measured
+    and declared in their own PR. The 57 items where the tool suggests raising
+    ROP on stock it classifies as excess or slow are examined first.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
