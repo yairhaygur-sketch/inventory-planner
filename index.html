@@ -2028,6 +2028,15 @@ td .mut{color:var(--dimmer)}
 #tbl td.prst.up{color:var(--acc)}
 #tbl td.prst.down,#tbl td.prst.check{color:var(--org)}
 #tbl td.prst.wait,#tbl td.prst.keep{color:var(--ink-2);font-weight:500}
+/* ZMC_PR2 — «לבדוק» בהעלאות (הסימולציה מצאה סיבה), ושני הטאבים של המסך */
+#tbl td.prst.rev{color:var(--org)}
+.proftabs{display:flex;gap:4px;padding:6px 10px 0;border-bottom:1px solid var(--line2)}
+.proftab{font:inherit;font-size:12.5px;border:1px solid transparent;border-bottom:0;background:none;color:var(--ink-2);
+ padding:5px 12px;border-radius:8px 8px 0 0;cursor:pointer;margin-bottom:-1px}
+.proftab .fn{font-variant-numeric:tabular-nums;color:var(--ink-3);margin-inline-start:4px}
+.proftab:hover{color:var(--ink)}
+.proftab.on{background:var(--surface);border-color:var(--line2);color:var(--ink);font-weight:700}
+.proftab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #tbl td.selc,#tbl th[data-ck="sel"]{width:30px;text-align:center;padding-inline:4px}
 #tbl .sapsel,#tbl .sapall{width:16px;height:16px;cursor:pointer;accent-color:var(--acc);margin:0;vertical-align:middle}
 .sapbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;
@@ -5042,6 +5051,18 @@ function profRows(){if(!QF||!QF.all)return [];
    return PROF_ST[x.state][1]-PROF_ST[y.state][1]||PROF_RANK[y.tgt]-PROF_RANK[x.tgt]||y.h-x.h})}
 /* המונה במסילה סופר רק את מה שדורש פעולה עכשיו — לא «בהמתנה» ולא «לא להוריד» */
 function profActive(r){const i=profInfo(r);return !!i&&(i.state==='up'||i.state==='down'||i.state==='check')}
+/* ============ ZMC_PR2 — שני טאבים ו«לבדוק» בהעלאות (החלטות המעתד; רשימת העמודות אושרה 21.11) ============
+   «העלאה ל-ZM-C» — כל מועמדי PD ← ZM-C. מועמד שהסימולציה מצאה בו סיבה (profSplit → rev)
+   מוצג «לבדוק», עם הסיבה ב«למה» — לא נשאר PD בשקט ולא נעלם מהרשימה. «הורדות וממתינים» —
+   כל השאר (להוריד · לבדוק — רכש פתוח · בהמתנה · לא להוריד), בטאב נפרד. המצבים עצמם
+   (profInfo) והמונה במסילה (profActive) לא השתנו: «לבדוק» הוא תצוגה של מועמד 'up'.
+   התצוגה הזו בכלי המלא בלבד; תצוגת 4 הנושאים — כמו קודם. */
+let PROF_TAB='up';
+const profIsUp=r=>{const i=profInfo(r);return !!i&&i.state==='up'};
+function profStatus(r){const i=profInfo(r);if(!i)return null;
+ if(i.state==='up'){const sp=profSplit(r);return sp&&sp.grp==='rev'
+  ?{k:'rev',t:'לבדוק',why:sp.reasons.map(w=>PFSIM_WHY[w]||w).join(' · ')}:{k:'up',t:PROF_ST.up[0],why:i.why}}
+ return {k:i.state,t:PROF_ST[i.state][0],why:i.why}}
 /* ============ PROF_SIM — מה SAP יחשב אחרי מעבר PD → ZM-C ============
    ההמלצה «להעלות» אומרת לעבור לפרופיל ZM-C, אבל עד כאן הכלי לא אמר
    איזה ROP ו-SS הפריט יקבל שם. כאן מריצים את אותו build() בדיוק על
@@ -5087,7 +5108,9 @@ const PFSIM_WHY={
  zero_noprice:'ROP=0 ו-SS=0 — צריכה מעטה מדי לקצב, והמחיר חסר',
  zero_silent:'ROP=0 ו-SS=0 — אין צריכה בששת החודשים האחרונים',
  ss_zero:'ROP=1 ו-SS=0',
- ss_zero_rate3y:'ROP≥2 ו-SS=0'};
+ /* ZMC_PR2 — נבדק לפני שינוי השם: אחרי SS_LTVAR מועמד מגיע לכאן רק בלי צריכה ב-11 החודשים
+    (הכול בחודש הנוכחי, והקצב מחלון 3 השנים). המפתח נשאר; הנוסח אומר את זה */
+ ss_zero_rate3y:'ROP≥2 ו-SS=0 — אין צריכה ב-11 החודשים; הקצב מחלון 3 השנים'};
 let PFSIM=null;
 function profSimAll(){
  if(PFSIM&&PFSIM.all===ALL&&PFSIM.raw===ALL_RAW)return PFSIM;
@@ -7147,7 +7170,7 @@ const CW_KEY='planner_colw_v1';
    לשלושת טאבי התנועות פריסות שונות, ומפתח אחד היה מחיל את רוחב
    «Δ כניסה→מכירה» על «מכירה אחרונה». */
 function cwView(){return cur==='moves'?'moves|'+movTab
- :String(track||'x')+'|'+String(cur||'')+(SHORTLIKE()?':'+colViewKey():'')}
+ :String(track||'x')+'|'+String(cur||'')+((SHORTLIKE()||track==='prof')?':'+colViewKey():'')}
 function cwAll(){try{return JSON.parse(localStorage.getItem(CW_KEY)||'{}')||{}}catch(_){return {}}}
 function cwSave(o){try{localStorage.setItem(CW_KEY,JSON.stringify(o))}catch(_){}}
 function cwGet(v){const o=cwAll();return o[v||cwView()]||null}
@@ -9315,7 +9338,9 @@ function currentRows(){
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='stale'){const by=staleRows();
    return sortCol==='sev'?by:sortRowsBy(by)}
- if(track==='prof'){const by=profRows();
+ /* ZMC_PR2 — הטאב הפתוח. בהעלאות: «להעלות» קודם, אחריהם «לבדוק»; בתוך כל קבוצה — הסדר הקיים */
+ if(track==='prof'){const up=PROF_TAB!=='down',L=profRows().filter(r=>profIsUp(r)===up);
+   const by=up?L.map((r,i)=>[r,i]).sort((a,b)=>((profStatus(a[0]).k==='rev')-(profStatus(b[0]).k==='rev'))||a[1]-b[1]).map(x=>x[0]):L;
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='applied'){const R={done:0,other:1,none:2};
    const by=appliedRows().sort((a,b)=>R[a.apStatus]-R[b.apStatus]||a.pn.localeCompare(b.pn));
@@ -10071,20 +10096,25 @@ const SCOL={
    return `<td><b>${up?'↑':'↓'} ${PROF_NAME[i.tgt]}</b> <span class="mut">(${PROF_SRV[i.tgt]})</span></td>`}},
  profH:{t:'חודשי צריכה',val:r=>profH(r),xval:r=>profH(r),ttl:'בכמה מתוך 11 החודשים בדוח הייתה צריכה',
   cell:r=>`<td class="num">${profH(r)}<span class="mut">/11</span></td>`},
- profSt:{t:'המלצה',val:r=>{const i=profInfo(r);return i?PROF_ST[i.state][0]:''},
-  ttl:'להעלות — מיד · להוריד — חודש שני מתחת לסף · לבדוק — יש רכש פתוח · בהמתנה — חודש ראשון מתחת לסף · לא להוריד — לקוח ממתין או צריכה ב-3 שנים',
-  cell:r=>{const i=profInfo(r);if(!i)return '<td>—</td>';
-   return `<td class="prst ${i.state}" title="${esc(i.why)}">${esc(PROF_ST[i.state][0])}</td>`}},
- profWhy:{t:'למה',val:r=>{const i=profInfo(r);return i?i.why:''},ttl:'הסיבה להמלצה',
-  cell:r=>{const i=profInfo(r);return `<td class="dsc" title="${esc(i?i.why:'')}">${esc(i?i.why:'')}</td>`}},
+ profSt:{t:'המלצה',val:r=>{const x=profStatus(r);return x?x.t:''},
+  ttl:()=>PROF_TAB==='down'
+   ?'להוריד — חודש שני מתחת לסף · לבדוק — יש רכש פתוח · בהמתנה — חודש ראשון מתחת לסף · לא להוריד — לקוח ממתין או צריכה ב-3 שנים'
+   :'להעלות — מיד · לבדוק — הסימולציה של ZM-C מצאה סיבה לבדיקה (הסיבה ב«למה»)',
+  cell:r=>{const x=profStatus(r);if(!x)return '<td>—</td>';
+   return `<td class="prst ${x.k}" title="${esc(x.why)}">${esc(x.t)}</td>`}},
+ profWhy:{t:'למה',val:r=>{const x=profStatus(r);return x?x.why:''},ttl:'הסיבה להמלצה — ובמועמד «לבדוק»: מה הסימולציה מצאה',
+  cell:r=>{const x=profStatus(r);return `<td class="dsc" title="${esc(x?x.why:'')}">${esc(x?x.why:'')}</td>`}},
+ profNet:{t:'צריכה נטו 12 ח׳',ttl:'צריכה נטו ב-12 החודשים האחרונים (11 מלאים והנוכחי, כולל החזרות) — הבסיס להעלאה מ-PD',
+  val:r=>r.net12==null?-1:r.net12,xval:r=>r.net12==null?'':r.net12,
+  cell:r=>`<td class="num">${r.net12==null?'<span class="mut">—</span>':r.net12.toLocaleString('he-IL')}</td>`},
  /* ============ PROF_SIM על המסך (שלב 2) ============
     מה המנוע יחשב אחרי מעבר PD → ZM-C — אותו build() על עותק השורה (ראה
     PROF_SIM). מידע בלבד: אינו שורת עדכון ל-SAP ואינו משנה פרופיל. בלי זמן
     אספקה — «לא ניתן לחשב — LT חסר», והתא בייצוא ריק. */
- profSimRop:{noX:1,t:'ROP אחרי ZM-C',ttl:'סימולציה בלבד — נקודת ההזמנה שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינה עדכון ל-SAP',
+ profSimRop:{t:'ROP אחרי ZM-C',xt:'ROP אחרי ZM-C (סימולציה)',ttl:'סימולציה בלבד — נקודת ההזמנה שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינה עדכון ל-SAP',
   val:r=>{const v=profSimVal(r,'rop');return typeof v==='number'?v:-1},xval:r=>{const v=profSimVal(r,'rop');return typeof v==='number'?v:''},
   cell:r=>profSimCell(r,'rop')},
- profSimSs:{noX:1,t:'SS אחרי ZM-C',ttl:'סימולציה בלבד — מלאי הביטחון שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינו עדכון ל-SAP',
+ profSimSs:{t:'SS אחרי ZM-C',xt:'SS אחרי ZM-C (סימולציה)',ttl:'סימולציה בלבד — מלאי הביטחון שהמנוע יחשב אחרי מעבר PD ← ZM-C. אינו עדכון ל-SAP',
   val:r=>{const v=profSimVal(r,'ss');return typeof v==='number'?v:-1},xval:r=>{const v=profSimVal(r,'ss');return typeof v==='number'?v:''},
   cell:r=>profSimCell(r,'ss')},
  /* ============ בחירה לקובץ SAP — עיצוב שלב 6ב ============
@@ -10462,7 +10492,7 @@ const SCOL={
   xval:r=>r.risk||0,
   cell:r=>`<td class="num strong">${r.risk?money(r.risk,r.currency):'—'}</td>`}};
 /* הסדר כאן הוא סדר הבורר, ולא סדר התצוגה */
-const SCOL_ORDER=['sel','profCur','profTgt','profH','profSt','profWhy','profSimRop','profSimSs','mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
+const SCOL_ORDER=['sel','profCur','profTgt','profH','profSt','profWhy','profNet','profSimRop','profSimSs','mdot','cPn','pn','pnPlain','cDesc','desc','sup','cSpark','covbar','spark','cFree','free','freeRop','freeDry','cCust','cust','waiting','stock',
  'cPo','po','poPlain','tr','cov','stuck','otw','eta','missq','cMiss','miss','m1gap','buy','cCov','cova',
  'rop','ss','apRop','apSs','need','ssMin','lt','dLT','dryM','d12','c3','r3','cons11',
  'fgap','fval','tpct','trate','trop','tgap','tval','upct','urate','urop','ugap',
@@ -10519,7 +10549,9 @@ const SCOL_DEF={
  /* מה צריך כדי לבדוק מול SAP: מי, כמה, ממתי, ולפי איזה מסמך */
  stale:['pnPlain','model','desc','sup','stQty','stDate','stAge','stDoc','free','poPlain','stuck'],
  /* «שינוי פרופיל MRP»: מה היום, מה מוצע, למה, ומה בדרך */
- prof:['pnPlain','model','desc','profCur','profTgt','profH','profSt','profWhy','profSimRop','profSimSs','free','poPlain']};
+ /* ZMC_PR2 — שני טאבים, הסדר שאושר 21.11. בהעלאות אין «פרופיל היום/מוצע»: שם הם תמיד PD ← ZM-C */
+ prof:['pnPlain','model','desc','profSt','profWhy','profNet','profH','profSimRop','profSimSs','free','poPlain'],
+ profDn:['pnPlain','model','desc','profCur','profTgt','profH','profSt','profWhy','free','poPlain']};
 /* אילו תצוגות עברו לרישום. מסלול שאינו כאן ממשיך בתבנית שלו. */
 function colReg(v){return !!SCOL_DEF[v||colViewKey()]}
 /* מה אפשר להוסיף בבורר: עמודות התצוגה עצמה, ועוד מאגר עמודות
@@ -10558,7 +10590,7 @@ function colViewKey(){
  if(track==='ropb')return 'ropb';
  if(track==='qual')return 'qual';
  if(track==='stale')return 'stale';
- if(track==='prof')return 'prof';
+ if(track==='prof')return PROF_TAB==='down'?'profDn':'prof';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
@@ -11219,7 +11251,7 @@ function renderDecisions(rows){
         ?'אין פריט שנצרך עכשיו לראשונה — לכל פריט שנצרך יש צריכה קודמת בדוח.'
         :'בדוח אין עמודות 3 השנים, ולכן אי אפשר לומר על פריט שלא נצרך מעולם.')
      :track==='done'?'לא סימנת עדיין אף פריט כ"טופל". סימון מוציא פריט מתור העבודה עד שתבטל אותו כאן.'
-     :track==='prof'?'אין פריט שהפרופיל שלו שונה ממה שתדירות הצריכה מצדיקה.'
+     :track==='prof'?(PROF_TAB==='down'?'אין פריט ZM שתדירות הצריכה שלו מצדיקה פרופיל נמוך יותר.':'אין פריט PD שהצריכה נטו שלו מצדיקה מעבר ל-ZM-C.')
      :track==='stale'?(ETA?'אף שורה בדוח ה-ETA אינה נושאת תאריך שכבר עבר — הדוח נקי.':'לא נטען דוח ETA, ולכן אין תאריכי הגעה לבדוק.')
      :track==='cap'?(mode==='capPO'?'אין פריט עם רכש פתוח שימשיך להיכנס למלאי עודף — שום כסף אינו בדרך פנימה למלאי העודף.'
         :mode==='capStop'?'אין פריט שבו נקודת ההזמנה חיה והמנוע מציע מספר נמוך ממנה — אין הזמנה חוזרת לעצור בפרמטר.'
@@ -11231,7 +11263,7 @@ function renderDecisions(rows){
  capAllSync(k?{all:capAll,shown:view.length,total:rows.length}:null);
  document.getElementById('pgL').textContent=pgTxt(view.length,rows.length)
    /* המונה במסילה הוא «לפעולה» — כאן רואים מאיפה הוא בא */
-   +(track==='prof'&&rows.length?` · ${rows.filter(profActive).length.toLocaleString('he-IL')} לפעולה (להעלות + לבדוק)`:'');
+   +(track==='prof'&&rows.length?` · ${rows.filter(profActive).length.toLocaleString('he-IL')} לפעולה`:'');
  let extra='';
  /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
     ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
@@ -11270,9 +11302,9 @@ function renderDecisions(rows){
    :track==='first'
    ?`${rows.reduce((a,r)=>a+firstM0(r),0).toLocaleString('he-IL')} יח׳ בחודש המלא האחרון · ${rows.reduce((a,r)=>a+firstCm(r),0).toLocaleString('he-IL')} יח׳ בחודש הנוכחי · ${rows.filter(r=>r.po>0).length.toLocaleString('he-IL')} עם רכש פתוח`
    :track==='prof'
-   ?(()=>{const c={};for(const r of rows){const st=profInfo(r).state;c[st]=(c[st]||0)+1}
+   ?(()=>{const c={},t={};for(const r of rows){const x=profStatus(r);c[x.k]=(c[x.k]||0)+1;t[x.k]=x.t}
       const off=profExclRows().length;
-      return ['up','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${PROF_ST[k][0]} ${c[k].toLocaleString('he-IL')}`).join(' · ')
+      return ['up','rev','down','check','wait','keep'].filter(k=>c[k]).map(k=>`${t[k]} ${c[k].toLocaleString('he-IL')}`).join(' · ')
        +(off?` · ${off.toLocaleString('he-IL')} ללא שינוי פרופיל (נוטרלו ידנית או בגלל סימון — הרשימה מעל הטבלה)`:'')})()
    :track==='stale'
    ?(()=>{const u=rows.reduce((a,r)=>a+(r.etaPast||0),0);
@@ -11307,7 +11339,9 @@ function renderDecisions(rows){
   :track==='rise'
   ?'הביקוש עלה בתוך חלון הקצב ונקודת ההזמנה מפגרת אחריו · מספר מייעץ, ההמלצה לא שונתה · ✓ = משלוח בדרך סוגר את הפער למחזור הזה, והפריט נשאר ברשימה'
   :track==='prof'
-  ?'העלאה: PD ← ZM-C כשהצריכה נטו ב-12 החודשים האחרונים ≥ 3 יח׳ · הורדה בין ZM-A/B/C לפי H (חודשי צריכה מתוך 11: 9+ A · 5–8 B · 2–4 C), אחרי שני חודשים, ולא מתחת ל-ZM-C · ROP/SS אחרי ZM-C — סימולציה בלבד, לא עדכון ל-SAP'
+  ?(PROF_TAB==='down'
+   ?'הורדה בין ZM-A/B/C לפי H (חודשי צריכה מתוך 11: 9+ A · 5–8 B · 2–4 C), אחרי שני חודשים, ולא מתחת ל-ZM-C · «בהמתנה» — חודש ראשון מתחת לסף · «לא להוריד» — לקוח ממתין או צריכה ב-3 שנים'
+   :'העלאה: PD ← ZM-C כשהצריכה נטו ב-12 החודשים האחרונים ≥ 3 יח׳ · «לבדוק» — הסימולציה של ZM-C מצאה סיבה (ב«למה») · ROP/SS אחרי ZM-C — סימולציה בלבד, לא עדכון ל-SAP')
   :track==='stale'
   ?'הדוח מבטיח תאריך שכבר עבר · הכלי אינו יודע אם הסחורה נכנסה למלאי — זו בדיקה מול SAP לפי מסמך הרכש · בינתיים הכמות אינה נספרת ככיסוי בשום מקום'
   :track==='done'
@@ -11424,7 +11458,12 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
    renderDecisions(rows);return}
  if(track==='prof'){const tkP=document.getElementById('track');
    /* UX6 — רשימת המוחרגים, מקופלת, מעל הטבלה */
-   if(tkP){const h=profExclBand();tkP.innerHTML=h;tkP.style.display=h?'':'none';
+   if(tkP){const all=profRows(),nUp=all.filter(profIsUp).length,nDn=all.length-nUp;
+    /* ZMC_PR2 — שני טאבים. המספר בכל טאב = השורות שבו, אחרי החיפוש והסינון */
+    const tab=(k,t,n)=>`<button type="button" role="tab" class="proftab${PROF_TAB===k?' on':''}" data-proftab="${k}" aria-selected="${PROF_TAB===k}">${t} <span class="fn">${n.toLocaleString('he-IL')}</span></button>`;
+    const h=`<div class="proftabs" role="tablist" aria-label="שינוי פרופיל MRP">${tab('up','העלאה ל-ZM-C',nUp)}${tab('down','הורדות וממתינים',nDn)}</div>`+profExclBand();
+    tkP.innerHTML=h;tkP.style.display='';
+    tkP.querySelectorAll('[data-proftab]').forEach(b=>b.onclick=()=>{if(PROF_TAB===b.dataset.proftab)return;PROF_TAB=b.dataset.proftab;render()});
     tkP.querySelectorAll('[data-profx-undo]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxUndo);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}});
     tkP.querySelectorAll('[data-profx-open]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxOpen);if(r)detail(r)})}
    renderDecisions(rows);return}
@@ -12419,7 +12458,8 @@ function viewExportRows(){
  if(!keys.length)return null;
  const rows=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.val)(r)}catch(_){return ''}};
- return {keys,aoa:[keys.map(k=>SCOL[k].t),...rows.map(r=>keys.map(k=>val(k,r)))],n:rows.length}}
+ /* xt — כותרת לייצוא בלבד (ZMC_PR2: «(סימולציה)» ליד ROP/SS אחרי ZM-C, כדי שלא יועלו ל-SAP בטעות) */
+ return {keys,aoa:[keys.map(k=>SCOL[k].xt||SCOL[k].t),...rows.map(r=>keys.map(k=>val(k,r)))],n:rows.length}}
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
  return [header,...body]}

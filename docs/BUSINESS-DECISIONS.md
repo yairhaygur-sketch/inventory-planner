@@ -757,6 +757,34 @@ Changes to these areas require explicit business approval.
     the «all data» sheet. The «view» sheet of «by supplier» no longer carries
     it — the planner approved this one export change.
 
+- **2026-11-21 · ZM-C, stage 2 of the profile screen (ZMC_PR2; the decisions
+  were closed earlier, the column list was approved 21.11).** The engine, the
+  profile states, the rail counter, the SAP file and the 4-topics view are
+  unchanged.
+  - **Review instead of silence:** a PD → ZM-C candidate whose simulation found
+    a reason (tools/accessories group, manual «on demand» mark, inactive status,
+    missing lead time, no service-level column, missing or duplicate source row,
+    ROP and SS of 0, or SS of 0) is shown as «check», with the reason in «why».
+    It is no longer shown as «raise», and it does not silently stay PD.
+  - **Two tabs:** «raise to ZM-C» and «downgrades and waiting».
+    - Raise: part number · model · description · recommendation · why · net
+      consumption 12 months · months with consumption · ROP after ZM-C · SS
+      after ZM-C · free stock · in transit. «Profile today / proposed» are not
+      shown there: it is always PD → ZM-C.
+    - Downgrades and waiting: as before (today · proposed · months ·
+      recommendation · why · free · in transit), without the simulation.
+  - **Export:** only the «view» sheet of this screen changes. It carries the
+    open tab, with the same columns in the same order, and the simulated ROP
+    and SS are exported with «(simulation)» in their headers, so that nobody
+    uploads them to SAP by mistake.
+  - **The reason «ROP≥2 and SS=0»** was checked before any rename: since
+    SS_LTVAR a candidate gets there only with no consumption in the 11 months
+    (all of it in the current month, the rate from the 3-year window). The
+    internal key stays; the wording now says this.
+  - **Measured:** report A — 36 raise candidates (27 «raise», 9 «check»: 4 ROP
+    and SS of 0 with no consumption in six months, 2 tools/accessories, 2 too
+    little consumption, 1 SS of 0) and 7 downgrade items (all «waiting»).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
