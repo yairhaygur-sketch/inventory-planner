@@ -2143,8 +2143,10 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      miss:r?r.miss:null,expCap:r?Math.round(r.expCap||0):null,
      n:document.querySelectorAll('#tbl tbody tr[data-i]').length}});
  const ws0=await wcell();
- ok('«מצב טיפול» היא עמודה, ובלי סימון היא אומרת «חדש»',
-   ws0.i>0&&ws0.txt==='חדש',`עמודה ${ws0.i} · "${ws0.txt}"`);
+ /* DESIGN-A (21.11): בלי סימון התא ריק (title «טרם סומן») — «חדש» הופיע גם כאן וגם ב«ותק»
+    בשתי משמעויות. הייצוא עדיין כותב «חדש» (xval). */
+ ok('«מצב טיפול» היא עמודה, ובלי סימון התא ריק',
+   ws0.i>0&&ws0.txt==='',`עמודה ${ws0.i} · "${ws0.txt}"`);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
  ok('ובכרטיס יש מקטע נפרד למצב הטיפול',
    await p.evaluate(()=>{const sec=document.querySelector('#detail .wipsec');
@@ -2173,7 +2175,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
  await p.click('#detail .wipm button[data-w=""]');await p.waitForTimeout(600);
  const ws3=await wcell();
- ok('«נקה» מחזיר ל«חדש»',ws3.wip===null&&ws3.txt==='חדש'&&ws3.n===ws0.n,
+ ok('«נקה» מחזיר לתא ריק',ws3.wip===null&&ws3.txt===''&&ws3.n===ws0.n,
    `"${ws3.txt}" · ${ws3.n} שורות`);
  await p.locator('#tbl tbody tr[data-i]').first().click();await p.waitForTimeout(450);
  await p.click('#detail [data-dmark="handled"]');await p.waitForTimeout(700);
