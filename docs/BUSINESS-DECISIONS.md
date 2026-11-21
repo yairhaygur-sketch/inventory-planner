@@ -856,6 +856,22 @@ Changes to these areas require explicit business approval.
   פעולה» is an engine category shown in the same table, with a different
   meaning. Display only (business-guard: 0 differences).
 
+- **2026-11-21 · Design review, round A (display only; approved «בצע את
+  כולם»).** business-guard on the real report: 0 differences.
+  - «מצב טיפול» is empty for an unmarked item (it said «חדש», as did «ותק»,
+    with another meaning). The export keeps «חדש».
+  - «שווי» shows «—» when there is no FOB price or no missing units, instead
+    of «$0».
+  - The screen subtitle is one short full sentence; the full explanation is
+    in the tooltip. The jargon «רונגים» is gone, and the parameter-list and
+    missing-data subtitles now match TERMS stage 2.
+  - The red dot on a rail area is gone; the red count says the same.
+  - The top bar shows the planner only; the two counts were the rail's
+    counts again (DESIGN.md updated).
+  - Card tags use the theme surface, so they are readable in dark mode.
+  - «כיסוי החודש» stays: the bar tells ordered-without-date (hatched) from
+    not ordered (solid). Only the «0%» label is muted.
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —

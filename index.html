@@ -410,7 +410,7 @@ tbody tr:hover .xd,tbody tr.sel .xd,tbody tr:focus-within .xd{opacity:0;pointer-
 .ohead h2{font-size:15px;margin:0 0 2px;font-weight:700}
 .opn{font-family:"Courier New",monospace;font-size:13px;color:var(--acc);font-weight:700}
 .tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
-.tag{font-size:12px;background:#f4f6fb;border:1px solid var(--line);color:var(--dim);padding:2px 9px;border-radius:20px}
+.tag{font-size:12px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);padding:2px 9px;border-radius:20px}
 .tag.b{background:var(--accL);border-color:var(--accBorder);color:var(--accD)}
 .tag.d{background:var(--redL);border-color:#fecaca;color:var(--red);font-weight:700}
 .tag.w{background:var(--orgL);border-color:#fed7aa;color:#c2740c;font-weight:700}
@@ -1102,6 +1102,8 @@ body:has(#welcome:not([hidden])) .top{z-index:430}
  border-radius:50%;background:var(--shell-crit);
  box-shadow:0 0 0 2px var(--shell)}
 .rail .tab.navtab .nico{position:relative}
+/* DESIGN-A (21.11): הנקודה כפלה את המספר האדום — אותה אמירה פעמיים. המספר נשאר. */
+.rail .tab.navtab.alert .nico::after{content:none}
 /* ============ המסילה בלי צבעי תחום ============
    שבעה צבעים לשבעה תחומים — ואחד מהם האדום של «קריטי», על התחום
    «חוסרים». צבע שמסמן ניווט אינו יכול לסמן גם מצב, ולכן השבבים
@@ -6906,10 +6908,13 @@ function wireDrag(){
    לא הוצג כלל ולא הייתה שום דרך אחרת לקרוא אותו.
    הפתרון אינו טולטיפ בלבד — title אינו נגיש במגע. ⓘ פותח את
    המשפט לשורה עוטפת, והשורה חוזרת לגובהה כשסוגרים. */
-function setPhdSub(t){const e=document.getElementById('phdSub');if(!e)return;
- e.textContent=t;e.title=t;
+/* DESIGN-A (21.11): משפט קצר ומלא בשורה, וההסבר המלא בבועית. שורה שנחתכה באמצע
+   מילה («כל שורה עונה על ארבע: כמה ח…») אינה אומרת דבר; full הוא אופציונלי. */
+function setPhdSub(t,full){const e=document.getElementById('phdSub');if(!e)return;
+ const f=full||t;
+ e.textContent=t;e.title=f;
  const b=document.getElementById('phdInfo');
- if(b){b.title=t;b.setAttribute('aria-label','ההסבר המלא: '+t)}
+ if(b){b.title=f;b.setAttribute('aria-label','ההסבר המלא: '+f)}
  phdSubOpen(false);
  /* האם הוא נחתך בפועל — נמדד אחרי הפריסה, לא נגזר מרוחב המסך */
  requestAnimationFrame(()=>{const phd=e.closest('.phd');if(!phd)return;
@@ -8979,9 +8984,9 @@ function greetSync(){
  const home=navCount('home').n,cap=navCount('cap').n;
  if(ZN)ZN.tasks=home;
  const g=document.getElementById('plannerGreeting');
- if(g)g.textContent=(GREET_WHO?GREET_WHO+' · ':'')
-   +`${home.toLocaleString('he-IL')} דורשים החלטה`
-   +(cap?` · ${cap.toLocaleString('he-IL')} פריטים במלאי עודף`:'');
+ /* DESIGN-A (21.11, אישור המעתד): המספרים יצאו מהסרגל העליון — הם בדיוק המונים
+    שבמסילה מתחתיהם (DESIGN.md «הכותרת — למה שני מספרים» הוחלף). נשאר המתכנן. */
+ if(g)g.textContent=GREET_WHO||'';
  return {home,cap}}
 /* שורת המצב של תחום — מופיעה ב-title של המסילה ובכותרת המסך. מקור
    אחד, כדי ששני המקומות לא יוכלו לומר דברים שונים. */
@@ -10003,7 +10008,7 @@ function covBarCell(r){const c=covParts(r);
   +(c.dated?`<i class="o" style="width:${w(c.dated)}"></i>`:'')
   +(c.und?`<i class="u" style="width:${w(c.und)}"></i>`:'')
   +(c.open?`<i class="g" style="width:${w(c.open)}"></i>`:'')
-  +`</span><span class="covp">${c.pct}%</span></td>`}
+  +`</span><span class="covp${c.pct?'':' mut'}">${c.pct}%</span></td>`}
 /* D2A — תיאור שנחתך ל-dlen תווים נקרא במלואו במעבר עכבר (ובכרטיס הפריט) */
 function dscTtl(t,n){t=String(t||'');return t.length>n?` title="${esc(t)}"`:''}
 function doneBtnHTML(r){return r.mark?'':`<button class="dn" data-done="${esc(markKey(r))}">✓ טופל</button>`}
@@ -10221,7 +10226,8 @@ const SCOL={
  cova:{t:'חודשי כיסוי',val:r=>r.covA==null?-1:r.covA,xval:r=>r.covA==null?'':+r.covA.toFixed(1),ttl:'מלאי פנוי, רכש פתוח ומלאי בהעברה יחד, חלקי הקצב החודשי',
   cell:r=>`<td class="num">${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>`},
  val:{t:'שווי',val:r=>r.unsVal||0,xval:r=>Math.round(r.unsVal||0),ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
-  cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
+  /* DESIGN-A (21.11): «$0» נקרא כאילו הפריט שווה אפס — כשבפועל אין לו מחיר FOB, או שאין יחידות חסרות */
+  cell:r=>`<td class="num val">${!(r.price>0)?'<span class="mut" title="חסר מחיר FOB — השווי אינו מכומת">—</span>':(r.unsVal||0)>0?money(r.unsVal,r.currency):'<span class="mut">—</span>'}</td>`},
  /* SHORT_ACT_FULL (החלטת המעתד 20.11, כמו «מלאי 0» בתצוגת 4 הנושאים): במסכי החוסרים —
     «חוסרים לטיפול» ו«רכש ואספקות» (SHORTLIKE) — פעולת אספקה אחת במילים, בלי כמות
     (tpShortAct): מספר בתוך הפעולה מאומץ בלי בדיקה. את הכמות קובעים מול הספק והמלאי;
@@ -10430,10 +10436,13 @@ const SCOL={
   val:r=>WIPORDER.indexOf(r.wip?r.wip.t:''),
   xval:r=>r.wip?(MARK_LABEL[r.wip.t]||r.wip.t):'חדש',
   cell:r=>{const t=r.wip?r.wip.t:'';
-   const short={checking:'בבדיקה',supplier:'לספק',ordered:'הוזמן'}[t]||'חדש';
-   const full=t?(MARK_LABEL[t]||t):'טרם סומן';
-   const when=t&&r.wip.ts?` · ${new Date(r.wip.ts).toLocaleDateString('he-IL')}`:'';
-   return `<td class="wst"><span class="wchip ${t||'new'}" title="${esc(full+when)}">${esc(short)}</span></td>`}},
+   /* DESIGN-A (21.11): «חדש» הופיע בכל שורה גם כאן וגם ב«ותק», בשתי משמעויות
+      (טרם סומן · נכנס לתור עכשיו). פריט שלא סומן — תא ריק; הייצוא לא השתנה (xval). */
+   if(!t)return '<td class="wst" title="טרם סומן"></td>';
+   const short={checking:'בבדיקה',supplier:'לספק',ordered:'הוזמן'}[t]||t;
+   const full=MARK_LABEL[t]||t;
+   const when=r.wip.ts?` · ${new Date(r.wip.ts).toLocaleDateString('he-IL')}`:'';
+   return `<td class="wst"><span class="wchip ${t}" title="${esc(full+when)}">${esc(short)}</span></td>`}},
  age:{t:'ותק',val:r=>r.hSeen||0,ttl:'בכמה העלאות רצופות הפריט בתור. ⚑ = ארבע ומעלה, כלומר תקוע',
   cell:r=>`<td class="age">${ageTag(r)}</td>`},
  /* ============ עמודות טבלת התנועות ============
@@ -11092,8 +11101,9 @@ function renderAgenda(rows){
     שינוי ניסוח בכותרת היה משבש את הפוטר בלי שיבחין בזה. */
  document.getElementById('pgR').textContent=AGROUP
    .map(([g,,,,short])=>`${short} ${G[g].length}`).join(' · ');
- setPhdSub('שלושת הרונגים שהמנוע הכריע, בסדר הזה: הבטחה ללא רכש · '
-  +'הבטחה שהרכש אינו מכסה · מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.')}
+ setPhdSub('לפי הסדר: לקוח בלי רכש · לקוח שהרכש לא מכסה · חוסר צפוי החודש',
+  'שלוש קבוצות, בסדר הזה: הזמנת לקוח שאין מולה רכש · הזמנת לקוח שהרכש אינו מכסה · '
+  +'מה שייכנס לחוסר החודש. הסכומים לפי מטבע בנפרד.')}
 function renderCust(rows){
  const G=custGroups(rows),ents=[];let idx=0;
  const head=(key,color,name,n,sub,units,list)=>{const coll=GCOLL.has(key);
@@ -11400,12 +11410,17 @@ function renderDecisions(rows){
   /* UX1 — «איכות נתונים» לא היה לה ענף כאן, והיא נפלה לברירת המחדל: תת-הכותרת
      של «בריאות המלאי». הנוסח מתוך ההסבר שלה במצב הסבר (XP['nav-qual']). */
   :track==='qual'
-  ?'פרמטרים ב-SAP שאי אפשר לסמוך עליהם: זמן אספקה חסר, קצב שאין לו על מה להישען, או נקודת הזמנה ומלאי ביטחון שאינם מתיישבים עם הצריכה · פרמטר שבור מרעיל כל המלצה שנגזרת ממנו'
+  ?'זמן אספקה או רמת שירות חסרים ב-SAP — בלי הנתון אין חישוב ואין שורה בקובץ SAP'
+  /* TERMS שלב 2: רשימת הפרמטרים היא קובץ SAP, ומעקב האספקה עבר ל«זירוז ספקים» */
   :FIXLIKE()
-  ?'עבודת תכנון חודשית מול SAP — פרמטרים, המלצות MRP ומעקב אספקה'
+  ?(track==='month'?'בדיוק השורות שבקובץ SAP · סינון לפי סיבה מעל הטבלה':'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון ב-SAP')
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
-  :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
-    :'כסף שיושב במחסן ולא זז — ממוין לפי הכסף התקוע בתוך כל מטבע בנפרד · ארבע הדלתות שמתחת מחלקות אותו לפי הידית שאפשר למשוך'));
+  :(SHORTLIKE()?'כמה חסר · מה מגיע עד סוף החודש · מה נשאר · הפעולה הבאה'
+    :'ממוין לפי השווי, בתוך כל מטבע · הדלתות שמתחת לפי מה שאפשר לעשות'),
+  /* ההסבר המלא — לבועית. רק בשני המסכים שקיבלו משפט מקוצר */
+  (ropDoor||capDoor||!['short','line','follow','cap'].includes(track)||FIXLIKE()||track==='m1')?undefined
+   :(SHORTLIKE()?'כל שורה עונה על ארבע: כמה חסר · מה מכוסה באספקה מתוארכת עד סוף החודש · מה נשאר · מה הפעולה הבאה · ⊘ = מגיע אך אינו מנוכה, כי הלקוח כבר ממתין'
+    :'כסף שיושב במחסן ולא זז — ממוין לפי שווי העודף בתוך כל מטבע בנפרד · ארבע הדלתות שמתחת מחלקות אותו לפי מה שאפשר לעשות'));
 }
 /* ============ RENDER_NEEDS_DATA ============
    התקלה שהמעתד דיווח עליה ב-4.10, מתוך ה-stack שהוא שלח:

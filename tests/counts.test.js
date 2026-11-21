@@ -56,9 +56,9 @@ const snap=p=>p.evaluate(()=>{
  return {main,sub,title,greet,qsub,scr,monthFile,monthSub,all:QF.all.length}});
 
 function invariants(tag,R){
- const g=R.greet.match(/([\d,]+) דורשים החלטה(?: · ([\d,]+) פריטים במלאי עודף)?/)||[];
- ok(`${tag} · הברכה: «דורשים החלטה» = «חריגים לטיפול», «פריטים במלאי עודף» = «מלאי עודף, איטי תנועה ומת»`,
-   !!g[0]&&gn(g[1])===R.main.home&&gn(g[2])===R.main.cap,`${R.greet.replace(/^.*?· /,'')} · מסילה ${R.main.home} / ${R.main.cap}`);
+ /* DESIGN-A (21.11, אישור המעתד): הסרגל העליון אינו חוזר על מוני המסילה — רק המתכנן.
+    המספרים עצמם נבדקים בכותרת התור (שורה הבאה) ובמסילה. */
+ ok(`${tag} · הסרגל העליון בלי מספרים — רק המתכנן`,!/\d/.test(R.greet),R.greet);
  const q=R.qsub.match(/([\d,]+) דורשים החלטה · ([\d,]+) פריטים במלאי עודף/)||[];
  ok(`${tag} · כותרת התור — אותם שני מספרים`,gn(q[1])===R.main.home&&gn(q[2])===R.main.cap);
  const all={...R.main,...R.sub};
@@ -109,7 +109,7 @@ function invariants(tag,R){
    n:(()=>{try{return m==='moves'?movRows().length:currentRows().length}catch(_){return 0}})()}}
   setMode('home');
   return {greet:T('#plannerGreeting'),bdg:[...document.querySelectorAll('[data-nav-level="main"] [data-count]')].map(e=>e.textContent.trim()),res}});
- ok('אפס פריטים · הברכה אומרת 0',/(^|· )0 דורשים החלטה$/.test(R3.greet),R3.greet);
+ ok('אפס פריטים · הסרגל העליון בלי מספרים',!/\d/.test(R3.greet),R3.greet);
  ok('אפס פריטים · כל המונים במסילה 0',R3.bdg.every(t=>t==='0'||t==='▤'),R3.bdg.join(' '));
  const e3=Object.entries(R3.res).filter(([m,s])=>m!=='moves'&&(s.pgL!=='אין פריטים'||/₪0|\$0|1-0/.test(s.pgR)));
  ok('אפס פריטים · כל מסך: «אין פריטים», בלי «₪0» ובלי «1-0»',!e3.length,e3.slice(0,3).map(([m,s])=>`${m}: ${s.pgL} | ${s.pgR}`).join(' · '));
