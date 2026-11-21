@@ -785,6 +785,15 @@ Changes to these areas require explicit business approval.
     and SS of 0 with no consumption in six months, 2 tools/accessories, 2 too
     little consumption, 1 SS of 0) and 7 downgrade items (all «waiting»).
 
+- **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
+  21.11).** The same status as the full tool's profile screen: a PD → ZM-C
+  candidate whose simulation found a reason shows «check» with the reason —
+  in the «profile change» column of «data cleanup», in its action («check
+  profile: PD → ZM-C»), in the item card («check — do not change the profile
+  automatically», with every reason) and in the CSV («PD → ZM-C · check»).
+  Before, these showed «raise». The topic's items, its counters and the
+  profile states are unchanged; report A has 9 such items.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
