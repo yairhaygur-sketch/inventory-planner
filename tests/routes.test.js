@@ -275,7 +275,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
      הפירוק גלוי בעין — דלתות המשנה של התחום — ולא מוסתר בתוך title. */
   ok('והתחום מפרק את עצמו לדלתות משנה גלויות',
     /* TERMS: «יושמו ב-SAP» עבר ל«בקרת יישום»; מלאי הביטחון המינימלי — ב«בקרה תקופתית» */
-    /המלצות לעדכון פרמטרים/.test(f.sub)&&/ביטחון מינימלי מעל הצורך/.test(f.sub)&&/נקודת הזמנה קצרה/.test(f.sub),f.sub);
+    /* TERMS שלב 2: «ROP קצרה/נמוכה» הפכו לסינון ברשימה (terms2.test) */
+    /המלצות לעדכון פרמטרים/.test(f.sub)&&/ביטחון מינימלי מעל הצורך/.test(f.sub)&&/חלק זול ללא נק׳ הזמנה/.test(f.sub),f.sub);
 
   /* מקלדת — כפתור תקני, בלי preventDefault שחוסם את ה-click */
   await p.click('#tabs .tab[data-m="catalog"]');await p.waitForTimeout(450);

@@ -47,7 +47,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
      sumWhy:Object.values(P.why).reduce((a,b)=>a+b,0),other:P.why.other||0,view:view.length})}}
   return res});
  const screens=new Set(R.map(r=>r.m)).size;
- ok('נבדקו כל 27 המסכים, שני הקבצים בכל אחד',screens===27&&R.length===54,`${screens} מסכים · ${R.length} מקרים`);
+ /* TERMS שלב 2 (21.11): 25 מסכים — ropGap/ropThin/over3y הפכו לסינון, נוספה «זירוז ספקים» */
+ ok('נבדקו כל 25 המסכים, שני הקבצים בכל אחד',screens===25&&R.length===50,`${screens} מסכים · ${R.length} מקרים`);
  const thr=R.filter(r=>r.throws);
  ok('מסך שאינו רשימת פריטים: אין קובץ SAP, ואין שגיאה',thr.every(r=>r.both),thr.map(r=>r.m+'/'+r.kind).join(', ')||'אין');
  const RR=R.filter(r=>!r.throws);

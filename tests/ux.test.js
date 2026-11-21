@@ -211,7 +211,8 @@ const visFn=e=>{let n=e;while(n&&n!==document.body){const c=getComputedStyle(n);
     על נתונים». הבלוק «תיקון פרמטרים» נושא data-dt="data" והכרטיס
     נפתח על «החלטה». הטענות כאן הן על *נוכחות וכיוון*, לא על פיקסלים
     — גדלים תלויים בסביבת הגופנים, ועל זה כבר נכווינו. */
- await p.evaluate(()=>setMode('qual'));await p.waitForTimeout(1100);
+ /* TERMS שלב 2: פערי ה-ROP/SS הם ברשימת הפרמטרים (month); qual = נתון חסר באמת */
+ await p.evaluate(()=>setMode('month'));await p.waitForTimeout(1100);
  await p.keyboard.press('ArrowDown');await p.waitForTimeout(1000);
  const ps=await p.evaluate(visSrc=>{
   const vis=eval('('+visSrc+')');

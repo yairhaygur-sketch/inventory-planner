@@ -84,7 +84,8 @@ async function open(b,file,W,H){
     res.push({m,n,want,virt:s.ents.length>VFULL,maxTr,gaps,jit:+jit.toFixed(2),last,mid,boxH:box.clientHeight,numCut,noTitle,cut})}
    return res});
   const L=R.filter(r=>!r.none);
-  ok(`${W} · נבדקו כל 27 המסכים`,R.length===27,R.length);
+  /* TERMS שלב 2 (21.11): 25 מסכים */
+  ok(`${W} · נבדקו כל 25 המסכים`,R.length===25,R.length);
   let x=L.filter(r=>r.n!==r.want);
   ok(`${W} · הרשימה במסך = כל מה שבסינון (במסכי הכסף — עד קו ה-80%)`,!x.length,
     x.map(r=>`${r.m} ${r.n}≠${r.want}`).join(' · ')||`${N(L.reduce((t,r)=>t+r.n,0))} פריטים`);

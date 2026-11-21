@@ -85,13 +85,19 @@ const KEYS=['planner_mode_v1','planner_marks_v1','planner_eta_v1','planner_histo
    mode:(typeof mode!=='undefined')?mode:'',
    marks:Object.keys(MARKS||{}).length,
    hist:HRUN?{runs:HRUN.runs,newN:HRUN.newN,backN:HRUN.backN,resolved:HRUN.resolved}:null,
-   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length}));
+   rows:document.querySelectorAll('#tbl tbody tr[data-i]').length,
+   /* TERMS שלב 2: «נתוני אב חסרים» = נתון חסר באמת — בפיקסצ׳ר של מחר הוא ריק.
+      המסך השמור נשאר qual (אחד מארבעת המסכים שהפילו את הטעינה), והטבלה נבדקת
+      מול הרשימה שלו; שורות בפועל נבדקות ברשימת הפרמטרים שאחריו. */
+   list:currentRows().length,pgL:(document.getElementById('pgL')||{}).textContent||'',
+   month:(()=>{setMode('month');return document.querySelectorAll('#tbl tbody tr[data-i]').length})()}));
  /* זו הטענה שהייתה תופסת את התקלה של 4.10 */
  ok('הדוח של מחר נטען על מצב צבור, במסך השמור',
     d2.n>0&&!/תקלה|שגיאה/.test(d2.upd),`${d2.n} פריטים · «${d2.upd}» · מסך ${d2.mode}`);
  ok('ונפתח באותו מסך שבו עבד אתמול',d2.mode==='qual',d2.mode);
  ok('הסימונים עדיין שם אחרי דוח חדש',d2.marks>=4,`${d2.marks}`);
- ok('הטבלה מציגה שורות',d2.rows>0,`${d2.rows} שורות`);
+ ok('הטבלה מציגה את הרשימה של המסך השמור',d2.rows===Math.min(d2.list,d2.rows||d2.list)&&(d2.list>0?d2.rows>0:/אין פריטים/.test(d2.pgL)),`${d2.rows} שורות · ${d2.list} ברשימה · «${d2.pgL}»`);
+ ok('הטבלה מציגה שורות (רשימת הפרמטרים)',d2.month>0,`${d2.month} שורות`);
 
  /* ההשוואה בין הימים חייבת להיות לא-טריוויאלית — אחרת לא נבדקה */
  ok('ההיסטוריה סופרת שתי העלאות',!!d2.hist&&d2.hist.runs>=2,JSON.stringify(d2.hist));
