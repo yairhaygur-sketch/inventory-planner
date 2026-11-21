@@ -861,7 +861,9 @@ Changes to these areas require explicit business approval.
   candidate whose simulation found a reason shows «check» with the reason —
   in the «profile change» column of «data cleanup», in its action («check
   profile: PD → ZM-C»), in the item card («check — do not change the profile
-  automatically», with every reason) and in the CSV («PD → ZM-C · check»).
+  automatically», with every reason) and in the topic's CSV — two columns:
+  «שינוי פרופיל» («PD → ZM-C · check») and «פעולה בנושא» («check profile:
+  PD → ZM-C»); every other cell, row and topic of the CSV is unchanged.
   Before, these showed «raise». The topic's items, its counters and the
   profile states are unchanged. Measured: report A — 9 of the 36 candidates;
   report B — 78 of 88 (51 tools/accessories, 21 ROP and SS of 0 with no

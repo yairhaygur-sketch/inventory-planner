@@ -30,10 +30,12 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  /* 2 · הפעולה, ה-CSV והכרטיס של פריט «לבדוק» */
  const D=await p.evaluate(k=>{const r=QF.all.find(x=>markKey(x)===k);TP.cat={fix:'prof'};
   const act=tpTopicAct('fix',r),col=TOPICS.fix.cols.find(c=>c.k==='prof'),csv=col.x[0][1](r);
+  const ac=TOPICS.fix.cols.find(c=>c.k==='act'),csvAct=((ac&&ac.x||[]).find(x=>x[0]==='פעולה בנושא')||[,()=>null])[1](r);
   tpdShow(r);const card=(document.getElementById('tpd')||{}).textContent||'';tpdClose();
-  return {act,csv,card:card.replace(/\s+/g,' '),why:profStatus(r).why}},C.key);
+  return {act,csv,csvAct,card:card.replace(/\s+/g,' '),why:profStatus(r).why}},C.key);
  ok('הפעולה: «לבדוק פרופיל: PD ← ZM-C»',D.act==='לבדוק פרופיל: PD ← ZM-C',D.act);
  ok('ה-CSV: «PD ← ZM-C · לבדוק»',D.csv==='PD ← ZM-C · לבדוק',D.csv);
+ ok('ה-CSV, «פעולה בנושא»: «לבדוק פרופיל: PD ← ZM-C»',D.csvAct==='לבדוק פרופיל: PD ← ZM-C',D.csvAct);
  ok('הכרטיס: «לבדוק — לא לעדכן פרופיל אוטומטית» וכל הסיבות',D.card.includes('לבדוק — לא לעדכן פרופיל אוטומטית')&&D.card.includes(D.why),D.why);
 
  /* 3 · מה שלא זז: מספר הפריטים בתת-הקטגוריה = המונה של «שינוי פרופיל» בכלי המלא */
