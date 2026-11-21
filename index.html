@@ -14826,7 +14826,8 @@ function tpTopicAct(t,r){
    param:()=>{const p=[];if(q.rop!==r.rop)p.push('נק׳ הזמנה');if(q.ss!==r.ss)p.push('מלאי ביטחון');
     /* בלי פער במספרים (איפוס, החלטה ידנית, «פרמטר מעל מכירות») — המשפט של המנוע, שהוא כאן פעולת פרמטר */
     return p.length?`לעדכן ב-SAP: ${p.join(' ו')}`:tpAct(r)},
-   prof:()=>{const i=profInfo(r);return `${PROF_ST[i.state][0]} פרופיל: ${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]}`}};
+   /* ZMC_TOPICS (21.11) — אותו סטטוס כמו בכלי המלא (profStatus): מועמד שהסימולציה מצאה בו סיבה — «לבדוק» */
+   prof:()=>{const i=profInfo(r),x=profStatus(r);return `${x.t} פרופיל: ${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]}`}};
   const has={data,param,prof};
   if(k&&has[k])return one[k]();
   for(const c of ['data','param','prof'])if(has[c])return one[c]();
@@ -14933,9 +14934,10 @@ const TOPICS={
    ['data','נתונים שבורים','red',r=>tpLtMissing(r)||tpSrvMissing(r)]],
   cols:[
    {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
-   {k:'prof',l:'שינוי פרופיל',c:'w',v:r=>{const i=profActive(r)?profInfo(r):null;return i?PROF_ST[i.state][0]:null},
-    h:r=>{const i=profActive(r)?profInfo(r):null;return i?`<span title="${esc(i.why||'')}">${esc(PROF_ST[i.state][0])}</span>`:'—'},
-    x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${PROF_ST[i.state][0]}`:''}]]},
+   /* ZMC_TOPICS — הסטטוס והסיבה מ-profStatus, כמו במסך «שינוי סוג MRP» של הכלי המלא */
+   {k:'prof',l:'שינוי פרופיל',c:'w',v:r=>{const x=profActive(r)?profStatus(r):null;return x?x.t:null},
+    h:r=>{const x=profActive(r)?profStatus(r):null;return x?`<span title="${esc(x.why||'')}">${esc(x.t)}</span>`:'—'},
+    x:[['שינוי פרופיל',r=>{const i=profActive(r)?profInfo(r):null;return i?`${PROF_NAME[i.cur]||i.cur} ← ${PROF_NAME[i.tgt]} · ${profStatus(r).t}`:''}]]},
    {k:'rop',l:'נק׳ הזמנה (SAP ← מוצעת)',n:1,v:r=>tpRec(r).rop,h:r=>tpRecPair(r,'rop'),x:[['נק הזמנה SAP',r=>r.rop],['נק הזמנה מוצעת',r=>tpRecX(r,'rop')]]},
    {k:'ss',l:'מלאי ביטחון (SAP ← מוצע)',n:1,v:r=>tpRec(r).ss,h:r=>tpRecPair(r,'ss'),x:[['מלאי ביטחון SAP',r=>r.ss],['מלאי ביטחון מוצע',r=>tpRecX(r,'ss')]]},
    {k:'src',l:'מה קבע את מלאי הביטחון',c:'w',v:r=>{const q=tpRec(r);return q.na?'—':(TP_SRC[q.ssSrc]||'—')}},
@@ -14997,7 +14999,7 @@ function tpdProblem(t,r){const N=tpN;
   if(r.ltBad)return `${LT_MSG}. ${LT_NA}.`;
   if(tpSrvMissing(r)&&!tpInFix(r))return 'רמת שירות חסרה או 0 ב-SAP — לא ניתן לאשר המלצת SS/ROP סטטיסטית.';
   /* הורדת פרופיל ZM (עד ZM-C) — אותו profInfo שמסך שינוי הפרופיל בכלי המלא מציג */
-  if(profActive(r)&&!tpInFix(r)){const i=profInfo(r);return `מומלץ לשנות פרופיל מ-${PROF_NAME[i.cur]||i.cur} ל-${PROF_NAME[i.tgt]} — ${PROF_ST[i.state][0]}. ${i.why||''}`}
+  if(profActive(r)&&!tpInFix(r)){const i=profInfo(r),x=profStatus(r);return `מומלץ לשנות פרופיל מ-${PROF_NAME[i.cur]||i.cur} ל-${PROF_NAME[i.tgt]} — ${x.t}. ${x.why||''}`}
   if(r.sugROP>r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) נמוכה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
   if(r.sugROP<r.rop)return `נקודת ההזמנה ב-SAP (${N(r.rop)}) גבוהה מזו שהמנוע מחשב (${N(r.sugROP)}).`;
   return `מלאי הביטחון ב-SAP (${N(r.ss)}) שונה מזה שהמנוע מחשב (${N(r.sugSS)}).`}
@@ -15132,12 +15134,12 @@ function tpdBody(t,r){
 function tpdIssues(r){const out=[];
  if(pdUpgrade(r))out.push(`<section class="q3 amb"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">PD ← ZM-C</div>
   <p>צריכה נטו ${tpN(r.net12)} יח׳ ב-12 החודשים האחרונים (כולל החודש הנוכחי). רמת שירות ב-ZM-C: 80%.</p>
-  ${OD_GROUPS.has(r.mkt1)?'<p><b style="color:var(--high)">לבדיקה ידנית:</b> קבוצת כלי עבודה / אביזרים («לפי דרישה») — לא לעדכן פרופיל אוטומטית.</p>':''}
+  ${(x=>x&&x.k==='rev'?`<p><b style="color:var(--high)">לבדוק — לא לעדכן פרופיל אוטומטית:</b> ${esc(x.why)}.</p>`:'')(profStatus(r))}
   ${r.ltBad?`<p>${esc(PD_LT_MSG)}</p>`:''}
   ${(q=>q.ropMin?`<p>נקודת הזמנה מינימלית: <b>${tpN(q.rop)}</b> (החישוב אחרי ZM-C נתן ${tpN(q.ropCalc)}) — המלצת PD ← ZM-C מחזיקה לפחות ${PD_ROP_MIN} יח׳.</p>`:'')(tpRec(r))}
   <p>${profOffBtn(r,'btn')}</p></div></section>`);
- else if(profActive(r)){const i=profInfo(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
-  <p><b>${esc(PROF_ST[i.state][0])}</b> · ${esc(i.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
+ else if(profActive(r)){const i=profInfo(r),x=profStatus(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
+  <p><b>${esc(x.t)}</b> · ${esc(x.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
  else if(profOff(r))out.push(`<section class="q3"><div class="qa"><h3>שינוי פרופיל — מנוטרל</h3>
   <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — עד ביטול ידני.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
  if(tpSrvMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>רמת שירות חסרה</h3><div class="big">רמת שירות חסרה או 0 ב-SAP</div>

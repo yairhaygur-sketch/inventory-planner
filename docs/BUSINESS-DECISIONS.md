@@ -872,6 +872,19 @@ Changes to these areas require explicit business approval.
   - «כיסוי החודש» stays: the bar tells ordered-without-date (hatched) from
     not ordered (solid). Only the «0%» label is muted.
 
+- **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
+  21.11).** The same status as the full tool's profile screen: a PD → ZM-C
+  candidate whose simulation found a reason shows «check» with the reason —
+  in the «profile change» column of «data cleanup», in its action («check
+  profile: PD → ZM-C»), in the item card («check — do not change the profile
+  automatically», with every reason) and in the topic's CSV — two columns:
+  «שינוי פרופיל» («PD → ZM-C · check») and «פעולה בנושא» («check profile:
+  PD → ZM-C»); every other cell, row and topic of the CSV is unchanged.
+  Before, these showed «raise». The topic's items, its counters and the
+  profile states are unchanged. Measured: report A — 9 of the 36 candidates;
+  report B — 78 of 88 (51 tools/accessories, 21 ROP and SS of 0 with no
+  consumption in six months, 6 too little consumption).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
