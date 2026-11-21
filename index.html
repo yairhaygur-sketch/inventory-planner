@@ -10144,8 +10144,15 @@ const SCOL={
   cell:r=>`<td class="num">${r.covA==null?'<span class="mut">—</span>':r.covA.toFixed(1)}</td>`},
  val:{t:'שווי',val:r=>r.unsVal||0,xval:r=>Math.round(r.unsVal||0),ttl:'היחידות שנשארו חסרות כפול המחיר. הדירוג הוא בתוך המטבע בלבד',
   cell:r=>`<td class="num val">${money(r.unsVal||0,r.currency)}</td>`},
- act:{t:'הפעולה הבאה',val:r=>String((r.act||[])[0]||''),ttl:'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
-  cell:r=>`<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(actShort(r)||'—')}</td>`},
+ /* SHORT_ACT_FULL (החלטת המעתד 20.11, כמו «מלאי 0» בתצוגת 4 הנושאים): במסכי החוסרים —
+    «חוסרים לטיפול» ו«רכש ואספקות» (SHORTLIKE) — פעולת אספקה אחת במילים, בלי כמות
+    (tpShortAct): מספר בתוך הפעולה מאומץ בלי בדיקה. את הכמות קובעים מול הספק והמלאי;
+    הכרטיס נשאר עם הכמות (בחירת המעתד). בשאר המסכים — המשפט של המנוע, כמו קודם.
+    הייצוא לא משתנה: xval הוא המשפט של המנוע בכל מסך, כפי ש-val היה עד כאן */
+ act:{t:'הפעולה הבאה',val:r=>SHORTLIKE()?tpShortAct(r):String((r.act||[])[0]||''),xval:r=>String((r.act||[])[0]||''),
+  ttl:()=>SHORTLIKE()?'פעולת אספקה אחת, בלי כמות — את הכמות קובעים מול הספק והמלאי (בכרטיס הפריט). באקסל — המשפט המלא של המנוע':'הצעד הבא לפריט הזה, נגזר מהסיווג ומהנתונים',
+  cell:r=>{if(SHORTLIKE()){const a=tpShortAct(r);return `<td class="act1" title="${esc(a)}">${esc(a)}</td>`}
+   return `<td class="act1" title="${esc((r.act||[])[0]||'')}">${esc(actShort(r)||'—')}</td>`}},
  /* D2 — כשהסיווג זהה לסיווג השולט בקבוצה (x.maj), כותרת הקבוצה כבר אומרת
     אותו: הוא נשאר בשורה כטקסט שקט, באותן מילים, וגלולה צבעונית נשארת רק
     לשורה שהסיווג שלה *שונה* מהקבוצה — שם היא אומרת משהו. מפתח נפרד מ-x.maj
@@ -10471,7 +10478,9 @@ const SCOL_DEF={
  /* שלב 5: «כיסוי החודש» במקום «11 חודשים» — באותו רוחב. הגרף נשאר
     בכרטיס הפריט ובבורר העמודות. */
  dec:['pn','model','desc','covbar','free','cust','cov','stuck','otw','miss','val','act','state','age'],
- sup:['pn','model','desc','free','otw','cust','missq','buy','cova','age','cat'],
+ /* SHORT_ACT_FULL — «כמות להזמנה» ירדה מברירת המחדל (החלטת המעתד 20.11, כמו «להזמין» בתצוגת
+    4 הנושאים); נשארת לבחירה בבורר (SCOL_OPT) ובגיליון «כל הנתונים» */
+ sup:['pn','model','desc','free','otw','cust','missq','cova','age','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
  fix:['sel','pn','model','desc','rop','ss','need','lt','fix'],
@@ -10531,9 +10540,11 @@ const SCOL_POOL=['model','sup','covbar','spark','free','cust','po','tr','eta','c
    הוא עמודה שרירותית, ובתוכה שלושת הטאבים חולקים את כולן — טאב
    המכירות יכול להוסיף את תאריך הכניסה ולהפך. */
 const MCOL_POOL=['sdate','edate','mage','mdelta','mlast','abc','mrp'];
+/* עמודות שאינן בברירת המחדל של תצוגה אבל מוצעות בבורר שלה (בלי להיכנס לכל התצוגות) */
+const SCOL_OPT={sup:['buy']};
 function colChoices(v){const d=SCOL_DEF[v]||[];
  const pool=String(v).slice(0,3)==='mv_'?MCOL_POOL.concat(SCOL_POOL):SCOL_POOL;
- return SCOL_ORDER.filter(k=>d.includes(k)||pool.includes(k))}
+ return SCOL_ORDER.filter(k=>d.includes(k)||pool.includes(k)||(SCOL_OPT[v]||[]).includes(k))}
 /* מפתח התצוגה: טבלת העבודה מתפצלת לפי הקיבוץ, ושאר המסלולים הם
    המסלול עצמו. FIXLIKE («תיקוני פרמטרים») נקרא fix. */
 /* המסלולים ש-render() מפנה למרנדר ההחלטות לפני שהוא בודק את cur */

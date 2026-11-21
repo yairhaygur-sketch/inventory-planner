@@ -68,7 +68,9 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  /* 4 · כרטיס: משלוחים מקובצים לפי תאריך */
  const G=await p.evaluate(()=>{TP.view='';tpRender();const r=QF.all.find(r=>(ETA.byPn[etaKey(r.pn)]||[]).length);if(!r)return null;
   /* בדוח ההדגמה אין פריט עם כמה שורות — מוסיפים זמנית: אותו תאריך פעמיים (שני משלוחים) ועוד תאריך */
-  const k=etaKey(r.pn),orig=ETA.byPn[k],[q0,d0]=orig[0],d1=d0.slice(0,8)+'28';
+  /* d1 — היום שאחרי d0. היה «ה-28 באותו חודש», ונפל כש-d0 עצמו יצא ה-28 (תאריכי דוח ה-ETA
+     בהדגמה נגזרים מיום יצירת הקובץ): שני התאריכים התלכדו לשורה אחת. נמדד ב-21.11 */
+  const k=etaKey(r.pn),orig=ETA.byPn[k],[q0,d0]=orig[0],t1=new Date(d0+'T00:00:00Z');t1.setUTCDate(t1.getUTCDate()+1);const d1=t1.toISOString().slice(0,10);
   ETA.byPn[k]=[[q0,d0,'D-1',''],[3,d0,'D-2',''],[2,d1,'D-3','']];
   tpdShow(r);const li=[...document.querySelectorAll('#tpd ul.eta li')].map(x=>x.textContent);tpdClose();ETA.byPn[k]=orig;
   const same=li.find(t=>t.includes(tpdDate(d0)))||'';
