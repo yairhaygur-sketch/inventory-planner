@@ -34,7 +34,7 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
    return {small,over,cut,fam,heebo:document.fonts.check('12px "Heebo"')&&[...document.fonts].some(f=>/Heebo/.test(f.family)&&f.status==='loaded')}});
   const tag=`${w}${dark?' כהה':''}`;
   const sm=Object.entries(r.small);
-  ok(`${tag} · אף טקסט גלוי מתחת ל-12px, ב-26 המסכים`,!sm.length,sm.slice(0,4).map(([k,v])=>k+'='+v).join(' · '));
+  ok(`${tag} · אף טקסט גלוי מתחת ל-12px, ב-27 המסכים`,!sm.length,sm.slice(0,4).map(([k,v])=>k+'='+v).join(' · '));
   ok(`${tag} · בלי גלילה אופקית של העמוד`,!r.over.length,r.over.join(', '));
   if(w===1920)ok(`${tag} · אף עמודה לא נחתכת`,!r.cut.length,r.cut.slice(0,4).join(', '));
   if(w===1366&&!dark)ok('הגופן הוא Heebo, והוא נטען',/^"?Heebo/.test(r.fam)&&r.heebo,r.fam.slice(0,30));

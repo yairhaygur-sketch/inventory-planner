@@ -712,6 +712,31 @@ Changes to these areas require explicit business approval.
     marked «check if received». The same list as the 4-topics card. Items with
     no open purchase and no ETA lines get no such section.
 
+- **2026-11-20 · The full tool: «first consumption» (FIRST_FULL, approved
+  20.11).** Display only; the engine, the classifications, the work queues,
+  the SAP file and the existing counters and exports are unchanged. The third
+  of the four PRs.
+  - **The rule:** the same as in the 4-topics view — an item never consumed in
+    the report's history (not in the 11 months and not in the 3 years) that
+    now has a first consumption, in the last full month or in the current
+    month. Without the 3-year columns «never» cannot be said, and the rule
+    does not apply. All such items, with no further filter: the question is
+    continuity — whether to set up planning for the item.
+  - **Where:** a door in «planning and MRP», right after «demand decline»,
+    with a counter (the planner's choice: a door in the rail, not a header
+    button and not the card only). The full tool now has 27 screens.
+  - **The list:** part number, model, description, consumption in the last
+    full month and in the current month (screen only, decision 1.11), free
+    stock, open purchase, MRP type and classification; largest consumption
+    first. The «view» sheet of this screen carries the existing column types
+    only.
+  - **The card:** «first consumption: N units in the last full month / M in
+    the current month. No earlier consumption — not in the 11 months and not
+    in the 3 years in the report. Check whether to set up planning for the
+    item.» Shown with the peaks and drops in the history.
+  - **Measured:** report A — 133 items (68 slow stock, 24 no action, 15 OK…;
+    45 with an open purchase, 47 with no free stock); demo — 108 items.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
