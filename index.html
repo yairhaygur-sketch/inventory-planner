@@ -11264,9 +11264,12 @@ function renderDecisions(rows){
      :track==='month'?'אין עבודת תכנון פתוחה — פרמטרים, המלצות MRP ומעקב אספקה כולם נקיים.'
      :'אין מספרים לתקן ב-SAP.'}</td></tr>`});
  capAllSync(k?{all:capAll,shown:view.length,total:rows.length}:null);
- document.getElementById('pgL').textContent=pgTxt(view.length,rows.length)
+ /* ZMC_PR2 — ב«שינוי פרופיל MRP» הטבלה היא הטאב הפתוח, אבל «מתוך» ו«לפעולה» הם של המסך כולו
+    (שני הטאבים): כך המונה במסילה, המסך והתיאור ממשיכים לומר אותו מספר */
+ const pgAll=track==='prof'?currentRows():rows;
+ document.getElementById('pgL').textContent=pgTxt(view.length,pgAll.length)
    /* המונה במסילה הוא «לפעולה» — כאן רואים מאיפה הוא בא */
-   +(track==='prof'&&rows.length?` · ${rows.filter(profActive).length.toLocaleString('he-IL')} לפעולה`:'');
+   +(track==='prof'&&pgAll.length?` · ${pgAll.filter(profActive).length.toLocaleString('he-IL')} לפעולה (להעלות + לבדוק)`:'');
  let extra='';
  /* הסייג על «טרם הוכיחו את עצמם» הוא סייג על ההון הכלוא *כולו*,
     ולכן הוא נאמר בדלת הכוללת ולא חוזר בכל אחת מארבע הידיות. */
