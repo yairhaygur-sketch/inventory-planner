@@ -20,7 +20,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.waitForFunction(()=>typeof QF!=='undefined'&&QF&&QF.all&&QF.all.length>0&&!LOADJOB,null,{timeout:180000});
  await wait(600);
  await p.evaluate(()=>setMode('prof'));await wait(600);
- const snap=()=>p.evaluate(()=>{const rows=currentRows(),trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
+ const snap=()=>p.evaluate(()=>{const rows=profTabRows(currentRows()),trs=[...document.querySelectorAll('#tbl tbody tr[data-i]')];
   const by=new Map(QF.all.map(r=>[String(r.pn),r]));
   const cell=(tr,k)=>{const td=tr.querySelector(`td[data-ck="${k}"]`);return td?td.textContent.trim():null};
   const R=trs.map(tr=>{const r=by.get((tr.querySelector('.obj')||{}).textContent.trim());return {r,st:cell(tr,'profSt'),why:cell(tr,'profWhy')}});
@@ -47,6 +47,12 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('«להעלות» או «לבדוק» לפי הסימולציה; ב«לבדוק» — הסיבות ב«למה»',A.stOk&&(A.counts['לבדוק']||0)===all.rev&&all.rev>0,JSON.stringify(A.counts));
  ok('«להעלות» קודם, «לבדוק» אחריהם',A.revAfterOk);
  ok('המונה במסילה לא השתנה (להעלות + להוריד + לבדוק — רכש פתוח)',all.nav===all.act&&all.act===all.upChk,`${all.nav}`);
+ /* הטאב חל על הטבלה ועל «התצוגה» בלבד: רשימת המסך (currentRows), גיליון «כל הנתונים» וקובץ ה-SAP — כל השורות, כמו קודם */
+ const M=await p.evaluate(()=>{window.__cap=[];const o=XLSX.writeFile;XLSX.writeFile=(wb,name)=>{const sh={};for(const sn of wb.SheetNames)sh[sn]=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1}).length-1;window.__cap.push(sh)};
+  try{doExport()}finally{XLSX.writeFile=o}const sh=window.__cap[0]||{};const main=Object.keys(sh).find(n=>/^כל הנתונים/.test(n));
+  return {cur:currentRows().length,all:profRows().length,main:main?sh[main]:null,view:sh['התצוגה']}});
+ ok('רשימת המסך וגיליון «כל הנתונים» — כל השורות של שני הטאבים, כמו קודם',M.cur===all.n&&M.main===all.n,`${M.cur}/${M.main}/${all.n}`);
+ ok('גיליון «התצוגה» — רק הטאב הפתוח',M.view===all.up,`${M.view}/${all.up}`);
  ok('גיליון «התצוגה»: הטאב הפתוח, אותן עמודות ואותו סדר',A.sheet&&JSON.stringify(A.sheet.keys)===JSON.stringify(A.heads)&&A.sheet.n===A.n&&JSON.stringify(A.sheet.pns)===JSON.stringify(A.pns),A.sheet&&A.sheet.n);
  ok('ROP/SS אחרי ZM-C בגיליון — עם «(סימולציה)» בכותרת',A.sheet.head.includes('ROP אחרי ZM-C (סימולציה)')&&A.sheet.head.includes('SS אחרי ZM-C (סימולציה)'),A.sheet.head.slice(7,9).join(' | '));
  const N=await p.evaluate(()=>{const tr=document.querySelector('#tbl tbody tr[data-i]');const r=QF.all.find(x=>String(x.pn)===tr.querySelector('.obj').textContent.trim());

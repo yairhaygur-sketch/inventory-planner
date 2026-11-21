@@ -5058,6 +5058,9 @@ function profActive(r){const i=profInfo(r);return !!i&&(i.state==='up'||i.state=
    (profInfo) והמונה במסילה (profActive) לא השתנו: «לבדוק» הוא תצוגה של מועמד 'up'.
    התצוגה הזו בכלי המלא בלבד; תצוגת 4 הנושאים — כמו קודם. */
 let PROF_TAB='up';
+/* השורות של הטאב הפתוח, מתוך currentRows. בהעלאות: «להעלות» קודם, אחריהם «לבדוק»; בתוך כל קבוצה — הסדר הקיים */
+function profTabRows(rows){const up=PROF_TAB!=='down',L=rows.filter(r=>profIsUp(r)===up);
+ return up?L.map((r,i)=>[r,i]).sort((a,b)=>((profStatus(a[0]).k==='rev')-(profStatus(b[0]).k==='rev'))||a[1]-b[1]).map(x=>x[0]):L}
 const profIsUp=r=>{const i=profInfo(r);return !!i&&i.state==='up'};
 function profStatus(r){const i=profInfo(r);if(!i)return null;
  if(i.state==='up'){const sp=profSplit(r);return sp&&sp.grp==='rev'
@@ -9338,9 +9341,9 @@ function currentRows(){
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='stale'){const by=staleRows();
    return sortCol==='sev'?by:sortRowsBy(by)}
- /* ZMC_PR2 — הטאב הפתוח. בהעלאות: «להעלות» קודם, אחריהם «לבדוק»; בתוך כל קבוצה — הסדר הקיים */
- if(track==='prof'){const up=PROF_TAB!=='down',L=profRows().filter(r=>profIsUp(r)===up);
-   const by=up?L.map((r,i)=>[r,i]).sort((a,b)=>((profStatus(a[0]).k==='rev')-(profStatus(b[0]).k==='rev'))||a[1]-b[1]).map(x=>x[0]):L;
+ /* ZMC_PR2 — כל השורות, כמו קודם: גיליון «כל הנתונים» וקובץ ה-SAP של המסך לא משתנים.
+    הטאב חל רק על הטבלה ועל גיליון «התצוגה» (profTabRows) */
+ if(track==='prof'){const by=profRows();
    return sortCol==='sev'?by:sortRowsBy(by)}
  if(track==='applied'){const R={done:0,other:1,none:2};
    const by=appliedRows().sort((a,b)=>R[a.apStatus]-R[b.apStatus]||a.pn.localeCompare(b.pn));
@@ -11466,7 +11469,7 @@ function render(){LAST_VIEW=null;sapBtnSync();capAllSync(null);if(!QF)return;
     tkP.querySelectorAll('[data-proftab]').forEach(b=>b.onclick=()=>{if(PROF_TAB===b.dataset.proftab)return;PROF_TAB=b.dataset.proftab;render()});
     tkP.querySelectorAll('[data-profx-undo]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxUndo);if(r){setProfOff(r,false);toast('המלצת הפרופיל הוחזרה')}});
     tkP.querySelectorAll('[data-profx-open]').forEach(b=>b.onclick=()=>{const r=(ALL||[]).find(x=>markKey(x)===b.dataset.profxOpen);if(r)detail(r)})}
-   renderDecisions(rows);return}
+   renderDecisions(profTabRows(rows));return}
  if(track==='cust'){const tk3=document.getElementById('track');
    if(tk3){tk3.innerHTML='';tk3.style.display='none'}
    renderDecisions(rows);return}
@@ -12456,7 +12459,8 @@ function viewExportRows(){
     מול main (PR-B), והחלטת המעתד 1.11: בלי עמודות חדשות באקסל של הכלי המלא */
  const keys=visCols().filter(k=>SCOL[k]&&(SCOL[k].xval||SCOL[k].val)&&k!=='spark'&&!SCOL[k].noX);
  if(!keys.length)return null;
- const rows=(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
+ /* ZMC_PR2 — «שינוי פרופיל MRP»: הטאב הפתוח בלבד, גם כשהוא ריק (LAST_VIEW=[]), ולא כל השורות */
+ const rows=track==='prof'?(LAST_VIEW||profTabRows(currentRows())):(LAST_VIEW&&LAST_VIEW.length)?LAST_VIEW:currentRows();
  const val=(k,r)=>{const c=SCOL[k];try{return (c.xval||c.val)(r)}catch(_){return ''}};
  /* xt — כותרת לייצוא בלבד (ZMC_PR2: «(סימולציה)» ליד ROP/SS אחרי ZM-C, כדי שלא יועלו ל-SAP בטעות) */
  return {keys,aoa:[keys.map(k=>SCOL[k].xt||SCOL[k].t),...rows.map(r=>keys.map(k=>val(k,r)))],n:rows.length}}

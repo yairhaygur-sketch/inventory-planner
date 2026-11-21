@@ -46,7 +46,8 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   for(const m of Object.keys(MODESET).filter(m=>m!=='moves')){
    setMode('catalog');setMode(m);const a=grab();
    setMode('home');setMode(m);const a2=grab();
-   const want=currentRows().map(r=>String(r.pn));const shown=dom();
+   /* ZMC_PR2 (21.11): ב«שינוי פרופיל MRP» הגיליון הוא הטאב הפתוח (אושר) — profTabRows; בכל מסך אחר — currentRows */
+   const want=(track==='prof'?profTabRows(currentRows()):currentRows()).map(r=>String(r.pn));const shown=dom();
    const gs=[...document.querySelectorAll('#tbl tbody tr.grp[data-g]')].map(t=>t.dataset.g);
    gs.forEach(g=>GCOLL.add(g));render();
    const shownColl=dom().length,c=grab();
