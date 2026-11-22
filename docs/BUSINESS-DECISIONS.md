@@ -902,6 +902,19 @@ Changes to these areas require explicit business approval.
     expediting report, the 4-topics CSV, SAP). The «מסמך רכש / אספקה» column
     of «הזמנות רכש באיחור» stays as it is, because it is exported.
 
+- **2026-11-22 · Small cleanup after ZMC_TOPICS and TERMS (approved 22.11).**
+  - **4-topics item card:** for a PD → ZM-C candidate whose simulation found a
+    reason, the first sentence («מה הבעיה») says «לבדוק לפני שינוי פרופיל מ-PD
+    ל-ZM-C:» with the reasons, instead of «מומלץ לשנות פרופיל…». A sound
+    candidate reads as before. Screen only.
+  - **The engine's action sentence** for a PD upgrade now points to the
+    full tool's screen by its current name: «להעלות פרופיל ל-ZM-C — ראה «שינוי
+    סוג MRP»» (it said «שינוי פרופיל MRP», the name before TERMS). The sentence
+    is not in any full-tool Excel export; in the 4-topics CSV it changes the
+    «פעולה» column only — report A: 33 items in «data cleanup» and 2 in «first
+    consumption»; report B: 85 and 18. Same rows, same order; nothing else
+    moves (business-guard: items' «act» field only).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
