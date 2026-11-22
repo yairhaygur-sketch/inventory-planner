@@ -872,6 +872,16 @@ Changes to these areas require explicit business approval.
   - «כיסוי החודש» stays: the bar tells ordered-without-date (hatched) from
     not ordered (solid). Only the «0%» label is muted.
 
+- **2026-11-21 · Design review, round B: a calmer item card (display only).**
+  On top: the decision, the numbers, up to two reasons and «טופל». More
+  actions, «also in…» and the remaining reasons are in one fold, «עוד N
+  פרטים», closed by default; nothing was removed. The MRP tag reads «סוג MRP:
+  …»; the stock-age tag shows only when the age is not «active». Measured on
+  the real report (100 items from four screens): the «טופל» button moved up
+  by a median of 72px (up to 174px), and the chart starts 72px higher.
+  business-guard: 0 differences. The chart keeps its dark surface in light
+  mode — a recorded decision (CHART_SURF: one surface, validated palette).
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —
