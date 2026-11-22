@@ -1109,12 +1109,16 @@ body:has(#welcome:not([hidden])) .top{z-index:430}
 .rail .tab.navtab .nico{position:relative}
 /* DESIGN-A (21.11): הנקודה כפלה את המספר האדום — אותה אמירה פעמיים. המספר נשאר. */
 .rail .tab.navtab.alert .nico::after{content:none}
-/* DESIGN-C — בחירת «כל הרכש הפתוח» במעקב רכש */
-.lpo{display:flex;align-items:center;gap:10px;padding:4px 2px 8px}
+/* DESIGN-C — בחירת «כל הרכש הפתוח» במעקב רכש. באותה שורה עם הרצועה ולא בשורה
+   משלה: שורה נוספת (38px) הורידה את הרשימה מתחת ל-62% מהמסך (נמדד, ui.test). */
+#line:not([hidden]){display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;column-gap:8px}
+#line>.lband{flex:1 1 0;min-width:0}
+#line>.lmail{flex:1 0 100%}
+.lpo{display:flex;align-items:center;flex:0 0 auto;padding:6px 0 0}
 .lpo .lpob{font:inherit;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
 .lpo .lpob[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .lpo .lpob:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-.lpo .lpos{font-size:12px;color:var(--dim)}
+
 /* ============ המסילה בלי צבעי תחום ============
    שבעה צבעים לשבעה תחומים — ואחד מהם האדום של «קריטי», על התחום
    «חוסרים». צבע שמסמן ניווט אינו יכול לסמן גם מצב, ולכן השבבים
@@ -8160,8 +8164,8 @@ function renderLine(){
  let h=ETA?renderHero(m):renderHeroDry(m);
  /* DESIGN-C — הבחירה «כל הרכש הפתוח» (ברירת המחדל) לצד הרצועה של כיסוי החוסרים */
  {const P=poRows(),n=P.length,ns=new Set(P.map(r=>r.supplier||'ללא ספק')).size;
-  h=`<div class="lpo"><button type="button" class="lpob" data-ls="po" aria-pressed="${sel('po')}">כל הרכש הפתוח <b>${n.toLocaleString('he-IL')}</b></button>`
-   +`<span class="lpos">${ns.toLocaleString('he-IL')} ספקים · ברצועה: כיסוי החוסרים לפי משלוח</span></div>`+h}
+  h=`<div class="lpo"><button type="button" class="lpob" data-ls="po" aria-pressed="${sel('po')}" title="${n.toLocaleString('he-IL')} פריטים עם רכש פתוח, מ-${ns.toLocaleString('he-IL')} ספקים, לפי ספק. הרצועה שלידה: כיסוי החוסרים לפי משלוח">כל הרכש הפתוח <b>${n.toLocaleString('he-IL')}</b></button>`
+   +`</div>`+h}
  h+=`<div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>

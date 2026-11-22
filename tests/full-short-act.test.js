@@ -48,7 +48,9 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await wait(300);
 
  /* 2 · «רכש ואספקות» */
- await p.evaluate(()=>setMode('line'));await wait(500);
+ /* DESIGN-C (21.11): «מעקב רכש» נפתח על כל הרכש הפתוח (עמודות משלו, בלי «הפעולה הבאה»);
+    פעולת האספקה במילים חלה על טבלת החוסרים שבתוכו — הבחירה 'stuck' */
+ await p.evaluate(()=>{setMode('line');lineSelect('stuck')});await wait(500);
  S=await scan();
  ok('«רכש ואספקות»: אותה פעולה במילים, בלי כמות',S.short&&S.n>0&&S.worded&&S.qty===0,`${S.n} שורות`);
 

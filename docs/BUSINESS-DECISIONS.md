@@ -882,6 +882,24 @@ Changes to these areas require explicit business approval.
   business-guard: 0 differences. The chart keeps its dark surface in light
   mode — a recorded decision (CHART_SURF: one surface, validated palette).
 
+- **2026-11-22 · Design review, round C: «מעקב רכש» opens on all open
+  purchasing, by supplier (approved).** The screen opened on items that no
+  known shipment covers — every one of them also in «shortages and customers»
+  (86 of 86 on the real report). Now: every item with an open purchase order,
+  grouped by supplier; inside a supplier, customer waiting first, then the
+  largest shortage, then the open quantity. Columns: open purchase · arrival ·
+  stock · customer demand · forecast shortage · classification. The supplier
+  row says units on open purchase and how many have a customer waiting.
+  - **Counts and exports (measured on the real report):** the rail count and
+    the screen 86 → 1,214; the «view» and «all data» sheets of this screen
+    follow the list; the SAP file from this screen 9 → 112 rows (the
+    parameter rows among the visible items) and a slow-stock file now exists
+    for it. Every item field and queue is unchanged.
+  - **Kept:** the strip still selects the shortage table (no coverage · this
+    month · will return), and the «כל הרכש הפתוח» button brings the list back.
+    The supplier e-mail draft stays an inquiry about what no known shipment
+    covers, also on the default selection.
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —

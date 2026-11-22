@@ -1295,6 +1295,13 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     whySrc:(r.why||[]).length,
     hasBtn:!!d.querySelector('.dcs [data-dmark]'),
     moreN:d.querySelectorAll('.dcmore li').length,
+    /* decisionBlock משמיט פעולה שחוזרת בדיוק על זוג המספרים שברצועת קיים ← מוצע
+       («אזור החלטה אחד»). הבדיקה הניחה שאין כפילות כזו בפריט הראשון — הנחה שנפלה
+       כש«מעקב רכש» התחיל להיפתח על פריט אחר (DESIGN-C). אותו כלל, מחושב כאן. */
+    moreWant:(()=>{const dup=[];
+      if(!r.isPDItem&&r.sugROP!==r.rop)dup.push(new RegExp('נקודת הזמנה\\s*מ-'+r.rop+'\\s*ל-'+r.sugROP+'(?!\\d)'));
+      if(!r.isPDItem&&r.sugSS!==r.ss)dup.push(new RegExp('מלאי ביטחון\\s*מ-'+r.ss+'\\s*ל-'+r.sugSS+'(?!\\d)'));
+      return (r.act||[]).filter(Boolean).slice(1).filter(a=>!dup.some(re=>re.test(a))).length})(),
     secs:[...d.querySelectorAll('.sec h3')].map(h=>h.textContent.trim())}});
  ok('אותה המלצה אינה חוזרת בשלושה אזורים',card.repeats===1&&!card.oact,
     `${card.repeats} הופעות (היה 3) · .oact=${card.oact}`);
@@ -1306,7 +1313,7 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     `"${card.qtyLabel}"`);
  ok('כל הסיבות נשמרו — לא נחתכו',card.whyN===card.whySrc,
     `${card.whyN} מתוך ${card.whySrc}`);
- ok('פעולות נוספות נשמרות מתחת לראשית',card.moreN===Math.max(0,card.acts-1),
+ ok('פעולות נוספות נשמרות מתחת לראשית',card.moreN===card.moreWant,
     `${card.moreN} נוספות · ${card.acts} בסך הכול`);
 
  /* ============ STORE_LOUD · אחסון שנגמר נשמע ============
