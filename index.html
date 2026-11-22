@@ -1109,6 +1109,12 @@ body:has(#welcome:not([hidden])) .top{z-index:430}
 .rail .tab.navtab .nico{position:relative}
 /* DESIGN-A (21.11): הנקודה כפלה את המספר האדום — אותה אמירה פעמיים. המספר נשאר. */
 .rail .tab.navtab.alert .nico::after{content:none}
+/* DESIGN-C — בחירת «כל הרכש הפתוח» במעקב רכש */
+.lpo{display:flex;align-items:center;gap:10px;padding:4px 2px 8px}
+.lpo .lpob{font:inherit;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.lpo .lpob[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lpo .lpob:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.lpo .lpos{font-size:12px;color:var(--dim)}
 /* ============ המסילה בלי צבעי תחום ============
    שבעה צבעים לשבעה תחומים — ואחד מהם האדום של «קריטי», על התחום
    «חוסרים». צבע שמסמן ניווט אינו יכול לסמן גם מצב, ולכן השבבים
@@ -7190,7 +7196,7 @@ const SUBNAV={
 const NAV_WHAT={
  home:'מה דורש החלטה עכשיו — לקוח ממתין וחוסר צפוי',
  today:'הזמנות לקוח שאינן מכוסות, וחוסר צפוי החודש',
- line:'הזמנות רכש פתוחות, תאריכי הגעה, איחורים וזירוז',
+ line:'כל הזמנות הרכש הפתוחות, לפי ספק — כמות, הגעה, מדף ולקוח; איחורים וזירוז',
  month:'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון — בדיוק השורות שבקובץ SAP',
  follow:'לקוח ממתין והמדף ריק, אבל יש רכש שמכסה — לבדוק Back Order, לבקש ETA ולזרז ספק',
  qual:'זמן אספקה או רמת שירות חסרים ב-SAP — בלעדיהם אין חישוב ואין שורה בקובץ SAP',
@@ -7474,6 +7480,7 @@ function colsWire(){
 function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
  if(v==='sup')return 'התצוגה «לפי ספק»';
+ if(v==='linepo')return 'התצוגה «כל הרכש הפתוח»';
  if(v==='fix')return 'המלצות לעדכון פרמטרים';
  const N={agenda:'חריגים לטיפול',qual:'נתוני אב חסרים',
   catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
@@ -7547,7 +7554,8 @@ function navCount(k){
   return {n:movList(movTab,base).length,hot:0}}
  /* הציר סופר את מי שאין לו שום מענה — לא את כל האוזלים. זה המספר
     שדורש ממך פעולה היום; השאר כבר בדרך. */
- if(k==='line'){const m=lineModel();return {n:m.stuck.length,hot:m.stuck.filter(r=>(r.cust||0)>0).length}}
+ /* DESIGN-C: המונה הוא מה שנפתח בלחיצה — כל הרכש הפתוח; «חם» = לקוח ממתין */
+ if(k==='line'){const r=poRows();return {n:r.length,hot:r.filter(x=>(x.cust||0)>0).length}}
  const r=modeRows(k);return {n:r.length,hot:hot(r)}}
 const MODESET={
  /* מרכז העבודה — מסך נחיתה. הוא אינו טבלה, ולכן track הוא 'short'
@@ -7823,7 +7831,12 @@ function lineModel(){
    LINE_SEL הוא הבחירה: 'now' (כל האוזלים), תאריך תחנה, 'stuck' (בלי
    מענה) או 'recur' (יחזור בגלל פרמטר). ברירת המחדל היא 'stuck' —
    מה שאין לו שום מענה הוא הדבר היחיד שדורש ממך פעולה היום. */
-let LINE_SEL='stuck', LINE_M=null;
+/* DESIGN-C (21.11, אושר): «מעקב רכש» נפתח על כל הרכש הפתוח, לפי ספק ('po'). עד כאן
+   הוא נפתח על 'stuck' — רשימה שכולה גם ב«חוסרים ולקוחות» (86 מתוך 86 בדוח האמיתי). */
+let LINE_SEL='po', LINE_M=null;
+/* כל פריט עם הזמנת רכש פתוחה. הסדר בתוך ספק — supplierGroups (urgRank): לקוח ממתין וחוסר קודם. */
+function poRows(){return (QF&&QF.all?QF.all:[]).filter(r=>(r.po||0)>0&&passColFilters(r))}
+function linePo(){return track==='line'&&LINE_SEL==='po'}
 /* רמה 2 של הציר היא בדיוק מסך הבוקר: אותן עמודות, אותה חלוקה לשכבות,
    אותה מגירה. מה שהשתנה הוא *מי* ברשימה — הבחירה על הרצועה. */
 function SHORTLIKE(){return track==='short'||track==='follow'||(track==='line'&&LINE_SEL!=='recur')}
@@ -7842,6 +7855,7 @@ function lineMoney(list){return moneyMix(list,lineVal)}
 /* הפריטים שהבחירה מצביעה עליהם */
 function lineRows(){
  const m=LINE_M||(LINE_M=lineModel());
+ if(LINE_SEL==='po')return poRows();
  if(LINE_SEL==='now')return m.dry;
  if(LINE_SEL==='stuck')return m.stuck;
  if(LINE_SEL==='recur')return m.recur;
@@ -7891,7 +7905,9 @@ function lineLedgerLine(){
   ?'פנקס: התחיל היום'
   :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`}
 function lineMailText(){
- const rows=lineRows();
+ /* DESIGN-C — המייל נשאר מה שהיה: בירור על מה שאף משלוח ידוע לא מכסה. בבחירת ברירת
+    המחדל («כל הרכש הפתוח», 1,214 בדוח האמיתי) הוא היה הופך לבקשת סטטוס על כל רכש. */
+ const rows=LINE_SEL==='po'?(LINE_M||(LINE_M=lineModel())).stuck:lineRows();
  if(!rows.length)return '';
  const by={};
  for(const r of rows){const s=r.supplier||'—';(by[s]=by[s]||[]).push(r)}
@@ -8142,6 +8158,10 @@ function renderLine(){
  /* ── הגיבור. שני המצבים מרנדרים רצועה, ולא רק זה שיש בו ETA ──
     הקוד כאן החזיר קודם lrec בת שורה ויצא. ראה SHELL_BAND. */
  let h=ETA?renderHero(m):renderHeroDry(m);
+ /* DESIGN-C — הבחירה «כל הרכש הפתוח» (ברירת המחדל) לצד הרצועה של כיסוי החוסרים */
+ {const P=poRows(),n=P.length,ns=new Set(P.map(r=>r.supplier||'ללא ספק')).size;
+  h=`<div class="lpo"><button type="button" class="lpob" data-ls="po" aria-pressed="${sel('po')}">כל הרכש הפתוח <b>${n.toLocaleString('he-IL')}</b></button>`
+   +`<span class="lpos">${ns.toLocaleString('he-IL')} ספקים · ברצועה: כיסוי החוסרים לפי משלוח</span></div>`+h}
  h+=`<div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
@@ -9550,8 +9570,11 @@ function urgRank(r){if(!QF)return 2;
 function supplierGroups(rows){const by=new Map();
  for(const r of rows){const k=r.supplier||'ללא ספק';
   if(!by.has(k))by.set(k,[]);by.get(k).push(r)}
+ /* DESIGN-C — ברכש הפתוח: לקוח ממתין קודם, אחר כך החוסר הגדול, אחר כך הכמות הפתוחה */
+ const po=linePo();
  for(const list of by.values())
-  list.sort((a,b)=>urgRank(a)-urgRank(b)||(b.miss||0)-(a.miss||0));
+  list.sort(po?((a,b)=>((b.cust||0)>0)-((a.cust||0)>0)||(b.miss||0)-(a.miss||0)||(b.po||0)-(a.po||0))
+   :((a,b)=>urgRank(a)-urgRank(b)||(b.miss||0)-(a.miss||0)));
  /* ההזמנה הגדולה ראשונה — היא גם זו שהכי משתלם לאחד */
  return [...by.entries()].sort((a,b)=>b[1].length-a[1].length);}
 function supTotals(list){const cur={};let units=0;
@@ -10601,6 +10624,8 @@ const SCOL_DEF={
  /* SHORT_ACT_FULL — «כמות להזמנה» ירדה מברירת המחדל (החלטת המעתד 20.11, כמו «להזמין» בתצוגת
     4 הנושאים); נשארת לבחירה בבורר (SCOL_OPT) ובגיליון «כל הנתונים» */
  sup:['pn','model','desc','free','otw','cust','missq','cova','age','cat'],
+ /* DESIGN-C — כל הרכש הפתוח, לפי ספק: הכמות הפתוחה, ההגעה, המדף, הלקוח והסיווג */
+ linepo:['pn','model','desc','po','eta','free','cust','miss','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
  fix:['sel','pn','model','desc','rop','ss','need','lt','fix'],
@@ -10681,6 +10706,7 @@ function colViewKey(){
  if(track==='qual')return 'qual';
  if(track==='stale')return 'stale';
  if(track==='prof')return PROF_TAB==='down'?'profDn':'prof';
+ if(linePo())return 'linepo';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
@@ -11229,7 +11255,8 @@ function renderDecisions(rows){
  if(track==='cust'){renderCust(rows);return}
  if(track==='applied'){renderApplied(rows);return}
  const grouped=SHORTLIKE();
- const bySup=grouped&&groupBy==='supplier';
+ /* DESIGN-C: הרכש הפתוח תמיד לפי ספק — מולו מבצעים */
+ const bySup=grouped&&(groupBy==='supplier'||linePo());
  const SG0=bySup?supplierGroups(rows):null;
  const SG=SG0?SG0.map(([k,l])=>[k,wsortApply(l)]):null;
  const GB0=(grouped&&!bySup)?groupRows(rows):null;
@@ -11262,8 +11289,12 @@ function renderDecisions(rows){
    G(`<tr class="grp sup${coll?' coll':''}" data-g="sup:${esc(sup)}"><td colspan="${NCOL()}" style="--gc:var(--acc)">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
      <span class="gn">${list.length}</span>
-     <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
-     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
+     ${linePo()
+      /* DESIGN-C — ברכש הפתוח הכותרת אומרת כמה פתוח מול הספק, ומכמה לקוח ממתין; לא «להזמנה» */
+      ?`<span class="gs">${list.reduce((a,r)=>a+(r.po||0),0).toLocaleString('he-IL')} יח׳ ברכש פתוח${lt?' · '+lt:''}</span>
+     <span class="gu">${list.filter(r=>(r.cust||0)>0).length.toLocaleString('he-IL')} עם לקוח ממתין</span>`
+      :`<span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
+     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span>`}</td></tr>`);
    if(coll)continue;
    for(const r of list){const i=idx++;
     ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
@@ -11448,6 +11479,7 @@ function renderDecisions(rows){
   :FIXLIKE()
   ?(track==='month'?'בדיוק השורות שבקובץ SAP · סינון לפי סיבה מעל הטבלה':'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון ב-SAP')
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
+  :linePo()?'כל הזמנות הרכש הפתוחות, לפי ספק · בראש כל ספק: לקוח ממתין וחוסר'
   :(SHORTLIKE()?'כמה חסר · מה מגיע עד סוף החודש · מה נשאר · הפעולה הבאה'
     :'ממוין לפי השווי, בתוך כל מטבע · הדלתות שמתחת לפי מה שאפשר לעשות'),
   /* ההסבר המלא — לבועית. רק בשני המסכים שקיבלו משפט מקוצר */
