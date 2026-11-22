@@ -6156,7 +6156,8 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
       pUp&&OD_GROUPS.has(it.mkt1)?['warn','קבוצת כלי עבודה / אביזרים («לפי דרישה») — ההמלצה לבדיקה ידנית, לא לעדכון אוטומטי']:null,
       (it.ss>0&&it.d12<=Math.max(6,it.ss))?['warn',`ב-SAP יושב מלאי ביטחון ${it.ss} על פריט PD בעל צריכה נמוכה (${it.d12} יח׳ ב-11 חודשים) — סביר שזו שארית שגויה, שקול לאפס`]:null].filter(Boolean);
     it.act=[it.expCap>0?`מלאי PD ללא צריכה — ${money(it.expCap,it.currency)} מוקפאים, לבחון חיסול`
-        :(pUp?`להעלות פרופיל ל-${PROF_NAME[pt]} — ראה «שינוי פרופיל MRP»`:'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
+        /* CLEANUP (22.11): שם המסך בכלי המלא מאז TERMS (#194) הוא «שינוי סוג MRP» */
+        :(pUp?`להעלות פרופיל ל-${PROF_NAME[pt]} — ראה «שינוי סוג MRP»`:'פריט לפי הזמנה — אין המלצת מלאי אוטומטית'),
       (it.ssMin>0||it.ss>0)?'לשקול איפוס ssMin/SS ב-SAP אם הם שארית ישנה':'—'];Q.passive.push(it);continue}
   if(it.srvMissing&&it.rate>0){it.sev=1;it.cat='נתון חסר ב-SAP';it.paramFix=true;it.serviceMissing=true;
     it.why=[['err','רמת שירות חסרה או 0 — לא ניתן לאשר המלצת SS/ROP סטטיסטית'],['info','לא נעשה שימוש בברירת מחדל שקטה']];
@@ -15026,7 +15027,9 @@ const tpdDate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return 
 /* מה הבעיה — משפט אחד לפי הנושא, ממספרי המנוע */
 function tpdProblem(t,r){const N=tpN;
  if(t==='fix'){
-  if(pdUpgrade(r))return r.ltBad?PD_LT_MSG:`מומלץ לשנות פרופיל מ-PD ל-ZM-C בעקבות צריכה של ${N(r.net12)} יח׳ נטו ב-12 החודשים האחרונים.`;
+  /* CLEANUP (22.11): מועמד שהסימולציה מצאה בו סיבה — המשפט הראשון אומר «לבדוק» ולמה, כמו הקטע «המלצת פרופיל» */
+  if(pdUpgrade(r)){const x=profStatus(r);if(x&&x.k==='rev')return `לבדוק לפני שינוי פרופיל מ-PD ל-ZM-C: ${x.why}.`;
+   return r.ltBad?PD_LT_MSG:`מומלץ לשנות פרופיל מ-PD ל-ZM-C בעקבות צריכה של ${N(r.net12)} יח׳ נטו ב-12 החודשים האחרונים.`}
   if(r.ltBad)return `${LT_MSG}. ${LT_NA}.`;
   if(tpSrvMissing(r)&&!tpInFix(r))return 'רמת שירות חסרה או 0 ב-SAP — לא ניתן לאשר המלצת SS/ROP סטטיסטית.';
   /* הורדת פרופיל ZM (עד ZM-C) — אותו profInfo שמסך שינוי הפרופיל בכלי המלא מציג */

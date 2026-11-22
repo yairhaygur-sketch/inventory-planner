@@ -31,12 +31,22 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  const D=await p.evaluate(k=>{const r=QF.all.find(x=>markKey(x)===k);TP.cat={fix:'prof'};
   const act=tpTopicAct('fix',r),col=TOPICS.fix.cols.find(c=>c.k==='prof'),csv=col.x[0][1](r);
   const ac=TOPICS.fix.cols.find(c=>c.k==='act'),csvAct=((ac&&ac.x||[]).find(x=>x[0]==='פעולה בנושא')||[,()=>null])[1](r);
-  tpdShow(r);const card=(document.getElementById('tpd')||{}).textContent||'';tpdClose();
-  return {act,csv,csvAct,card:card.replace(/\s+/g,' '),why:profStatus(r).why}},C.key);
+  tpdShow(r);const card=(document.getElementById('tpd')||{}).textContent||'';
+  const h3=[...document.querySelectorAll('#tpd h3')].find(h=>h.textContent.trim()==='מה הבעיה'),head=h3&&h3.nextElementSibling?h3.nextElementSibling.textContent.trim():'';tpdClose();
+  /* מועמד תקין — המשפט הראשון כמו קודם */
+  const okR=QF.all.find(x=>pdUpgrade(x)&&profStatus(x)&&profStatus(x).k==='up'&&!x.ltBad);
+  return {act,csv,csvAct,card:card.replace(/\s+/g,' '),why:profStatus(r).why,head,okHead:okR?tpdProblem('fix',okR):''}},C.key);
  ok('הפעולה: «לבדוק פרופיל: PD ← ZM-C»',D.act==='לבדוק פרופיל: PD ← ZM-C',D.act);
  ok('ה-CSV: «PD ← ZM-C · לבדוק»',D.csv==='PD ← ZM-C · לבדוק',D.csv);
  ok('ה-CSV, «פעולה בנושא»: «לבדוק פרופיל: PD ← ZM-C»',D.csvAct==='לבדוק פרופיל: PD ← ZM-C',D.csvAct);
+ ok('הכרטיס, המשפט הראשון («מה הבעיה»): «לבדוק לפני שינוי פרופיל מ-PD ל-ZM-C» וכל הסיבות (CLEANUP 22.11)',D.head===`לבדוק לפני שינוי פרופיל מ-PD ל-ZM-C: ${D.why}.`,D.head.slice(0,90));
+ ok('מועמד תקין — המשפט הראשון כמו קודם («מומלץ לשנות פרופיל…»)',/^מומלץ לשנות פרופיל מ-PD ל-ZM-C בעקבות צריכה של /.test(D.okHead),D.okHead.slice(0,60));
  ok('הכרטיס: «לבדוק — לא לעדכן פרופיל אוטומטית» וכל הסיבות',D.card.includes('לבדוק — לא לעדכן פרופיל אוטומטית')&&D.card.includes(D.why),D.why);
+
+ /* 2א · CLEANUP (22.11): משפט הפעולה של המנוע מפנה למסך בשמו הנוכחי בכלי המלא, «שינוי סוג MRP» */
+ const A=await p.evaluate(()=>{const ref=ALL.filter(r=>(r.act||[]).some(a=>/ראה «שינוי/.test(String(a))));
+  return {n:ref.length,all:ref.every(r=>pdUpgrade(r)&&r.act[0]==='להעלות פרופיל ל-ZM-C — ראה «שינוי סוג MRP»'),old:ALL.filter(r=>(r.act||[]).some(a=>String(a).includes('שינוי פרופיל MRP'))).length}});
+ ok('משפט הפעולה: כל הפניה למסך — «להעלות פרופיל ל-ZM-C — ראה «שינוי סוג MRP»», ואף פריט לא מפנה לשם הישן',A.n>0&&A.all&&A.old===0,`${A.n} פריטים · ${A.old} עם השם הישן`);
 
  /* 3 · מה שלא זז: מספר הפריטים בתת-הקטגוריה = המונה של «שינוי פרופיל» בכלי המלא */
  const N=await p.evaluate(()=>{TP.cat={fix:'prof'};tpRender();return {n:(TP.list||[]).length,eng:navCount('prof').n}});
