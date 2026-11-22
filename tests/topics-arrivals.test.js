@@ -71,10 +71,11 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   /* d1 — היום שאחרי d0. היה «ה-28 באותו חודש», ונפל כש-d0 עצמו יצא ה-28 (תאריכי דוח ה-ETA
      בהדגמה נגזרים מיום יצירת הקובץ): שני התאריכים התלכדו לשורה אחת. נמדד ב-21.11 */
   const k=etaKey(r.pn),orig=ETA.byPn[k],[q0,d0]=orig[0],t1=new Date(d0+'T00:00:00Z');t1.setUTCDate(t1.getUTCDate()+1);const d1=t1.toISOString().slice(0,10);
-  ETA.byPn[k]=[[q0,d0,'D-1',''],[3,d0,'D-2',''],[2,d1,'D-3','']];
+  /* ETA_SHIP (21.11): בדוח ההדגמה יש עמודת «משלוח» — המזהה שמוצג הוא מספר המשלוח (השדה החמישי) */
+  ETA.byPn[k]=[[q0,d0,'D-1','','SH-1'],[3,d0,'D-2','','SH-2'],[2,d1,'D-3','','SH-3']];
   tpdShow(r);const li=[...document.querySelectorAll('#tpd ul.eta li')].map(x=>x.textContent);tpdClose();ETA.byPn[k]=orig;
   const same=li.find(t=>t.includes(tpdDate(d0)))||'';
-  return {li:li.length,same,sumOk:same.includes(tpN(q0+3)+' יח׳')&&/2 שורות/.test(same)&&/D-1/.test(same)&&/D-2/.test(same)}});
+  return {li:li.length,same,sumOk:same.includes(tpN(q0+3)+' יח׳')&&/2 שורות/.test(same)&&/משלוחים SH-1, SH-2/.test(same)&&!/D-1|D-2/.test(same)}});
  ok('כרטיס: שורה אחת לכל תאריך — סכום היחידות, מספר השורות ומספרי המשלוחים',G&&G.li===2&&G.sumOk,G?G.same.slice(0,80):'אין פריט עם שורות ETA');
 
  ok('אין שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));

@@ -885,6 +885,23 @@ Changes to these areas require explicit business approval.
   report B — 78 of 88 (51 tools/accessories, 21 ROP and SS of 0 with no
   consumption in six months, 6 too little consumption).
 
+- **2026-11-21 · The shipment number from the ETA report (ETA_SHIP, approved
+  21.11).** The ETA report has two numbers: «משלוח», the shipment (column A in
+  the planner's sheet), and «אספקה», a 10-digit delivery. One shipment carries
+  several deliveries (an older real ETA file: 8 shipments, 80 deliveries, up
+  to 32 in one shipment). The tool read only «אספקה» and showed it under the
+  heading «משלוח».
+  - **Now:** «משלוח» is read by its header (in any column), and the shipment
+    number replaces the delivery number on screen, in both tools: the arrivals
+    board, the item card («arrivals by date»), and the tooltips of «הגעה» and
+    «מכוסה ברכש» (full tool) and of «אספקה הבאה (ETA)» and «אספקה עד סוף
+    החודש (ETA)» (4-topics view).
+  - **A file without «משלוח»** — and an ETA report saved before this change,
+    until it is uploaded again — shows the delivery number under «אספקה».
+  - **Screen only, by the planner's choice:** no export changed (Excel, the
+    expediting report, the 4-topics CSV, SAP). The «מסמך רכש / אספקה» column
+    of «הזמנות רכש באיחור» stays as it is, because it is exported.
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---

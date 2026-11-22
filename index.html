@@ -4563,7 +4563,10 @@ function etaParse(wb){
    date:h.hdr.indexOf('תארי.אספקה'),dlv:h.hdr.indexOf('אספקה'),
    /* «מסמך רכש» נוסף לדוח מאוחר יותר. דוח בלי העמודה עדיין נטען —
       היא מעשירה את זהות ההבטחה ואינה תנאי לקליטה. */
-   po:h.hdr.indexOf('מסמך רכש')};
+   po:h.hdr.indexOf('מסמך רכש'),
+   /* ETA_SHIP (21.11) — «משלוח» הוא מספר המשלוח (בגיליון של המעתד עמודה A). כמו «מסמך רכש»:
+      נקרא לפי שם הכותרת, ודוח בלי העמודה עדיין נטען */
+   ship:h.hdr.indexOf('משלוח')};
   const byPn={};let rows=0,units=0,undated=0;
   for(const r of a.slice(h.at+1)){
    const pn=etaKey(r[ix.pn]);if(!pn)continue;
@@ -4574,12 +4577,12 @@ function etaParse(wb){
     if(mm){let y=+mm[3];if(y<100)y+=2000;d=ymd(new Date(y,(+mm[2])-1,+mm[1]))}
     else if(/^\d{4}-\d{2}-\d{2}/.test(s))d=s.slice(0,10)}
    if(!d){undated++;continue}
-   (byPn[pn]=byPn[pn]||[]).push([q,d,CLEAN(r[ix.dlv]),ix.po>=0?CLEAN(r[ix.po]):'']);
+   (byPn[pn]=byPn[pn]||[]).push([q,d,CLEAN(r[ix.dlv]),ix.po>=0?CLEAN(r[ix.po]):'',ix.ship>=0?CLEAN(r[ix.ship]):'']);
    rows++;units+=q}
   if(!rows)return {err:'הקובץ זוהה כדוח ETA אבל אין בו שורה אחת עם כמות ותאריך'};
   for(const k in byPn)byPn[k].sort((x,y)=>x[1]<y[1]?-1:x[1]>y[1]?1:0);
-  const hasPo=ix.po>=0;
-  return {byPn,rows,units,undated,hasPo,parts:Object.keys(byPn).length,ts:Date.now()}}
+  const hasPo=ix.po>=0,hasShip=ix.ship>=0;
+  return {byPn,rows,units,undated,hasPo,hasShip,parts:Object.keys(byPn).length,ts:Date.now()}}
  return {err:'לא זוהתה שורת כותרות של דוח ETA (נדרשות "חומר", "כמות באספקה", "תארי.אספקה")'}}
 /* ============ ETA_SPLIT — "בדרך" אינו מספר אחד ============
    עד כאן הרכש הפתוח הוצג כגוש אחד בלי תאריך, והמתכנן הסיק ממנו שהפריט
@@ -4592,6 +4595,24 @@ function etaParse(wb){
    אינו כיסוי, והוא בדיוק מה שצריך לבלוט. */
 /* שתי התאים של מסך הבוקר. בלי דוח ETA — תא אחד, זהה לקודם. */
 function etaShort(d){if(!d)return '';const[y,m,dd]=d.split('-');return (+dd)+'.'+(+m)}
+/* ============ ETA_SHIP — מספר המשלוח (החלטת המעתד 21.11) ============
+   בדוח ה-ETA שני מספרים: «משלוח» — המשלוח כולו — ו«אספקה», מספר אספקה בן 10 ספרות. משלוח
+   אחד נושא כמה אספקות (בקובץ ETA אמיתי ישן: 8 משלוחים, 80 אספקות, עד 32 אספקות במשלוח אחד).
+   עד כאן הכלי קרא רק את «אספקה» והציג אותו בכותרת «משלוח». מעכשיו מוצג מספר המשלוח,
+   בכל מקום במסך שמציג את מזהה השורה; בקובץ בלי עמודת «משלוח» (וגם בדוח שנשמר לפני
+   השינוי, עד העלאה מחדש) — מספר האספקה, בכותרת «אספקה». במסך בלבד: הייצוא לא השתנה
+   (בחירת המעתד), ועמודת «מסמך רכש / אספקה» במסך «תאריך שעבר» נשארת כמו שהיא, כי היא נכנסת לאקסל. */
+const etaHasShip=()=>!!(ETA&&ETA.hasShip);
+const etaRef=l=>String((etaHasShip()?l[4]:l[2])||'');
+const etaRefL=n=>etaHasShip()?(n>1?'משלוחים':'משלוח'):(n>1?'אספקות':'אספקה');
+/* המזהים לפי תאריך, לשורות של פריט אחד: [[תאריך, [מזהים]], …] — בלי כפילויות, לפי סדר התאריכים */
+function etaRefsByDate(r,keep){const ls=(ETA&&ETA.byPn&&ETA.byPn[etaKey(r.pn)])||[];const g=new Map();
+ for(const l of ls){if(!l[1]||(keep&&!keep(l[1])))continue;const x=g.get(l[1])||[];const k=etaRef(l);if(k&&!x.includes(k))x.push(k);g.set(l[1],x)}
+ return [...g].filter(([,x])=>x.length).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0)}
+/* «משלוח 12345 · 21.11» / «משלוחים: 21.11 — 12345, 12346 · 5.12 — 12350» — לבועיות */
+function etaRefsTxt(g){if(!g.length)return '';const n=g.reduce((a,[,x])=>a+x.length,0);
+ return n===1?`${etaRefL(1)} ${g[0][1][0]} · ${etaShort(g[0][0])}`
+  :`${etaRefL(n)}: ${g.map(([d,x])=>`${etaShort(d)} — ${x.join(', ')}`).join(' · ')}`}
 /* ============ ETA_SPLIT_DATE — כמות אחת אינה תאריך אחד ============
    כל משפט על האספקה חיבר את *סכום* העתיד לתאריך ה*מוקדם* ביותר,
    ואמר בכך דבר שאף שורה בדוח אינה תומכת בו. הדוגמה שהמעתד תפס,
@@ -4640,14 +4661,17 @@ function shortCovered(r){
     עליהן לגמרי (עמודת «ללא תאריך» מראה רק את התקוע). המספר נשאר 0
     — הן באמת אינן מכסות את החודש — אבל התאריך הקרוב נאמר על המסך
     ולא רק ב-tooltip. */
+ /* ETA_SHIP — מספרי המשלוח של ההגעות הקרובות, בבועית בלבד */
+ const fR=etaRefsTxt(etaRefsByDate(r,d=>d>=etaToday()));
  if(m<=0)return `<td class="num sched" title="${esc(fut>0
-   ?`${etaSchedTxt(r,'משובצות')} — כולן אחרי סוף החודש, ואינן מכסות את החוסר הזה`
+   ?`${etaSchedTxt(r,'משובצות')} — כולן אחרי סוף החודש, ואינן מכסות את החוסר הזה${fR?` · ${fR}`:''}`
    :'אין אספקה מתוארכת שנוחתת עד סוף החודש')}"><span class="mut">—</span>`
    +(fut>0?`<i>→${etaShort(r.etaFirst)}</i>`:'')+`</td>`;
  /* ⊘ אינו קישוט: הוא ההבדל בין «מכוסה» ל«מנוכה». */
  return `<td class="num sched" title="${esc(`${m} יח׳ נוחתות עד סוף החודש`
    +(fut>m?` · מתוך ${fut} משובצות בסך הכל, היתר אחרי סוף החודש`:'')
    +(r.etaFirst?` · ${etaSchedTxt(r,'משובצות')}`:'')
+   +(fR?` · ${fR}`:'')
    +(t1?' · אינן מנוכות: לקוח כבר ממתין מול מדף ריק, וכשל שירות שקרה אינו מתבטל בתאריך עתידי':''))}">`
    +`${m.toLocaleString('he-IL')}${t1?'<span class="nodeduct">⊘</span>':''}</td>`}
 /* «נשאר» נושא את החשבון עצמו כשהוא אינו טריוויאלי. */
@@ -4757,13 +4781,16 @@ function doorEtaCell(r){
  if(!ETA)return `<td class="num otw" title="${esc(po>0?po+' יח׳ ברכש פתוח — לא נטען דוח ETA, ואין תאריך הגעה':'אין רכש פתוח')}">`
   +(po>0?`${po.toLocaleString('he-IL')}<i>⌛</i>`:'<span class="mut">—</span>')+'</td>';
  const q=r.etaQty||0,st=r.stuck||0,past=r.etaPast||0;
+ /* ETA_SHIP — מספרי המשלוח בבועית: של ההגעות הקרובות, ושל השורות שתאריכן עבר */
+ const t=etaToday(),fR=etaRefsTxt(etaRefsByDate(r,d=>d>=t)),pR=etaRefsTxt(etaRefsByDate(r,d=>d<t));
  if(q>0)return `<td class="num sched" title="${esc(etaSchedTxt(r,'משובצות')
+   +(fR?` · ${fR}`:'')
    +(st>0?` · ועוד ${st} יח׳ ברכש בלי שום תאריך`:'')
-   +(past>0?` · ${past} יח׳ היו אמורות להגיע והתאריך עבר — לבדוק אם כבר נכנסו למלאי`:''))}">`
+   +(past>0?` · ${past} יח׳ היו אמורות להגיע והתאריך עבר — לבדוק אם כבר נכנסו למלאי${pR?` (${pR})`:''}`:''))}">`
    +etaCellQty(r)
    +(st>0?`<i class="stk">+${st}⌛</i>`:'')+'</td>';
  if(st>0)return `<td class="num otw" title="${esc(`${st} יח׳ ברכש פתוח בלי שום אספקה משובצת — אין להן תאריך`
-   +(past>0?` · ${past} יח׳ הובטחו לתאריך שכבר עבר — לבדוק אם כבר נכנסו למלאי`:''))}">`
+   +(past>0?` · ${past} יח׳ הובטחו לתאריך שכבר עבר — לבדוק אם כבר נכנסו למלאי${pR?` (${pR})`:''}`:''))}">`
    +`${st.toLocaleString('he-IL')}<i>⌛</i></td>`;
  return `<td class="num" title="${esc(po>0?'כל הרכש הפתוח משובץ ואין יחידות עתידיות':'אין רכש פתוח')}"><span class="mut">—</span></td>`}
 function otwHead(){return ETA
@@ -8145,9 +8172,9 @@ function arrFullHTML(){const D=ARR_D=arrFullData(),N=n=>n.toLocaleString('he-IL'
 /* הפריטים של תאריך אחד, מהגדול לקטן — נבנה בפתיחה הראשונה */
 function arrDayHTML(i){const x=ARR_D&&ARR_D[i];if(!x)return '';const N=n=>n.toLocaleString('he-IL');
  x.sorted=x.sorted||x.ls.slice().sort((a,b)=>b.q-a.q);
- return `<table><thead><tr><th>מק״ט</th><th>תיאור</th><th class="num">כמות</th><th>משלוח</th><th>הזמנת רכש</th><th>ספק</th></tr></thead><tbody>
+ return `<table><thead><tr><th>מק״ט</th><th>תיאור</th><th class="num">כמות</th><th>${etaRefL(1)}</th><th>הזמנת רכש</th><th>ספק</th></tr></thead><tbody>
   ${x.sorted.map((e,j)=>`<tr><td><button type="button" class="arrpn" data-ad="${i}" data-al="${j}" title="פתיחת כרטיס הפריט">${esc(e.r.pn)}</button></td>
-   <td class="d">${esc(e.r.desc||'')}</td><td class="num">${N(e.q)}</td><td>${esc(e.dl||'—')}</td><td>${esc(e.po||'—')}</td><td class="d">${esc(e.r.supplier||'—')}</td></tr>`).join('')}</tbody></table>`}
+   <td class="d">${esc(e.r.desc||'')}</td><td class="num">${N(e.q)}</td><td>${esc(e.ref||'—')}</td><td>${esc(e.po||'—')}</td><td class="d">${esc(e.r.supplier||'—')}</td></tr>`).join('')}</tbody></table>`}
 function arrSync(){const box=document.getElementById('arrb');if(!box)return;
  if(mode!=='line'||cur==='moves')ARR_ON=false;
  const rows=document.querySelector('#w_queue .rows'),pg=document.querySelector('#w_queue .pager');
@@ -14881,7 +14908,9 @@ const TOPICS={
    {k:'gap',l:'חסר מול מלאי ורכש',n:1,v:r=>r.miss||0,h:r=>r.miss>0?`<b>${tpN(r.miss)}</b>`:'—'},
    {k:'cval',l:'שווי ההזמנה',n:1,v:r=>r.priceMissing?null:custVal(r),h:r=>r.priceMissing?'—':money(custVal(r),r.currency),
     x:[['שווי ההזמנה',r=>r.priceMissing?'':Math.round(custVal(r))],['מטבע',r=>r.currency]]},
-   {k:'eta',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>r.etaHas&&r.etaFirst?tpdDate(r.etaFirst):'—'},
+   {k:'eta',l:'אספקה הבאה (ETA)',eta:1,v:r=>r.etaHas?r.etaFirst:null,h:r=>{if(!(r.etaHas&&r.etaFirst))return '—';
+    /* ETA_SHIP — המשלוח של התאריך שבתא, בבועית. הערך, המיון וה-CSV בלי שינוי */
+    const t=etaRefsTxt(etaRefsByDate(r,d=>d===r.etaFirst));return t?`<span title="${esc(t)}">${tpdDate(r.etaFirst)}</span>`:tpdDate(r.etaFirst)}},
    ...tpFobCols(),
    tpActCol('cust')]},
  trend:{t:'חריגת צריכה',short:'3 החודשים המלאים האחרונים מול 3 שלפניהם — רק כשהמגמה משנה את נקודת ההזמנה.',
@@ -14915,7 +14944,9 @@ const TOPICS={
    {k:'kind',l:'מצב',kind:1,v:r=>tpKind(r)[1],h:r=>tpP(tpKind(r)[2],tpKind(r)[1])},
    {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free},
    {k:'rate',l:'קצב לחודש',n:1,v:r=>r.rate,h:r=>tpN(r.rate)},
-   {k:'etaM',l:'אספקה עד סוף החודש (ETA)',eta:1,n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>!ETA?'—':r.etaMonth>0?tpN(r.etaMonth):'0'},
+   {k:'etaM',l:'אספקה עד סוף החודש (ETA)',eta:1,n:1,v:r=>ETA?(r.etaMonth||0):null,h:r=>{if(!ETA)return '—';if(!(r.etaMonth>0))return '0';
+    /* ETA_SHIP — המשלוחים של השורות שנספרות כאן (מהיום עד סוף החודש), בבועית. הערך וה-CSV בלי שינוי */
+    const t=etaToday(),e=etaEom(),x=etaRefsTxt(etaRefsByDate(r,d=>d>=t&&d<=e));return x?`<span title="${esc(x)}">${tpN(r.etaMonth)}</span>`:tpN(r.etaMonth)}},
    /* «להזמין» = הכמות שבפעולה עצמה (actQty), לא חישוב חדש; «לא יסופק החודש» — ב-CSV ובכרטיס.
       SHORT_ONE (18.11): העמודה ירדה מהטבלה — מספר בטבלה מאומץ בלי בדיקה. נשארת ב-CSV בלבד. */
    {k:'buy',l:'להזמין',hide:1,n:1,v:r=>actQty(r),h:r=>{const q=actQty(r);return q>0?`<b>${tpN(q)}</b>`:'—'},
@@ -15089,11 +15120,12 @@ function tpdEta(r){
  const ls=(ETA.byPn&&ETA.byPn[etaKey(r.pn)])||[];
  if(!ls.length)return `<p class="note">רכש פתוח ${tpN(r.po)} — לפריט אין שורות בדוח ה-ETA שנטען.</p>`;
  const t=etaToday();
- /* ARRIVALS (18.11): שורה אחת לכל תאריך — סכום היחידות, ומספרי המשלוחים לצדו */
- const g=new Map();for(const [q,d,dl] of ls.slice().sort((a,b)=>String(a[1]).localeCompare(String(b[1])))){
+ /* ARRIVALS (18.11): שורה אחת לכל תאריך — סכום היחידות, ומספרי המשלוחים לצדו.
+    ETA_SHIP (21.11): מספר המשלוח מעמודת «משלוח»; בלעדיה — מספר האספקה, בשם «אספקה» */
+ const g=new Map();for(const l of ls.slice().sort((a,b)=>String(a[1]).localeCompare(String(b[1])))){const [q,d]=l,dl=etaRef(l);
   const x=g.get(d)||{q:0,n:0,dl:[]};x.q+=q;x.n++;if(dl&&!x.dl.includes(dl))x.dl.push(dl);g.set(d,x)}
  return `<ul class="eta">${[...g].map(([d,x])=>
-  `<li>${tpdDate(d)} · <b>${tpN(x.q)} יח׳</b>${x.n>1?` <span class="note">(${x.n} שורות${x.dl.length?` · משלוחים ${x.dl.map(esc).join(', ')}`:''})</span>`:x.dl.length?` <span class="note">· משלוח ${esc(x.dl[0])}</span>`:''}${d<t?' <span class="note">— תאריך שעבר, לבדוק אם נקלט</span>':''}</li>`).join('')}</ul>`}
+  `<li>${tpdDate(d)} · <b>${tpN(x.q)} יח׳</b>${x.n>1?` <span class="note">(${x.n} שורות${x.dl.length?` · ${etaRefL(x.dl.length)} ${x.dl.map(esc).join(', ')}`:''})</span>`:x.dl.length?` <span class="note">· ${etaRefL(1)} ${esc(x.dl[0])}</span>`:''}${d<t?' <span class="note">— תאריך שעבר, לבדוק אם נקלט</span>':''}</li>`).join('')}</ul>`}
 function tpdMissing(r){const m=[r.ltBad?`זמן אספקה מתוכנן ב-SAP — «אספ.מתוכנ.» ${r.ltRaw===''?'ריק':'0'}`:'זמן אספקה בפועל — אין בדוח קבלות; מוצג זמן האספקה המתוכנן ב-SAP בלבד'];
  if(r.isPDItem&&r.net12==null)m.push('עמודת צריכה חודשית — אי אפשר לקבוע המלצת פרופיל');
  if(r.po>0&&!r.etaHas)m.push('תאריכי הגעה לרכש הפתוח');
@@ -15198,7 +15230,7 @@ function tpdStep(d){const L=TP.list||[];if(!L.length)return;let i=L.indexOf(TP.o
    כאן הנושאים, ובכלי המלא (arrFullData) כל הפריטים אחרי החיפוש והסינון */
 function arrDays(pairs){const days=new Map();
  for(const [r,tk] of pairs){const ls=ETA.byPn[etaKey(r.pn)];if(!ls)continue;
-  for(const [q,d,dl,po] of ls){if(!d)continue;const x=days.get(d)||[];x.push({r,q,dl,po,tk});days.set(d,x)}}
+  for(const l of ls){const [q,d,dl,po]=l;if(!d)continue;const x=days.get(d)||[];x.push({r,q,dl,po,ref:etaRef(l),tk});days.set(d,x)}}
  const t=etaToday();return [...days].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0).map(([d,ls])=>({d,past:d<t,ls,q:ls.reduce((a,x)=>a+x.q,0),n:new Set(ls.map(x=>x.r)).size}))}
 function tpArrData(){if(!ETA||!ETA.byPn)return null;const by=new Map();
  for(const k of Object.keys(TOPICS))for(const r of tpRows(k,true)){const x=by.get(r)||[];x.push(k);by.set(r,x)}
@@ -15208,9 +15240,9 @@ function tpArrivals(){const D=tpArrData();
  if(!D.length)return '<p class="mini">אין לפריטים שבארבעת הנושאים שורות בדוח ה-ETA (בסינון הנוכחי).</p>';
  const past=D.filter(x=>x.past),fut=D.filter(x=>!x.past);
  const day=x=>`<details class="arr${x.past?' past':''}"><summary><b>${tpdDate(x.d)}</b><span>${x.n===1?'פריט אחד':`${tpN(x.n)} פריטים`}</span><span>${tpN(x.q)} יח׳</span>${x.past?'<span class="note">תאריך שעבר — לבדוק אם נקלט</span>':''}</summary>
-  <table><thead><tr><th>מק״ט</th><th>תיאור</th><th class="n">כמות</th><th>משלוח</th><th>הזמנת רכש</th><th>נושא</th></tr></thead><tbody>
+  <table><thead><tr><th>מק״ט</th><th>תיאור</th><th class="n">כמות</th><th>${etaRefL(1)}</th><th>הזמנת רכש</th><th>נושא</th></tr></thead><tbody>
   ${x.ls.slice().sort((a,b)=>b.q-a.q).map(e=>`<tr><td><button type="button" class="lnk" data-tp="arrpn" data-key="${esc(markKey(e.r))}" data-t="${e.tk[0]}">${esc(e.r.pn)}</button></td>
-   <td class="d">${esc(e.r.desc||'')}</td><td class="n">${tpN(e.q)}</td><td>${esc(e.dl||'—')}</td><td>${esc(e.po||'—')}</td>
+   <td class="d">${esc(e.r.desc||'')}</td><td class="n">${tpN(e.q)}</td><td>${esc(e.ref||'—')}</td><td>${esc(e.po||'—')}</td>
    <td>${e.tk.map(k=>`<span class="p gry">${esc(TOPICS[k].t)}</span>`).join(' ')}</td></tr>`).join('')}</tbody></table></details>`;
  return `<h2 class="arrh">לוח הגעות <span class="mini">${tpN(fut.length)} תאריכי הגעה קרובים · ${tpN(new Set(fut.flatMap(x=>x.ls.map(e=>e.r))).size)} פריטים · רק פריטים שבארבעת הנושאים</span></h2>
   ${past.length?`<h3 class="arrh3">תאריכים שעברו (${tpN(past.length)})</h3>${past.map(day).join('')}`:''}
