@@ -99,6 +99,11 @@ body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f
 .menu .mi{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 8px;border-radius:7px;cursor:pointer}
 /* BRAND — שורת הגרסה בתפריט העזרה: מידע, לא פעולה */
 .menu .mi.ver{cursor:default;color:var(--dim);font-size:12px}
+/* DESIGN-B — קיפול «עוד פרטים» בבלוק ההחלטה */
+.dcfold{margin:6px 0 2px}
+.dcfold>summary{cursor:pointer;font-size:12.5px;color:var(--dim);font-weight:600;list-style:revert}
+.dcfold>summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.dcfold[open]>summary{margin-bottom:4px}
 /* כפתור שנראה כפריט תפריט — אותו מראה, אבל מגיעים אליו במקלדת */
 .menu button.mi{width:100%;border:0;background:none;font-family:inherit;font-size:12.5px;
  text-align:start;color:inherit}
@@ -12077,11 +12082,21 @@ function decisionBlock(r){
   ${coverStrip(r)}
   ${paramStrip(r)}
   ${ltBlock(r)}
-  ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
-  ${xOther(r).length?`<div class="dcx"><span class="dcmk" title="אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.">הפריט הזה נמצא גם ב<span class="dcxi" aria-hidden="true">ⓘ</span></span>
+  ${(()=>{
+   /* DESIGN-B (21.11, ביקורת העיצוב): לפני הגרף ישבו שבע שכבות. למעלה נשארות
+      ההחלטה, המספרים, שתי הסיבות הראשונות וכפתור «טופל»; פעולות נוספות, «גם ב...»
+      ושאר הסיבות — בקיפול אחד. שום דבר לא נמחק: הכל ב-DOM, נגיש במקלדת (<details>). */
+   const W=why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`);
+   const top=W.slice(0,2),rest=W.slice(2),xo=xOther(r).length;
+   const foldN=rest.length+(more.length?1:0)+(xo?1:0);
+   const head=top.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${top.join('')}</div>`:'';
+   if(!foldN)return head;
+   return head+`<details class="dcfold"><summary>${foldN===1?'עוד פרט אחד':`עוד ${foldN.toLocaleString('he-IL')} פרטים`}</summary>`
+    +(rest.length?`<div class="dcwhy">${rest.join('')}</div>`:'')
+    +(more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:'')
+    +(xo?`<div class="dcx"><span class="dcmk" title="אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.">הפריט הזה נמצא גם ב<span class="dcxi" aria-hidden="true">ⓘ</span></span>
    <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
-   <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:''}
-  ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
+   <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:'')+`</details>`})()}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button>${profOffBtn(r,'bsec')}</div>
   <!-- ============ מה הסימון הזה אינו ============
@@ -12130,8 +12145,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
        דפוס, דגם, אביזר, מטבע ויבוא/מקומי עברו ללשונית «נתונים» —
        לא נמחקו. המטבע ממילא צמוד לכל סכום דרך money(). -->
   <div class="tags"><span class="tag">${esc(r.supplier.slice(0,20))}</span>
-  <span class="tag">${esc(r.mrp)}</span>
-  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}" title="גיל המלאי — ציר נפרד מהסיווג: כמה זמן הסחורה יושבת, לא מה הכלי החליט עליה">${ageAxis(r.ageTier)}</span>
+  <span class="tag" title="סוג MRP ב-SAP — קובע אם יש המלצת מלאי בכלל">סוג MRP: ${esc(r.mrp||'—')}</span>
+  ${r.ageTier&&r.ageTier!=='active'?`<span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}" title="גיל המלאי — ציר נפרד מהסיווג: כמה זמן הסחורה יושבת, לא מה הכלי החליט עליה">${ageAxis(r.ageTier)}</span>`:''}
   <!-- ============ הסיווג עצמו לא היה על הכרטיס ============
        שבב הסיווג הופיע רק כשהפריט מסומן (markbadge, ושם cat הוא
        תווית הסימון ולא הסיווג). בפריט שאינו מסומן — כלומר ברוב —
