@@ -453,7 +453,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
  ok('«הוצא ידנית מהרשימה» בן 200 יום פג',mkx.ignoreStale.q!=='marked'&&mkx.ignoreStale.stale,
     `${mkx.ignoreStale.q} · ${mkx.ignoreStale.note}`);
  ok('«לפי דרישה» שפג ממשיך למסלול שלו ולא לסיווג רגיל',
-    mkx.odStale.odStale===true&&mkx.odStale.cat==='מספר לתקן ב-SAP',JSON.stringify(mkx.odStale));
+    mkx.odStale.odStale===true&&mkx.odStale.cat==='עדכון פרמטרים',JSON.stringify(mkx.odStale));
+ /* TERMS שלב 3 (23.11): הסיווג «מספר לתקן ב-SAP» נקרא עכשיו «עדכון פרמטרים» — אותו ענף, אותו paramFix */
  ok('הסרת הסימון מחזירה את המצב המקורי',
     mkx.after.cat===mkx.base.cat&&!mkx.after.stale,`${mkx.after.cat} (בסיס ${mkx.base.cat})`);
  // המסך הראשי לא נשאר ריק כשאין חוסרים

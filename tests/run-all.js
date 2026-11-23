@@ -57,7 +57,8 @@ const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js'
  'card-calm.test.js',
  'line-po.test.js',
  'hold-excess.test.js',
- 'xlsx-reform.test.js'];
+ 'xlsx-reform.test.js',
+ 'terms3.test.js'];
 const SD=__dirname;const res=[];
 for(const f of FILES){
  process.stdout.write(`\n========== ${f} ==========\n`);
