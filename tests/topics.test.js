@@ -352,12 +352,16 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     first:ths[0].textContent.trim(),right:ths[0].getBoundingClientRect().right>=ths[1].getBoundingClientRect().right,
     page:document.documentElement.scrollWidth-innerWidth}});
   ok(`${tag}: RTL — העמודה הראשונה (מק״ט) בצד ימין, ואין גלילה אופקית`,r.dir==='rtl'&&/מק/.test(r.first)&&r.right&&r.page<=0,JSON.stringify(r));
-  /* הכרטיס: ברוחב שהוגדר לכל מסך, בצד שמאל, ובראשו ההחלטה */
-  const dw=await q.evaluate(()=>{const d=document.getElementById('tpd').getBoundingClientRect(),q3=document.querySelector('#tpd .q3').getBoundingClientRect();
+  /* הכרטיס: ברוחב שהוגדר לכל מסך, בצד שמאל. TP_STOCK_TOP (23.11, אושר): בראשו מצב המלאי ב-SAP,
+     ומיד אחריו ההחלטה — ו«מה לעשות» עדיין בתוך המסך, בלי גלילה */
+  const dw=await q.evaluate(()=>{const d=document.getElementById('tpd').getBoundingClientRect(),q3=document.querySelector('#tpd .q3').getBoundingClientRect(),
+    st=document.querySelector('#tpd .db > section:first-child');const sr=st?st.getBoundingClientRect():null;
    return {w:Math.round(d.width),left:Math.round(d.left),dir:getComputedStyle(document.getElementById('tpd')).direction,q3top:Math.round(q3.top),h:innerHeight,
+    stock:!!st&&st.classList.contains('tpstock')&&!!st.querySelector('.cstrip'),sttop:sr?Math.round(sr.top):null,stbot:sr?Math.round(sr.bottom):null,
     act:document.querySelector('#tpd .qa.act').getBoundingClientRect().top<innerHeight}});
   const want={1366:520,1440:580,1920:640}[w];
-  ok(`${tag}: הכרטיס ${want}px בצד שמאל, RTL, ו«מה הבעיה» בראש הכרטיס`,dw.w===want&&dw.left===0&&dw.dir==='rtl'&&dw.q3top<200,JSON.stringify(dw));
+  ok(`${tag}: הכרטיס ${want}px בצד שמאל, RTL; בראשו «מצב המלאי», מיד אחריו «מה הבעיה», ו«מה לעשות» בתוך המסך`,
+   dw.w===want&&dw.left===0&&dw.dir==='rtl'&&dw.stock&&dw.sttop<200&&dw.q3top>=dw.stbot&&dw.q3top-dw.stbot<=24&&dw.act,JSON.stringify(dw));
   await q.context().close()}
 
  /* ---- 10. מק״ט עם גרש, מירכאות ו-HTML — לא שובר את הלחיצה ולא מוזרק ---- */

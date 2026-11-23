@@ -15341,7 +15341,11 @@ function tpdBody(t,r){
    :t==='cust'?tpdCoverBars(r)
    :(proj||(r.cust>0?tpdCoverBars(r):''))+cons;
  const supply=(r.po>0||r.etaHas)?`<section><h3>אספקות</h3>${tpdEta(r)}</section>`:'';
- return `<section class="q3 ${tone}">
+ /* TP_STOCK_TOP (23.11, הערת משתמשים; אושר) — מצב המלאי ב-SAP הוא הדבר הראשון בכרטיס: השורה
+    (לקוח · פנוי · רכש פתוח · בהעברה · פער) וסה״כ המלאי. «תנועה אחרונה» נשארת למטה */
+ return `<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
+   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p></section>
+  <section class="q3 ${tone}">
    <div class="qa"><h3>מה הבעיה</h3><div class="big">${tpdProblem(t,r)}</div>
     ${why.length?`<ul>${why.map(([c,m])=>`<li class="${esc(c)}">${esc(m)}</li>`).join('')}</ul>`:''}</div>
    <div class="qa"><h3>למה זה חשוב</h3>${tpdImpact(t,r)}</div>
@@ -15350,9 +15354,7 @@ function tpdBody(t,r){
   ${tpdIssues(r)}
   <section><h3>SAP מול המלצה <button type="button" data-tpd="explain">🔍 מאחורי החישוב</button></h3>${tpdParams(r)}</section>
   ${charts}${supply}
-  <section><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
-   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p>
-   ${movePanel(r)}</section>
+  ${(m=>m?`<section class="tpmove">${m}</section>`:'')(movePanel(r))}
   <section><h3>מה אין בדוח</h3>${tpdMissing(r)}</section>`}
 /* שתי הודעות נפרדות: המלצת הפרופיל, ואזהרת זמן האספקה — אף אחת אינה מסתירה את השנייה */
 function tpdIssues(r){const out=[];

@@ -1006,6 +1006,23 @@ Changes to these areas require explicit business approval.
     consumption»; report B: 85 and 18. Same rows, same order; nothing else
     moves (business-guard: items' «act» field only).
 
+- **2026-11-23 · Reduced view (4 topics): four changes from its new users
+  (approved 23.11).** One PR each, smallest first:
+  1. **«מצב המלאי (SAP)» first in the item card** (TP_STOCK_TOP): the strip
+     (customer · free · open PO · in transfer · gap) and the total stock open
+     the card, above «מה הבעיה»; «last movement» stays below the decision.
+     Screen only.
+  2. **«עדכון SS ו-ROP» split in three:** «להעלות ROP/SS» (nothing goes down,
+     something goes up), «להוריד ROP/SS» (nothing goes up, something goes
+     down) and «מעורב» (opposite directions). Report A: 71 / 150 / 32; report
+     B: 814 / 513 / 23. The topic's total is unchanged.
+  3. **Sort and filter in every table header, as in the full tool:** a popup
+     with sort, text search, a value list (text) or a min–max range
+     (numbers). The «סינון» button stays. The arrivals board: sort only.
+  4. **A fifth tab, «כל הפריטים»:** every item in the report, searchable by
+     part number or description, with the full catalog's columns and a
+     «נושא» column (which of the four topics the item is in, if any).
+
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
 ---
