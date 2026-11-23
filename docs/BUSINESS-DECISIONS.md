@@ -872,6 +872,97 @@ Changes to these areas require explicit business approval.
   - «כיסוי החודש» stays: the bar tells ordered-without-date (hatched) from
     not ordered (solid). Only the «0%» label is muted.
 
+- **2026-11-21 · Design review, round B: a calmer item card (display only).**
+  On top: the decision, the numbers, up to two reasons and «טופל». More
+  actions, «also in…» and the remaining reasons are in one fold, «עוד N
+  פרטים», closed by default; nothing was removed. The MRP tag reads «סוג MRP:
+  …»; the stock-age tag shows only when the age is not «active». Measured on
+  the real report (100 items from four screens): the «טופל» button moved up
+  by a median of 72px (up to 174px), and the chart starts 72px higher.
+  business-guard: 0 differences. The chart keeps its dark surface in light
+  mode — a recorded decision (CHART_SURF: one surface, validated palette).
+
+- **2026-11-22 · Design review, round C: «מעקב רכש» opens on all open
+  purchasing, by supplier (approved).** The screen opened on items that no
+  known shipment covers — every one of them also in «shortages and customers»
+  (86 of 86 on the real report). Now: every item with an open purchase order,
+  grouped by supplier; inside a supplier, customer waiting first, then the
+  largest shortage, then the open quantity. Columns: open purchase · arrival ·
+  stock · customer demand · forecast shortage · classification. The supplier
+  row says units on open purchase and how many have a customer waiting.
+  - **Counts and exports (measured on the real report):** the rail count and
+    the screen 86 → 1,214; the «view» and «all data» sheets of this screen
+    follow the list; the SAP file from this screen 9 → 112 rows (the
+    parameter rows among the visible items) and a slow-stock file now exists
+    for it. Every item field and queue is unchanged.
+  - **Kept:** the strip still selects the shortage table (no coverage · this
+    month · will return), and the «כל הרכש הפתוח» button brings the list back.
+    The supplier e-mail draft stays an inquiry about what no known shipment
+    covers, also on the default selection.
+
+- **2026-11-22 · HOLD_EXCESS — no parameter raise on stock that covers a year
+  (approved 21.11; safety stock too, approved 22.11).** An item classified as
+  excess or slow stock, with a rate, whose stock (free + open purchase)
+  covers more than 12 months above the calculated reorder point: no «raise
+  reorder point» and no «raise safety stock» until the stock falls. The
+  official recommendation (suggested ROP / SS, and therefore the SAP file) is
+  the value in SAP; a reduction is not held, and suggested SS never exceeds
+  suggested ROP. The card says «fine for now» with the calculated values.
+  - **Measured on the real report:** 63 items (34 excess, 29 slow) — 41 ROP
+    raises and 38 SS raises held. The slow/dead SAP file 511 → 485 rows;
+    «demand falling» 118 → 114 and «demand rising» 126 → 121: the two
+    advisory numbers follow the held ROP (the damped one never above it, the
+    raised one never above it during a hold), so a held item is not told to
+    raise there either. The «two clocks» line, which explained a raise, is
+    removed from a held item. Every other item is unchanged.
+  - **Excel:** the «suggested ROP / SS» columns and the two damped-rate
+    columns follow the new values; declared cell by cell in
+    `tests/export-expected.json` (synthetic data, 27 items and their copies).
+
+- **2026-11-23 · The tool's Excel file, reorganized (XLS_REFORM, approved
+  23.11).** Readers: the planner, purchasing / buyers, and management. The
+  «ייצוא לאקסל» file, from every screen:
+  - **Sheets, in order:** «סיכום» · «התצוגה» (as before — the screen's
+    columns) · «ללא שינוי פרופיל» (profile screen only, as before) ·
+    «נתונים עיקריים» · «פירוט מלא» (last).
+  - **«נתונים עיקריים»** replaces the 59-column «כל הנתונים»: 21 columns in
+    groups (a group row above the header) — פריט: מק״ט · תיאור · דגם · ספק ·
+    סיווג · הפעולה הבאה; מלאי: מלאי פנוי · הזמנות לקוח; רכש: רכש פתוח ·
+    אספקה קרובה (תאריך) · זמן אספקה (ימים); פרמטרי תכנון: צריכה חודשית ·
+    חודשי כיסוי · נקודת הזמנה SAP / מוצעת · מלאי ביטחון SAP / מוצע;
+    כמויות: כמות להזמנה · כמות חסרה; שווי: שווי עודף · מטבע.
+  - **«פירוט מלא»:** מק״ט, תיאור, and every other column of the old sheet,
+    in its order. No column is lost.
+  - **No value changed.** Every cell is the old sheet's cell for the same
+    item, under a new name where renamed (סטטוס → סיווג, קצב חודשי → צריכה
+    חודשית, ROP/SS בSAP / מוצע → נקודת הזמנה / מלאי ביטחון, …). The one new
+    column, «הפעולה הבאה», is the first action — the same text as in
+    «התצוגה».
+  - **«כסף תקוע (₪)» → «שווי עודף», with «מטבע» beside it.** The amount was
+    always in the item's own currency, not shekels; the heading said ₪.
+  - **«סיכום»:** the screen, filtered or not, item count, report date, base
+    month, export date, and the excess value per currency — each currency
+    separately, no conversion and no cross-currency total.
+  - **Movements sheet:** only from «תנועות אחרונות» (there it is «התצוגה»);
+    before, every export carried thousands of movement rows.
+  - **File name:** the screen's name in Hebrew and the date, «מסונן» when
+    filtered — e.g. «פרמטרי תכנון (MRP) 2026-11-23.xlsx» (was
+    Inventory_month_2026-11-23.xlsx).
+  - **Formatting:** right-to-left, a frozen header row with an autofilter,
+    widths by content, thousands separators (whole numbers #,##0; fractions up
+    to two decimals; value columns whole). Part numbers are not formatted.
+  - **The expediting report:** same content, sheets and widths — and the
+    same formatting. In «לפי ספק» the filter is on the table under the
+    warning lines, with no frozen rows (it would freeze the warnings).
+  - **SAP files:** unchanged (SAP upload format — no right-to-left, no frozen
+    rows, no filter).
+  - **Proof:** `tests/export-expected.json` declares the new structure
+    (XSTRUCT) — every new column mapped to its old column, the movements sheet
+    declared dropped; the CI comparison against main checks every value item
+    by item on 20,000 rows: 0 cells changed. `tests/xlsx-reform.test.js`
+    checks the structure, the values against XCOLS, the summary and the
+    formatting in the downloaded file's bytes (Worker and in-page).
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —

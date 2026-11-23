@@ -99,9 +99,11 @@ async function open(b,W,H){const ctx=await b.newContext({viewport:{width:W,heigh
    o.dataSame=snap()===data0;o.selSame=JSON.stringify([...SAPSEL].sort())===sel0;
    __open('model');__q(sub);document.getElementById('cpVall').click();document.getElementById('cpOk').click();await __raf();
    __cap.length=0;doExport();const ex=__cap[0]||{sheets:{}};
-   /* כמו ב-main: שני הגיליונות הם הסינון הנוכחי, והקובץ נקרא «filtered» */
+   /* כמו ב-main: שני הגיליונות הם הסינון הנוכחי, והקובץ נקרא «מסונן».
+      XLS_REFORM (23.11): «כל הנתונים» → «פירוט מלא» (שורת כותרת אחת — אותה ספירה),
+      ושם הקובץ בעברית: «filtered» → «מסונן». */
    o.exView=ex.sheets['התצוגה']===want&&currentRows().length===want;
-   o.exAll=Object.entries(ex.sheets).some(([k,v])=>/^כל הנתונים/.test(k)&&v===want)&&/_filtered_/.test(ex.name||'');
+   o.exAll=ex.sheets['פירוט מלא']===want&&/ · מסונן /.test(ex.name||'');
    __open('model');document.getElementById('cpClear').click();await __raf();
    o.dataSame2=snap()===data0;o.filtersLeft=Object.keys(colFilters).length;
    SAPSEL.clear();sapBarSync();return o});
@@ -118,7 +120,7 @@ async function open(b,W,H){const ctx=await b.newContext({viewport:{width:W,heigh
   ok('מחשב · ערך נבחר שאין לו כרגע שורות נשאר ברשימה (0), כדי שאפשר יהיה להסירו',R.zero);
   ok('מחשב · ערך עם תווים מיוחדים (&) מוצג ומסונן נכון',R.ampShow&&R.ampRows,R.noAmp?'אין ערך כזה בדוח':'');
   ok('מחשב · הנתונים, ההמלצות והבחירה ל-SAP לא זזו',R.dataSame&&R.dataSame2&&R.selSame);
-  ok('מחשב · הייצוא מכיל בדיוק את המסונן (כמו ב-main), ושם הקובץ «filtered»',R.exView&&R.exAll);
+  ok('מחשב · הייצוא מכיל בדיוק את המסונן (כמו ב-main), ושם הקובץ «מסונן»',R.exView&&R.exAll);
   ok('מחשב · «נקה סינון עמודה» מסיר את הסינון',R.filtersLeft===0,R.filtersLeft);
   ok('מחשב · אפס שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));
   await ctx.close()}

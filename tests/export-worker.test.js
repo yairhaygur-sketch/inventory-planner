@@ -119,13 +119,14 @@ const SNAP=()=>{const F=['pn','cat','sev','sugSS','sugROP','ss','rop','orderQty'
     const decl=JSON.parse(fs.readFileSync(path.join(SD,'export-expected.json'),'utf8'));
     if(same){const de=validateDecl(decl);
      ok(`מחשב · ההשוואה בוצעה מול ${who} — זהה תא בתא, והקובץ ${sn<=sm?'אינו גדול יותר':'גדל'}`,
-      sn<=sm&&!decl.changes.length&&!(decl.moves||[]).length&&!de.length,(decl.changes.length||(decl.moves||[]).length)?`${kb} · אבל tests/export-expected.json מצהיר על ${decl.changes.length} שינויים ו-${(decl.moves||[]).length} תזוזות שלא קרו`:de.length?de.join(' · '):kb)}
-    else{const r=checkDeclared(cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true})),decl,base.sha||'');
+      sn<=sm&&!decl.changes.length&&!(decl.moves||[]).length&&!decl.structure&&!de.length,(decl.changes.length||(decl.moves||[]).length)?`${kb} · אבל tests/export-expected.json מצהיר על ${decl.changes.length} שינויים ו-${(decl.moves||[]).length} תזוזות שלא קרו`:de.length?de.join(' · '):kb)}
+    /* XSTRUCT — מבנה מוצהר: ההשוואה עוברת למיפוי העמודות שבהצהרה */
+    else{const r=checkDeclared(cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true}),decl.structure),decl,base.sha||'');
      /* טיוטה להצהרה — בדיוק מה שזז, מחוץ לריפו. היא אינה היתר: מישהו צריך
         להעתיק אותה ל-tests/export-expected.json ולהסביר כל שורה ב-PR. */
      if(!r.ok&&!r.other.length&&base.sha){const cand=path.join(os.tmpdir(),`export-expected.candidate-${process.pid}.json`);
-      {const cd=cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true}));
-       fs.writeFileSync(cand,JSON.stringify(Object.assign({base:base.sha,changes:cd.declarable},cd.moves.length?{moves:cd.moves}:{}),null,1))}
+      {const cd=cellDiffs(XLSX.readFile(mainF,{cellDates:true}),XLSX.readFile(w1.f,{cellDates:true}),decl.structure);
+       fs.writeFileSync(cand,JSON.stringify(Object.assign({base:base.sha,changes:cd.declarable},cd.moves.length?{moves:cd.moves}:{},decl.structure?{structure:decl.structure}:{}),null,1))}
       out.push('INFO · טיוטת הצהרה לכל ההבדלים שנמצאו (לבדיקה ידנית, לא להעתקה עיוורת): '+cand)}
      const why=[...r.errs,...r.other.slice(0,3),...r.undeclared.slice(0,3).map(d=>'לא מוצהר: '+fmtDiff(d)),...r.unused.slice(0,3).map(d=>'מוצהר ולא קרה: '+fmtDiff(d)),
        ...r.undeclaredMoves.slice(0,3).map(d=>'תזוזה לא מוצהרת: '+fmtMove(d)),...r.unusedMoves.slice(0,3).map(d=>'תזוזה מוצהרת שלא קרתה: '+fmtMove(d))];

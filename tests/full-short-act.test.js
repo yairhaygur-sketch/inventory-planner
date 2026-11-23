@@ -48,7 +48,9 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.evaluate(()=>{WSORT={col:null,dir:'desc'};render()});await wait(300);
 
  /* 2 · «רכש ואספקות» */
- await p.evaluate(()=>setMode('line'));await wait(500);
+ /* DESIGN-C (21.11): «מעקב רכש» נפתח על כל הרכש הפתוח (עמודות משלו, בלי «הפעולה הבאה»);
+    פעולת האספקה במילים חלה על טבלת החוסרים שבתוכו — הבחירה 'stuck' */
+ await p.evaluate(()=>{setMode('line');lineSelect('stuck')});await wait(500);
  S=await scan();
  ok('«רכש ואספקות»: אותה פעולה במילים, בלי כמות',S.short&&S.n>0&&S.worded&&S.qty===0,`${S.n} שורות`);
 
@@ -74,9 +76,10 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.click('#colspick input[data-ck="buy"]');await wait(450);
  ok('סימון בחלון מחזיר אותה לטבלה',await p.evaluate(()=>!!document.querySelector('#tbl thead th[data-ck="buy"]')));
  await p.evaluate(()=>{colsOpen(false);colReset('sup');groupBy='decision';render()});await wait(400);
- const M=await p.evaluate(()=>{window.__cap=[];const o=XLSX.writeFile;XLSX.writeFile=(wb,name)=>{const sh={};for(const sn of wb.SheetNames)sh[sn]=(XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1})[0]||[]);window.__cap.push(sh)};
+ const M=await p.evaluate(()=>{window.__cap=[];const o=XLSX.writeFile;XLSX.writeFile=(wb,name)=>{const sh={};for(const sn of wb.SheetNames){const a=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});sh[sn]=(a.find(r=>r&&r.some(c=>/^מק[״"']ט/.test(String(c))))||[])}window.__cap.push(sh)};
+  /* XLS_REFORM (23.11): ב«נתונים עיקריים» שורת קבוצות מעל הכותרת — הכותרת היא השורה עם «מק״ט» */
   try{doExport()}finally{XLSX.writeFile=o}const s=window.__cap[0]||{};return Object.entries(s).filter(([n,h])=>h.includes('כמות להזמנה')).map(([n])=>n)});
- ok('הכמות להזמנה נשארת באקסל, בגיליון הנתונים',M.length>0,M.join(' · '));
+ ok('הכמות להזמנה נשארת באקסל, בגיליון «נתונים עיקריים»',M.includes('נתונים עיקריים'),M.join(' · '));
 
  ok('אין שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));
  await b.close();

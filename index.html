@@ -99,6 +99,11 @@ body{font-family:"Heebo","Segoe UI",Arial,Helvetica,sans-serif;background:#f3f5f
 .menu .mi{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:7px 8px;border-radius:7px;cursor:pointer}
 /* BRAND — שורת הגרסה בתפריט העזרה: מידע, לא פעולה */
 .menu .mi.ver{cursor:default;color:var(--dim);font-size:12px}
+/* DESIGN-B — קיפול «עוד פרטים» בבלוק ההחלטה */
+.dcfold{margin:6px 0 2px}
+.dcfold>summary{cursor:pointer;font-size:12.5px;color:var(--dim);font-weight:600;list-style:revert}
+.dcfold>summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.dcfold[open]>summary{margin-bottom:4px}
 /* כפתור שנראה כפריט תפריט — אותו מראה, אבל מגיעים אליו במקלדת */
 .menu button.mi{width:100%;border:0;background:none;font-family:inherit;font-size:12.5px;
  text-align:start;color:inherit}
@@ -1104,6 +1109,16 @@ body:has(#welcome:not([hidden])) .top{z-index:430}
 .rail .tab.navtab .nico{position:relative}
 /* DESIGN-A (21.11): הנקודה כפלה את המספר האדום — אותה אמירה פעמיים. המספר נשאר. */
 .rail .tab.navtab.alert .nico::after{content:none}
+/* DESIGN-C — בחירת «כל הרכש הפתוח» במעקב רכש. באותה שורה עם הרצועה ולא בשורה
+   משלה: שורה נוספת (38px) הורידה את הרשימה מתחת ל-62% מהמסך (נמדד, ui.test). */
+#line:not([hidden]){display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;column-gap:8px}
+#line>.lband{flex:1 1 0;min-width:0}
+#line>.lmail{flex:1 0 100%}
+.lpo{display:flex;align-items:center;flex:0 0 auto;padding:6px 0 0}
+.lpo .lpob{font:inherit;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.lpo .lpob[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lpo .lpob:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
 /* ============ המסילה בלי צבעי תחום ============
    שבעה צבעים לשבעה תחומים — ואחד מהם האדום של «קריטי», על התחום
    «חוסרים». צבע שמסמן ניווט אינו יכול לסמן גם מצב, ולכן השבבים
@@ -6002,7 +6017,19 @@ function twoClocks(it){
   +`ו-ROP המוצע ${it.sugROP} הוא רצפת מלאי הביטחון בלבד`
   +(it.cov3y!=null&&it.cov3y>0?` · ${it.cov3y.toFixed(0)} ${mon(+it.cov3y.toFixed(0))} כיסוי בקצב 3 השנים`:'')
   +`. אין מספר להקטין לפיו — הכסף התקוע אינו משתחרר בפרמטר`]}
+/* ============ HOLD_EXCESS — לא מעלים פרמטר על מלאי שמכסה שנה (אושר 22.11) ============
+   פריט «עודף מלאי» או «מלאי איטי» שהמלאי שלו (פנוי + רכש פתוח) מכסה יותר מ-12
+   חודשים מעל נקודת ההזמנה המחושבת: ההמלצה להעלות נקודת הזמנה או מלאי ביטחון
+   מושהית — ההמלצה הרשמית (sugROP/sugSS, ומכאן קובץ SAP) היא הערך שב-SAP, עד
+   שהמלאי יורד. הקטנה אינה מושהית. נמדד על הדוח האמיתי (21.11): 57 פריטים עם
+   «להעלות ROP», פער חציוני של יחידה אחת, מלאי שמכסה כ-31 חודשים, כ-19 חודשים עד
+   שהמלאי מגיע לנקודה המחושבת; 24 מהם בקובץ SAP של מלאי איטי ומת, וכולם העלו גם
+   מלאי ביטחון. החלטת המעתד: גם מלאי הביטחון אינו עולה.
+   classify רץ שוב בכל סינון, ולכן הערכים המחושבים נשמרים ב-holdRaw ומוחזרים
+   בתחילת כל ריצה — אחרת הריצה השנייה הייתה רואה את הערך המושהה כמחושב. */
+const HOLD_MONTHS=12;
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[],over3y:[],tier:[]};
+ for(const it of items)if(it.holdRaw){const h=it.holdRaw;it.sugROP=h.rop;it.sugSS=h.ss;it.sugROPT=h.ropT;it.sugROPU=h.ropU;delete it.holdRaw}
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
@@ -6690,6 +6717,41 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
    it.act=it.act.map(a=>{if(typeof a==='string'&&NUMACT.test(a)&&!/פרופיל/.test(a)){if(put)return null;put=true;return LT_ACT}return a}).filter(a=>a!=null);
    if(!put&&!it.act.includes(LT_ACT))it.act.push(LT_ACT)}
   if(it.cat==='מלאי איטי'){it.slowEst=true;it.why.push(['warn',SLOW_EST])}}
+ /* HOLD_EXCESS — ראה בראש classify */
+ for(const it of items){
+  if(it.cat!=='עודף מלאי'&&it.cat!=='מלאי איטי')continue;
+  const upR=(it.sugROP||0)>(it.rop||0),upS=(it.sugSS||0)>(it.ss||0);
+  if((!upR&&!upS)||!(it.rate>0))continue;
+  const cov=((it.free||0)+(it.po||0)-(it.sugROP||0))/it.rate;
+  if(!(cov>HOLD_MONTHS))continue;
+  it.holdRaw={rop:it.sugROP,ss:it.sugSS,ropT:it.sugROPT,ropU:it.sugROPU,cov};
+  if(upR)it.sugROP=it.rop||0;
+  if(upS)it.sugSS=it.ss||0;
+  /* SS ≤ ROP (5ט־א): כשה-ROP נשאר ב-SAP וה-SS המחושב גבוה ממנו — גם כשה-SS עצמו
+     יורד — ה-SS נחתך ל-ROP. נמצא בבדיקה: 8 פריטים בפיקסצ׳ר שבהם SAP עצמו מחזיק
+     SS מעל ROP. החיתוך הוא הקטנה, הכיוון שאינו מושהה. */
+  it.sugSS=Math.min(it.sugSS,it.sugROP);
+  /* שני המספרים המייעצים נגזרים מה-ROP: המרוסן (מגמת ירידה) אינו עולה על ההמלצה,
+     והמוגבר (מגמת עלייה) אינו מציע העלאה בזמן השהיה — אחרת «ביקוש עולה» היה
+     אומר «להעלות» על אותו פריט שהכרטיס אומר עליו «תקין לעת עתה». */
+  if(it.sugROPT!=null)it.sugROPT=Math.min(it.sugROPT,it.sugROP);
+  if(it.sugROPU!=null)it.sugROPU=Math.min(it.sugROPU,it.sugROP);
+  const M=Math.round(cov),what=upR&&upS?'נקודת הזמנה ומלאי ביטחון':upR?'נקודת הזמנה':'מלאי ביטחון';
+  it.why.push(['info',`תקין לעת עתה: המלאי (פנוי ורכש פתוח) מכסה כ-${M} חודשים מעל נקודת ההזמנה המחושבת (${it.holdRaw.rop}). `
+   +`ההמלצה להעלות ${what} (${upR?`${it.rop}→${it.holdRaw.rop}`:''}${upR&&upS?' · ':''}${upS?`${it.ss}→${it.holdRaw.ss}`:''}) תחזור כשהמלאי ירד`]);
+  /* «שני שעונים» הסבירה למה מעלים פרמטר על פריט בעודף — בהשהיה אין העלאה, והשורה
+     הייתה סותרת את «תקין לעת עתה» שמעליה */
+  it.why=it.why.filter(w=>!(w&&/^שני שעונים/.test(String(w[1]||''))));
+  /* הפעולות נכתבו עם הערכים המחושבים — מנוסחות מחדש לפי ההמלצה המושהית */
+  it.act=(it.act||[]).map(a=>{if(typeof a!=='string')return a;
+   if(/^להעלות נקודת הזמנה/.test(a))return `להשאיר נקודת הזמנה ${it.rop} — המלאי מכסה כ-${M} חודשים`;
+   if(/^להעלות מלאי ביטחון/.test(a))return `להשאיר מלאי ביטחון ${it.ss}`;
+   /* «לעדכן … ל-N» — רונג הפרמטר שמעל המכירות, ורונג הרצפה (שלוש צורות) */
+   if(/^לעדכן (נקודת הזמנה|מלאי ביטחון) ל-\d+/.test(a)){
+    if(it.sugROP===it.rop&&it.sugSS===it.ss)return 'להשאיר את הפרמטרים ב-SAP — המלאי מכסה שנה ומעלה';
+    const parts=[it.sugROP!==it.rop?`נקודת הזמנה ל-${it.sugROP}`:'',it.sugSS!==it.ss?`מלאי ביטחון ל-${it.sugSS}`:''].filter(Boolean);
+    return 'לעדכן '+parts.join(' ו')}
+   return a})}
  /* אין מדד כספי לחוסרים — כסף תקוע (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
@@ -7185,7 +7247,7 @@ const SUBNAV={
 const NAV_WHAT={
  home:'מה דורש החלטה עכשיו — לקוח ממתין וחוסר צפוי',
  today:'הזמנות לקוח שאינן מכוסות, וחוסר צפוי החודש',
- line:'הזמנות רכש פתוחות, תאריכי הגעה, איחורים וזירוז',
+ line:'כל הזמנות הרכש הפתוחות, לפי ספק — כמות, הגעה, מדף ולקוח; איחורים וזירוז',
  month:'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון — בדיוק השורות שבקובץ SAP',
  follow:'לקוח ממתין והמדף ריק, אבל יש רכש שמכסה — לבדוק Back Order, לבקש ETA ולזרז ספק',
  qual:'זמן אספקה או רמת שירות חסרים ב-SAP — בלעדיהם אין חישוב ואין שורה בקובץ SAP',
@@ -7469,6 +7531,7 @@ function colsWire(){
 function colViewName(v){
  if(v==='dec')return 'התצוגה «לפי החלטה»';
  if(v==='sup')return 'התצוגה «לפי ספק»';
+ if(v==='linepo')return 'התצוגה «כל הרכש הפתוח»';
  if(v==='fix')return 'המלצות לעדכון פרמטרים';
  const N={agenda:'חריגים לטיפול',qual:'נתוני אב חסרים',
   catalog:'הטבלה הכללית — קטלוג ודליי הסיווג',
@@ -7542,7 +7605,8 @@ function navCount(k){
   return {n:movList(movTab,base).length,hot:0}}
  /* הציר סופר את מי שאין לו שום מענה — לא את כל האוזלים. זה המספר
     שדורש ממך פעולה היום; השאר כבר בדרך. */
- if(k==='line'){const m=lineModel();return {n:m.stuck.length,hot:m.stuck.filter(r=>(r.cust||0)>0).length}}
+ /* DESIGN-C: המונה הוא מה שנפתח בלחיצה — כל הרכש הפתוח; «חם» = לקוח ממתין */
+ if(k==='line'){const r=poRows();return {n:r.length,hot:r.filter(x=>(x.cust||0)>0).length}}
  const r=modeRows(k);return {n:r.length,hot:hot(r)}}
 const MODESET={
  /* מרכז העבודה — מסך נחיתה. הוא אינו טבלה, ולכן track הוא 'short'
@@ -7818,7 +7882,12 @@ function lineModel(){
    LINE_SEL הוא הבחירה: 'now' (כל האוזלים), תאריך תחנה, 'stuck' (בלי
    מענה) או 'recur' (יחזור בגלל פרמטר). ברירת המחדל היא 'stuck' —
    מה שאין לו שום מענה הוא הדבר היחיד שדורש ממך פעולה היום. */
-let LINE_SEL='stuck', LINE_M=null;
+/* DESIGN-C (21.11, אושר): «מעקב רכש» נפתח על כל הרכש הפתוח, לפי ספק ('po'). עד כאן
+   הוא נפתח על 'stuck' — רשימה שכולה גם ב«חוסרים ולקוחות» (86 מתוך 86 בדוח האמיתי). */
+let LINE_SEL='po', LINE_M=null;
+/* כל פריט עם הזמנת רכש פתוחה. הסדר בתוך ספק — supplierGroups (urgRank): לקוח ממתין וחוסר קודם. */
+function poRows(){return (QF&&QF.all?QF.all:[]).filter(r=>(r.po||0)>0&&passColFilters(r))}
+function linePo(){return track==='line'&&LINE_SEL==='po'}
 /* רמה 2 של הציר היא בדיוק מסך הבוקר: אותן עמודות, אותה חלוקה לשכבות,
    אותה מגירה. מה שהשתנה הוא *מי* ברשימה — הבחירה על הרצועה. */
 function SHORTLIKE(){return track==='short'||track==='follow'||(track==='line'&&LINE_SEL!=='recur')}
@@ -7837,6 +7906,7 @@ function lineMoney(list){return moneyMix(list,lineVal)}
 /* הפריטים שהבחירה מצביעה עליהם */
 function lineRows(){
  const m=LINE_M||(LINE_M=lineModel());
+ if(LINE_SEL==='po')return poRows();
  if(LINE_SEL==='now')return m.dry;
  if(LINE_SEL==='stuck')return m.stuck;
  if(LINE_SEL==='recur')return m.recur;
@@ -7886,7 +7956,9 @@ function lineLedgerLine(){
   ?'פנקס: התחיל היום'
   :`פנקס: ${days.length} ימים · טרם עבר תאריך אספקה`}
 function lineMailText(){
- const rows=lineRows();
+ /* DESIGN-C — המייל נשאר מה שהיה: בירור על מה שאף משלוח ידוע לא מכסה. בבחירת ברירת
+    המחדל («כל הרכש הפתוח», 1,214 בדוח האמיתי) הוא היה הופך לבקשת סטטוס על כל רכש. */
+ const rows=LINE_SEL==='po'?(LINE_M||(LINE_M=lineModel())).stuck:lineRows();
  if(!rows.length)return '';
  const by={};
  for(const r of rows){const s=r.supplier||'—';(by[s]=by[s]||[]).push(r)}
@@ -8137,6 +8209,10 @@ function renderLine(){
  /* ── הגיבור. שני המצבים מרנדרים רצועה, ולא רק זה שיש בו ETA ──
     הקוד כאן החזיר קודם lrec בת שורה ויצא. ראה SHELL_BAND. */
  let h=ETA?renderHero(m):renderHeroDry(m);
+ /* DESIGN-C — הבחירה «כל הרכש הפתוח» (ברירת המחדל) לצד הרצועה של כיסוי החוסרים */
+ {const P=poRows(),n=P.length,ns=new Set(P.map(r=>r.supplier||'ללא ספק')).size;
+  h=`<div class="lpo"><button type="button" class="lpob" data-ls="po" aria-pressed="${sel('po')}" title="${n.toLocaleString('he-IL')} פריטים עם רכש פתוח, מ-${ns.toLocaleString('he-IL')} ספקים, לפי ספק. הרצועה שלידה: כיסוי החוסרים לפי משלוח">כל הרכש הפתוח <b>${n.toLocaleString('he-IL')}</b></button>`
+   +`</div>`+h}
  h+=`<div class="lmail" id="lmail" hidden>
    <div class="lmh"><b>טיוטה לפי הבחירה הנוכחית</b>
      <span>מקובץ לפי ספק · אנגלית · ערוך לפני שליחה</span>
@@ -9545,8 +9621,11 @@ function urgRank(r){if(!QF)return 2;
 function supplierGroups(rows){const by=new Map();
  for(const r of rows){const k=r.supplier||'ללא ספק';
   if(!by.has(k))by.set(k,[]);by.get(k).push(r)}
+ /* DESIGN-C — ברכש הפתוח: לקוח ממתין קודם, אחר כך החוסר הגדול, אחר כך הכמות הפתוחה */
+ const po=linePo();
  for(const list of by.values())
-  list.sort((a,b)=>urgRank(a)-urgRank(b)||(b.miss||0)-(a.miss||0));
+  list.sort(po?((a,b)=>((b.cust||0)>0)-((a.cust||0)>0)||(b.miss||0)-(a.miss||0)||(b.po||0)-(a.po||0))
+   :((a,b)=>urgRank(a)-urgRank(b)||(b.miss||0)-(a.miss||0)));
  /* ההזמנה הגדולה ראשונה — היא גם זו שהכי משתלם לאחד */
  return [...by.entries()].sort((a,b)=>b[1].length-a[1].length);}
 function supTotals(list){const cur={};let units=0;
@@ -10596,6 +10675,8 @@ const SCOL_DEF={
  /* SHORT_ACT_FULL — «כמות להזמנה» ירדה מברירת המחדל (החלטת המעתד 20.11, כמו «להזמין» בתצוגת
     4 הנושאים); נשארת לבחירה בבורר (SCOL_OPT) ובגיליון «כל הנתונים» */
  sup:['pn','model','desc','free','otw','cust','missq','cova','age','cat'],
+ /* DESIGN-C — כל הרכש הפתוח, לפי ספק: הכמות הפתוחה, ההגעה, המדף, הלקוח והסיווג */
+ linepo:['pn','model','desc','po','eta','free','cust','miss','cat'],
  /* ברירות המחדל כאן הן בדיוק העמודות שהמסלולים האלה הציגו לפני
     המעבר לרישום — אותן עמודות, אותו סדר. */
  fix:['sel','pn','model','desc','rop','ss','need','lt','fix'],
@@ -10676,6 +10757,7 @@ function colViewKey(){
  if(track==='qual')return 'qual';
  if(track==='stale')return 'stale';
  if(track==='prof')return PROF_TAB==='down'?'profDn':'prof';
+ if(linePo())return 'linepo';
  if(SHORTLIKE())return groupBy==='supplier'?'sup':'dec';
  if(typeof FIXLIKE==='function'&&FIXLIKE())return 'fix';
  /* «רכש בדרך לעודף» היא הדלת היחידה שבה הכמות הפתוחה *היא* ההחלטה,
@@ -11224,7 +11306,8 @@ function renderDecisions(rows){
  if(track==='cust'){renderCust(rows);return}
  if(track==='applied'){renderApplied(rows);return}
  const grouped=SHORTLIKE();
- const bySup=grouped&&groupBy==='supplier';
+ /* DESIGN-C: הרכש הפתוח תמיד לפי ספק — מולו מבצעים */
+ const bySup=grouped&&(groupBy==='supplier'||linePo());
  const SG0=bySup?supplierGroups(rows):null;
  const SG=SG0?SG0.map(([k,l])=>[k,wsortApply(l)]):null;
  const GB0=(grouped&&!bySup)?groupRows(rows):null;
@@ -11257,8 +11340,12 @@ function renderDecisions(rows){
    G(`<tr class="grp sup${coll?' coll':''}" data-g="sup:${esc(sup)}"><td colspan="${NCOL()}" style="--gc:var(--acc)">
      <span class="gcar">${coll?'‹':'⌄'}</span><b>${esc(sup)}</b>
      <span class="gn">${list.length}</span>
-     <span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
-     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span></td></tr>`);
+     ${linePo()
+      /* DESIGN-C — ברכש הפתוח הכותרת אומרת כמה פתוח מול הספק, ומכמה לקוח ממתין; לא «להזמנה» */
+      ?`<span class="gs">${list.reduce((a,r)=>a+(r.po||0),0).toLocaleString('he-IL')} יח׳ ברכש פתוח${lt?' · '+lt:''}</span>
+     <span class="gu">${list.filter(r=>(r.cust||0)>0).length.toLocaleString('he-IL')} עם לקוח ממתין</span>`
+      :`<span class="gs">${t.units.toLocaleString('he-IL')} יח׳ להזמנה${lt?' · '+lt:''}</span>
+     <span class="gu">${moneyMix(list,r=>(actQty(r)||r.miss||0)*(r.price||0))}${noPriceTxt(list)}</span>`}</td></tr>`);
    if(coll)continue;
    for(const r of list){const i=idx++;
     ents.push({k:'i',i,h:()=>`<tr data-row data-i="${i}" class="sev${r.sev}"><td class="rnk"><span class="rank">${i+1}</span></td>`
@@ -11443,6 +11530,7 @@ function renderDecisions(rows){
   :FIXLIKE()
   ?(track==='month'?'בדיוק השורות שבקובץ SAP · סינון לפי סיבה מעל הטבלה':'נקודת הזמנה (ROP) ומלאי ביטחון (SS) לעדכון ב-SAP')
   :track==='m1'?`ZM בלבד · צריכה ${M1_MIN3}+ יח׳ ברבעון מול מלאי פנוי · רכש בדרך אינו נספר (אין ETA)`
+  :linePo()?'כל הזמנות הרכש הפתוחות, לפי ספק · בראש כל ספק: לקוח ממתין וחוסר'
   :(SHORTLIKE()?'כמה חסר · מה מגיע עד סוף החודש · מה נשאר · הפעולה הבאה'
     :'ממוין לפי השווי, בתוך כל מטבע · הדלתות שמתחת לפי מה שאפשר לעשות'),
   /* ההסבר המלא — לבועית. רק בשני המסכים שקיבלו משפט מקוצר */
@@ -12077,11 +12165,21 @@ function decisionBlock(r){
   ${coverStrip(r)}
   ${paramStrip(r)}
   ${ltBlock(r)}
-  ${more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
-  ${xOther(r).length?`<div class="dcx"><span class="dcmk" title="אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.">הפריט הזה נמצא גם ב<span class="dcxi" aria-hidden="true">ⓘ</span></span>
+  ${(()=>{
+   /* DESIGN-B (21.11, ביקורת העיצוב): לפני הגרף ישבו שבע שכבות. למעלה נשארות
+      ההחלטה, המספרים, שתי הסיבות הראשונות וכפתור «טופל»; פעולות נוספות, «גם ב...»
+      ושאר הסיבות — בקיפול אחד. שום דבר לא נמחק: הכל ב-DOM, נגיש במקלדת (<details>). */
+   const W=why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`);
+   const top=W.slice(0,2),rest=W.slice(2),xo=xOther(r).length;
+   const foldN=rest.length+(more.length?1:0)+(xo?1:0);
+   const head=top.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${top.join('')}</div>`:'';
+   if(!foldN)return head;
+   return head+`<details class="dcfold"><summary>${foldN===1?'עוד פרט אחד':`עוד ${foldN.toLocaleString('he-IL')} פרטים`}</summary>`
+    +(rest.length?`<div class="dcwhy">${rest.join('')}</div>`:'')
+    +(more.length?`<div class="dcmore"><span class="dcmk">פעולות נוספות</span><ul>${more.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:'')
+    +(xo?`<div class="dcx"><span class="dcmk" title="אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.">הפריט הזה נמצא גם ב<span class="dcxi" aria-hidden="true">ⓘ</span></span>
    <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
-   <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:''}
-  ${why.length?`<div class="dcwhy"><span class="dcmk">מה מצדיק את זה</span>${why.map(([t,m])=>`<div class="msg ${t}"><span class="ic">${ic[t]||'ℹ'}</span><span>${m}</span></div>`).join('')}</div>`:''}
+   <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:'')+`</details>`})()}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
    <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button>${profOffBtn(r,'bsec')}</div>
   <!-- ============ מה הסימון הזה אינו ============
@@ -12130,8 +12228,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
        דפוס, דגם, אביזר, מטבע ויבוא/מקומי עברו ללשונית «נתונים» —
        לא נמחקו. המטבע ממילא צמוד לכל סכום דרך money(). -->
   <div class="tags"><span class="tag">${esc(r.supplier.slice(0,20))}</span>
-  <span class="tag">${esc(r.mrp)}</span>
-  <span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}" title="גיל המלאי — ציר נפרד מהסיווג: כמה זמן הסחורה יושבת, לא מה הכלי החליט עליה">${ageAxis(r.ageTier)}</span>
+  <span class="tag" title="סוג MRP ב-SAP — קובע אם יש המלצת מלאי בכלל">סוג MRP: ${esc(r.mrp||'—')}</span>
+  ${r.ageTier&&r.ageTier!=='active'?`<span class="tag${r.ageTier==='dead'?' d':r.ageTier==='slow'?' w':''}" title="גיל המלאי — ציר נפרד מהסיווג: כמה זמן הסחורה יושבת, לא מה הכלי החליט עליה">${ageAxis(r.ageTier)}</span>`:''}
   <!-- ============ הסיווג עצמו לא היה על הכרטיס ============
        שבב הסיווג הופיע רק כשהפריט מסומן (markbadge, ושם cat הוא
        תווית הסימון ולא הסיווג). בפריט שאינו מסומן — כלומר ברוב —
@@ -12531,7 +12629,10 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
     מיושרת אליה. הצריכה התלת-שנתית שלהם יושבת בעמודה «צריכה 3 שנים». */
  ['מגמה בחלון הקצב %',r=>(r.rateFrom3y||trendPct(r)==null)?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
- ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['כסף תקוע (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],
+ /* XLS_REFORM (23.11): היה «כסף תקוע (₪)» — אבל הסכום הוא במטבע של הפריט, לא בשקלים.
+    בגיליון «נתונים עיקריים» עמודת «מטבע» צמודה אליו. */
+ ['שווי עודף',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 /* ============ הייצוא מייצג את מה שרואים ============
    סעיף 3 במפרט. השורות תמיד היו של התצוגה (currentRows), אבל
@@ -12558,6 +12659,59 @@ function viewExportRows(){
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
  return [header,...body]}
+/* ============ XLS_REFORM — קובץ האקסל של הכלי (אושר 23.11) ============
+   מי פותח אותו: המעתד, הרכש/הקניינים וההנהלה. גיליון של 59 עמודות לא עובד
+   לאף אחד מהם, ולכן:
+   · «נתונים עיקריים» — 21 עמודות, בקבוצות (שורת קבוצה מעל הכותרת). זו
+     הרשימה שאושרה, בסדר שאושר.
+   · «פירוט מלא» — מק״ט ותיאור, ואחריהם כל שאר העמודות של XCOLS בסדרן. אחרון.
+   · שום ערך לא חושב מחדש: כל תא בשני הגיליונות הוא התא של XCOLS (exportRows),
+     חוץ מ«הפעולה הבאה» — הפעולה הראשונה, כמו בגיליון «התצוגה» (SCOL.act.xval).
+   עמודה שאינה נמצאת ב-XCOLS זורקת שגיאה — שם עמודה ששונה לא ייעלם בשקט. */
+const XMAIN=[
+ ['פריט',[['מק״ט'],['תיאור'],['דגם'],['ספק'],['סיווג','סטטוס'],['הפעולה הבאה',r=>SCOL.act.xval(r)]]],
+ ['מלאי',[['מלאי פנוי'],['הזמנות לקוח']]],
+ ['רכש',[['רכש פתוח'],['אספקה קרובה (תאריך)','תאריך האספקה הקרוב'],['זמן אספקה (ימים)']]],
+ ['פרמטרי תכנון',[['צריכה חודשית','קצב חודשי'],['חודשי כיסוי'],['נקודת הזמנה SAP','ROP בSAP'],['נקודת הזמנה מוצעת','ROP מוצע'],
+  ['מלאי ביטחון SAP','SS בSAP'],['מלאי ביטחון מוצע','SS מוצע']]],
+ ['כמויות',[['כמות להזמנה'],['כמות חסרה','כמות חסרה (יח׳)']]],
+ ['שווי',[['שווי עודף'],['מטבע','מטבע FOB']]]];
+/* all = exportRows(rows): הכותרת של XCOLS ואחריה שורה לכל פריט, באותו סדר כמו rows */
+function xSplit(all,rows){const H=all[0],at=h=>{const i=H.indexOf(h);if(i<0)throw new Error('XLS_REFORM: אין עמודה «'+h+'» ב-XCOLS');return i};
+ const cols=[],grp=[],merges=[];
+ for(const [g,list] of XMAIN){const c0=cols.length;
+  for(const [h,src] of list){cols.push({h,f:typeof src==='function'?src:null,i:typeof src==='function'?-1:at(src||h)});grp.push(cols.length-1===c0?g:'')}
+  if(cols.length-1>c0)merges.push({s:{r:0,c:c0},e:{r:0,c:cols.length-1}})}
+ const used=new Set(cols.filter(c=>c.i>=0).map(c=>c.i)),key=[at('מק״ט'),at('תיאור')];
+ const rest=key.concat(H.map((_,i)=>i).filter(i=>!used.has(i)));
+ const val=(c,k)=>{if(c.i>=0)return all[k+1][c.i];let v;try{v=c.f(rows[k])}catch(_){v=''}return v==null?'':v};
+ const main=[grp,cols.map(c=>c.h)];for(let k=0;k<rows.length;k++)main.push(cols.map(c=>val(c,k)));
+ const full=all.map(r=>rest.map(i=>r[i]));
+ return {main,full,merges,money:[cols.findIndex(c=>c.h==='שווי עודף')]}}
+/* רוחב עמודה לפי התוכן: הכותרת ו-300 השורות הראשונות, בין 6 ל-45 תווים */
+function xAutoW(aoa,hdr){const n=Math.max(0,...aoa.slice(0,hdr+301).map(r=>r?r.length:0)),w=[];
+ for(let c=0;c<n;c++){let m=String((aoa[hdr]||[])[c]==null?'':(aoa[hdr]||[])[c]).length+2;
+  for(let r=hdr+1;r<Math.min(aoa.length,hdr+301);r++){const v=(aoa[r]||[])[c];if(v==null||v==='')continue;
+   const s=typeof v==='number'?Math.round(v).toLocaleString('en-US')+(Number.isInteger(v)?'':'.00'):String(v);if(s.length+1>m)m=s.length+1}
+  w.push({wch:Math.max(6,Math.min(45,m))})}
+ return w}
+/* «סיכום» — מה יש בקובץ, למי שמקבל אותו בלי הסבר. שווי לפי מטבע, בלי המרה ובלי סכימה בין מטבעות. */
+function xSummary(rows,scr,filt,o){
+ const cur=new Map();for(const r of rows){const v=r.expCap||0;if(!(v>0))continue;const k=String(r.currency||'').trim().toUpperCase()||'לא צוין';
+  const e=cur.get(k)||{n:0,v:0};e.n++;e.v+=v;cur.set(k,e)}
+ const out=[['סיכום הייצוא'],[],['מסך',scr],['סינון',filt?'מסונן — רק הפריטים שעברו את הסינון והחיפוש שעל המסך':'ללא סינון — כל הפריטים של המסך'],
+  ['פריטים',rows.length]];
+ if(o.mov)out.push(['תנועות',o.mov]);
+ out.push(['תאריך הדוח',ZDATE?fmtDate(ZDATE):'—']);
+ if(BASE)out.push(['חודש בסיס',`${String(BASE.m).padStart(2,'0')}/${BASE.y}${BASE.verified?'':' — לא מאומת, ההמלצות זמניות'}`]);
+ out.push(['תאריך הייצוא',fmtDate(new Date())],[],['שווי עודף לפי מטבע — בלי המרה בין מטבעות'],['מטבע','פריטים עם עודף','שווי עודף']);
+ if(cur.size)for(const [k,e] of [...cur].sort((a,b)=>b[1].v-a[1].v))out.push([k,e.n,Math.round(e.v)]);
+ else out.push(['אין פריט עם שווי עודף בקובץ']);
+ out.push([],['הגיליונות בקובץ']);
+ for(const [s,t] of o.sheets)out.push([s,t]);
+ return out}
+/* שם הקובץ: שם המסך בעברית ותאריך; «מסונן» כשיש סינון. בלי תווים שאסורים בשם קובץ. */
+function xFileName(scr,filt,d){return `${scr}${filt?' · מסונן':''} ${d}`.replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim()+'.xlsx'}
 /* הגיליון מייצג את מה שרואים: אותן עמודות, אותו סדר, אותו מיון
    ואותו סינון. קודם הוא היה רשימה קבועה של 11 עמודות בסדר אחר. */
 function movExportRows(){const list=movRows();
@@ -12794,21 +12948,56 @@ function sapPreview(kind,sel){
    ב-L2. נרשם XEXP_KEY, והפתיחה הבאה אומרת שהייצוא לא הסתיים. */
 const XCH=5000,XEXP_KEY='planner_exporting_v1',XWF0=XLSX.writeFile;
 let XJOB=null,XW_URL=null;
-function xBook(){const wb=XLSX.utils.book_new();let ws=null;
- return {wb,add(name,cols,aoa){ws=XLSX.utils.aoa_to_sheet(aoa,{dense:true});ws['!cols']=cols;XLSX.utils.book_append_sheet(wb,ws,name)},
-  rows(aoa){XLSX.utils.sheet_add_aoa(ws,aoa,{origin:-1,dense:true})}}}
-function xApply(B,m){if(m.t==='add')B.add(m.name,m.cols,m.aoa);else B.rows(m.aoa)}
+/* XLS_REFORM — עיצוב (אושר 23.11, «מלא»): הספר מימין לשמאל; בכל גיליון עם
+   כותרת (meta.hdr — מספר שורת הכותרת, -1 = בלי) סינון אוטומטי על הכותרת ושורות
+   הכותרת קפואות; מספרים עם מפריד אלפים (שלם — #,##0; שבר — עד שתי ספרות;
+   עמודות שווי — תמיד שלם). עמודת מק״ט / מספר מסמך נשארת בלי עיצוב — מספר
+   חלק אינו כמות. העיצוב אינו נוגע בערכים: אותו תא, אותו סוג. */
+function xBook(){const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};let ws=null,meta=null;const M=[];
+ const fmt=(w,m,r0)=>{const d=w['!data']||[],h=m.hdr;
+  if(!m.raw){const H=d[h]||[];m.raw=[];H.forEach((x,c)=>{if(x&&/מק[״"']ט|מסמך|מספר/.test(String(x.v)))m.raw.push(c)})}
+  const money=new Set(m.money||[]),raw=new Set(m.raw);
+  for(let r=Math.max(r0,h+1);r<d.length;r++){const row=d[r];if(!row)continue;
+   for(let c=0;c<row.length;c++){const x=row[c];if(!x||x.t!=='n'||typeof x.v!=='number'||raw.has(c))continue;
+    x.z=(money.has(c)||Number.isInteger(x.v))?'#,##0':'#,##0.0#'}}};
+ return {wb,add(name,cols,aoa,m){ws=XLSX.utils.aoa_to_sheet(aoa,{dense:true});ws['!cols']=cols;meta=Object.assign({hdr:0},m||{});
+   if(meta.merges)ws['!merges']=meta.merges;fmt(ws,meta,0);M.push([ws,meta]);XLSX.utils.book_append_sheet(wb,ws,name)},
+  rows(aoa){const r0=(ws['!data']||[]).length;XLSX.utils.sheet_add_aoa(ws,aoa,{origin:-1,dense:true});fmt(ws,meta,r0)},
+  /* בסוף: הסינון האוטומטי על כל השורות, ומספר השורות הקפואות לכל גיליון (לפי הסדר) */
+  fin(){return M.map(([w,m])=>{if(!(m.hdr>=0)||!w['!ref'])return 0;const R=XLSX.utils.decode_range(w['!ref']);
+   if(R.e.r>m.hdr)w['!autofilter']={ref:XLSX.utils.encode_range({s:{r:m.hdr,c:0},e:{r:R.e.r,c:R.e.c}})};
+   return m.nofreeze?0:m.hdr+1})}}}
+/* שורות קפואות: SheetJS הקהילתי אינו כותב <pane>, ולכן הוא נכנס לקובץ שכבר נכתב —
+   ב-sheetView של כל גיליון (sheetN.xml לפי סדר הגיליונות). שאר הקובץ — אותם בתים.
+   fz[i] = כמה שורות להקפיא בגיליון i (0 — בלי). מחזיר ArrayBuffer. */
+function xPanes(buf,fz){if(!fz||!fz.some(n=>n>0))return buf;
+ const C=XLSX.CFB,z=C.read(new Uint8Array(buf),{type:'array'});let hit=0;
+ fz.forEach((n,i)=>{if(!(n>0))return;const p=z.FullPaths.find(q=>q.endsWith('/xl/worksheets/sheet'+(i+1)+'.xml'));const f=p&&C.find(z,p);if(!f)return;
+  const x=new TextDecoder().decode(f.content),a=XLSX.utils.encode_cell({r:n,c:0});
+  const y=x.replace(/<sheetView ([^>]*?)\/>/,(_,at)=>`<sheetView ${at}><pane ySplit="${n}" topLeftCell="${a}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${a}" sqref="${a}"/></sheetView>`);
+  if(y!==x){f.content=new TextEncoder().encode(y);f.size=f.content.length;hit++}});
+ if(!hit)return buf;
+ const o=C.write(z,{type:'array',fileType:'zip',compression:true}),u=o instanceof Uint8Array?o:new Uint8Array(o);
+ return u.buffer.slice(u.byteOffset,u.byteOffset+u.byteLength)}
+function xApply(B,m){if(m.t==='add')B.add(m.name,m.cols,m.aoa,m.meta);else B.rows(m.aoa)}
 /* החלקים, לפי הסדר: לכל גיליון «add» עם XCH השורות הראשונות, ואז «rows» */
 function xSteps(sheets){const st=[];for(const sh of sheets){
-  st.push({t:'add',name:sh.name,cols:sh.cols,from:0,to:Math.min(XCH,sh.aoa.length),aoa:sh.aoa});
+  st.push({t:'add',name:sh.name,cols:sh.cols,meta:sh.meta,from:0,to:Math.min(XCH,sh.aoa.length),aoa:sh.aoa});
   for(let i=XCH;i<sh.aoa.length;i+=XCH)st.push({t:'rows',from:i,to:Math.min(i+XCH,sh.aoa.length),aoa:sh.aoa})}
  return st}
-const xMsg=s=>({t:s.t,name:s.name,cols:s.cols,aoa:s.aoa.slice(s.from,s.to)});
+const xMsg=s=>({t:s.t,name:s.name,cols:s.cols,meta:s.meta,aoa:s.aoa.slice(s.from,s.to)});
 function xDownload(buf,name){const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
  const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-/* בדף: אותם חלקים, אותו בונה, ו-XLSX.writeFile (או זה שהוחלף) */
-function xSaveMain(sheets,name){const B=xBook();for(const s of xSteps(sheets))xApply(B,xMsg(s));
- XLSX.writeFile(B.wb,name,{compression:true})}
+/* כתיבת ספר שנבנה ב-xBook, בדף. XLSX.writeFile שהוחלף (בדיקות, השומר העסקי) מקבל
+   את הספר כמו קודם; אחרת — נכתב, מקבל שורות קפואות, ויורד. אם ההקפאה נכשלת
+   הקובץ יורד בלעדיה (ונרשם) — קובץ בלי שורה קפואה עדיף על קובץ שלא ירד. */
+function xWriteBook(B,name){const fz=B.fin();
+ if(XLSX.writeFile!==XWF0){XLSX.writeFile(B.wb,name,{compression:true});return}
+ const buf=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});
+ let out=buf;try{out=xPanes(buf,fz)}catch(err){console.error('XLS_REFORM panes:',err)}
+ xDownload(out,name)}
+/* בדף: אותם חלקים, אותו בונה */
+function xSaveMain(sheets,name){const B=xBook();for(const s of xSteps(sheets))xApply(B,xMsg(s));xWriteBook(B,name)}
 function xEnd(job){if(!job)return;job.dead=true;clearInterval(job.timer);if(job.w)try{job.w.terminate()}catch(_){}
  if(XJOB===job){XJOB=null;if(!LOADJOB)zBox(null)}
  try{localStorage.removeItem(XEXP_KEY)}catch(_){}}
@@ -12820,9 +13009,11 @@ function xDraw(job){if(!job||job.dead||LOADJOB)return;const sec=Math.round((perf
  const c=document.getElementById('xCancelBtn');if(c)c.onclick=()=>xCancel()}
 function xWorker(){if(typeof Worker!=='function'||typeof Blob!=='function'||!window.URL||!URL.createObjectURL)return null;
  const lib=document.getElementById('xlsxlib');if(!lib)return null;
- try{if(!XW_URL)XW_URL=URL.createObjectURL(new Blob([lib.textContent,'\n',xBook.toString(),'\n',xApply.toString(),'\n',
+ try{if(!XW_URL)XW_URL=URL.createObjectURL(new Blob([lib.textContent,'\n',xBook.toString(),'\n',xApply.toString(),'\n',xPanes.toString(),'\n',
   `let B=null;self.onmessage=e=>{const m=e.data;try{
-    if(m.t==='write'){const out=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});B=null;postMessage({t:'done',buf:out},[out]);return}
+    if(m.t==='write'){const fz=B.fin(),raw=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});B=null;
+     let out=raw;try{out=xPanes(raw,fz)}catch(err){console.error('XLS_REFORM panes:',err)}
+     postMessage({t:'done',buf:out},[out]);return}
     if(!B)B=xBook();xApply(B,m);postMessage({t:'ok'})}catch(err){postMessage({t:'err',msg:String(err&&err.message||err)})}}`],{type:'text/javascript'}));
   return new Worker(XW_URL)}catch(_){return null}}
 /* sheets = [{name,cols,aoa}] — תמונת המצב של הלחיצה; done() — אחרי שהקובץ ירד */
@@ -12864,27 +13055,28 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  const onMoves=cur==='moves';
  const rowsAll=onMoves?(()=>{cur='all';try{return currentRows()}finally{cur='moves'}})():currentRows();
  /* L3: כל מה שנכנס לקובץ מחושב כאן, ברגע הלחיצה — תמונת המצב */
- const aoa=exportRows(rowsAll);
- const sheets=[];
- const tabName=(DEF.find(d=>d[0]===(onMoves?'all':cur))||[,'רשימה'])[1];   /* בתנועות — «כל הפריטים», כי זה התוכן */
- const mAoa=movExportRows();
+ const X=xSplit(exportRows(rowsAll),rowsAll);
+ /* XLS_REFORM: גיליון התנועות יוצא רק ממסך «תנועות אחרונות» (שם הוא «התצוגה»).
+    עד כאן הוא צורף לכל ייצוא — אלפי שורות תנועה בקובץ של עשרה פריטים. */
+ const mAoa=onMoves?movExportRows():[];
  const vx=onMoves?(mAoa.length?{aoa:mAoa,keys:mAoa[0]}:null):viewExportRows();
- if(vx)sheets.push({name:'התצוגה',cols:vx.keys.map((k,i)=>({wch:i<2?24:13})),aoa:vx.aoa});
  /* UX6 — במסך שינוי פרופיל: גיליון המוחרגים (אושר 2.11). אין מוחרגים — אין גיליון */
- if(!onMoves&&track==='prof'){const px=profExclAoa();if(px)sheets.push({name:'ללא שינוי פרופיל',cols:px[0].map((h,i)=>({wch:i<2?22:14})),aoa:px})}
- sheets.push({name:(vx?'כל הנתונים · ':'')+tabName.slice(0,16),cols:XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)})),aoa});
- /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל). בתנועות הוא כבר «התצוגה». */
- if(!onMoves&&mAoa.length>1){
-   const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
-   sheets.push({name:mName.slice(0,28),cols:mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)})),aoa:mAoa})}
- const dstr=new Date().toISOString().slice(0,10);
- /* קובץ מסונן נקרא «מסונן». עד כאן תצוגה של ZT בלבד ירדה בשם
-    Inventory_all_… — אותו שם כמו הקטלוג המלא, וקובץ שנשלח הלאה
-    נקרא כאילו הוא הכול. «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
+ const px=(!onMoves&&track==='prof')?profExclAoa():null;
+ /* קובץ מסונן נקרא «מסונן». «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
  const filt=FDEF.some(([k])=>SEL[k].size)||Object.keys(colFilters).length>0||!!SQ;
- const n=rowsAll.length,mv=mAoa.length;
- xSave(sheets,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`,
-  ()=>toast(`יוצאו ${n} מק״טים${mv>1?' + '+(mv-1)+' תנועות':''} ✓`))}
+ const scr=screenName(),n=rowsAll.length,mv=Math.max(0,mAoa.length-1);
+ const list=[];
+ if(vx)list.push(['התצוגה',onMoves?'טבלת התנועות כפי שהיא על המסך':'העמודות שעל המסך, באותו סדר ובאותו מיון']);
+ if(px)list.push(['ללא שינוי פרופיל','פריטים שנוטרלו ידנית או בגלל סימון']);
+ list.push(['נתונים עיקריים',`${X.main[1].length} עמודות ליבה לכל פריט, בקבוצות`],['פירוט מלא','כל שאר הנתונים של כל פריט, לפי מק״ט']);
+ const sheets=[{name:'סיכום',cols:[{wch:22},{wch:60},{wch:16}],aoa:xSummary(rowsAll,scr,filt,{mov:mv,sheets:list}),meta:{hdr:-1}}];
+ if(vx)sheets.push({name:'התצוגה',cols:xAutoW(vx.aoa,0),aoa:vx.aoa,meta:{hdr:0}});
+ if(px)sheets.push({name:'ללא שינוי פרופיל',cols:xAutoW(px,0),aoa:px,meta:{hdr:0}});
+ sheets.push({name:'נתונים עיקריים',cols:xAutoW(X.main,1),aoa:X.main,meta:{hdr:1,merges:X.merges,money:X.money}});
+ sheets.push({name:'פירוט מלא',cols:xAutoW(X.full,0),aoa:X.full,meta:{hdr:0}});
+ const d=new Date(),p2=k=>String(k).padStart(2,'0');
+ xSave(sheets,xFileName(scr,filt,`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`),
+  ()=>toast(`יוצאו ${n} מק״טים${mv?' + '+mv+' תנועות':''} ✓`))}
 /* ============ EXPEDITE — דוח הזירוז מול הספקים ============
    הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
    דחיפות ומיון לפי ימי פיגור. נמדד על הדוח האמיתי (7,569 פריטים,
@@ -13052,26 +13244,23 @@ function doExpedite(){
  if(!ALL||!ALL.length){toast('אין נתונים — העלה דוח ZMRP');return}
  const {rows,landed}=expediteRows();
  if(!rows.length){toast('אין מה לזרז — אין רכש פתוח פתוח לבירור ואין לקוח שממתין');return}
- const wb=XLSX.utils.book_new();
+ /* XLS_REFORM (23.11): אותו תוכן, אותם גיליונות ואותם רוחבים — ועכשיו אותו עיצוב
+    כמו קובץ האקסל של הכלי: מימין לשמאל, סינון אוטומטי וכותרת קפואה, מפריד אלפים.
+    ב«לפי ספק» הטבלה מתחת לשורות האזהרה — הסינון עליה, בלי הקפאה (היא הייתה
+    מקפיאה את כל האזהרות על המסך). */
+ const B=xBook();
  const notes=expNotes(rows,landed);
  const sup=expSupplierAoa(rows);
  const head=[[`דוח זירוז · ${fmtDate(new Date())}`],
   [`${rows.length.toLocaleString('he-IL')} פריטים · ${rows.reduce((a,x)=>a+x.qty,0).toLocaleString('he-IL')} יח׳ · ${sup.length-1} ספקים`],
   ...notes.map(t=>[t]),[]];
- const sws=XLSX.utils.aoa_to_sheet([...head,...sup]);
- sws['!cols']=[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},{wch:20},{wch:18},
-  ...Object.keys(EXP_ASK).map(()=>({wch:15}))];
- XLSX.utils.book_append_sheet(wb,sws,'לפי ספק');
+ B.add('לפי ספק',[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},{wch:20},{wch:18},
+  ...Object.keys(EXP_ASK).map(()=>({wch:15}))],[...head,...sup],{hdr:head.length,nofreeze:true});
  const aoa=[EXPCOLS.map(c=>c[0]),...rows.map(x=>EXPCOLS.map(c=>{
   let v;try{v=c[1](x)}catch(_){v=''}return v==null?'':v}))];
- const ws=XLSX.utils.aoa_to_sheet(aoa);
- ws['!cols']=EXPCOLS.map((c,i)=>({wch:i===0?30:(i===2?30:(i===18?22:13))}));
- ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa.length-1,c:EXPCOLS.length-1}})};
- XLSX.utils.book_append_sheet(wb,ws,'לזירוז');
- if(landed.length){const lws=XLSX.utils.aoa_to_sheet(expLandedAoa(landed));
-  lws['!cols']=[{wch:30},{wch:18},{wch:30},{wch:18},{wch:12},{wch:14},{wch:52}];
-  XLSX.utils.book_append_sheet(wb,lws,'נחתו — לא לרדוף')}
- XLSX.writeFile(wb,`Expedite_${new Date().toISOString().slice(0,10)}.xlsx`);
+ B.add('לזירוז',EXPCOLS.map((c,i)=>({wch:i===0?30:(i===2?30:(i===18?22:13))})),aoa,{hdr:0});
+ if(landed.length)B.add('נחתו — לא לרדוף',[{wch:30},{wch:18},{wch:30},{wch:18},{wch:12},{wch:14},{wch:52}],expLandedAoa(landed),{hdr:0});
+ xWriteBook(B,`Expedite_${new Date().toISOString().slice(0,10)}.xlsx`);
  toast(`דוח זירוז: ${rows.length.toLocaleString('he-IL')} פריטים אצל ${sup.length-1} ספקים`
   +(landed.length?` · ${landed.length} שכבר נחתו הורדו`:'')+' ✓')}
 /* wireDrag() הוגדר ומעולם לא נקרא, ולכן כפתורי ה-✕ על כותרות הווידג'טים

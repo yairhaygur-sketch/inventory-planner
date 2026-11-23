@@ -150,7 +150,10 @@ const baseOf=p=>p.evaluate(()=>BASE&&{y:BASE.y,m:BASE.m,src:BASE.src,ver:BASE.ve
   window.Worker=undefined;
   setMode('catalog');for(const k of Object.keys(colFilters))delete colFilters[k];apply();
   doExport();doSapMass();doSapMass('slow');
-  const files=window.__cap.map(f=>({name:f.name.replace(/\d{4}-\d{2}-\d{2}/g,'<date>'),sheets:f.sheets}));
+  /* XLS_REFORM (23.11): «תאריך הייצוא» בגיליון «סיכום» הוא היום — כמו התאריך בשם הקובץ, הוא מוסתר.
+     כל שאר התאים, גם בסיכום, נבדקים. */
+  const files=window.__cap.map(f=>({name:f.name.replace(/\d{4}-\d{2}-\d{2}/g,'<date>'),
+   sheets:f.sheets.map(([n,a])=>[n,n==='סיכום'?a.map(r=>r&&r[0]==='תאריך הייצוא'?[r[0],'<date>']:r):a])}));
   return {base:`${BASE.y}-${BASE.m}/${BASE.src}/${dsigDate(BASE.ref)}`,items,queues,doors,files,
    rd:document.getElementById('rd').value}});
  const clocks=['2026-10-16T08:00:00+03:00','2026-10-31T08:00:00+02:00','2026-11-01T08:00:00+02:00','2027-01-15T08:00:00+02:00'];
@@ -164,7 +167,7 @@ const baseOf=p=>p.evaluate(()=>BASE&&{y:BASE.y,m:BASE.m,src:BASE.src,ver:BASE.ve
  ok('כל תור וכל דלת — אותם פריטים באותו סדר',S.every(x=>J(x.s.queues)===J(S[0].s.queues)&&J(x.s.doors)===J(S[0].s.doors)),
   Object.entries(S[0].s.queues).map(([k,v])=>k+':'+v.length).join(' '));
  {const names=S[0].s.files.map(f=>f.name);
-  ok('נכתבו ייצוא לאקסל וקובץ SAP',names.length>=2&&/^Inventory/.test(names[0])&&names.some(n=>/^SAP_Params/.test(n)),names.join(' · '));
+  ok('נכתבו ייצוא לאקסל וקובץ SAP',names.length>=2&&/^קטלוג פריטים <date>\.xlsx$/.test(names[0])&&names.some(n=>/^SAP_Params/.test(n)),names.join(' · '));
   const fd=S.slice(1).filter(x=>J(x.s.files)!==J(S[0].s.files)).map(x=>{
    for(let i=0;i<S[0].s.files.length;i++){const A=S[0].s.files[i],B=x.s.files[i]||{sheets:[]};
     for(let j=0;j<A.sheets.length;j++){const a=A.sheets[j],bb=B.sheets[j]||[,[]];
