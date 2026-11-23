@@ -6017,7 +6017,19 @@ function twoClocks(it){
   +`ו-ROP המוצע ${it.sugROP} הוא רצפת מלאי הביטחון בלבד`
   +(it.cov3y!=null&&it.cov3y>0?` · ${it.cov3y.toFixed(0)} ${mon(+it.cov3y.toFixed(0))} כיסוי בקצב 3 השנים`:'')
   +`. אין מספר להקטין לפיו — הכסף התקוע אינו משתחרר בפרמטר`]}
+/* ============ HOLD_EXCESS — לא מעלים פרמטר על מלאי שמכסה שנה (אושר 22.11) ============
+   פריט «עודף מלאי» או «מלאי איטי» שהמלאי שלו (פנוי + רכש פתוח) מכסה יותר מ-12
+   חודשים מעל נקודת ההזמנה המחושבת: ההמלצה להעלות נקודת הזמנה או מלאי ביטחון
+   מושהית — ההמלצה הרשמית (sugROP/sugSS, ומכאן קובץ SAP) היא הערך שב-SAP, עד
+   שהמלאי יורד. הקטנה אינה מושהית. נמדד על הדוח האמיתי (21.11): 57 פריטים עם
+   «להעלות ROP», פער חציוני של יחידה אחת, מלאי שמכסה כ-31 חודשים, כ-19 חודשים עד
+   שהמלאי מגיע לנקודה המחושבת; 24 מהם בקובץ SAP של מלאי איטי ומת, וכולם העלו גם
+   מלאי ביטחון. החלטת המעתד: גם מלאי הביטחון אינו עולה.
+   classify רץ שוב בכל סינון, ולכן הערכים המחושבים נשמרים ב-holdRaw ומוחזרים
+   בתחילת כל ריצה — אחרת הריצה השנייה הייתה רואה את הערך המושהה כמחושב. */
+const HOLD_MONTHS=12;
 function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],excess:[],quality:[],marked:[],passive:[],ok:[],over3y:[],tier:[]};
+ for(const it of items)if(it.holdRaw){it.sugROP=it.holdRaw.rop;it.sugSS=it.holdRaw.ss;delete it.holdRaw}
  for(const it of items){it.why=[];it.act=[];it.sev=0;it.risk=0;it.expCap=0;it.paramFix=false;it.burn=false;it.wip=null;it.custGap=false;it.capUnpriced=false;it.orderQty=null;it.excessQty=null;it.miss=0;it.cat='תקין';it.mark=null;
   const A=it.A;const sc=stCode(it.st);const mk=MARKS[markKey(it)]||MARKS[it.pn];
   /* "לפי דרישה" אינו מעלים את הפריט — הוא ממשיך בשרשרת הסיווג הרגילה
@@ -6705,6 +6717,33 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
    it.act=it.act.map(a=>{if(typeof a==='string'&&NUMACT.test(a)&&!/פרופיל/.test(a)){if(put)return null;put=true;return LT_ACT}return a}).filter(a=>a!=null);
    if(!put&&!it.act.includes(LT_ACT))it.act.push(LT_ACT)}
   if(it.cat==='מלאי איטי'){it.slowEst=true;it.why.push(['warn',SLOW_EST])}}
+ /* HOLD_EXCESS — ראה בראש classify */
+ for(const it of items){
+  if(it.cat!=='עודף מלאי'&&it.cat!=='מלאי איטי')continue;
+  const upR=(it.sugROP||0)>(it.rop||0),upS=(it.sugSS||0)>(it.ss||0);
+  if((!upR&&!upS)||!(it.rate>0))continue;
+  const cov=((it.free||0)+(it.po||0)-(it.sugROP||0))/it.rate;
+  if(!(cov>HOLD_MONTHS))continue;
+  it.holdRaw={rop:it.sugROP,ss:it.sugSS,cov};
+  if(upR)it.sugROP=it.rop||0;
+  if(upS)it.sugSS=it.ss||0;
+  /* SS ≤ ROP (5ט־א): כשה-ROP נשאר ב-SAP וה-SS המחושב גבוה ממנו — גם כשה-SS עצמו
+     יורד — ה-SS נחתך ל-ROP. נמצא בבדיקה: 8 פריטים בפיקסצ׳ר שבהם SAP עצמו מחזיק
+     SS מעל ROP. החיתוך הוא הקטנה, הכיוון שאינו מושהה. */
+  it.sugSS=Math.min(it.sugSS,it.sugROP);
+  const M=Math.round(cov),what=upR&&upS?'נקודת הזמנה ומלאי ביטחון':upR?'נקודת הזמנה':'מלאי ביטחון';
+  it.why.push(['info',`תקין לעת עתה: המלאי (פנוי ורכש פתוח) מכסה כ-${M} חודשים מעל נקודת ההזמנה המחושבת (${it.holdRaw.rop}). `
+   +`ההמלצה להעלות ${what} (${upR?`${it.rop}→${it.holdRaw.rop}`:''}${upR&&upS?' · ':''}${upS?`${it.ss}→${it.holdRaw.ss}`:''}) תחזור כשהמלאי ירד`]);
+  /* הפעולות נכתבו עם הערכים המחושבים — מנוסחות מחדש לפי ההמלצה המושהית */
+  it.act=(it.act||[]).map(a=>{if(typeof a!=='string')return a;
+   if(/^להעלות נקודת הזמנה/.test(a))return `להשאיר נקודת הזמנה ${it.rop} — המלאי מכסה כ-${M} חודשים`;
+   if(/^להעלות מלאי ביטחון/.test(a))return `להשאיר מלאי ביטחון ${it.ss}`;
+   /* «לעדכן … ל-N» — רונג הפרמטר שמעל המכירות, ורונג הרצפה (שלוש צורות) */
+   if(/^לעדכן (נקודת הזמנה|מלאי ביטחון) ל-\d+/.test(a)){
+    if(it.sugROP===it.rop&&it.sugSS===it.ss)return 'להשאיר את הפרמטרים ב-SAP — המלאי מכסה שנה ומעלה';
+    const parts=[it.sugROP!==it.rop?`נקודת הזמנה ל-${it.sugROP}`:'',it.sugSS!==it.ss?`מלאי ביטחון ל-${it.sugSS}`:''].filter(Boolean);
+    return 'לעדכן '+parts.join(' ו')}
+   return a})}
  /* אין מדד כספי לחוסרים — כסף תקוע (כמות × BZ) הוא המדד הכספי היחיד */
  for(const it of items){it.miss=Math.max(0,Math.round(it.miss||0));it.expCap=Math.max(0,Math.round(it.expCap||0));
   it.risk=it.expCap}
