@@ -1884,8 +1884,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     חומרה, והמיון והסינון עובדים דרך אותו מנגנון של שאר הטבלאות. */
  /* «דגם» נכנס לברירת המחדל של כל טבלה מיד אחרי המק״ט
     (MODEL_EVERYWHERE) — 36 דגמים על 7,599 פריטים, אפס ריקים.
-    עשר עמודות הפכו לאחת-עשרה. */
- const CATDEF='מק״ט|דגם|תיאור|סיווג|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|כסף תקוע';
+    עשר עמודות הפכו לאחת-עשרה.
+    TERMS שלב 3 (23.11): «כסף תקוע» → «שווי עודף», כמו באקסל. */
+ const CATDEF='מק״ט|דגם|תיאור|סיווג|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|שווי עודף';
  const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
    th:[...document.querySelectorAll('#tbl thead th')]
      .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
