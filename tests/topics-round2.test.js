@@ -53,7 +53,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  await T.click('#lite tr.r');await T.waitForSelector('#tpd [data-profoff="1"]');
  await T.click('#tpd [data-profoff="1"]');await T.waitForTimeout(400);
  const a1=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
-  return {off:profOff(r),up:pdUpgrade(r),info:profInfo(r),inProf:TOPICS.fix.rows().filter(TOPICS.fix.cats[0][3]).includes(r),
+  return {off:profOff(r),up:pdUpgrade(r),info:profInfo(r),inProf:TOPICS.fix.rows().filter(TOPICS.fix.cats.find(c=>c[0]==='prof')[3]).includes(r),
    inShort:TOPICS.short.rows().includes(r),inCust:TOPICS.cust.rows().includes(r),n1:profRows().filter(profActive).length,
    undo:!!document.querySelector('#tpd [data-profoff="0"]'),stored:JSON.parse(localStorage.getItem('planner_profoff_v1')||'{}')[k],
    why:(r.why||[]).map(w=>w[1]).join(' | '),backup:Object.keys(stateBlob().keys).includes('planner_profoff_v1')}},pick.key);
@@ -112,7 +112,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   const f2=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'srv-')),'srv.xlsx');XLSX.writeFile(w2,f2);
   const S=await ctx.newPage();S.on('pageerror',e=>errs.push(e.message));await S.goto(HTML+'?topics');await S.waitForTimeout(400);
   await S.setInputFiles('#f',f2);await S.waitForSelector('#lite table',{timeout:120000});
-  const r=await S.evaluate(pk=>{const data=TOPICS.fix.rows().filter(TOPICS.fix.cats[2][3]).map(r=>r.pn);const by=pn=>ALL.find(x=>x.pn===pn);
+  const r=await S.evaluate(pk=>{const data=TOPICS.fix.rows().filter(TOPICS.fix.cats.find(c=>c[0]==='data')[3]).map(r=>r.pn);const by=pn=>ALL.find(x=>x.pn===pn);
    return {data,srv:[pk.mgd,pk.burn,pk.pd].map(pn=>by(pn).srvMissing),engBurn:!!by(pk.burn).serviceMissing,n:QF.all.filter(tpSrvMissing).length}},pk);
   ok('רמת שירות 0 → srvMissing בשלושת הפריטים (שדה המנוע)',r.srv.every(Boolean),JSON.stringify(r.srv));
   ok('«נתונים שבורים»: פריט מנוהל עם צריכה ורמת שירות חסרה — נכנס',r.data.includes(pk.mgd),r.data.join(','));
