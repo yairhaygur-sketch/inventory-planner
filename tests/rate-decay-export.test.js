@@ -75,18 +75,24 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  for(const i of ITEMS.filter(i=>E[i.pn]&&!E[i.pn].paramFix))
   ok(`${i.pn}: אינו «לתקן ב-SAP» (${E[i.pn].cat}) — ולכן אינו בקובץ`,!seen[i.pn]);
 
- /* 3 · ייצוא האקסל — הגיליון «כל הנתונים · כל הפריטים» */
+ /* 3 · ייצוא האקסל. XLS_REFORM (23.11): ROP ו-SS המוצעים ב«נתונים עיקריים»
+    («נקודת הזמנה מוצעת», «מלאי ביטחון מוצע»), ביקוש בזמן האספקה ו-ssMin ב«פירוט מלא».
+    אותם ערכים בדיוק — רק הגיליון ושם העמודה. */
  const X=await p.evaluate(()=>{setMode('catalog');window.__cap.length=0;doExport();return window.__cap.slice()});
- const sh=X.length&&X[0].sheets.find(s=>/כל הנתונים/.test(s[0]));
- ok('האקסל נכתב, עם גיליון «כל הנתונים»',!!sh,X.length?X[0].sheets.map(s=>s[0]).join(' | '):'לא נכתב');
- if(sh){const t=sh[1];const hi=t.findIndex(r=>r&&r.includes('ROP מוצע'));const h=t[hi]||[];
-  const col=k=>h.indexOf(k);const ip=h.findIndex(c=>/מק״ט|מק"ט/.test(String(c)));
-  const need=['ROP מוצע','SS מוצע','ביקוש בזמן האספקה','רצפת ssMin מ-SAP'];
-  ok('העמודות קיימות באקסל',ip>=0&&need.every(k=>col(k)>=0),need.filter(k=>col(k)<0).join(', '));
-  for(const i of ITEMS){const e=E[i.pn];const r=t.find(r=>r&&r[ip]===i.pn);
+ const tab=n=>{const s=X.length&&X[0].sheets.find(s=>s[0]===n);if(!s)return null;const t=s[1];
+  const hi=t.findIndex(r=>r&&r.some(c=>/^מק[״"]ט/.test(String(c))));const h=t[hi]||[];
+  return {t,h,col:k=>h.indexOf(k),ip:h.findIndex(c=>/מק״ט|מק"ט/.test(String(c)))}};
+ const M=tab('נתונים עיקריים'),F=tab('פירוט מלא');
+ ok('האקסל נכתב, עם «נתונים עיקריים» ו«פירוט מלא»',!!M&&!!F,X.length?X[0].sheets.map(s=>s[0]).join(' | '):'לא נכתב');
+ if(M&&F){
+  const needM=['נקודת הזמנה מוצעת','מלאי ביטחון מוצע'],needF=['ביקוש בזמן האספקה','רצפת ssMin מ-SAP'];
+  ok('העמודות קיימות באקסל',M.ip>=0&&F.ip>=0&&needM.every(k=>M.col(k)>=0)&&needF.every(k=>F.col(k)>=0),
+   needM.filter(k=>M.col(k)<0).concat(needF.filter(k=>F.col(k)<0)).join(', '));
+  for(const i of ITEMS){const e=E[i.pn];const m=M.t.find(r=>r&&r[M.ip]===i.pn),f=F.t.find(r=>r&&r[F.ip]===i.pn);
+   const rop=m&&m[M.col('נקודת הזמנה מוצעת')],ss=m&&m[M.col('מלאי ביטחון מוצע')],mn=f&&f[F.col('רצפת ssMin מ-SAP')],dl=f&&f[F.col('ביקוש בזמן האספקה')];
    ok(`${i.pn} באקסל: ROP ${e&&e.rop} · SS ${e&&e.ss} · ssMin ${i.ssMin} · ביקוש בזמן אספקה ${e&&e.dLT.toFixed(2)}`,
-    !!r&&r[col('ROP מוצע')]===e.rop&&r[col('SS מוצע')]===e.ss&&r[col('רצפת ssMin מ-SAP')]===i.ssMin&&r[col('ביקוש בזמן האספקה')]===+e.dLT.toFixed(2),
-    r?`${r[col('ROP מוצע')]} · ${r[col('SS מוצע')]} · ${r[col('רצפת ssMin מ-SAP')]} · ${r[col('ביקוש בזמן האספקה')]}`:'לא נמצא')}}
+    !!m&&!!f&&rop===e.rop&&ss===e.ss&&mn===i.ssMin&&dl===+e.dLT.toFixed(2),
+    m&&f?`${rop} · ${ss} · ${mn} · ${dl}`:'לא נמצא')}}
  ok('אין שגיאות JS',!errs.length,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(out.join('\n'));console.log(`\n${out.length-bad} עברו · ${bad} נכשלו`);

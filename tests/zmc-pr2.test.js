@@ -49,9 +49,9 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('המונה במסילה לא השתנה (להעלות + להוריד + לבדוק — רכש פתוח)',all.nav===all.act&&all.act===all.upChk,`${all.nav}`);
  /* הטאב חל על הטבלה ועל «התצוגה» בלבד: רשימת המסך (currentRows), גיליון «כל הנתונים» וקובץ ה-SAP — כל השורות, כמו קודם */
  const M=await p.evaluate(()=>{window.__cap=[];const o=XLSX.writeFile;XLSX.writeFile=(wb,name)=>{const sh={};for(const sn of wb.SheetNames)sh[sn]=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1}).length-1;window.__cap.push(sh)};
-  try{doExport()}finally{XLSX.writeFile=o}const sh=window.__cap[0]||{};const main=Object.keys(sh).find(n=>/^כל הנתונים/.test(n));
+  try{doExport()}finally{XLSX.writeFile=o}const sh=window.__cap[0]||{};const main='פירוט מלא' in sh?'פירוט מלא':null;/* XLS_REFORM (23.11): «כל הנתונים» → «פירוט מלא», אותה ספירה */
   return {cur:currentRows().length,all:profRows().length,main:main?sh[main]:null,view:sh['התצוגה']}});
- ok('רשימת המסך וגיליון «כל הנתונים» — כל השורות של שני הטאבים, כמו קודם',M.cur===all.n&&M.main===all.n,`${M.cur}/${M.main}/${all.n}`);
+ ok('רשימת המסך וגיליון «פירוט מלא» — כל השורות של שני הטאבים, כמו קודם',M.cur===all.n&&M.main===all.n,`${M.cur}/${M.main}/${all.n}`);
  ok('גיליון «התצוגה» — רק הטאב הפתוח',M.view===all.up,`${M.view}/${all.up}`);
  ok('גיליון «התצוגה»: הטאב הפתוח, אותן עמודות ואותו סדר',A.sheet&&JSON.stringify(A.sheet.keys)===JSON.stringify(A.heads)&&A.sheet.n===A.n&&JSON.stringify(A.sheet.pns)===JSON.stringify(A.pns),A.sheet&&A.sheet.n);
  ok('ROP/SS אחרי ZM-C בגיליון — עם «(סימולציה)» בכותרת',A.sheet.head.includes('ROP אחרי ZM-C (סימולציה)')&&A.sheet.head.includes('SS אחרי ZM-C (סימולציה)'),A.sheet.head.slice(7,9).join(' | '));

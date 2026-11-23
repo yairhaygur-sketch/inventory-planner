@@ -90,8 +90,9 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
   return {file:f?f.name:null,sheets:f?Object.fromEntries(Object.entries(f.sheets).map(([k,v])=>[k,v.rows])):null,
    mov:movRows().length,all:QF.all.length,toast:t}});
  ok('תנועות · «ייצוא לאקסל» מוריד קובץ',!!M.file&&errs.length===e0,M.file||errs.slice(e0).join(' | '));
- ok('תנועות · «התצוגה» = טבלת התנועות, «כל הנתונים» = כל הפריטים',
-   M.sheets&&M.sheets['התצוגה']===M.mov&&Object.entries(M.sheets).some(([k,v])=>/^כל הנתונים/.test(k)&&v===M.all),JSON.stringify(M.sheets));
+ /* XLS_REFORM (23.11): «כל הנתונים» → «פירוט מלא» (שורת כותרת אחת — אותה ספירה) */
+ ok('תנועות · «התצוגה» = טבלת התנועות, «פירוט מלא» = כל הפריטים',
+   M.sheets&&M.sheets['התצוגה']===M.mov&&M.sheets['פירוט מלא']===M.all,JSON.stringify(M.sheets));
  const SB=await p.evaluate(()=>['sapXls','sapSlowXls'].map(id=>{const b=document.getElementById(id);
   __cap.length=0;b.click();const t=document.getElementById('toast').textContent;
   return {id,aria:b.getAttribute('aria-disabled'),na:b.classList.contains('na'),title:b.title,toast:t,
