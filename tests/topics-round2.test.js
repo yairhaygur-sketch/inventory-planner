@@ -134,7 +134,8 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   await P.click('#lite tr.r [data-tp="copy"]');await P.waitForTimeout(250);
   const cp=await P.evaluate(async()=>({drawer:!document.getElementById('tpd').hidden,clip:await navigator.clipboard.readText().catch(()=>null)}));
   ok('העתקה: המק״ט בלוח, והכרטיס לא נפתח',!cp.drawer&&(cp.clip===null||cp.clip===row.pn),JSON.stringify(cp));
-  await P.click('#lite tr.r [data-tp="done"]');await P.waitForTimeout(400);
+  /* TP_DONE_NOTE (23.11, אושר): «טופל» פותח שדה הערה לא חובה — Enter מסמן */
+  await P.click('#lite tr.r [data-tp="done"]');await P.press('#tpdnN','Enter');await P.waitForTimeout(400);
   const d=await P.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
    return {mark:MARKS[k]&&MARKS[k].t,n1:tpRows('cust',true).length,inAny:Object.keys(TOPICS).filter(k=>k!=='all').some(t=>tpRows(t,true).includes(r)),
     list:!!document.querySelector('#lite details.off [data-tp="undone"]')}},row.key);

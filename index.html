@@ -3458,6 +3458,8 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 @media(min-width:1920px){html.lite #tpd:not([hidden]){width:640px}}
 #tpd .dh{padding:10px 18px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 #tpd .dnav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#tpd .tpprev{margin:6px 0 0;padding:6px 9px;border-inline-start:3px solid var(--accent-ink);background:var(--surface-2);font-size:var(--f-sm,13px)}
+#lite .tpnote{cursor:help;margin-inline-end:4px}
 #tpd .dnav .tpdone{font-weight:700;color:var(--accent-ink);border-color:var(--accent-ink)}
 #tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
 #tpd button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-ctl);padding:3px 10px;cursor:pointer}
@@ -15003,7 +15005,7 @@ function tpAlso(r){if(TP.tab==='all')return '';/* TP_ALL: שם יש עמודת �
 const TP_HEAD=[
  {k:'pn',l:'מק״ט',v:r=>r.pn,h:r=>`<b>${esc(r.pn)}</b><span class="tpa"><button type="button" class="tpi" data-tp="copy" data-pn="${esc(r.pn)}" title="העתק מק״ט" aria-label="העתק מק״ט ${esc(r.pn)}">⧉</button><button type="button" class="tpi" data-tp="done" data-key="${esc(markKey(r))}" title="סמן «טופל» — יוסר מהרשימה, בשני הכלים. חוזר אחרי 7 ימים אם הבעיה לא תוקנה" aria-label="סמן ${esc(r.pn)} כטופל">✓ טופל</button></span>`},
  /* הדגם אחרי התיאור, באותו תא (בעמודה נפרדת הטבלה של «טיוב נתונים» חרגה מ-1366px); ב-CSV — עמודה משלו */
- {k:'desc',l:'תיאור · דגם',v:r=>r.desc,c:'d',h:r=>`${tpAlso(r)}${esc(r.desc||'')}${r.model?`<div class="tpm">${esc(r.model)}</div>`:''}`,x:[['תיאור',r=>r.desc],['דגם',r=>r.model]]},
+ {k:'desc',l:'תיאור · דגם',v:r=>r.desc,c:'d',h:r=>`${tpAlso(r)}${tpPrevIcon(r)}${esc(r.desc||'')}${r.model?`<div class="tpm">${esc(r.model)}</div>`:''}`,x:[['תיאור',r=>r.desc],['דגם',r=>r.model]]},
  {k:'planner',l:'מתכנן',v:r=>r.planner}];
 /* ============ ארבעת הנושאים — הסדר ותתי-הקטגוריות שהמעתד קבע (1.11) ============
    כל תת-קטגוריה היא בורר של המנוע המשותף, בלי חישוב חדש ובלי סף חדש:
@@ -15213,9 +15215,10 @@ const tpTopicsOf=r=>TP_REAL.filter(k=>TP.inSets&&TP.inSets[k]&&TP.inSets[k].has(
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
 const tpDone=r=>!!(r&&r.mark&&r.mark.t==='handled');
 /* «טופלו» — כל הפריטים שסומנו (בשני הכלים), עם ביטול */
-function tpDoneList(){const l=((QF&&QF.all)||[]).filter(tpDone);if(!l.length)return '';
+/* TP_DONE_NOTE: מהאחרון שסומן לראשון — תאריך ושעה, ההערה, וכמה ימים עד שהפריט חוזר */
+function tpDoneList(){const l=((QF&&QF.all)||[]).filter(tpDone).sort((a,b)=>(b.mark.ts||0)-(a.mark.ts||0));if(!l.length)return '';
  return `<details class="off"><summary>${l.length.toLocaleString('he-IL')} פריטים סומנו «טופל» — הוסרו מהרשימות (בשני הכלים), וחוזרים אחרי ${DAYS(markTTL('handled'))} ימים אם הבעיה לא תוקנה</summary><ul>${l.map(r=>
-  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(r.mark.ts).toLocaleDateString('he-IL'))} <button type="button" class="btn" data-tp="undone" data-key="${esc(markKey(r))}">↺ החזר לרשימה</button></li>`).join('')}</ul></details>`}
+  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(tpFmtTs(r.mark.ts))}${r.mark.note?` · <i>${esc(r.mark.note)}</i>`:''} · חוזר בעוד ${Math.max(0,Math.ceil((markTTL('handled')-(Date.now()-r.mark.ts))/864e5))} ימים <button type="button" class="btn" data-tp="undone" data-key="${esc(markKey(r))}">↺ החזר לרשימה</button></li>`).join('')}</ul></details>`}
 function tpCopy(t){
  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
  else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
@@ -15422,7 +15425,7 @@ function tpdBody(t,r){
  /* TP_STOCK_TOP (23.11, הערת משתמשים; אושר) — מצב המלאי ב-SAP הוא הדבר הראשון בכרטיס: השורה
     (לקוח · פנוי · רכש פתוח · בהעברה · פער) וסה״כ המלאי. «תנועה אחרונה» נשארת למטה */
  return `<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
-   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p></section>
+   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p>${tpPrevNote(r)}</section>
   <section class="q3 ${tone}">
    <div class="qa"><h3>מה הבעיה</h3><div class="big">${tpdProblem(t,r)}</div>
     ${why.length?`<ul>${why.map(([c,m])=>`<li class="${esc(c)}">${esc(m)}</li>`).join('')}</ul>`:''}</div>
@@ -15461,9 +15464,24 @@ function tpdPos(){const L=TP.list||[],i=L.indexOf(TP.open);
    מקש D, הכפתור «✓ טופל» בכרטיס, ו«✓ טופל» בשורה כשהכרטיס של אותה שורה פתוח — כולם כאן: מסמן «טופל»
    (אותו setMark של הכלי המלא), והכרטיס נשאר פתוח על הפריט הבא ברשימה. בלי כרטיס פתוח — המיקוד עובר
    לשורה הבאה. ב«כל הפריטים» פריט שטופל נשאר ברשימה, ולכן «הבא» הוא השורה שאחריו. */
-function tpDoneNext(r){const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=TP.open===r;
+/* TP_DONE_NOTE (בקשת המעתד 23.11) — הערה לא חובה ב«טופל» (נשמרת על הסימון, setMark), וכשהפריט חוזר
+   לרשימה אחרי שהסימון פג (markStale) — ההערה והתאריך בכרטיס ובבועית בשורה */
+const tpFmtTs=ts=>{const d=new Date(ts);return `${d.toLocaleDateString('he-IL')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+const tpPrev=r=>{const m=r&&r.markStale;return m&&m.t==='handled'?m:null};
+function tpPrevNote(r){const m=tpPrev(r);if(!m)return '';
+ return `<p class="tpprev">סומן «טופל» ב-${esc(tpFmtTs(m.ts))}${m.note?`: <b>${esc(m.note)}</b>`:' (בלי הערה)'} — וחזר לרשימה.</p>`}
+const tpPrevIcon=r=>{const m=tpPrev(r);return m?`<span class="tpnote" title="${esc(`סומן «טופל» ב-${tpFmtTs(m.ts)}${m.note?': '+m.note:''}`)}" aria-label="הערה קודמת">📝</span>`:''};
+function tpDoneAsk(btn,r){const pop=document.getElementById('colpop');if(!pop)return;
+ pop.innerHTML=`<label class="mini" for="tpdnN">הערה (לא חובה)</label><input class="cs" id="tpdnN" maxlength="200" placeholder="למשל: אין אפשרות לזרז, אין מקום להזמנת VOR">
+  <div class="act"><button type="button" id="tpdnX">ביטול</button><button type="button" class="ok" id="tpdnOk">✓ סמן טופל</button></div>`;
+ const rc=btn.getBoundingClientRect();pop.style.top=(rc.bottom+4)+'px';let left=rc.right-240;if(left<8)left=8;pop.style.left=left+'px';
+ pop.classList.add('open');pop.onclick=e=>e.stopPropagation();
+ const inp=document.getElementById('tpdnN'),go=()=>{const n=inp.value.trim();closeColPop();tpDoneNext(r,n)};
+ document.getElementById('tpdnOk').onclick=go;document.getElementById('tpdnX').onclick=()=>closeColPop();
+ inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();go()}else if(e.key==='Escape'){e.preventDefault();closeColPop()}};inp.focus()}
+function tpDoneNext(r,note){const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=TP.open===r;
  if(wasOpen)tpdClose();
- const oth=tpOthers(r);setMark(r,'handled','');toast(tpDoneMsg(r,oth));
+ const oth=tpOthers(r);setMark(r,'handled',note||'');toast(tpDoneMsg(r,oth));
  const L=TP.list||[],still=L.includes(r),j=still?i0+1:Math.max(i0,0),nx=L[Math.min(j,L.length-1)];
  if(!nx||nx===r)return;
  if(wasOpen)tpdShow(nx);
@@ -15674,7 +15692,8 @@ if(LITE){
   else if(a.tp==='funset'){delete TP.f[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='cfunset'){const F=TP.cf[TP.tab];if(F)delete F[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
-   if(a.tp==='done'&&TP.open===r){tpDoneNext(r);return}
+   /* TP_DONE_NOTE: «טופל» שואל הערה (לא חובה), ואז מסמן ועובר לבא */
+   if(a.tp==='done'){e.stopPropagation();tpDoneAsk(b,r);return}
    const oth=a.tp==='done'?tpOthers(r):[];
    setMark(r,a.tp==='done'?'handled':'','');
    toast(a.tp==='done'?tpDoneMsg(r,oth):`${r.pn} הוחזר לרשימה`)}
@@ -15691,7 +15710,7 @@ if(LITE){
   if(k==='close')tpdClose();
   else if(k==='prev')tpdStep(-1);
   else if(k==='next')tpdStep(1);
-  else if(k==='done'){if(TP.open)tpDoneNext(TP.open)}
+  else if(k==='done'){if(TP.open){e.stopPropagation();tpDoneAsk(b,TP.open)}}
   else if(k==='explain'&&TP.open)explain(TP.open);
   else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
    toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
