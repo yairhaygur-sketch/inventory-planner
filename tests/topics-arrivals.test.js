@@ -45,7 +45,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  /* 3 · עם דוח ETA */
  await p.setInputFiles('#fe',ETAX);await p.waitForTimeout(2500);
  await p.evaluate(()=>{TP.view='arr';tpRender()});
- const A=await p.evaluate(()=>{const D=tpArrData(),inTopic=new Set(Object.keys(TOPICS).flatMap(k=>tpRows(k,true)));
+ const A=await p.evaluate(()=>{const D=tpArrData(),inTopic=new Set(Object.keys(TOPICS).filter(k=>k!=='all').flatMap(k=>tpRows(k,true)));
   /* מימוש עצמאי: לכל פריט בנושא — כל שורות ה-ETA שלו, מקובצות לפי תאריך */
   const exp={};for(const r of inTopic){for(const [q,d] of (ETA.byPn[etaKey(r.pn)]||[])){if(!d)continue;(exp[d]=exp[d]||{q:0,s:new Set()}).q+=q;exp[d].s.add(r)}}
   const det=[...document.querySelectorAll('#lite details.arr')];

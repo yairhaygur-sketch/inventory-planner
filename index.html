@@ -14923,7 +14923,7 @@ function tpColsPanel(t,plOne){const st=tpColsState(t),seen=x=>x.on&&(ETA||!x.c.e
 const TP_FILT=[['supplier','ספק','כל הספקים'],['brand','מותג','כל המותגים'],['model','דגם','כל הדגמים'],
  ['mkt1','קבוצת שיווק','כל קבוצות השיווק'],['grp','קבוצת חומרים','כל קבוצות החומרים'],['mrp','סוג MRP','כל סוגי ה-MRP'],['abc','ABC','כל ה-ABC']];
 const tpFilt=r=>TP_FILT.every(([k])=>!TP.f[k]||String(r[k]==null?'':r[k])===TP.f[k]);
-try{const h=location.hash.slice(1);if(['fix','trend','cust','short'].includes(h))TP.tab=h}catch(_){}
+try{const h=location.hash.slice(1);if(['fix','trend','cust','short','all'].includes(h))TP.tab=h}catch(_){}
 const TP_SRC={stat:'סטטיסטי',sap:'מינימום מ-SAP',policy:'מינימום לפי מחיר',none:'—',od:'לפי דרישה',nostock:'לא לחידוש'};
 const tpN=v=>v==null||v===''||isNaN(v)?'—':(+v).toLocaleString('he-IL',{maximumFractionDigits:1});
 const tpPair=(a,b)=>a===b?tpN(b):`<span class="old">${tpN(a)}</span> ← <b>${tpN(b)}</b>`;
@@ -14994,7 +14994,7 @@ const TP_SHORT={cust:'לקוחות',trend:'חריגת צריכה',short:'מלא�
 /* «טופל» הוא סימון אחד לפריט (handled של הכלי המלא) — הוא יורד מכל הנושאים, וההודעה אומרת מאילו */
 const tpDoneMsg=(r,oth)=>`${r.pn} סומן «טופל» והוסר מהרשימה${oth.length?` — וגם מ${oth.map(k=>TOPICS[k].t).join(' ומ')}`:''} · ביטול ב«טופלו»`;
 function tpOthers(r){const S=TP.inSets||{};return Object.keys(S).filter(k=>k!==TP.tab&&S[k].has(r))}
-function tpAlso(r){const o=tpOthers(r);return o.length?`<span class="also" title="הפריט מופיע גם ב: ${esc(o.map(k=>TOPICS[k].t).join(' · '))}">גם ב${esc(o.map(k=>TP_SHORT[k]).join(', '))} · </span>`:''}
+function tpAlso(r){if(TP.tab==='all')return '';/* TP_ALL: שם יש עמודת «נושא» */const o=tpOthers(r);return o.length?`<span class="also" title="הפריט מופיע גם ב: ${esc(o.map(k=>TOPICS[k].t).join(' · '))}">גם ב${esc(o.map(k=>TP_SHORT[k]).join(', '))} · </span>`:''}
 /* עמודות משותפות לכל הנושאים — מק״ט, תיאור, מתכנן */
 /* ליד כל מק״ט (החלטת המעתד 11.11): העתקה, ו«טופל» — אותו סימון handled של הכלי
    המלא (setMark): הפריט יורד מהרשימות בשני הכלים, וחוזר אחרי 7 ימים אם לא תוקן
@@ -15187,7 +15187,27 @@ const TOPICS={
     h:r=>{const v=tpRecVal(r);return v==null||v===0?'—':(v>0?'+':'−')+money(Math.abs(v),r.currency)},
     x:[['שווי שינוי',r=>{const v=tpRecVal(r);return v==null?'':Math.round(v)}],['מטבע',r=>r.currency]]},
    ...tpFobCols(),
-   tpActCol('fix')]}};
+   tpActCol('fix')]},
+ /* ============ TP_ALL — לשונית «כל הפריטים» (הערת משתמשים 23.11, אושר) ============
+    כל פריטי הדוח, כולל מה שטופל או נוטרל — כמו «קטלוג פריטים» בכלי המלא, עם העמודות שלו ועמודת «נושא»
+    (באיזה מארבעת הנושאים הפריט מופיע). חיפוש, מיון וסינון בכותרות כמו בשאר הטבלאות; הכרטיס בלחיצה.
+    לא נושא: לא נספר ב«גם ב…», לא בלוח ההגעות ולא ב«בוער עכשיו». */
+ all:{t:'כל הפריטים',short:'כל פריטי הדוח — חיפוש לפי מק״ט או תיאור, מיון וסינון בכותרות, וכרטיס בלחיצה.',
+  lead:'כל הפריטים שבדוח, גם אלה שאינם באף אחד מארבעת הנושאים, וגם מה שסומן «טופל» או נוטרל. העמודות כמו ב«קטלוג פריטים» של הכלי המלא; «נושא» אומר באיזה נושא הפריט מופיע עכשיו.',
+  rows:()=>((QF&&QF.all)||[]).slice(),cats:[],
+  cols:[
+   {k:'cat',l:'סיווג',v:r=>r.cat||null,h:r=>`<span class="badge" style="${sCatStyle(r)}">${esc(r.cat||'—')}</span>`},
+   {k:'spark',l:'11 חודשים',v:r=>(r.months||[]).reduce((a,b)=>a+Math.max(0,b||0),0),h:r=>(r.months&&r.A)?sparkline(r):'—',x:[['צריכה 11 חודשים',r=>(r.months||[]).reduce((a,b)=>a+Math.max(0,b||0),0)]]},
+   {k:'miss',l:'חסר',n:1,v:r=>r.miss>0?-r.miss:(r.orderQty>0?r.orderQty:0),h:r=>missCell(r)},
+   {k:'free',l:'מלאי פנוי',n:1,v:r=>r.free||0},
+   {k:'cust',l:'לקוח',n:1,v:r=>r.cust||0},
+   {k:'po',l:'רכש פתוח',n:1,v:r=>r.po||0},
+   {k:'cov',l:'כיסוי (ח׳)',n:1,v:r=>r.covA==null?null:+r.covA.toFixed(1)},
+   {k:'risk',l:'שווי עודף',n:1,v:r=>r.risk||0,h:r=>r.risk?money(r.risk,r.currency):'—',x:[['שווי עודף',r=>r.risk||0],['מטבע',r=>r.currency||'']]},
+   {k:'topic',l:'נושא',v:r=>tpTopicsOf(r).map(k=>TP_SHORT[k]).join(', ')||null,h:r=>{const L=tpTopicsOf(r);return L.length?L.map(k=>`<span class="p gry">${esc(TP_SHORT[k])}</span>`).join(' '):'—'}}]}};
+/* ארבעת הנושאים עצמם — בלי «כל הפריטים» */
+const TP_REAL=['cust','trend','short','fix'];
+const tpTopicsOf=r=>TP_REAL.filter(k=>TP.inSets&&TP.inSets[k]&&TP.inSets[k].has(r));
 /* הקטגוריה הראשונה שהשורה עונה עליה — לעמודת «סוג» / «מצב» */
 function tpKind(r){const c=TOPICS[TP.tab].cats.find(c=>c[3](r));return c||['','—','gry']}
 const tpDone=r=>!!(r&&r.mark&&r.mark.t==='handled');
@@ -15201,7 +15221,7 @@ function tpCopy(t){
   try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}
 function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
   cat=k?T.cats.find(c=>c[0]===k):null;
- return T.rows().filter(r=>!tpDone(r)&&!isNeutral(r)&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
+ return T.rows().filter(r=>(t==='all'||(!tpDone(r)&&!isNeutral(r)))&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
   &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r))&&tpCF(t,r))}
 /* ============ TP_COLFILT — מיון וסינון בכותרות, כמו בכלי המלא (הערת משתמשים 23.11, אושר) ============
    לחיצה על כותרת ממיינת (כמו קודם); ▾ פותח חלונית: מיון עולה/יורד, חיפוש בעמודה, רשימת ערכים לסימון
@@ -15271,6 +15291,7 @@ const tpdHasCons=r=>(r.months||[]).some(v=>v>0)||(r.curMonth||0)>0;
 const tpdDate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?`${m[3]}.${m[2]}.${m[1]}`:esc(s||'—')};
 /* מה הבעיה — משפט אחד לפי הנושא, ממספרי המנוע */
 function tpdProblem(t,r){const N=tpN;
+ if(t==='all')return `${esc(r.cat||'—')} — הפריט אינו באף אחד מארבעת הנושאים. ${esc((r.why&&r.why[0]&&r.why[0][1])||'')}`;
  if(t==='fix'){
   /* CLEANUP (22.11): מועמד שהסימולציה מצאה בו סיבה — המשפט הראשון אומר «לבדוק» ולמה, כמו הקטע «המלצת פרופיל» */
   if(pdUpgrade(r)){const x=profStatus(r);if(x&&x.k==='rev')return `לבדוק לפני שינוי פרופיל מ-PD ל-ZM-C: ${x.why}.`;
@@ -15436,7 +15457,8 @@ function tpdIssues(r){const out=[];
 function tpdPos(){const L=TP.list||[],i=L.indexOf(TP.open);
  return {i,n:L.length,txt:i>=0?`${(i+1).toLocaleString('he-IL')} מתוך ${L.length.toLocaleString('he-IL')}`:'לא בסינון הנוכחי'}}
 function tpdShow(r,keepFocus){const el=document.getElementById('tpd');if(!el)return;TP.open=r;
- const t=TP.tab,p=tpdPos();
+ /* TP_ALL: בלשונית «כל הפריטים» הכרטיס כמו בנושא הראשון שבו הפריט מופיע; פריט שאינו בנושא — משפט כללי */
+ const t=TP.tab==='all'?(tpTopicsOf(r)[0]||'all'):TP.tab,p=tpdPos();
  el.innerHTML=`<div class="dh"><div class="dnav"><span class="pos" aria-live="polite">${p.txt}</span>
    <button type="button" data-tpd="prev" ${p.i<=0?'disabled':''} title="הקודם (↑)">▲ הקודם</button>
    <button type="button" data-tpd="next" ${p.i>=0&&p.i>=p.n-1?'disabled':''} title="הבא (↓)">▼ הבא</button>
@@ -15483,7 +15505,7 @@ function arrDays(pairs){const days=new Map();
   for(const l of ls){const [q,d,dl,po]=l;if(!d)continue;const x=days.get(d)||[];x.push({r,q,dl,po,ref:etaRef(l),tk});days.set(d,x)}}
  const t=etaToday();return [...days].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0).map(([d,ls])=>({d,past:d<t,ls,q:ls.reduce((a,x)=>a+x.q,0),n:new Set(ls.map(x=>x.r)).size}))}
 function tpArrData(){if(!ETA||!ETA.byPn)return null;const by=new Map();
- for(const k of Object.keys(TOPICS))for(const r of tpRows(k,true)){const x=by.get(r)||[];x.push(k);by.set(r,x)}
+ for(const k of TP_REAL)for(const r of tpRows(k,true)){const x=by.get(r)||[];x.push(k);by.set(r,x)}
  return arrDays(by)}
 function tpArrivals(){const D=tpArrData();
  if(!D)return `<div class="etab" role="status"><b>אין דוח ETA</b><span>לוח ההגעות נבנה מדוח ה-ETA.</span><label class="btn" for="fe">העלאת דוח ETA</label></div>`;
@@ -15550,7 +15572,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const plOne=pls.length<=1||!!TP.pl;
  const cols=tpColsState(t).filter(x=>x.on).map(x=>x.c).filter(c=>(ETA||!c.eta)&&!(c.k==='planner'&&plOne)&&!(c.kind&&TP.cat[t]));
  const rowsBy={};for(const k of Object.keys(TOPICS))rowsBy[k]=tpRows(k,true);
- TP.inSets=Object.fromEntries(Object.entries(rowsBy).map(([k,l])=>[k,new Set(l)]));
+ TP.inSets=Object.fromEntries(TP_REAL.map(k=>[k,new Set(rowsBy[k])]));
  /* TOPICS_UX #11: בלשונית — גם החלק הדחוף, באדום */
  const URG_TAB={cust:['none','בלי רכש'],short:['zero','ב-0'],fix:['data','שבורים']};
  const nav=Object.keys(TOPICS).map((k,i)=>{const u=URG_TAB[k],c=u&&TOPICS[k].cats.find(x=>x[0]===u[0]),un=c?rowsBy[k].filter(c[3]).length:0;

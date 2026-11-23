@@ -136,7 +136,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   ok('העתקה: המק״ט בלוח, והכרטיס לא נפתח',!cp.drawer&&(cp.clip===null||cp.clip===row.pn),JSON.stringify(cp));
   await P.click('#lite tr.r [data-tp="done"]');await P.waitForTimeout(400);
   const d=await P.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
-   return {mark:MARKS[k]&&MARKS[k].t,n1:tpRows('cust',true).length,inAny:Object.keys(TOPICS).some(t=>tpRows(t,true).includes(r)),
+   return {mark:MARKS[k]&&MARKS[k].t,n1:tpRows('cust',true).length,inAny:Object.keys(TOPICS).filter(k=>k!=='all').some(t=>tpRows(t,true).includes(r)),
     list:!!document.querySelector('#lite details.off [data-tp="undone"]')}},row.key);
   ok('«טופל»: סימון handled (של הכלי המלא), הפריט ירד מכל הנושאים, ומופיע ברשימת «טופלו»',d.mark==='handled'&&d.n1===row.n0-1&&!d.inAny&&d.list,JSON.stringify(d));
   const F2=await open('?nobrief=1');
@@ -163,7 +163,7 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   for(const k of keys){const v=await P.evaluate(k=>{const s=document.querySelector(`#lite [data-tpf="${k}"]`);return s.options.length>1?s.options[1].value:null},k);
    if(v==null){ok(`${k}: יש ערכים לבחירה`,false);continue}
    await P.selectOption(`#lite [data-tpf="${k}"]`,v);await P.waitForTimeout(150);
-   const r=await P.evaluate(([k,v])=>Object.keys(TOPICS).every(t=>{const got=tpRows(t,true),exp=TOPICS[t].rows().filter(r=>!tpDone(r)&&String(r[k])===v);
+   const r=await P.evaluate(([k,v])=>Object.keys(TOPICS).filter(k=>k!=='all').every(t=>{const got=tpRows(t,true),exp=TOPICS[t].rows().filter(r=>!tpDone(r)&&String(r[k])===v);
      return got.length===exp.length&&got.every(x=>String(x[k])===v)&&+String(document.querySelector(`[data-tp-tab="${t}"] .n`).textContent).replace(/[^\d]/g,'')===got.length}),[k,v]);
    ok(`סינון ${k}="${v}": בכל ארבעת הנושאים — רק פריטים עם הערך, והמונים תואמים`,r);
    await P.selectOption(`#lite [data-tpf="${k}"]`,'');await P.waitForTimeout(100)}
