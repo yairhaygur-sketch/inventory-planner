@@ -254,7 +254,8 @@ XLSX.writeFile((()=>{const wb=XLSX.utils.book_new();
               return /לאפס נקודת הזמנה|ROP\/SS מאופסים/.test(a)&&act.test(a)})
               .map(x=>`${x.pn}: ${(x.act||[]).join(' | ')}`);
 
-            o.ropFormula=ALL.filter(x=>!x.isOD&&x.sugROP<Math.ceil(x.dLT+x.sugSS)).map(x=>x.pn);
+            /* HOLD_EXCESS (22.11): בפריט מושהה ההמלצה היא הערך שב-SAP בכוונה; החוק נבדק על הערך המחושב (holdRaw) */
+            o.ropFormula=ALL.filter(x=>!x.isOD&&(x.holdRaw?x.holdRaw.rop:x.sugROP)<Math.ceil(x.dLT+(x.holdRaw?x.holdRaw.ss:x.sugSS))).map(x=>x.pn);
             return o})(),
           inv:{ssGtRop:ALL.filter(x=>x.sugSS>x.sugROP).length,
                header:(COLS.find(c=>c[0]==='risk')||[])[1]},

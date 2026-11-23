@@ -910,8 +910,11 @@ Changes to these areas require explicit business approval.
   suggested ROP. The card says «fine for now» with the calculated values.
   - **Measured on the real report:** 63 items (34 excess, 29 slow) — 41 ROP
     raises and 38 SS raises held. The slow/dead SAP file 511 → 485 rows;
-    «demand falling» 118 → 114 (four items lost their gap); «demand rising»
-    keeps its items in a different order. Every other item is unchanged.
+    «demand falling» 118 → 114 and «demand rising» 126 → 121: the two
+    advisory numbers follow the held ROP (the damped one never above it, the
+    raised one never above it during a hold), so a held item is not told to
+    raise there either. The «two clocks» line, which explained a raise, is
+    removed from a held item. Every other item is unchanged.
   - **Excel:** the «suggested ROP / SS» columns and the two damped-rate
     columns follow the new values; declared cell by cell in
     `tests/export-expected.json` (synthetic data, 27 items and their copies).
