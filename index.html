@@ -3364,7 +3364,7 @@ body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
    כל מה שאינו התצוגה, האבחון, הטעינה, ההדגמה וההודעות — מוסתר. הכלי
    המלא נשאר ב-DOM ועובד כרגיל מאחור: ממנו באים הקובץ, המנוע והתורים. */
 #lite{display:none}
-html.lite body>:not(#lite):not(#tpd):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(#modalwrap):not(script){display:none!important}
+html.lite body>:not(#lite):not(#tpd):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(#modalwrap):not(#colpop):not(script){display:none!important}
 html.lite body{overflow:auto;background:var(--paper)}
 html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-height:1.5}
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
@@ -3415,6 +3415,10 @@ html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-heig
 #lite table{border-collapse:collapse;width:100%}
 #lite th{position:sticky;top:0;background:var(--surface-2);text-align:start;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom;white-space:normal;cursor:pointer;user-select:none}
 #lite th.on{color:var(--accent-ink)}
+#lite th .tpfil{border:0;background:none;color:var(--ink-3);cursor:pointer;padding:0 3px;font:inherit;font-size:11px}
+#lite th .tpfil::after{content:'▾'} /* הסימן ב-CSS: הטקסט של הכותרת נשאר שם העמודה בלבד */
+#lite th .tpfil:hover,#lite th.filt .tpfil{color:var(--accent-ink)} #lite th.filt{background:var(--surface-3,var(--surface-2));box-shadow:inset 0 -2px 0 var(--accent-ink)}
+#lite .arrt th{cursor:pointer;user-select:none} #lite .arrt th.on{color:var(--accent-ink)}
 #tpd .dneu{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px} #tpd .dneu button{font:inherit;font-size:var(--f-sm);border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:2px 10px;cursor:pointer;color:var(--ink)}
 #tpd .dneu button:hover{border-color:var(--ink)}
 #lite .neul{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px} #lite .neul h2{font-size:var(--f-lg);margin:0 0 6px} #lite .neul h2 .mini{font-weight:400}
@@ -14878,7 +14882,7 @@ applyLayout();
    הם בכלי המלא, והקישור «לכלי המלא» פותח אותו על אותו דוח (הדוח
    נטען מחדש — אין שיתוף זיכרון בין לשוניות).
    כסף: לפריט בלבד, במטבע שלו (money). אין סכום על פני פריטים. */
-const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null,colsOpen:false,view:'',neuOpen:false};
+const TP={tab:'cust',cat:{},q:'',pl:'',f:{},sort:{},lim:200,open:null,colsOpen:false,view:'',neuOpen:false,cf:{},arrSort:null};
 /* ============ TP_COLS — סדר העמודות ומה מוצג, לכל נושא בנפרד (החלטת המעתד 18.11) ============
    המעתד גורר כותרת למקום אחר, או פותח «עמודות» ומסמן / מזיז / מחזיר לברירת המחדל.
    נשמר בדפדפן (planner_tpcols_v1), לכל נושא בנפרד; שומרים רק את מה ששונה מברירת המחדל.
@@ -15198,7 +15202,47 @@ function tpCopy(t){
 function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
   cat=k?T.cats.find(c=>c[0]===k):null;
  return T.rows().filter(r=>!tpDone(r)&&!isNeutral(r)&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
-  &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r)))}
+  &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r))&&tpCF(t,r))}
+/* ============ TP_COLFILT — מיון וסינון בכותרות, כמו בכלי המלא (הערת משתמשים 23.11, אושר) ============
+   לחיצה על כותרת ממיינת (כמו קודם); ▾ פותח חלונית: מיון עולה/יורד, חיפוש בעמודה, רשימת ערכים לסימון
+   (עמודת טקסט) או מ-עד (עמודת מספר). סינון לכל נושא בנפרד (TP.cf), על הערך של העמודה (c.v) — אותו
+   ערך שהמיון וה-CSV קוראים. כפתור «סינון» (TP.f) נשאר. הייצוא ל-CSV — השורות שבטבלה, כמו עם «סינון». */
+const tpCol=(t,k)=>TOPICS[t].cols.concat(TP_HEAD).find(c=>c.k===k);
+const tpCfStr=v=>v==null||v===''?'—':String(v);
+function tpCF(t,r,skip){const F=TP.cf[t];if(!F)return true;
+ for(const k in F){if(k===skip)continue;const f=F[k],c=tpCol(t,k);if(!c)continue;const v=c.v(r);
+  if(f.search&&!tpCfStr(v).toLowerCase().includes(f.search.toLowerCase()))return false;
+  if(f.values&&f.values.length&&!f.values.includes(tpCfStr(v)))return false;
+  if(f.min!=null&&!(typeof v==='number'&&v>=f.min))return false;
+  if(f.max!=null&&!(typeof v==='number'&&v<=f.max))return false}
+ return true}
+function tpOpenColPop(th,k){const pop=document.getElementById('colpop'),t=TP.tab,c=tpCol(t,k);if(!pop||!c)return;
+ const F=TP.cf[t]=TP.cf[t]||{},f=F[k]||{},num=!!c.n,s=TP.sort[t]||{};
+ /* הערכים — מהשורות שעוברות את כל שאר הסינונים, בלי הסינון של העמודה הזאת */
+ const own=F[k];delete F[k];let base;try{base=tpRows(t,false)}finally{if(own)F[k]=own}
+ const cnt=new Map();if(!num)for(const r of base){const v=tpCfStr(c.v(r));cnt.set(v,(cnt.get(v)||0)+1)}
+ const pick=new Set(f.values||[]);for(const v of pick)if(!cnt.has(v))cnt.set(v,0);
+ const vals=[...cnt].sort((a,b)=>(pick.has(b[0])-pick.has(a[0]))||b[1]-a[1]||a[0].localeCompare(b[0],'he'));
+ const N=x=>x.toLocaleString('he-IL');
+ pop.innerHTML=`<div class="srtrow"><button type="button" id="tpcAsc" class="${s.k===k&&s.dir>0?'on':''}">▲ עולה</button><button type="button" id="tpcDesc" class="${s.k===k&&s.dir<0?'on':''}">▼ יורד</button></div>
+  <input class="cs" id="tpcS" placeholder="חיפוש בעמודה…" value="${esc(f.search||'')}" aria-label="חיפוש בעמודה ${esc(c.l)}">
+  ${num?`<div class="rng"><input id="tpcMin" type="number" placeholder="מ-" value="${f.min!=null?f.min:''}" aria-label="מ-"><input id="tpcMax" type="number" placeholder="עד" value="${f.max!=null?f.max:''}" aria-label="עד"></div>`
+   :`<div class="vals" id="tpcVals" role="group" aria-label="ערכי העמודה">${vals.slice(0,500).map(([v,n])=>`<label><input type="checkbox" value="${esc(v)}"${pick.has(v)?' checked':''}><span title="${esc(v)}">${esc(v)}</span><span class="c">${N(n)}</span></label>`).join('')}${vals.length>500?`<p class="mini">מוצגים 500 מתוך ${N(vals.length)} — חיפוש מצמצם</p>`:''}</div>`}
+  <div class="act"><button type="button" id="tpcClear">נקה סינון עמודה</button><button type="button" class="ok" id="tpcOk">החל</button></div>`;
+ const rc=th.getBoundingClientRect();pop.style.top=(rc.bottom+4)+'px';let left=rc.right-240;if(left<8)left=8;pop.style.left=left+'px';
+ pop.classList.add('open');pop.onclick=e=>e.stopPropagation();
+ const done=()=>{closeColPop();TP.lim=200;tpRender()};
+ document.getElementById('tpcAsc').onclick=()=>{TP.sort[t]={k,dir:1};done()};
+ document.getElementById('tpcDesc').onclick=()=>{TP.sort[t]={k,dir:-1};done()};
+ document.getElementById('tpcClear').onclick=()=>{delete F[k];done()};
+ document.getElementById('tpcOk').onclick=()=>{const q=document.getElementById('tpcS').value.trim(),o={};
+  if(q)o.search=q;
+  if(num){const a=document.getElementById('tpcMin').value,b=document.getElementById('tpcMax').value;if(a!=='')o.min=+a;if(b!=='')o.max=+b}
+  else{const v=[...pop.querySelectorAll('#tpcVals input:checked')].map(x=>x.value);if(v.length)o.values=v}
+  if(Object.keys(o).length)F[k]=o;else delete F[k];done()};
+ const si=document.getElementById('tpcS');si.focus();
+ if(!num)si.oninput=()=>{const q=si.value.trim().toLowerCase();pop.querySelectorAll('#tpcVals label').forEach(l=>{l.hidden=!!q&&!l.textContent.toLowerCase().includes(q)})};
+ si.onkeydown=e=>{if(e.key==='Enter')document.getElementById('tpcOk').click()}}
 function tpSorted(t,list){const s=TP.sort[t];
  if(!s){if(t==='fix'&&TP.cat.fix==='data')return list.map((r,i)=>[r,i]).sort((a,b)=>tpLtPrio(a[0])-tpLtPrio(b[0])||a[1]-b[1]).map(x=>x[0]);
   /* TOPICS_UX: ברירת המחדל — הדחוף למעלה; שוויון נשאר בסדר המנוע */
@@ -15445,9 +15489,13 @@ function tpArrivals(){const D=tpArrData();
  if(!D)return `<div class="etab" role="status"><b>אין דוח ETA</b><span>לוח ההגעות נבנה מדוח ה-ETA.</span><label class="btn" for="fe">העלאת דוח ETA</label></div>`;
  if(!D.length)return '<p class="mini">אין לפריטים שבארבעת הנושאים שורות בדוח ה-ETA (בסינון הנוכחי).</p>';
  const past=D.filter(x=>x.past),fut=D.filter(x=>!x.past);
- const day=x=>`<details class="arr${x.past?' past':''}"><summary><b>${tpdDate(x.d)}</b><span>${x.n===1?'פריט אחד':`${tpN(x.n)} פריטים`}</span><span>${tpN(x.q)} יח׳</span>${x.past?'<span class="note">תאריך שעבר — לבדוק אם נקלט</span>':''}</summary>
-  <table><thead><tr><th>מק״ט</th><th>תיאור</th><th class="n">כמות</th><th>${etaRefL(1)}</th><th>הזמנת רכש</th><th>נושא</th></tr></thead><tbody>
-  ${x.ls.slice().sort((a,b)=>b.q-a.q).map(e=>`<tr><td><button type="button" class="lnk" data-tp="arrpn" data-key="${esc(markKey(e.r))}" data-t="${e.tk[0]}">${esc(e.r.pn)}</button></td>
+ /* TP_COLFILT (23.11, אושר): בלוח ההגעות — מיון בלבד, בלחיצה על כותרת (ברירת המחדל: מהכמות הגדולה) */
+ const S=TP.arrSort||{k:'q',dir:-1},av={pn:e=>String(e.r.pn),desc:e=>String(e.r.desc||''),q:e=>e.q,ref:e=>String(e.ref||''),po:e=>String(e.po||''),tk:e=>e.tk.map(k=>TOPICS[k].t).join(' ')};
+ const asort=L=>L.slice().sort((a,b)=>{const x=av[S.k](a),y=av[S.k](b);return (typeof x==='number'?x-y:String(x).localeCompare(String(y),'he'))*S.dir});
+ const ah=(k,l,n)=>`<th class="${n||''}${S.k===k?' on':''}" data-tp-asort="${k}" aria-sort="${S.k===k?(S.dir>0?'ascending':'descending'):'none'}" title="לחיצה ממיינת">${esc(l)}${S.k===k?(S.dir>0?' ▲':' ▼'):''}</th>`;
+ const day=x=>`<details class="arr${x.past?' past':''}" data-d="${x.d}"><summary><b>${tpdDate(x.d)}</b><span>${x.n===1?'פריט אחד':`${tpN(x.n)} פריטים`}</span><span>${tpN(x.q)} יח׳</span>${x.past?'<span class="note">תאריך שעבר — לבדוק אם נקלט</span>':''}</summary>
+  <table class="arrt"><thead><tr>${ah('pn','מק״ט')}${ah('desc','תיאור')}${ah('q','כמות','n')}${ah('ref',etaRefL(1))}${ah('po','הזמנת רכש')}${ah('tk','נושא')}</tr></thead><tbody>
+  ${asort(x.ls).map(e=>`<tr><td><button type="button" class="lnk" data-tp="arrpn" data-key="${esc(markKey(e.r))}" data-t="${e.tk[0]}">${esc(e.r.pn)}</button></td>
    <td class="d">${esc(e.r.desc||'')}</td><td class="n">${tpN(e.q)}</td><td>${esc(e.ref||'—')}</td><td>${esc(e.po||'—')}</td>
    <td>${e.tk.map(k=>`<span class="p gry">${esc(TOPICS[k].t)}</span>`).join(' ')}</td></tr>`).join('')}</tbody></table></details>`;
  return `<h2 class="arrh">לוח הגעות <span class="mini">${tpN(fut.length)} תאריכי הגעה קרובים · ${tpN(new Set(fut.flatMap(x=>x.ls.map(e=>e.r))).size)} פריטים · רק פריטים שבארבעת הנושאים</span></h2>
@@ -15516,9 +15564,12 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const tiles=[['','הכול','gry',()=>true]].concat(T.cats).map(([k,l,c,f])=>
   `<button type="button" class="tile ${c} ${(TP.cat[t]||'')===k?'on':''}" data-tp-cat="${k}" aria-pressed="${(TP.cat[t]||'')===k}"><span>${esc(l)}</span><span class="v">${all.filter(f).length.toLocaleString('he-IL')}</span></button>`).join('');
  const fOn=TP_FILT.filter(([k])=>TP.f[k]),fOpen=!!TP.fOpen;
+ const cfChips=Object.entries(TP.cf[t]||{}).map(([k,f])=>{const c=tpCol(t,k);if(!c)return '';const d=f.values?f.values.slice(0,2).join(', ')+(f.values.length>2?` +${f.values.length-2}`:''):[f.search?`«${f.search}»`:'',f.min!=null?`מ-${f.min}`:'',f.max!=null?`עד ${f.max}`:''].filter(Boolean).join(' ');
+  return `<span class="fchip">${esc(c.l)}: ${esc(d)}<button type="button" data-tp="cfunset" data-k="${esc(k)}" aria-label="הסרת סינון ${esc(c.l)}">✕</button></span>`}).join('');
  const fchips=fOn.map(([k,l])=>`<span class="fchip">${esc(l)}: ${esc(TP.f[k])}<button type="button" data-tp="funset" data-k="${k}" aria-label="הסרת סינון ${esc(l)}">✕</button></span>`).join('');
  const shown=list.slice(0,TP.lim);
- const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}" data-tp-sort="${c.k}" ${c.k==='pn'?'':`draggable="true" data-tp-col="${c.k}" title="לחיצה ממיינת · גרירה מזיזה"`} aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}</th>`).join('');
+ const cfT=TP.cf[t]||{};
+ const th=cols.map(c=>`<th class="${c.n?'n':''} ${s.k===c.k?'on':''}${cfT[c.k]?' filt':''}" data-tp-sort="${c.k}" ${c.k==='pn'?'title="לחיצה ממיינת · ▾ — סינון"':`draggable="true" data-tp-col="${c.k}" title="לחיצה ממיינת · ▾ — סינון · גרירה מזיזה"`} aria-sort="${s.k===c.k?(s.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${s.k===c.k?(s.dir>0?'▲':'▼'):''}<button type="button" class="tpfil" data-tp-fil="${c.k}" aria-label="סינון העמודה ${esc(c.l)}" title="סינון העמודה"></button></th>`).join('');
  /* דוח חדש נטען — האובייקטים התחלפו, והכרטיס הפתוח שייך לדוח הקודם */
  if(TP.open&&!(QF.all||[]).includes(TP.open))tpdClose();
  const body=shown.map((r,i)=>
@@ -15529,7 +15580,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
   <div class="bar"><select data-tp="pl" aria-label="מתכנן"><option value="">כל המתכננים</option>${pls.map(p=>`<option ${TP.pl===p?'selected':''}>${esc(p)}</option>`).join('')}</select>
    <input data-tp="q" placeholder="חיפוש מק״ט או תיאור" value="${esc(TP.q)}" aria-label="חיפוש">
    <div class="tiles" role="group" aria-label="תת-קטגוריה">${tiles}</div>
-   <button class="btn ftog ${fOn.length?'on':''}" type="button" data-tp="ftog" aria-expanded="${fOpen}">סינון${fOn.length?` (${fOn.length})`:''} ${fOpen?'▴':'▾'}</button>${fchips}
+   <button class="btn ftog ${fOn.length?'on':''}" type="button" data-tp="ftog" aria-expanded="${fOpen}">סינון${fOn.length?` (${fOn.length})`:''} ${fOpen?'▴':'▾'}</button>${fchips}${cfChips}
    <button class="btn ${TP.colsOpen?'on':''}" type="button" data-tp="cols" aria-expanded="${!!TP.colsOpen}">עמודות ${TP.colsOpen?'▴':'▾'}</button>
    <button class="btn" type="button" data-tp="csv">ייצוא ל-Excel (CSV)</button><span class="mini">${list.length.toLocaleString('he-IL')} שורות</span>
    ${s.k?'':`<span class="sortl">ממוין: ${esc((TP_URG[t]||{}).l||'')}</span>`}</div>
@@ -15560,7 +15611,10 @@ function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+Str
  setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 if(LITE){
  const el=document.getElementById('lite');
- el.addEventListener('click',e=>{const b=e.target.closest('[data-tp],[data-tp-tab],[data-tp-cat],[data-tp-sort],tr[data-tp-row]');if(!b)return;
+ el.addEventListener('click',e=>{const fb=e.target.closest('[data-tp-fil]');if(fb){e.stopPropagation();e.preventDefault();tpOpenColPop(fb.closest('th'),fb.dataset.tpFil);return}
+  const ab=e.target.closest('[data-tp-asort]');if(ab){const k=ab.dataset.tpAsort,o=TP.arrSort;TP.arrSort=o&&o.k===k?{k,dir:-o.dir}:{k,dir:k==='q'?-1:1};
+   const op=[...el.querySelectorAll('details.arr[open]')].map(d=>d.dataset.d);tpRender();op.forEach(d=>{const x=el.querySelector(`details.arr[data-d="${d}"]`);if(x)x.open=true});return}
+  const b=e.target.closest('[data-tp],[data-tp-tab],[data-tp-cat],[data-tp-sort],tr[data-tp-row]');if(!b)return;
   const a=b.dataset;
   if(a.tp==='load')document.getElementById('f').click();
   else if(a.tp==='demo')demoStart();
@@ -15583,6 +15637,7 @@ if(LITE){
   else if(a.tp==='fclear'){TP.f={};TP.lim=200;tpRender()}
   else if(a.tp==='ftog'){TP.fOpen=!TP.fOpen;tpRender()}
   else if(a.tp==='funset'){delete TP.f[a.k];TP.lim=200;tpRender()}
+  else if(a.tp==='cfunset'){const F=TP.cf[TP.tab];if(F)delete F[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
    if(a.tp==='done'&&TP.open===r)tpdClose();
    const oth=a.tp==='done'?tpOthers(r):[];
