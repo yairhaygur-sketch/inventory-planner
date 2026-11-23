@@ -1038,6 +1038,10 @@ Changes to these areas require explicit business approval.
   4. **A fifth tab, «כל הפריטים»:** every item in the report, searchable by
      part number or description, with the full catalog's columns and a
      «נושא» column (which of the four topics the item is in, if any).
+  5. **(Asked 23.11, after the four.) «טופל» and on to the next item:** a
+     «✓ טופל» button in the item card marks the item handled and opens the
+     next one in the list; «✓ טופל» in the row of the open item keeps the card
+     open on the next item instead of closing it. The D key does the same.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 

@@ -3458,6 +3458,7 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 @media(min-width:1920px){html.lite #tpd:not([hidden]){width:640px}}
 #tpd .dh{padding:10px 18px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 #tpd .dnav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+#tpd .dnav .tpdone{font-weight:700;color:var(--accent-ink);border-color:var(--accent-ink)}
 #tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
 #tpd button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-ctl);padding:3px 10px;cursor:pointer}
 #tpd button:hover{border-color:var(--accent)} #tpd button:disabled{opacity:.45;cursor:default}
@@ -15456,12 +15457,24 @@ function tpdIssues(r){const out=[];
  return out.join('')}
 function tpdPos(){const L=TP.list||[],i=L.indexOf(TP.open);
  return {i,n:L.length,txt:i>=0?`${(i+1).toLocaleString('he-IL')} מתוך ${L.length.toLocaleString('he-IL')}`:'לא בסינון הנוכחי'}}
+/* ============ TP_DONE_NEXT — «טופל» ומעבר לפריט הבא (בקשת המעתד 23.11) ============
+   מקש D, הכפתור «✓ טופל» בכרטיס, ו«✓ טופל» בשורה כשהכרטיס של אותה שורה פתוח — כולם כאן: מסמן «טופל»
+   (אותו setMark של הכלי המלא), והכרטיס נשאר פתוח על הפריט הבא ברשימה. בלי כרטיס פתוח — המיקוד עובר
+   לשורה הבאה. ב«כל הפריטים» פריט שטופל נשאר ברשימה, ולכן «הבא» הוא השורה שאחריו. */
+function tpDoneNext(r){const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=TP.open===r;
+ if(wasOpen)tpdClose();
+ const oth=tpOthers(r);setMark(r,'handled','');toast(tpDoneMsg(r,oth));
+ const L=TP.list||[],still=L.includes(r),j=still?i0+1:Math.max(i0,0),nx=L[Math.min(j,L.length-1)];
+ if(!nx||nx===r)return;
+ if(wasOpen)tpdShow(nx);
+ else{const k=(TP.shown||[]).indexOf(nx),tr=k>=0?document.querySelector(`#lite tr.r[data-tp-row="${k}"]`):null;if(tr)tr.focus({preventScroll:false})}}
 function tpdShow(r,keepFocus){const el=document.getElementById('tpd');if(!el)return;TP.open=r;
  /* TP_ALL: בלשונית «כל הפריטים» הכרטיס כמו בנושא הראשון שבו הפריט מופיע; פריט שאינו בנושא — משפט כללי */
  const t=TP.tab==='all'?(tpTopicsOf(r)[0]||'all'):TP.tab,p=tpdPos();
  el.innerHTML=`<div class="dh"><div class="dnav"><span class="pos" aria-live="polite">${p.txt}</span>
    <button type="button" data-tpd="prev" ${p.i<=0?'disabled':''} title="הקודם (↑)">▲ הקודם</button>
    <button type="button" data-tpd="next" ${p.i>=0&&p.i>=p.n-1?'disabled':''} title="הבא (↓)">▼ הבא</button>
+   <button type="button" class="tpdone" data-tpd="done" title="סמן «טופל» ועבור לפריט הבא (D)">✓ טופל</button>
    <button type="button" data-tpd="close" aria-label="סגירה (Esc)" title="סגירה (Esc)">✕</button></div>
   <div class="dpn"><bdi id="tpdT" tabindex="-1">${esc(r.pn)}</bdi><button type="button" data-tpd="copy">העתק</button></div>
   <h2>${esc(r.desc)}${(r.desc2&&r.desc2!==r.desc)?` · <bdi>${esc(r.desc2)}</bdi>`:''}</h2>
@@ -15661,7 +15674,7 @@ if(LITE){
   else if(a.tp==='funset'){delete TP.f[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='cfunset'){const F=TP.cf[TP.tab];if(F)delete F[a.k];TP.lim=200;tpRender()}
   else if(a.tp==='done'||a.tp==='undone'){const r=ALL.find(x=>markKey(x)===a.key);if(!r)return;
-   if(a.tp==='done'&&TP.open===r)tpdClose();
+   if(a.tp==='done'&&TP.open===r){tpDoneNext(r);return}
    const oth=a.tp==='done'?tpOthers(r):[];
    setMark(r,a.tp==='done'?'handled':'','');
    toast(a.tp==='done'?tpDoneMsg(r,oth):`${r.pn} הוחזר לרשימה`)}
@@ -15678,6 +15691,7 @@ if(LITE){
   if(k==='close')tpdClose();
   else if(k==='prev')tpdStep(-1);
   else if(k==='next')tpdStep(1);
+  else if(k==='done'){if(TP.open)tpDoneNext(TP.open)}
   else if(k==='explain'&&TP.open)explain(TP.open);
   else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
    toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
@@ -15723,12 +15737,7 @@ if(LITE){
   const fr=e.target.matches&&e.target.matches('#lite tr.r')?(TP.shown||[])[+e.target.dataset.tpRow]:null,r=TP.open||fr;if(!r)return;
   e.preventDefault();
   if(ks==='c'){tpCopy(r.pn);return}
-  const L0=TP.list||[],i0=L0.indexOf(r),wasOpen=!!TP.open;
-  if(wasOpen)tpdClose();
-  const oth=tpOthers(r);setMark(r,'handled','');toast(tpDoneMsg(r,oth));
-  const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(!nx)return;
-  if(wasOpen)tpdShow(nx);
-  else{const j=(TP.shown||[]).indexOf(nx),tr=j>=0?document.querySelector(`#lite tr.r[data-tp-row="${j}"]`):null;if(tr)tr.focus({preventScroll:false})}},true);
+  tpDoneNext(r)},true);
  /* התאריך שבכותרת מתעדכן גם כשהדוח נדחה (QF נשאר null) */
  new MutationObserver(()=>{if(!QF)tpRender()}).observe(document.getElementById('updated'),{childList:true,characterData:true,subtree:true});
  tpRender()}
