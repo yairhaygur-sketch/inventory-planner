@@ -23,7 +23,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
 
  /* 2 · פריט בקובץ העדכון ל-SAP, בהזמנות לקוח ובשינוי פרופיל — נוטרל, ויוצא מכולם */
  for(const t of ['neutral','season','campaign']){
-  const R=await p.evaluate(t=>{const inAll=k=>Object.keys(TOPICS).some(x=>tpRows(x,true).some(r=>markKey(r)===k));
+  const R=await p.evaluate(t=>{const inAll=k=>Object.keys(TOPICS).filter(k=>k!=='all').some(x=>tpRows(x,true).some(r=>markKey(r)===k));
    const fix=decisionList('fix').find(r=>!r.mark&&inAll(markKey(r)));const cust=tpBurnRows().find(r=>!r.mark);
    const prof=QF.all.find(r=>!r.mark&&profActive(r));
    const keys=[fix,cust,prof].map(r=>r&&markKey(r));

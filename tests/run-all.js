@@ -57,6 +57,7 @@ const FILES=['offline.test.js','engine.test.js','defects.test.js','bulk.test.js'
  'topics-stock.test.js',
  'topics-param.test.js',
  'topics-colfilt.test.js',
+ 'topics-all.test.js',
  'card-calm.test.js',
  'line-po.test.js',
  'hold-excess.test.js',

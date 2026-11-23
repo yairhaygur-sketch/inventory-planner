@@ -100,7 +100,7 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  await p.waitForSelector('#lite table');
 
  /* ---- 3א. העמוד הנפרד = הכלי המלא, שדה בשדה ---- */
- {const MINE=await p.evaluate(()=>Object.fromEntries(Object.keys(TOPICS).map(t=>[t,TOPICS[t].rows().map(r=>r.pn)])));
+ {const MINE=await p.evaluate(()=>Object.fromEntries(Object.keys(TOPICS).filter(k=>k!=='all').map(t=>[t,TOPICS[t].rows().map(r=>r.pn)])));
   const here=await p.evaluate(ENGINE);
   for(const t of ['fix','trend','cust','short']){const a=REF[t],b=here[t],ids=Object.keys(a).sort();
    const sameIds=JSON.stringify(ids)===JSON.stringify(Object.keys(b).sort())&&JSON.stringify(ids)===JSON.stringify([...MINE[t]].sort());
@@ -153,8 +153,8 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
  {const r=await p.evaluate(()=>{const cat=(t,k)=>TOPICS[t].rows().filter(TOPICS[t].cats.find(c=>c[0]===k)[3]);
    const none=cat('cust','none'),part=cat('cust','part'),zero=cat('short','zero'),month=cat('short','month'),up=cat('trend','up'),down=cat('trend','down');
    const gap=r=>r.cust-(Math.max(0,r.free)+Math.max(0,r.po));
-   return {order:Object.keys(TOPICS),tabs:[...document.querySelectorAll('#lite nav button')].map(b=>b.dataset.tpTab),
-    cats:Object.fromEntries(Object.keys(TOPICS).map(t=>[t,TOPICS[t].cats.map(c=>c[1])])),
+   return {order:Object.keys(TOPICS).filter(k=>k!=='all'),tabs:[...document.querySelectorAll('#lite nav button')].map(b=>b.dataset.tpTab),
+    cats:Object.fromEntries(Object.keys(TOPICS).filter(k=>k!=='all').map(t=>[t,TOPICS[t].cats.map(c=>c[1])])),
     none:none.length,noneBad:none.filter(r=>!(r.po<=0&&gap(r)>0)).map(r=>r.pn),
     part:part.length,partBad:part.filter(r=>!(r.po>0&&gap(r)>0)).map(r=>r.pn),
     custN:TOPICS.cust.rows().length,custCovered:TOPICS.cust.rows().filter(r=>gap(r)<=0).map(r=>r.pn),
@@ -164,8 +164,9 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     shortToday:TOPICS.short.rows().filter(inToday).length,
     both:up.filter(r=>down.includes(r)).map(r=>r.pn)}});
   ok('ארבעת הנושאים בסדר שנקבע: הזמנות לקוח · חריגת צריכה · מלאי 0/צפוי להיגמר · טיוב נתונים',
-   JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify(r.order),r.tabs.join(','));
-  /* TP_PARAM_SPLIT (23.11, אושר): «עדכון SS ו-ROP» פוצל ל«להעלות ROP/SS» · «להוריד ROP/SS» · «מעורב» */
+   JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify([...r.order,'all']),r.tabs.join(','));
+  /* TP_ALL (23.11, אושר): אחרי ארבעת הנושאים — לשונית חמישית «כל הפריטים», שאינה נושא */
+  /* (ארבעת הנושאים — בלי «כל הפריטים») TP_PARAM_SPLIT (23.11, אושר): «עדכון SS ו-ROP» פוצל ל«להעלות ROP/SS» · «להוריד ROP/SS» · «מעורב» */
   ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד','צריכה ראשונה'],
    short:['מלאי 0 עכשיו','צפוי להיגמר החודש','ייגמר לפני האספקה הבאה'],fix:['שינוי פרופיל MRP','להעלות ROP/SS','להוריד ROP/SS','מעורב','נתונים שבורים']}),JSON.stringify(r.cats));
   ok(`«אין רכש כלל» (${r.none}): בכל שורה אין רכש פתוח, ומלאי + רכש קטנים מההזמנה`,r.none>0&&!r.noneBad.length,r.noneBad.join(','));

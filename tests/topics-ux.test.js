@@ -131,9 +131,9 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await tab('cust');
  const M=await p.evaluate(()=>{const R={};
   /* #9 — «גם ב…» בדיוק בפריטים שמופיעים בנושא נוסף, ובאילו */
-  const sets=Object.fromEntries(Object.keys(TOPICS).map(k=>[k,new Set(tpRows(k,true))]));
+  const sets=Object.fromEntries(Object.keys(TOPICS).filter(k=>k!=='all').map(k=>[k,new Set(tpRows(k,true))]));
   const bad9=[];let n9=0;
-  for(const t of Object.keys(TOPICS)){TP.tab=t;TP.cat={};tpRender();
+  for(const t of Object.keys(TOPICS).filter(k=>k!=='all')){TP.tab=t;TP.cat={};tpRender();
    [...document.querySelectorAll('#lite tbody tr')].forEach((tr,i)=>{const r=TP.shown[i],exp=Object.keys(sets).filter(k=>k!==t&&sets[k].has(r));
     const tag=tr.querySelector('.also'),txt=tag?tag.textContent:'';if(exp.length)n9++;
     if(!!tag!==!!exp.length||exp.some(k=>!txt.includes(TP_SHORT[k])))bad9.push(t+':'+r.pn)})}
@@ -174,7 +174,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('#13 שמות אחידים: «מצב» בכל הנושאים, «(SAP ← מוצעת)» בטיוב',M.names.kind&&M.names.noSug&&M.names.fixPairs,JSON.stringify(M.names));
  ok('#14 חריגה: ההשפעה על נק׳ ההזמנה לפני האחוז; טיוב: שינוי 0 מוצג «—»',M.impBeforePct&&M.zeroDash,JSON.stringify({imp:M.impBeforePct,zero:M.zeroDash}));
  /* #9 — הודעת «טופל» אומרת מאילו נושאים נוספים הפריט ירד */
- {const k=await p.evaluate(()=>{for(const t of Object.keys(TOPICS)){TP.tab=t;TP.cat={};tpRender();const r=TP.shown.find(x=>tpOthers(x).length);if(r)return {t,i:TP.shown.indexOf(r),oth:tpOthers(r).map(x=>TOPICS[x].t)}}return null});
+ {const k=await p.evaluate(()=>{for(const t of Object.keys(TOPICS).filter(k=>k!=='all')){TP.tab=t;TP.cat={};tpRender();const r=TP.shown.find(x=>tpOthers(x).length);if(r)return {t,i:TP.shown.indexOf(r),oth:tpOthers(r).map(x=>TOPICS[x].t)}}return null});
   if(k){await p.focus(`#lite tr.r[data-tp-row="${k.i}"]`);await p.keyboard.press('d');await p.waitForTimeout(300);
    const msg=await p.evaluate(()=>(document.getElementById('toast')||{}).textContent||'');
    ok('#9 «טופל» על פריט בכמה נושאים — ההודעה אומרת שירד גם מהם',k.oth.every(o=>msg.includes(o)),msg.slice(0,120))}
