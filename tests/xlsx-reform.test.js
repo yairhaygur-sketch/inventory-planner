@@ -58,8 +58,8 @@ function inspect(f){const buf=fs.readFileSync(f);const wb=XLSX.read(buf,{cellNF:
  ok('שורת הקבוצות מעל הכותרת, וכל קבוצה ממוזגת על העמודות שלה',!!M&&GROUPS.every(([g,c])=>M[0][c]===g)
    &&M[0].filter(x=>x!=null&&x!=='').length===GROUPS.length
    &&GROUPS.every(([,c],i)=>{const e=(GROUPS[i+1]||[,MAIN.length])[1]-1;return e===c||S['נתונים עיקריים'][2].some(m=>m[0]===0&&m[1]===c&&m[2]===0&&m[3]===e)}),M&&JSON.stringify(M[0]));
- /* «התצוגה» מעתיק את כותרות המסך כפי שהן — שם המונח במסך מתעדכן בשלב המונחים הבא */
- ok('בלי «כסף תקוע» בגיליונות הנתונים ובסיכום; «שווי עודף» ולצידו «מטבע»',!!E&&!E.sheets.filter(s=>s[0]!=='התצוגה').some(s=>s[1].some(r=>r&&r.some(c=>/כסף תקוע/.test(String(c)))))
+ /* TERMS שלב 3 (23.11): גם במסך «שווי עודף», ולכן גם «התצוגה» (שמעתיק את כותרות המסך) — בלי «כסף תקוע» באף גיליון */
+ ok('בלי «כסף תקוע» באף גיליון; «שווי עודף» ולצידו «מטבע»',!!E&&!E.sheets.some(s=>s[1].some(r=>r&&r.some(c=>/כסף תקוע/.test(String(c)))))
    &&MAIN.indexOf('מטבע')===MAIN.indexOf('שווי עודף')+1&&xcol('שווי עודף')>=0&&xcol('כסף תקוע (₪)')<0);
  /* כל תא = התא של XCOLS לאותו מק״ט */
  {const bad=[];if(M)for(let k=0;k<C.n;k++){const row=M[k+2]||[];

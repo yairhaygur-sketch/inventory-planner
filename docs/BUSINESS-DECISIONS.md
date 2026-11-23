@@ -963,6 +963,22 @@ Changes to these areas require explicit business approval.
     checks the structure, the values against XCOLS, the summary and the
     formatting in the downloaded file's bytes (Worker and in-page).
 
+- **2026-11-23 · Terms, stage 3 — «שווי עודף» on screen too, and the
+  classification name (TERMS3, approved 23.11).** Labels only; no number, no
+  rule and no list moved.
+  - **«כסף תקוע» → «שווי עודף»** in table columns (catalog, excess screens),
+    the item card's number and its reason lines, and the help texts — the
+    same word as the Excel file (XLS_REFORM). The amount is still in the
+    item's own currency, never converted or summed across currencies.
+  - **«למה הכסף תקוע» → «סוג העודף»**, **«% מצטבר מהכסף» → «% מצטבר מהשווי»**.
+  - **The classification «מספר לתקן ב-SAP» → «עדכון פרמטרים».** The same
+    engine branch (paramFix), the same items; the name matches «פרמטרי תכנון
+    (MRP)» and «המלצות לעדכון פרמטרים». It shows in the «סיווג» column, the
+    filter, the card tag and the exports.
+  - **Exports:** the «סיווג» cells of these items, and the «שווי עודף»
+    header of «התצוגה», declared exactly in `tests/export-expected.json`.
+    SAP files unchanged.
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —

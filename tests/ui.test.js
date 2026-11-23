@@ -1884,8 +1884,9 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
     חומרה, והמיון והסינון עובדים דרך אותו מנגנון של שאר הטבלאות. */
  /* «דגם» נכנס לברירת המחדל של כל טבלה מיד אחרי המק״ט
     (MODEL_EVERYWHERE) — 36 דגמים על 7,599 פריטים, אפס ריקים.
-    עשר עמודות הפכו לאחת-עשרה. */
- const CATDEF='מק״ט|דגם|תיאור|סיווג|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|כסף תקוע';
+    עשר עמודות הפכו לאחת-עשרה.
+    TERMS שלב 3 (23.11): «כסף תקוע» → «שווי עודף», כמו באקסל. */
+ const CATDEF='מק״ט|דגם|תיאור|סיווג|11 חודשים|חסר|מלאי|לקוח|רכש|כיסוי|שווי עודף';
  const catScan=()=>p.evaluate(()=>({vk:colViewKey(),reg:colReg(),
    th:[...document.querySelectorAll('#tbl thead th')]
      .map(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()).join('|'),
@@ -1926,11 +1927,11 @@ const out=[];const ok=(n,c,x)=>out.push((c?'PASS':'FAIL')+' · '+n+(x?'  ['+x+']
  ok('ברירת המחדל בטבלה הכללית היא חומרה יורדת',
    cs0.every((v,i)=>i===0||cs0[i-1]>=v),cs0.join(' '));
  const catRisk=()=>p.evaluate(()=>{const i=[...document.querySelectorAll('#tbl thead th')]
-     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='כסף תקוע');
+     .findIndex(t=>(t.querySelector('.thc')||{textContent:''}).textContent.replace(/[▲▼]/g,'').trim()==='שווי עודף');/* TERMS שלב 3: היה «כסף תקוע» — אותה עמודה (cRisk) */
    return [...document.querySelectorAll('#tbl tbody tr[data-i]')].slice(0,6)
      .map(tr=>+(tr.children[i].textContent.replace(/[^\d]/g,'')||0))});
  await p.evaluate(()=>{const th=[...document.querySelectorAll('#tbl thead th.wsrt')]
-   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='כסף תקוע');
+   .find(t=>t.querySelector('.thc').textContent.replace(/[▲▼]/g,'').trim()==='שווי עודף');
    th.querySelector('.thc').click()});
  await p.waitForTimeout(500);
  const cr=await catRisk(),cws=await p.evaluate(()=>WSORT.col+'/'+WSORT.dir);
