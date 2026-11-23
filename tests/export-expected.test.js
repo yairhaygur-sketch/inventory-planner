@@ -99,6 +99,45 @@ for(const [n,m] of [['from לא שלם',{from:4.5}],['to = from',{to:6}],['מק�
 {const r=checkDeclared(D(A,UP),{base:null,changes:[],moves:[mv()]},SHA);ok('תזוזות בלי base → נדחה',!r.ok&&r.errs.some(e=>/40/.test(e)))}
 {const r=checkDeclared(D(A,book()),{base:null,changes:[],moves:[]},SHA);ok('moves ריק → כמו הצהרה ריקה, עובר כשאין הבדל',r.ok)}
 
+/* ============ XSTRUCT — שינוי מבנה מוצהר (אושר 23.11, רפורמת האקסל) ============
+   ספר ישן: «כל הנתונים» (מק״ט · תיאור · ROP מוצע · ביקוש בזמן האספקה) + «מכירות».
+   ספר חדש: «סיכום» (תוכן חדש) + «נתונים עיקריים» (מק״ט · תיאור · נקודת הזמנה מוצעת)
+   + «פירוט מלא» (מק״ט · ביקוש בזמן האספקה · עמודה חדשה). «מכירות» הוסר. */
+const xbook=(sheets)=>{const wb=XLSX.utils.book_new();for(const [n,aoa] of sheets)XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),n);return wb};
+const XOLD=()=>xbook([['כל הנתונים',[['ייצוא'],[],['מק״ט','תיאור','ROP מוצע','ביקוש בזמן האספקה'],['T-001','א',7,0.67],['T-002','ב',3,1.5],['T-003','ג',0,0]]],
+ ['מכירות',[['מק״ט','תאריך'],['T-001','1.1']]]]);
+const XNEW=(mut)=>{const main=[['כותרת אחרת — לא נבדקת'],['מק״ט','תיאור','נקודת הזמנה מוצעת'],['T-001','א',7],['T-002','ב',3],['T-003','ג',0]];
+ const full=[['מק״ט','ביקוש בזמן האספקה','חדשה'],['T-001',0.67,'x'],['T-002',1.5,'y'],['T-003',0,'z']];
+ if(mut)mut(main,full);return xbook([['סיכום',[['סה״כ',3]]],['נתונים עיקריים',main],['פירוט מלא',full]])};
+const XS=(o)=>Object.assign({sheets:['סיכום','נתונים עיקריים','פירוט מלא'],
+ map:{'סיכום':{from:null},
+  'נתונים עיקריים':{from:'כל הנתונים',columns:{'מק״ט':'מק״ט','תיאור':'תיאור','נקודת הזמנה מוצעת':'ROP מוצע'}},
+  'פירוט מלא':{from:'כל הנתונים',columns:{'מק״ט':'מק״ט','ביקוש בזמן האספקה':'ביקוש בזמן האספקה','חדשה':null}}},
+ droppedSheets:['מכירות']},o||{});
+const XD=(S,changes=[],base)=>({base:base===undefined?SHA:base,changes,structure:S});
+const XR=(B,S,changes,base,sha)=>checkDeclared(cellDiffs(XOLD(),B,S),XD(S,changes,base),sha===undefined?SHA:sha);
+{const r=XR(XNEW(),XS());ok('XSTRUCT · מבנה מוצהר בדיוק, אותם ערכים → עובר',r.ok,JSON.stringify([r.errs,r.other]))}
+{const r=XR(XNEW((m)=>{m[3][2]=4}),XS());ok('XSTRUCT · ערך שזז בעמודה ממופה בלי הצהרה → נכשל (הערכים עדיין נבדקים)',!r.ok&&r.undeclared.length===1&&r.undeclared[0].field==='נקודת הזמנה מוצעת'&&r.undeclared[0].pn==='T-002')}
+{const r=XR(XNEW((m)=>{m[3][2]=4}),XS(),[{sheet:'נתונים עיקריים',field:'נקודת הזמנה מוצעת',pn:'T-002',from:3,to:4}]);ok('XSTRUCT · …ועובר כשמוצהר בשמות החדשים',r.ok&&r.matched===1)}
+{const r=XR(XNEW((m,f)=>{f[2][1]=9}),XS());ok('XSTRUCT · גם בגיליון השני אותו מק״ט נבדק',!r.ok&&r.undeclared.length===1&&r.undeclared[0].sheet==='פירוט מלא')}
+{const S=XS();delete S.map['פירוט מלא'].columns['חדשה'];const r=XR(XNEW(),S);ok('XSTRUCT · עמודה חדשה שאינה במיפוי → נכשל',!r.ok&&r.other.some(e=>/אינן מוצהרות/.test(e)))}
+{const S=XS();S.map['נתונים עיקריים'].columns['רפאים']=null;const r=XR(XNEW(),S);ok('XSTRUCT · עמודה מוצהרת שאינה בקובץ → נכשל',!r.ok&&r.other.some(e=>/אינן בקובץ/.test(e)))}
+{const S=XS();S.map['פירוט מלא'].columns['ביקוש בזמן האספקה']=null;const r=XR(XNEW(),S);ok('XSTRUCT · עמודה ישנה שנעלמה בלי dropped → נכשל',!r.ok&&r.other.some(e=>/נעלמו בלי הצהרה/.test(e)))}
+{const S=XS({dropped:{'כל הנתונים':['ביקוש בזמן האספקה']}});S.map['פירוט מלא'].columns['ביקוש בזמן האספקה']=null;const r=XR(XNEW(),S);ok('XSTRUCT · …ועובר כשהיא מוצהרת ב-dropped',r.ok,JSON.stringify(r.other))}
+{const S=XS({dropped:{'כל הנתונים':['תיאור']}});const r=XR(XNEW(),S);ok('XSTRUCT · dropped על עמודה שממשיכה → נכשל',!r.ok&&r.other.some(e=>/אינן נעלמות/.test(e)))}
+{const S=XS();delete S.droppedSheets;const r=XR(XNEW(),S);ok('XSTRUCT · גיליון ישן שנעלם בלי droppedSheets → נכשל',!r.ok&&r.other.some(e=>/נעלם בלי הצהרה/.test(e)))}
+{const S=XS({sheets:['נתונים עיקריים','סיכום','פירוט מלא']});const r=XR(XNEW(),S);ok('XSTRUCT · סדר הגיליונות שונה מהמוצהר → נכשל',!r.ok&&r.other.some(e=>/גיליונות/.test(e)))}
+{const B=XNEW((m)=>{const t=m[2];m[2]=m[3];m[3]=t});const r=XR(B,XS());ok('XSTRUCT · סדר שורות השתנה בלי reorder → נכשל',!r.ok&&r.other.some(e=>/סדר השורות/.test(e)))}
+{const B=XNEW((m)=>{const t=m[2];m[2]=m[3];m[3]=t});const S=XS();S.map['נתונים עיקריים'].reorder=true;const r=XR(B,S);ok('XSTRUCT · …ועובר עם reorder: true — וערכים עדיין לפי מק״ט',r.ok,JSON.stringify(r.other))}
+{const r=XR(XNEW((m)=>{m.pop()}),XS());ok('XSTRUCT · קבוצת המק״טים שונה → נכשל',!r.ok&&r.other.some(e=>/קבוצת המק״טים/.test(e)))}
+{const r=XR(XNEW(),XS(),[],null);ok('XSTRUCT · מבנה בלי base → נדחה',!r.ok&&r.errs.some(e=>/40/.test(e)))}
+{const r=XR(XNEW(),XS(),[],SHA2);ok('XSTRUCT · מבנה לבסיס אחר → נכשל, עם הוראה לאפס',!r.ok&&r.errs.some(e=>/אפס/.test(e)))}
+{const S=XS();S.map['נתונים עיקריים'].columns['תיאור']='*';const r=XR(XNEW(),S);ok('XSTRUCT · «*» במיפוי → נדחה',!r.ok&&r.errs.length>0)}
+{const S=XS({extra:1});const r=XR(XNEW(),S);ok('XSTRUCT · מפתח לא מוכר במבנה → נדחה',!r.ok&&r.errs.some(e=>/לא מוכרים/.test(e)))}
+{const S=XS();delete S.map['פירוט מלא'];const r=XR(XNEW(),S);ok('XSTRUCT · גיליון חדש שאינו ב-map → נכשל',!r.ok&&r.other.some(e=>/אינו מוצהר/.test(e)))}
+/* בלי structure — ההשוואה הרגילה, ושינוי מבנה אינו ניתן להצהרה בכלל (כמו קודם) */
+{const r=checkDeclared(cellDiffs(XOLD(),XNEW()),decl([]),SHA);ok('XSTRUCT · בלי structure — שינוי מבנה נכשל כמו קודם',!r.ok&&r.other.length>0)}
+
 /* --- הקובץ שבריפו --- */
 const repo=require('./export-expected.json');
 ok('tests/export-expected.json תקין',!validateDecl(repo).length,validateDecl(repo).join(' · ')||`${repo.changes.length} שינויים מוצהרים`);
