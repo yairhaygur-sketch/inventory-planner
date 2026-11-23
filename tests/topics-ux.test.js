@@ -147,8 +147,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
   TP.tab='cust';TP.cat={cust:'none'};tpRender();R.kindHidden=![...document.querySelectorAll('#lite thead th')].some(x=>x.textContent.trim().startsWith('מצב'));
   TP.cat={};tpRender();R.kindShown=[...document.querySelectorAll('#lite thead th')].some(x=>x.textContent.trim().startsWith('מצב'));
   const u=k=>{const e=document.querySelector(`[data-tp-tab="${k}"] .u`);return e?+((e.textContent.match(/[\d,]+/)||['0'])[0].replace(/,/g,'')):0};
-  R.urg={cust:[u('cust'),tpRows('cust',true).filter(r=>r.burn).length],short:[u('short'),tpRows('short',true).filter(TOPICS.short.cats[0][3]).length],
-   fix:[u('fix'),tpRows('fix',true).filter(TOPICS.fix.cats[2][3]).length]};
+  R.urg={cust:[u('cust'),tpRows('cust',true).filter(r=>r.burn).length],short:[u('short'),tpRows('short',true).filter(TOPICS.short.cats.find(c=>c[0]==='zero')[3]).length],
+   fix:[u('fix'),tpRows('fix',true).filter(TOPICS.fix.cats.find(c=>c[0]==='data')[3]).length]};
   /* #12 — חריגת צריכה: מספר אחד בתא, וה«בדוח» בנקודה */
   TP.tab='trend';TP.cat={};tpRender();
   const ths=[...document.querySelectorAll('#lite thead th')],ix=ths.findIndex(t=>t.dataset.tpSort==='tRec');

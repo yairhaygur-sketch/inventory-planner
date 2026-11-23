@@ -165,8 +165,9 @@ const CONTRAST=sel=>{const rgb=s=>(s.match(/[\d.]+/g)||[]).map(Number);
     both:up.filter(r=>down.includes(r)).map(r=>r.pn)}});
   ok('ארבעת הנושאים בסדר שנקבע: הזמנות לקוח · חריגת צריכה · מלאי 0/צפוי להיגמר · טיוב נתונים',
    JSON.stringify(r.order)===JSON.stringify(['cust','trend','short','fix'])&&JSON.stringify(r.tabs)===JSON.stringify(r.order),r.tabs.join(','));
+  /* TP_PARAM_SPLIT (23.11, אושר): «עדכון SS ו-ROP» פוצל ל«להעלות ROP/SS» · «להוריד ROP/SS» · «מעורב» */
   ok('תתי-הקטגוריות בדיוק כפי שנקבעו',JSON.stringify(r.cats)===JSON.stringify({cust:['אין רכש כלל','כיסוי חלקי'],trend:['ביקוש עולה','ביקוש יורד','צריכה ראשונה'],
-   short:['מלאי 0 עכשיו','צפוי להיגמר החודש','ייגמר לפני האספקה הבאה'],fix:['שינוי פרופיל MRP','עדכון SS ו-ROP','נתונים שבורים']}),JSON.stringify(r.cats));
+   short:['מלאי 0 עכשיו','צפוי להיגמר החודש','ייגמר לפני האספקה הבאה'],fix:['שינוי פרופיל MRP','להעלות ROP/SS','להוריד ROP/SS','מעורב','נתונים שבורים']}),JSON.stringify(r.cats));
   ok(`«אין רכש כלל» (${r.none}): בכל שורה אין רכש פתוח, ומלאי + רכש קטנים מההזמנה`,r.none>0&&!r.noneBad.length,r.noneBad.join(','));
   ok(`«כיסוי חלקי» (${r.part}): בכל שורה יש רכש, ומלאי + רכש יחד קטנים מההזמנה`,r.part>0&&!r.partBad.length,r.partBad.join(','));
   ok('אין בנושא 1 הזמנה שמלאי + רכש מכסים, ושתי הקטגוריות מכסות את כל הנושא',!r.custCovered.length&&r.none+r.part===r.custN,`${r.custCovered.length} · ${r.none}+${r.part}/${r.custN}`);
