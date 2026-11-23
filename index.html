@@ -12629,7 +12629,10 @@ const XCOLS=[['מק״ט',r=>r.pn],['תיאור',r=>r.desc],['דגם',r=>r.model]
     מיושרת אליה. הצריכה התלת-שנתית שלהם יושבת בעמודה «צריכה 3 שנים». */
  ['מגמה בחלון הקצב %',r=>(r.rateFrom3y||trendPct(r)==null)?'':trendPct(r)],['קצב מרוסן',r=>r.trendF<1?+r.rateT.toFixed(2):''],
  ['ROP לפי קצב מרוסן',r=>trendGap(r)>0?r.sugROPT:''],['פער ריסון (יח׳)',r=>trendGap(r)||''],
- ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],['כסף תקוע (₪)',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
+ ['מלאי בהעברה',r=>r.transfer||0],['זמין לכיסוי',r=>r.avail||0],['יבוא/מקומי',r=>r.matType||''],['כמות חסרה (יח׳)',r=>r.miss||0],
+ /* XLS_REFORM (23.11): היה «כסף תקוע (₪)» — אבל הסכום הוא במטבע של הפריט, לא בשקלים.
+    בגיליון «נתונים עיקריים» עמודת «מטבע» צמודה אליו. */
+ ['שווי עודף',r=>r.expCap||0],['מכירה אחרונה',r=>r.sales&&r.sales.date?fmtDate(r.sales.date):(r.sales&&r.sales.num!=null?r.sales.num:'')],
  ['כניסה אחרונה',r=>r.entries&&r.entries.date?fmtDate(r.entries.date):(r.entries&&r.entries.num!=null?r.entries.num:'')]];
 /* ============ הייצוא מייצג את מה שרואים ============
    סעיף 3 במפרט. השורות תמיד היו של התצוגה (currentRows), אבל
@@ -12656,6 +12659,59 @@ function viewExportRows(){
 function exportRows(rows){const header=XCOLS.map(c=>c[0]);
  const body=rows.map(r=>XCOLS.map(c=>{let v;try{v=c[1](r)}catch(_){v=''}return v==null?'':v}));
  return [header,...body]}
+/* ============ XLS_REFORM — קובץ האקסל של הכלי (אושר 23.11) ============
+   מי פותח אותו: המעתד, הרכש/הקניינים וההנהלה. גיליון של 59 עמודות לא עובד
+   לאף אחד מהם, ולכן:
+   · «נתונים עיקריים» — 21 עמודות, בקבוצות (שורת קבוצה מעל הכותרת). זו
+     הרשימה שאושרה, בסדר שאושר.
+   · «פירוט מלא» — מק״ט ותיאור, ואחריהם כל שאר העמודות של XCOLS בסדרן. אחרון.
+   · שום ערך לא חושב מחדש: כל תא בשני הגיליונות הוא התא של XCOLS (exportRows),
+     חוץ מ«הפעולה הבאה» — הפעולה הראשונה, כמו בגיליון «התצוגה» (SCOL.act.xval).
+   עמודה שאינה נמצאת ב-XCOLS זורקת שגיאה — שם עמודה ששונה לא ייעלם בשקט. */
+const XMAIN=[
+ ['פריט',[['מק״ט'],['תיאור'],['דגם'],['ספק'],['סיווג','סטטוס'],['הפעולה הבאה',r=>SCOL.act.xval(r)]]],
+ ['מלאי',[['מלאי פנוי'],['הזמנות לקוח']]],
+ ['רכש',[['רכש פתוח'],['אספקה קרובה (תאריך)','תאריך האספקה הקרוב'],['זמן אספקה (ימים)']]],
+ ['פרמטרי תכנון',[['צריכה חודשית','קצב חודשי'],['חודשי כיסוי'],['נקודת הזמנה SAP','ROP בSAP'],['נקודת הזמנה מוצעת','ROP מוצע'],
+  ['מלאי ביטחון SAP','SS בSAP'],['מלאי ביטחון מוצע','SS מוצע']]],
+ ['כמויות',[['כמות להזמנה'],['כמות חסרה','כמות חסרה (יח׳)']]],
+ ['שווי',[['שווי עודף'],['מטבע','מטבע FOB']]]];
+/* all = exportRows(rows): הכותרת של XCOLS ואחריה שורה לכל פריט, באותו סדר כמו rows */
+function xSplit(all,rows){const H=all[0],at=h=>{const i=H.indexOf(h);if(i<0)throw new Error('XLS_REFORM: אין עמודה «'+h+'» ב-XCOLS');return i};
+ const cols=[],grp=[],merges=[];
+ for(const [g,list] of XMAIN){const c0=cols.length;
+  for(const [h,src] of list){cols.push({h,f:typeof src==='function'?src:null,i:typeof src==='function'?-1:at(src||h)});grp.push(cols.length-1===c0?g:'')}
+  if(cols.length-1>c0)merges.push({s:{r:0,c:c0},e:{r:0,c:cols.length-1}})}
+ const used=new Set(cols.filter(c=>c.i>=0).map(c=>c.i)),key=[at('מק״ט'),at('תיאור')];
+ const rest=key.concat(H.map((_,i)=>i).filter(i=>!used.has(i)));
+ const val=(c,k)=>{if(c.i>=0)return all[k+1][c.i];let v;try{v=c.f(rows[k])}catch(_){v=''}return v==null?'':v};
+ const main=[grp,cols.map(c=>c.h)];for(let k=0;k<rows.length;k++)main.push(cols.map(c=>val(c,k)));
+ const full=all.map(r=>rest.map(i=>r[i]));
+ return {main,full,merges,money:[cols.findIndex(c=>c.h==='שווי עודף')]}}
+/* רוחב עמודה לפי התוכן: הכותרת ו-300 השורות הראשונות, בין 6 ל-45 תווים */
+function xAutoW(aoa,hdr){const n=Math.max(0,...aoa.slice(0,hdr+301).map(r=>r?r.length:0)),w=[];
+ for(let c=0;c<n;c++){let m=String((aoa[hdr]||[])[c]==null?'':(aoa[hdr]||[])[c]).length+2;
+  for(let r=hdr+1;r<Math.min(aoa.length,hdr+301);r++){const v=(aoa[r]||[])[c];if(v==null||v==='')continue;
+   const s=typeof v==='number'?Math.round(v).toLocaleString('en-US')+(Number.isInteger(v)?'':'.00'):String(v);if(s.length+1>m)m=s.length+1}
+  w.push({wch:Math.max(6,Math.min(45,m))})}
+ return w}
+/* «סיכום» — מה יש בקובץ, למי שמקבל אותו בלי הסבר. שווי לפי מטבע, בלי המרה ובלי סכימה בין מטבעות. */
+function xSummary(rows,scr,filt,o){
+ const cur=new Map();for(const r of rows){const v=r.expCap||0;if(!(v>0))continue;const k=String(r.currency||'').trim().toUpperCase()||'לא צוין';
+  const e=cur.get(k)||{n:0,v:0};e.n++;e.v+=v;cur.set(k,e)}
+ const out=[['סיכום הייצוא'],[],['מסך',scr],['סינון',filt?'מסונן — רק הפריטים שעברו את הסינון והחיפוש שעל המסך':'ללא סינון — כל הפריטים של המסך'],
+  ['פריטים',rows.length]];
+ if(o.mov)out.push(['תנועות',o.mov]);
+ out.push(['תאריך הדוח',ZDATE?fmtDate(ZDATE):'—']);
+ if(BASE)out.push(['חודש בסיס',`${String(BASE.m).padStart(2,'0')}/${BASE.y}${BASE.verified?'':' — לא מאומת, ההמלצות זמניות'}`]);
+ out.push(['תאריך הייצוא',fmtDate(new Date())],[],['שווי עודף לפי מטבע — בלי המרה בין מטבעות'],['מטבע','פריטים עם עודף','שווי עודף']);
+ if(cur.size)for(const [k,e] of [...cur].sort((a,b)=>b[1].v-a[1].v))out.push([k,e.n,Math.round(e.v)]);
+ else out.push(['אין פריט עם שווי עודף בקובץ']);
+ out.push([],['הגיליונות בקובץ']);
+ for(const [s,t] of o.sheets)out.push([s,t]);
+ return out}
+/* שם הקובץ: שם המסך בעברית ותאריך; «מסונן» כשיש סינון. בלי תווים שאסורים בשם קובץ. */
+function xFileName(scr,filt,d){return `${scr}${filt?' · מסונן':''} ${d}`.replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim()+'.xlsx'}
 /* הגיליון מייצג את מה שרואים: אותן עמודות, אותו סדר, אותו מיון
    ואותו סינון. קודם הוא היה רשימה קבועה של 11 עמודות בסדר אחר. */
 function movExportRows(){const list=movRows();
@@ -12892,21 +12948,56 @@ function sapPreview(kind,sel){
    ב-L2. נרשם XEXP_KEY, והפתיחה הבאה אומרת שהייצוא לא הסתיים. */
 const XCH=5000,XEXP_KEY='planner_exporting_v1',XWF0=XLSX.writeFile;
 let XJOB=null,XW_URL=null;
-function xBook(){const wb=XLSX.utils.book_new();let ws=null;
- return {wb,add(name,cols,aoa){ws=XLSX.utils.aoa_to_sheet(aoa,{dense:true});ws['!cols']=cols;XLSX.utils.book_append_sheet(wb,ws,name)},
-  rows(aoa){XLSX.utils.sheet_add_aoa(ws,aoa,{origin:-1,dense:true})}}}
-function xApply(B,m){if(m.t==='add')B.add(m.name,m.cols,m.aoa);else B.rows(m.aoa)}
+/* XLS_REFORM — עיצוב (אושר 23.11, «מלא»): הספר מימין לשמאל; בכל גיליון עם
+   כותרת (meta.hdr — מספר שורת הכותרת, -1 = בלי) סינון אוטומטי על הכותרת ושורות
+   הכותרת קפואות; מספרים עם מפריד אלפים (שלם — #,##0; שבר — עד שתי ספרות;
+   עמודות שווי — תמיד שלם). עמודת מק״ט / מספר מסמך נשארת בלי עיצוב — מספר
+   חלק אינו כמות. העיצוב אינו נוגע בערכים: אותו תא, אותו סוג. */
+function xBook(){const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};let ws=null,meta=null;const M=[];
+ const fmt=(w,m,r0)=>{const d=w['!data']||[],h=m.hdr;
+  if(!m.raw){const H=d[h]||[];m.raw=[];H.forEach((x,c)=>{if(x&&/מק[״"']ט|מסמך|מספר/.test(String(x.v)))m.raw.push(c)})}
+  const money=new Set(m.money||[]),raw=new Set(m.raw);
+  for(let r=Math.max(r0,h+1);r<d.length;r++){const row=d[r];if(!row)continue;
+   for(let c=0;c<row.length;c++){const x=row[c];if(!x||x.t!=='n'||typeof x.v!=='number'||raw.has(c))continue;
+    x.z=(money.has(c)||Number.isInteger(x.v))?'#,##0':'#,##0.0#'}}};
+ return {wb,add(name,cols,aoa,m){ws=XLSX.utils.aoa_to_sheet(aoa,{dense:true});ws['!cols']=cols;meta=Object.assign({hdr:0},m||{});
+   if(meta.merges)ws['!merges']=meta.merges;fmt(ws,meta,0);M.push([ws,meta]);XLSX.utils.book_append_sheet(wb,ws,name)},
+  rows(aoa){const r0=(ws['!data']||[]).length;XLSX.utils.sheet_add_aoa(ws,aoa,{origin:-1,dense:true});fmt(ws,meta,r0)},
+  /* בסוף: הסינון האוטומטי על כל השורות, ומספר השורות הקפואות לכל גיליון (לפי הסדר) */
+  fin(){return M.map(([w,m])=>{if(!(m.hdr>=0)||!w['!ref'])return 0;const R=XLSX.utils.decode_range(w['!ref']);
+   if(R.e.r>m.hdr)w['!autofilter']={ref:XLSX.utils.encode_range({s:{r:m.hdr,c:0},e:{r:R.e.r,c:R.e.c}})};
+   return m.nofreeze?0:m.hdr+1})}}}
+/* שורות קפואות: SheetJS הקהילתי אינו כותב <pane>, ולכן הוא נכנס לקובץ שכבר נכתב —
+   ב-sheetView של כל גיליון (sheetN.xml לפי סדר הגיליונות). שאר הקובץ — אותם בתים.
+   fz[i] = כמה שורות להקפיא בגיליון i (0 — בלי). מחזיר ArrayBuffer. */
+function xPanes(buf,fz){if(!fz||!fz.some(n=>n>0))return buf;
+ const C=XLSX.CFB,z=C.read(new Uint8Array(buf),{type:'array'});let hit=0;
+ fz.forEach((n,i)=>{if(!(n>0))return;const p=z.FullPaths.find(q=>q.endsWith('/xl/worksheets/sheet'+(i+1)+'.xml'));const f=p&&C.find(z,p);if(!f)return;
+  const x=new TextDecoder().decode(f.content),a=XLSX.utils.encode_cell({r:n,c:0});
+  const y=x.replace(/<sheetView ([^>]*?)\/>/,(_,at)=>`<sheetView ${at}><pane ySplit="${n}" topLeftCell="${a}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="${a}" sqref="${a}"/></sheetView>`);
+  if(y!==x){f.content=new TextEncoder().encode(y);f.size=f.content.length;hit++}});
+ if(!hit)return buf;
+ const o=C.write(z,{type:'array',fileType:'zip',compression:true}),u=o instanceof Uint8Array?o:new Uint8Array(o);
+ return u.buffer.slice(u.byteOffset,u.byteOffset+u.byteLength)}
+function xApply(B,m){if(m.t==='add')B.add(m.name,m.cols,m.aoa,m.meta);else B.rows(m.aoa)}
 /* החלקים, לפי הסדר: לכל גיליון «add» עם XCH השורות הראשונות, ואז «rows» */
 function xSteps(sheets){const st=[];for(const sh of sheets){
-  st.push({t:'add',name:sh.name,cols:sh.cols,from:0,to:Math.min(XCH,sh.aoa.length),aoa:sh.aoa});
+  st.push({t:'add',name:sh.name,cols:sh.cols,meta:sh.meta,from:0,to:Math.min(XCH,sh.aoa.length),aoa:sh.aoa});
   for(let i=XCH;i<sh.aoa.length;i+=XCH)st.push({t:'rows',from:i,to:Math.min(i+XCH,sh.aoa.length),aoa:sh.aoa})}
  return st}
-const xMsg=s=>({t:s.t,name:s.name,cols:s.cols,aoa:s.aoa.slice(s.from,s.to)});
+const xMsg=s=>({t:s.t,name:s.name,cols:s.cols,meta:s.meta,aoa:s.aoa.slice(s.from,s.to)});
 function xDownload(buf,name){const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
  const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000)}
-/* בדף: אותם חלקים, אותו בונה, ו-XLSX.writeFile (או זה שהוחלף) */
-function xSaveMain(sheets,name){const B=xBook();for(const s of xSteps(sheets))xApply(B,xMsg(s));
- XLSX.writeFile(B.wb,name,{compression:true})}
+/* כתיבת ספר שנבנה ב-xBook, בדף. XLSX.writeFile שהוחלף (בדיקות, השומר העסקי) מקבל
+   את הספר כמו קודם; אחרת — נכתב, מקבל שורות קפואות, ויורד. אם ההקפאה נכשלת
+   הקובץ יורד בלעדיה (ונרשם) — קובץ בלי שורה קפואה עדיף על קובץ שלא ירד. */
+function xWriteBook(B,name){const fz=B.fin();
+ if(XLSX.writeFile!==XWF0){XLSX.writeFile(B.wb,name,{compression:true});return}
+ const buf=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});
+ let out=buf;try{out=xPanes(buf,fz)}catch(err){console.error('XLS_REFORM panes:',err)}
+ xDownload(out,name)}
+/* בדף: אותם חלקים, אותו בונה */
+function xSaveMain(sheets,name){const B=xBook();for(const s of xSteps(sheets))xApply(B,xMsg(s));xWriteBook(B,name)}
 function xEnd(job){if(!job)return;job.dead=true;clearInterval(job.timer);if(job.w)try{job.w.terminate()}catch(_){}
  if(XJOB===job){XJOB=null;if(!LOADJOB)zBox(null)}
  try{localStorage.removeItem(XEXP_KEY)}catch(_){}}
@@ -12918,9 +13009,11 @@ function xDraw(job){if(!job||job.dead||LOADJOB)return;const sec=Math.round((perf
  const c=document.getElementById('xCancelBtn');if(c)c.onclick=()=>xCancel()}
 function xWorker(){if(typeof Worker!=='function'||typeof Blob!=='function'||!window.URL||!URL.createObjectURL)return null;
  const lib=document.getElementById('xlsxlib');if(!lib)return null;
- try{if(!XW_URL)XW_URL=URL.createObjectURL(new Blob([lib.textContent,'\n',xBook.toString(),'\n',xApply.toString(),'\n',
+ try{if(!XW_URL)XW_URL=URL.createObjectURL(new Blob([lib.textContent,'\n',xBook.toString(),'\n',xApply.toString(),'\n',xPanes.toString(),'\n',
   `let B=null;self.onmessage=e=>{const m=e.data;try{
-    if(m.t==='write'){const out=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});B=null;postMessage({t:'done',buf:out},[out]);return}
+    if(m.t==='write'){const fz=B.fin(),raw=XLSX.write(B.wb,{type:'array',bookType:'xlsx',compression:true});B=null;
+     let out=raw;try{out=xPanes(raw,fz)}catch(err){console.error('XLS_REFORM panes:',err)}
+     postMessage({t:'done',buf:out},[out]);return}
     if(!B)B=xBook();xApply(B,m);postMessage({t:'ok'})}catch(err){postMessage({t:'err',msg:String(err&&err.message||err)})}}`],{type:'text/javascript'}));
   return new Worker(XW_URL)}catch(_){return null}}
 /* sheets = [{name,cols,aoa}] — תמונת המצב של הלחיצה; done() — אחרי שהקובץ ירד */
@@ -12962,27 +13055,28 @@ function doExport(){if(!QF||!QF.all||!QF.all.length){toast('אין נתונים 
  const onMoves=cur==='moves';
  const rowsAll=onMoves?(()=>{cur='all';try{return currentRows()}finally{cur='moves'}})():currentRows();
  /* L3: כל מה שנכנס לקובץ מחושב כאן, ברגע הלחיצה — תמונת המצב */
- const aoa=exportRows(rowsAll);
- const sheets=[];
- const tabName=(DEF.find(d=>d[0]===(onMoves?'all':cur))||[,'רשימה'])[1];   /* בתנועות — «כל הפריטים», כי זה התוכן */
- const mAoa=movExportRows();
+ const X=xSplit(exportRows(rowsAll),rowsAll);
+ /* XLS_REFORM: גיליון התנועות יוצא רק ממסך «תנועות אחרונות» (שם הוא «התצוגה»).
+    עד כאן הוא צורף לכל ייצוא — אלפי שורות תנועה בקובץ של עשרה פריטים. */
+ const mAoa=onMoves?movExportRows():[];
  const vx=onMoves?(mAoa.length?{aoa:mAoa,keys:mAoa[0]}:null):viewExportRows();
- if(vx)sheets.push({name:'התצוגה',cols:vx.keys.map((k,i)=>({wch:i<2?24:13})),aoa:vx.aoa});
  /* UX6 — במסך שינוי פרופיל: גיליון המוחרגים (אושר 2.11). אין מוחרגים — אין גיליון */
- if(!onMoves&&track==='prof'){const px=profExclAoa();if(px)sheets.push({name:'ללא שינוי פרופיל',cols:px[0].map((h,i)=>({wch:i<2?22:14})),aoa:px})}
- sheets.push({name:(vx?'כל הנתונים · ':'')+tabName.slice(0,16),cols:XCOLS.map((c,i)=>({wch:i<2?24:(i<9?14:11)})),aoa});
- /* גיליון נוסף: התנועות האחרונות (הטאב הפעיל). בתנועות הוא כבר «התצוגה». */
- if(!onMoves&&mAoa.length>1){
-   const mName=(MOVDEF.find(d=>d[0]===movTab)||[,'תנועות'])[1];
-   sheets.push({name:mName.slice(0,28),cols:mAoa[0].map((h,i)=>({wch:i<2?20:(String(h).length<6?11:15)})),aoa:mAoa})}
- const dstr=new Date().toISOString().slice(0,10);
- /* קובץ מסונן נקרא «מסונן». עד כאן תצוגה של ZT בלבד ירדה בשם
-    Inventory_all_… — אותו שם כמו הקטלוג המלא, וקובץ שנשלח הלאה
-    נקרא כאילו הוא הכול. «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
+ const px=(!onMoves&&track==='prof')?profExclAoa():null;
+ /* קובץ מסונן נקרא «מסונן». «מסונן» = מה שכפתור «נקה פילטרים» מנקה. */
  const filt=FDEF.some(([k])=>SEL[k].size)||Object.keys(colFilters).length>0||!!SQ;
- const n=rowsAll.length,mv=mAoa.length;
- xSave(sheets,`Inventory_${cur}${filt?'_filtered':''}_${dstr}.xlsx`,
-  ()=>toast(`יוצאו ${n} מק״טים${mv>1?' + '+(mv-1)+' תנועות':''} ✓`))}
+ const scr=screenName(),n=rowsAll.length,mv=Math.max(0,mAoa.length-1);
+ const list=[];
+ if(vx)list.push(['התצוגה',onMoves?'טבלת התנועות כפי שהיא על המסך':'העמודות שעל המסך, באותו סדר ובאותו מיון']);
+ if(px)list.push(['ללא שינוי פרופיל','פריטים שנוטרלו ידנית או בגלל סימון']);
+ list.push(['נתונים עיקריים',`${X.main[1].length} עמודות ליבה לכל פריט, בקבוצות`],['פירוט מלא','כל שאר הנתונים של כל פריט, לפי מק״ט']);
+ const sheets=[{name:'סיכום',cols:[{wch:22},{wch:60},{wch:16}],aoa:xSummary(rowsAll,scr,filt,{mov:mv,sheets:list}),meta:{hdr:-1}}];
+ if(vx)sheets.push({name:'התצוגה',cols:xAutoW(vx.aoa,0),aoa:vx.aoa,meta:{hdr:0}});
+ if(px)sheets.push({name:'ללא שינוי פרופיל',cols:xAutoW(px,0),aoa:px,meta:{hdr:0}});
+ sheets.push({name:'נתונים עיקריים',cols:xAutoW(X.main,1),aoa:X.main,meta:{hdr:1,merges:X.merges,money:X.money}});
+ sheets.push({name:'פירוט מלא',cols:xAutoW(X.full,0),aoa:X.full,meta:{hdr:0}});
+ const d=new Date(),p2=k=>String(k).padStart(2,'0');
+ xSave(sheets,xFileName(scr,filt,`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`),
+  ()=>toast(`יוצאו ${n} מק״טים${mv?' + '+mv+' תנועות':''} ✓`))}
 /* ============ EXPEDITE — דוח הזירוז מול הספקים ============
    הדוח הזה נולד ממדידה ששינתה אותו מהיסוד. התכנון הראשון היה ציון
    דחיפות ומיון לפי ימי פיגור. נמדד על הדוח האמיתי (7,569 פריטים,
@@ -13150,26 +13244,23 @@ function doExpedite(){
  if(!ALL||!ALL.length){toast('אין נתונים — העלה דוח ZMRP');return}
  const {rows,landed}=expediteRows();
  if(!rows.length){toast('אין מה לזרז — אין רכש פתוח פתוח לבירור ואין לקוח שממתין');return}
- const wb=XLSX.utils.book_new();
+ /* XLS_REFORM (23.11): אותו תוכן, אותם גיליונות ואותם רוחבים — ועכשיו אותו עיצוב
+    כמו קובץ האקסל של הכלי: מימין לשמאל, סינון אוטומטי וכותרת קפואה, מפריד אלפים.
+    ב«לפי ספק» הטבלה מתחת לשורות האזהרה — הסינון עליה, בלי הקפאה (היא הייתה
+    מקפיאה את כל האזהרות על המסך). */
+ const B=xBook();
  const notes=expNotes(rows,landed);
  const sup=expSupplierAoa(rows);
  const head=[[`דוח זירוז · ${fmtDate(new Date())}`],
   [`${rows.length.toLocaleString('he-IL')} פריטים · ${rows.reduce((a,x)=>a+x.qty,0).toLocaleString('he-IL')} יח׳ · ${sup.length-1} ספקים`],
   ...notes.map(t=>[t]),[]];
- const sws=XLSX.utils.aoa_to_sheet([...head,...sup]);
- sws['!cols']=[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},{wch:20},{wch:18},
-  ...Object.keys(EXP_ASK).map(()=>({wch:15}))];
- XLSX.utils.book_append_sheet(wb,sws,'לפי ספק');
+ B.add('לפי ספק',[{wch:34},{wch:9},{wch:12},{wch:12},{wch:22},{wch:20},{wch:18},
+  ...Object.keys(EXP_ASK).map(()=>({wch:15}))],[...head,...sup],{hdr:head.length,nofreeze:true});
  const aoa=[EXPCOLS.map(c=>c[0]),...rows.map(x=>EXPCOLS.map(c=>{
   let v;try{v=c[1](x)}catch(_){v=''}return v==null?'':v}))];
- const ws=XLSX.utils.aoa_to_sheet(aoa);
- ws['!cols']=EXPCOLS.map((c,i)=>({wch:i===0?30:(i===2?30:(i===18?22:13))}));
- ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa.length-1,c:EXPCOLS.length-1}})};
- XLSX.utils.book_append_sheet(wb,ws,'לזירוז');
- if(landed.length){const lws=XLSX.utils.aoa_to_sheet(expLandedAoa(landed));
-  lws['!cols']=[{wch:30},{wch:18},{wch:30},{wch:18},{wch:12},{wch:14},{wch:52}];
-  XLSX.utils.book_append_sheet(wb,lws,'נחתו — לא לרדוף')}
- XLSX.writeFile(wb,`Expedite_${new Date().toISOString().slice(0,10)}.xlsx`);
+ B.add('לזירוז',EXPCOLS.map((c,i)=>({wch:i===0?30:(i===2?30:(i===18?22:13))})),aoa,{hdr:0});
+ if(landed.length)B.add('נחתו — לא לרדוף',[{wch:30},{wch:18},{wch:30},{wch:18},{wch:12},{wch:14},{wch:52}],expLandedAoa(landed),{hdr:0});
+ xWriteBook(B,`Expedite_${new Date().toISOString().slice(0,10)}.xlsx`);
  toast(`דוח זירוז: ${rows.length.toLocaleString('he-IL')} פריטים אצל ${sup.length-1} ספקים`
   +(landed.length?` · ${landed.length} שכבר נחתו הורדו`:'')+' ✓')}
 /* wireDrag() הוגדר ומעולם לא נקרא, ולכן כפתורי ה-✕ על כותרות הווידג'טים
