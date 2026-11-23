@@ -14939,6 +14939,13 @@ function tpRec(r){
  if(r.isOD||r.noStock)return {na:'od'};
  return {src:'engine',rop:r.sugROP,ss:r.sugSS,ssSrc:r.ssSrc,dLT:r.dLT,ssStat:r.ssStat}}
 const tpRecX=(r,k)=>{const q=tpRec(r);return q.na?'':q[k]};
+/* ============ TP_PARAM_SPLIT — כיוון העדכון ב«טיוב נתונים» (הערת משתמשים 23.11, אושר) ============
+   ROP ו-SS ב-SAP מול ההמלצה (tpRec — אותו זוג שבעמודות). 'up' — משהו עולה ושום דבר לא יורד;
+   'down' — משהו יורד ושום דבר לא עולה; 'mix' — כיוונים הפוכים (קטגוריה נפרדת, בחירת המעתד);
+   'same' — אין פער במספרים (איפוס או החלטה ידנית) — נשאר ב«הכול» בלבד.
+   נמדד 23.11: דוח א׳ 71 / 150 / 32 (מתוך 253; 0 בלי פער), דוח ב׳ 814 / 513 / 23 (מתוך 1,350; 0). */
+function tpParamDir(r){const q=tpRec(r);if(q.na)return null;const a=Math.sign(q.rop-r.rop),b=Math.sign(q.ss-r.ss);
+ return a*b<0?'mix':(a>0||b>0)?'up':(a<0||b<0)?'down':'same'}
 function tpRecPair(r,k){const q=tpRec(r),sap=r[k];
  if(q.na==='lt')return `${tpN(sap)} ← <b style="color:var(--critical)" title="${LT_NA}">LT חסר</b>`;
  if(q.na)return tpN(sap);
@@ -15037,7 +15044,8 @@ function tpTopicAct(t,r){
   const dir=up?'העלייה':'הירידה';
   if(inF||q.na)return `לבחון ${up?'העלאת':'הורדת'} נק׳ הזמנה ל-${tpN(adv)} אם ${dir} תימשך (מייעץ${q.na?'':` · ההמלצה לקובץ SAP: ${tpN(q.rop)}`})`;
   return `לבחון נק׳ הזמנה ${tpN(adv)} אם ${dir} תימשך (מייעץ · ב-SAP היום: ${tpN(r.rop)} · לא בקובץ העדכון)`}
- if(t==='fix'){const k=TP.cat.fix||'',data=tpLtMissing(r)||tpSrvMissing(r),q=tpRec(r),param=tpInFix(r)&&!recNA(r)&&!q.na,prof=profActive(r);
+ /* TP_PARAM_SPLIT: שלוש תת-הקטגוריות של העדכון — אותה פעולה כמו «עדכון SS ו-ROP» */
+ if(t==='fix'){const k0=TP.cat.fix||'',k=/^p(up|down|mix)$/.test(k0)?'param':k0,data=tpLtMissing(r)||tpSrvMissing(r),q=tpRec(r),param=tpInFix(r)&&!recNA(r)&&!q.na,prof=profActive(r);
   const one={data:()=>tpLtMissing(r)?'להזין זמן אספקה מתוכנן ב-SAP':'להזין רמת שירות ב-SAP',
    /* המספרים כבר בעמודות «נק׳ הזמנה» ו«מלאי ביטחון» — כאן רק מה לעדכן */
    param:()=>{const p=[];if(q.rop!==r.rop)p.push('נק׳ הזמנה');if(q.ss!==r.ss)p.push('מלאי ביטחון');
@@ -15149,9 +15157,13 @@ const TOPICS={
    ...tpFobCols(),
    tpActCol('short')]},
  fix:{t:'טיוב נתונים',short:'פרופיל MRP, מלאי ביטחון ונקודת הזמנה לעדכון ב-SAP, ונתונים חסרים.',
-  lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «עדכון SS ו-ROP»: שורות קובץ העדכון ל-SAP. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP, או רמת שירות חסרה או 0 בפריט מנוהל מלאי עם צריכה — בלי שניהם אין המלצת SS/ROP תקפה. פריט יכול להופיע ביותר מקטגוריה אחת.',
+  lead:'«שינוי פרופיל MRP»: מה שמסך שינוי הפרופיל בכלי המלא מסמן לפעולה עכשיו — כולל PD ← ZM-C (צריכה נטו של 3 יח׳ לפחות ב-12 החודשים האחרונים) והורדות ZM עד ZM-C. «להעלות ROP/SS», «להוריד ROP/SS» ו«מעורב»: שורות קובץ העדכון ל-SAP, לפי כיוון השינוי מול ההמלצה — «להעלות»: משהו עולה ושום דבר לא יורד; «להוריד»: משהו יורד ושום דבר לא עולה; «מעורב»: ROP ו-SS בכיוונים הפוכים. «נתונים שבורים»: «אספ.מתוכנ.» ריק או 0 ב-SAP, או רמת שירות חסרה או 0 בפריט מנוהל מלאי עם צריכה — בלי שניהם אין המלצת SS/ROP תקפה. פריט יכול להופיע ביותר מקטגוריה אחת.',
   rows:()=>tpUniq([profRows().filter(profActive),decisionList('fix').filter(r=>!recNA(r)),((QF&&QF.all)||[]).filter(r=>tpLtMissing(r)||tpSrvMissing(r))]),
-  cats:[['prof','שינוי פרופיל MRP','blu',r=>profActive(r)],['param','עדכון SS ו-ROP','amb',r=>tpInFix(r)&&!recNA(r)],
+  /* TP_PARAM_SPLIT (23.11, הערת משתמשים; אושר): «עדכון SS ו-ROP» לשלוש — לפי כיוון השינוי (tpParamDir) */
+  cats:[['prof','שינוי פרופיל MRP','blu',r=>profActive(r)],
+   ['pup','להעלות ROP/SS','amb',r=>tpInFix(r)&&!recNA(r)&&tpParamDir(r)==='up'],
+   ['pdown','להוריד ROP/SS','vio',r=>tpInFix(r)&&!recNA(r)&&tpParamDir(r)==='down'],
+   ['pmix','מעורב','gry',r=>tpInFix(r)&&!recNA(r)&&tpParamDir(r)==='mix'],
    ['data','נתונים שבורים','red',r=>tpLtMissing(r)||tpSrvMissing(r)]],
   cols:[
    {k:'mrp',l:'סוג MRP',v:r=>r.mrp,h:r=>esc(r.mrp||'—')+(profActive(r)?' '+tpP('blu','← '+PROF_NAME[profInfo(r).tgt]):'')},
