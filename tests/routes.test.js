@@ -685,8 +685,9 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
    const all=QF.all||[];
    const TXT=r=>((r.why||[]).find(w=>w&&/שני שעונים/.test(w[1]||''))||[])[1]||null;
    const has=all.filter(TXT);
+   /* HOLD_EXCESS (22.11): בפריט מושהה אין העלאה ולכן אין «שני שעונים» — «תקין לעת עתה» במקומה */
    const should=all.filter(r=>(r.cat==='עודף מלאי'||r.cat==='מלאי איטי')&&r.rop>ROP_MIN_ACT
-     &&(r.sugROP||0)>=(r.rop||0)&&(r.sugSS||0)>=(r.ss||0));
+     &&(r.sugROP||0)>=(r.rop||0)&&(r.sugSS||0)>=(r.ss||0)&&!r.holdRaw);
    return {n:has.length,should:should.length,
     /* אף פריט שיש לו הקטנה להציע, או שה-ROP שלו כבוי */
     wrong:has.filter(r=>(r.sugROP||0)<(r.rop||0)||(r.sugSS||0)<(r.ss||0)
@@ -749,9 +750,13 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
          || (r.sugROP>r.rop&&!/להעלות נקודת הזמנה/.test(t))
          || (r.sugSS>r.ss&&!/להעלות מלאי ביטחון/.test(t))
          || (r.sugROP<r.rop&&!/להקטין נקודת הזמנה/.test(t))
-         || (r.sugSS<r.ss&&!/להקטין מלאי ביטחון/.test(t))});
+         || (r.sugSS<r.ss&&!/להקטין מלאי ביטחון/.test(t))
+         /* HOLD_EXCESS (22.11): העלאה מושהית — הטקסט אומר «להשאיר», לא «תואם» */
+         || (r.holdRaw&&r.holdRaw.rop>r.rop&&!/להשאיר (נקודת הזמנה|את הפרמטרים)/.test(t))
+         || (r.holdRaw&&r.holdRaw.ss>r.ss&&!/להשאיר (מלאי ביטחון|את הפרמטרים)/.test(t))});
    return {ex:ex.length,bad:bad.length,
-    raise:ex.filter(r=>r.sugROP>r.rop||r.sugSS>r.ss).length,
+    /* העלאה — כמומלצת, או כמושהית (HOLD_EXCESS); שתיהן נבדקות למעלה */
+    raise:ex.filter(r=>r.sugROP>r.rop||r.sugSS>r.ss||(r.holdRaw&&(r.holdRaw.rop>r.rop||r.holdRaw.ss>r.ss))).length,
     /* ואף הצהרת «סביר» לא שרדה בשום מקום בקובץ */
     leftover:all.filter(r=>/נקודת הזמנה סבירה|מלאי ביטחון סביר/.test(A(r))).length,
     smp:bad.length?`${bad[0].pn} ROP ${bad[0].rop}→${bad[0].sugROP} SS ${bad[0].ss}→${bad[0].sugSS} :: ${A(bad[0]).slice(0,120)}`:''}});
@@ -853,9 +858,14 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     /* ropDry הוא בדיוק הנוסחה, לא קירוב */
     formula:[...inSet].every(r=>Math.abs(ropDry(r)-(r.ltM-(r.rop/r.rate)))<1e-9),
     /* ואין פריט חשוף שנשאר מחוץ לדלת */
-    missed:all.filter(r=>ropScope(r)&&ropDry(r)>0&&!gap.includes(r)).length}});
+    missed:all.filter(r=>ropScope(r)&&ropDry(r)>0&&!gap.includes(r)).length,
+    /* HOLD_EXCESS (22.11): פריט שה-ROP המחושב שלו גבוה מ-SAP אבל ההעלאה מושהית — אינו
+       «מתחת למוצע» (ההמלצה היא הערך שב-SAP). בפיקסצ׳ר הזה כל מועמדי «מתחת למוצע» מושהים */
+    heldThin:all.filter(r=>ropScope(r)&&r.holdRaw&&r.holdRaw.rop>r.rop&&!(ropDry(r)>0)).length,
+    heldInThin:thin.filter(r=>r.holdRaw).length}});
   ok('יש בקובץ פריטים בשתי דלתות ה-ROP — אחרת הבדיקה ריקה',
-    rb.gap>0&&rb.thin>0,`${rb.gap} לא מגשר · ${rb.thin} מתחת למוצע · מתוך ${rb.scope} בתחום`);
+    rb.gap>0&&(rb.thin+rb.heldThin)>0,`${rb.gap} לא מגשר · ${rb.thin} מתחת למוצע (+${rb.heldThin} מושהים) · מתוך ${rb.scope} בתחום`);
+  ok('פריט שההעלאה שלו מושהית אינו «מתחת למוצע»',rb.heldInThin===0,rb.heldInThin+' מושהים בדלת');
   ok('שתי הדלתות אינן חופפות ואף פריט חשוף לא נשאר בחוץ',
     rb.overlap===0&&rb.missed===0,`${rb.overlap} חפיפות · ${rb.missed} הוחמצו`);
   ok('כל פריט בדלתות נמצא בתחום — מנוהל מלאי, לא PD, ויש לו המלצה',

@@ -66,8 +66,10 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    raised:live.filter(r=>r.ssStat>old(r)).length,
    hist:live.filter(r=>r.rate>0&&!(r.d12>0)).length,
    histOK:live.filter(r=>r.rate>0&&!(r.d12>0)).filter(r=>r.sdSup!==0||r.ssStat!==old(r)).map(r=>r.pn),
-   noDrop:live.filter(r=>r.sugSS<Math.max(old(r),r.ssMinEff||0,r.lowFloor||0)).map(r=>r.pn),
-   floors:live.filter(r=>r.sugSS<Math.max(r.ssStat,r.ssMinEff||0,r.lowFloor||0)&&r.sugSS!==ROP_MIN_ACT).map(r=>r.pn),
+   /* HOLD_EXCESS (22.11): בפריט מושהה ההמלצה היא הערך שב-SAP בכוונה — החוק נבדק על ה-SS המחושב (holdRaw.ss) */
+   noDrop:live.filter(r=>(r.holdRaw?r.holdRaw.ss:r.sugSS)<Math.max(old(r),r.ssMinEff||0,r.lowFloor||0)).map(r=>r.pn),
+   floors:live.filter(r=>{const ss=r.holdRaw?r.holdRaw.ss:r.sugSS;return ss<Math.max(r.ssStat,r.ssMinEff||0,r.lowFloor||0)&&ss!==ROP_MIN_ACT}).map(r=>r.pn),
+   held:live.filter(r=>r.holdRaw).length,
    noRecZero:ALL.filter(r=>!recOK(r)&&r.ssStat!==0).map(r=>r.pn),
    card,br}});
  ok('יש פריטים מנוהלים בפיקסצ׳ר',R.n>0,R.n);

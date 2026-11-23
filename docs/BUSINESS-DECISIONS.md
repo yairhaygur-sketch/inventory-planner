@@ -900,6 +900,25 @@ Changes to these areas require explicit business approval.
     The supplier e-mail draft stays an inquiry about what no known shipment
     covers, also on the default selection.
 
+- **2026-11-22 · HOLD_EXCESS — no parameter raise on stock that covers a year
+  (approved 21.11; safety stock too, approved 22.11).** An item classified as
+  excess or slow stock, with a rate, whose stock (free + open purchase)
+  covers more than 12 months above the calculated reorder point: no «raise
+  reorder point» and no «raise safety stock» until the stock falls. The
+  official recommendation (suggested ROP / SS, and therefore the SAP file) is
+  the value in SAP; a reduction is not held, and suggested SS never exceeds
+  suggested ROP. The card says «fine for now» with the calculated values.
+  - **Measured on the real report:** 63 items (34 excess, 29 slow) — 41 ROP
+    raises and 38 SS raises held. The slow/dead SAP file 511 → 485 rows;
+    «demand falling» 118 → 114 and «demand rising» 126 → 121: the two
+    advisory numbers follow the held ROP (the damped one never above it, the
+    raised one never above it during a hold), so a held item is not told to
+    raise there either. The «two clocks» line, which explained a raise, is
+    removed from a held item. Every other item is unchanged.
+  - **Excel:** the «suggested ROP / SS» columns and the two damped-rate
+    columns follow the new values; declared cell by cell in
+    `tests/export-expected.json` (synthetic data, 27 items and their copies).
+
 - **2026-11-21 · «check» in the 4-topics view too (ZMC_TOPICS, approved
   21.11).** The same status as the full tool's profile screen: a PD → ZM-C
   candidate whose simulation found a reason shows «check» with the reason —
