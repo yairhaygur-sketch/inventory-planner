@@ -3460,6 +3460,8 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 #tpd .dnav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 #tpd .tpprev{margin:6px 0 0;padding:6px 9px;border-inline-start:3px solid var(--accent-ink);background:var(--surface-2);font-size:var(--f-sm,13px)}
 #lite .tpnote{cursor:help;margin-inline-end:4px}
+#tpd .tpprev.worse{border-inline-start-color:var(--red)}
+#lite .tpnote.worse{color:var(--red)}
 #tpd .dnav .tpdone{font-weight:700;color:var(--accent-ink);border-color:var(--accent-ink)}
 #tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
 #tpd button{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-ctl);padding:3px 10px;cursor:pointer}
@@ -5064,7 +5066,7 @@ function profOffBtn(r,cls){const mk=profOffMark(r);
    סימון שפג אינו מחריג. ההחרגה חיה כל עוד הסימון חי; ביטולו מחזיר את ההמלצה. */
 function profMarkWhy(r){if(!r||typeof MARKS==='undefined')return '';
  const mk=MARKS[markKey(r)]||MARKS[r.pn];
- if(!mk||!mk.t||markExpired(mk))return '';
+ if(!mk||!mk.t||markExpired(mk)||markWorse(r,mk))return '';
  /* NEUTRAL: גם «נטרול — כללי» ו«עונתיות» (קמפיין כבר היה) */
  if(mk.t==='campaign'||mk.t==='handled'||mk.t==='neutral'||mk.t==='season')return MARK_LABEL[mk.t]||mk.t;
  return String(mk.note||'').trim()?'סימון עם הערה':''}
@@ -5893,6 +5895,20 @@ function isNeutral(r){const mk=r&&(r.mark||MARKS[markKey(r)]);return !!mk&&NEUTR
 function DAYS(ms){return Math.round(ms/864e5)}
 function markExpired(mk){return !!mk&&!!mk.ts&&(Date.now()-mk.ts)>markTTL(mk.t)}
 const markAgeD=mk=>(mk&&mk.ts)?Math.round((Date.now()-mk.ts)/864e5):null;
+/* ============ HANDLED_WORSE — «טופל» חוזר מוקדם אם המצב החמיר (אושר 23.11) ============
+   בסימון «טופל» נשמרים המלאי הפנוי והחוסר מול הזמנות הלקוח (snap). אם דוח מאוחר יותר מראה
+   שהמלאי הפנוי נגמר (היה מעל 0 ועכשיו 0) או שהחוסר מול הזמנות הלקוח גדל — הסימון אינו פעיל, והפריט חוזר מיד לסיווג הרגיל
+   עם «החמיר מאז הסימון», בלי לחכות שבעה ימים. הסימון עצמו נשמר (ההערה והתאריך מוצגים);
+   סימון חדש לוקח תמונה חדשה. סימון ישן בלי snap — כמו קודם, עד שיפוג.
+   כל ירידה במלאי לא מחזירה (בחירת המעתד 24.11): בסימולציה של שבוע צריכה רגילה היא החזירה
+   142 מ-717 פריטים בדוח א׳ — צריכה רגילה ולא החמרה. */
+const markCustGap=it=>Math.max(0,(it.cust||0)-Math.max(0,it.free||0)-Math.max(0,it.po||0));
+const markSnap=it=>({free:Math.max(0,it.free||0),gap:markCustGap(it)});
+function markWorse(it,mk){if(!it||!mk||mk.t!=='handled'||!mk.snap)return null;
+ const f=Math.max(0,it.free||0),g=markCustGap(it),s=mk.snap,w=[];
+ if(s.free>0&&f<=0)w.push(`המלאי הפנוי נגמר (היה ${s.free}, עכשיו 0)`);
+ if(g>s.gap)w.push(`החוסר מול הזמנות לקוח גדל מ-${s.gap} ל-${g}`);
+ return w.length?w:null}
 function odMark(it){const mk=MARKS[markKey(it)]||MARKS[it.pn];
  return (mk&&mk.t==='ondemand')?mk:null}
 function odExpired(mk){return markExpired(mk)}
@@ -6043,7 +6059,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
      ומגיע ל"לקוח ממתין" כשיש הזמנה. רק ההמלצה להחזיק מלאי יורדת. */
   /* classify רץ שוב ושוב על אותם אובייקטים, ולכן כל דגל נגזר חייב
      לחזור לערכו הסטטי בתחילת המעבר — אחרת סימון שבוטל או שפג נשאר. */
-  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;it.floorClash=false;it.wip=null;
+  it.isOD=it.isODStatic;it.odMarked=false;it.odStale=false;it.silentDry=false;it.markStale=null;delete it.markWorse;it.floorClash=false;it.wip=null;
   if(!it.isODStatic){it.sugSS=it.sugSSBase;it.sugROP=it.sugROPBase;
    it.ssMinEff=it.ssMinEffBase;it.lowFloor=it.lowFloorBase;it.ssSrc=it.ssSrcBase}
   if(mk&&mk.t==='ondemand'){
@@ -6054,6 +6070,7 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
     else{it.mark=mk;it.odMarked=true;it.isOD=true;it.sugSS=0;it.sugROP=0;
       it.ssMinEff=0;it.lowFloor=0;it.ssSrc='od'}}
   else if(mk&&mk.t&&markExpired(mk)){it.markStale=mk}
+  else if(mk&&mk.t==='handled'&&markWorse(it,mk)){it.markWorse=mk}
   /* מצב טיפול: נרשם על הפריט וממשיך בשרשרת הסיווג הרגילה. אין
      continue, אין Q.marked, ואין נגיעה ב-cat/sev/miss/expCap. */
   else if(mk&&mk.t&&WIPMARK[mk.t]){it.wip=mk}
@@ -6531,6 +6548,11 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
   it.why.push(['info',`הסימון «${lbl}» פג — עברו ${days} ימים מאז שסומן, `+
     `והפריט חזר לסיווג רגיל`]);
   if(it.sev>0)it.act=[...(it.act||[]),`אם ההחרגה «${lbl}» עדיין נכונה — לסמן מחדש`].slice(0,4)}
+ /* HANDLED_WORSE: חזר לפני הזמן כי המצב החמיר — גם זה נאמר, עם מה החמיר */
+ for(const it of items){const mk=it.markWorse;if(!mk)continue;const w=markWorse(it,mk)||[];
+  const d=markAgeD(mk);
+  it.why.push(['warn',`סומן «טופל» ${d>1?`לפני ${d} ימים`:d===1?'אתמול':'היום'}${mk.note?` («${mk.note}»)`:''}, והמצב החמיר מאז הסימון: ${w.join('; ')} — הפריט חזר לרשימה`]);
+  if(it.sev>0)it.act=[...(it.act||[]),'לבדוק שוב — המצב החמיר מאז הסימון «טופל»'].slice(0,4)}
  /* ============ הפרמטר שמחזיר את המלאי ============
     רונג העודף/האיטי/המת רץ *לפני* רונג הפרמטרים ועושה continue, ולכן
     פריט שיושבת עליו נקודת הזמנה גבוהה מכל מה שנמכר בשלוש שנים נבלע
@@ -6908,7 +6930,7 @@ function setMarks(items,t,note){
  if(!items||!items.length)return 0;
  const ch={},ts=Date.now();
  for(const it of items){const k=markKey(it);
-  ch[k]={before:MARKS[k]?{...MARKS[k]}:null,after:t?{t,note:note||'',ts}:null}}
+  ch[k]={before:MARKS[k]?{...MARKS[k]}:null,after:t?{t,note:note||'',ts,...(t==='handled'?{snap:markSnap(it)}:{})}:null}}
  BULK_UNDO={ch,n:items.length};
  marksCommit(ch);apply();return items.length}
 /* הביטול מותנה: פריט שלשונית אחרת שינתה מאז אינו מוחזר (ראה marksCommit) */
@@ -6919,7 +6941,7 @@ function undoBulk(){
  const n=BULK_UNDO.n;BULK_UNDO=null;
  marksCommit(back);apply();toast(`הסימון בוטל · ${n.toLocaleString('he-IL')} פריטים הוחזרו`)}
 function setMark(ref,t,note){const it=markItem(ref),key=it?markKey(it):String(ref||'');if(!key)return;
- const ch={[key]:{before:MARKS[key]?{...MARKS[key]}:null,after:t?{t,note:note||'',ts:Date.now()}:null}};
+ const ch={[key]:{before:MARKS[key]?{...MARKS[key]}:null,after:t?{t,note:note||'',ts:Date.now(),...(t==='handled'&&it?{snap:markSnap(it)}:{})}:null}};
  /* ביטול סימון מוחק גם מפתח ישן לפי מק״ט, כמו קודם */
  if(!t&&it&&it.pn!==key&&MARKS[it.pn])ch[it.pn]={before:{...MARKS[it.pn]},after:null};
  marksCommit(ch);apply()}
@@ -15467,10 +15489,13 @@ function tpdPos(){const L=TP.list||[],i=L.indexOf(TP.open);
 /* TP_DONE_NOTE (בקשת המעתד 23.11) — הערה לא חובה ב«טופל» (נשמרת על הסימון, setMark), וכשהפריט חוזר
    לרשימה אחרי שהסימון פג (markStale) — ההערה והתאריך בכרטיס ובבועית בשורה */
 const tpFmtTs=ts=>{const d=new Date(ts);return `${d.toLocaleDateString('he-IL')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
-const tpPrev=r=>{const m=r&&r.markStale;return m&&m.t==='handled'?m:null};
-function tpPrevNote(r){const m=tpPrev(r);if(!m)return '';
- return `<p class="tpprev">סומן «טופל» ב-${esc(tpFmtTs(m.ts))}${m.note?`: <b>${esc(m.note)}</b>`:' (בלי הערה)'} — וחזר לרשימה.</p>`}
-const tpPrevIcon=r=>{const m=tpPrev(r);return m?`<span class="tpnote" title="${esc(`סומן «טופל» ב-${tpFmtTs(m.ts)}${m.note?': '+m.note:''}`)}" aria-label="הערה קודמת">📝</span>`:''};
+const tpPrev=r=>{const m=r&&(r.markWorse||r.markStale);return m&&m.t==='handled'?m:null};
+/* HANDLED_WORSE: פריט שחזר מוקדם — «החמיר מאז הסימון» ומה החמיר */
+const tpWorseTxt=r=>{const w=r&&r.markWorse?markWorse(r,r.markWorse):null;return w?`החמיר מאז הסימון: ${w.join('; ')}`:''};
+function tpPrevNote(r){const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
+ return `<p class="tpprev${w?' worse':''}">סומן «טופל» ב-${esc(tpFmtTs(m.ts))}${m.note?`: <b>${esc(m.note)}</b>`:' (בלי הערה)'} — ${w?`<b>${esc(w)}</b> — וחזר לרשימה לפני הזמן.`:'וחזר לרשימה.'}</p>`}
+const tpPrevIcon=r=>{const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
+ return `<span class="tpnote${w?' worse':''}" title="${esc(`סומן «טופל» ב-${tpFmtTs(m.ts)}${m.note?': '+m.note:''}${w?' — '+w:''}`)}" aria-label="${w?'החמיר מאז הסימון':'הערה קודמת'}">${w?'⚠':'📝'}</span>`};
 function tpDoneAsk(btn,r){const pop=document.getElementById('colpop');if(!pop)return;
  pop.innerHTML=`<label class="mini" for="tpdnN">הערה (לא חובה)</label><input class="cs" id="tpdnN" maxlength="200" placeholder="למשל: אין אפשרות לזרז, אין מקום להזמנת VOR">
   <div class="act"><button type="button" id="tpdnX">ביטול</button><button type="button" class="ok" id="tpdnOk">✓ סמן טופל</button></div>`;
