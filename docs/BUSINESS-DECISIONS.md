@@ -1051,6 +1051,12 @@ Changes to these areas require explicit business approval.
      with the mark; if a later report shows less free stock or a larger
      shortage, the item returns at once, marked «worse since marked». This
      changes lists and counts in both tools.
+     **Rule chosen 24.11 (HANDLED_WORSE):** "less free stock" means the free
+     stock *ran out* (above 0 when marked, 0 now), not any drop. Any drop
+     would have returned 142 of 717 handled items after one simulated week of
+     normal consumption (report A); the chosen rule returns 3. The shortage
+     is the customer orders not covered by free stock and open POs. Old marks
+     without the saved figures behave as before until they expire.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
