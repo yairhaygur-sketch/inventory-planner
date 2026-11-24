@@ -1038,6 +1038,19 @@ Changes to these areas require explicit business approval.
   4. **A fifth tab, «כל הפריטים»:** every item in the report, searchable by
      part number or description, with the full catalog's columns and a
      «נושא» column (which of the four topics the item is in, if any).
+  5. **(Asked 23.11, after the four.) «טופל» and on to the next item:** a
+     «✓ טופל» button in the item card marks the item handled and opens the
+     next one in the list; «✓ טופל» in the row of the open item keeps the card
+     open on the next item instead of closing it. The D key does the same.
+     «✓ טופל» asks for an optional note (Enter marks, Esc cancels; the D key
+     marks without asking). When the mark expires and the item returns, the
+     card says «marked handled on … : note» and the row carries 📝 with the
+     note. «טופלו» lists the newest first, with time, note and days left.
+  6. **(Approved 23.11, its own PR after measuring.) A handled item returns
+     early when it gets worse:** the free stock and the shortage are saved
+     with the mark; if a later report shows less free stock or a larger
+     shortage, the item returns at once, marked «worse since marked». This
+     changes lists and counts in both tools.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
