@@ -67,7 +67,8 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
    hist:live.filter(r=>r.rate>0&&!(r.d12>0)).length,
    histOK:live.filter(r=>r.rate>0&&!(r.d12>0)).filter(r=>r.sdSup!==0||r.ssStat!==old(r)).map(r=>r.pn),
    /* HOLD_EXCESS (22.11): בפריט מושהה ההמלצה היא הערך שב-SAP בכוונה — החוק נבדק על ה-SS המחושב (holdRaw.ss) */
-   noDrop:live.filter(r=>(r.holdRaw?r.holdRaw.ss:r.sugSS)<Math.max(old(r),r.ssMinEff||0,r.lowFloor||0)).map(r=>r.pn),
+   /* R3Y_NORAISE (24.11) חותך SS ל-ROP של SAP בנתיב 3 השנים — זו הקטנה מכוונת ונפרדת; כאן נבדק ה-SS שחושב (ss3yCalc) */
+   noDrop:live.filter(r=>(r.ss3yCalc!=null?r.ss3yCalc:r.holdRaw?r.holdRaw.ss:r.sugSS)<Math.max(old(r),r.ssMinEff||0,r.lowFloor||0)).map(r=>r.pn),
    floors:live.filter(r=>{const ss=r.holdRaw?r.holdRaw.ss:r.sugSS;return ss<Math.max(r.ssStat,r.ssMinEff||0,r.lowFloor||0)&&ss!==ROP_MIN_ACT}).map(r=>r.pn),
    held:live.filter(r=>r.holdRaw).length,
    noRecZero:ALL.filter(r=>!recOK(r)&&r.ssStat!==0).map(r=>r.pn),

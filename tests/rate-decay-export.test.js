@@ -33,13 +33,16 @@ const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')+' · '+n+(x!=null&&x!=
  /* 1 · המנוע */
  const E=await p.evaluate(pns=>Object.fromEntries(ALL.filter(x=>pns.includes(x.pn)).map(x=>[x.pn,
   {rop:x.sugROP,ss:x.sugSS,ssMin:x.ssMin,dec:!!x.rateDecay,rate:x.rate,rateROP:x.rateDecay?x.rateROP:x.rate,dLT:x.dLT,ltM:x.ltM,paramFix:!!x.paramFix,cat:x.cat,
-   statOnly:x.rate>0&&!x.rateFrom3y,ssStat:x.ssStat||0,lowFloor:x.lowFloor||0}])),ITEMS.map(i=>i.pn));
+   statOnly:x.rate>0&&!x.rateFrom3y,ssStat:x.ssStat||0,lowFloor:x.lowFloor||0,
+   /* R3Y_NORAISE (24.11): בנתיב 3 השנים ה-ROP המוצע אינו עולה על SAP — הנוסחה נבדקת על מה שחושב */
+   sap:x.rop,cut:x.rop3yCalc!=null,ropCalc:x.rop3yCalc!=null?x.rop3yCalc:x.sugROP,ssCalc:x.ss3yCalc!=null?x.ss3yCalc:x.sugSS}])),ITEMS.map(i=>i.pn));
  ok('ארבעת הפריטים נטענו',ITEMS.every(i=>E[i.pn]),Object.keys(E).join(', '));
  for(const i of ITEMS){const e=E[i.pn];if(!e)continue;
   if(i.decay)ok(`${i.pn}: דעיכה — ROP ${i.expROP}, SS ${i.expSS}`,e.dec===true&&e.rop===i.expROP&&e.ss===i.expSS,
    `קצב ${e.rate.toFixed(2)} → ל-ROP ${e.rateROP!=null?e.rateROP.toFixed(3):'—'} · ROP ${e.rop} · SS ${e.ss}`);
-  else ok(`${i.pn}: אין דעיכה — ROP/SS על הקצב הקיים, כמו קודם`,e.dec===false&&Math.abs(e.dLT-e.rate*e.ltM)<1e-9&&e.rop===Math.ceil(e.dLT+e.ss-1e-9),
-   `ROP ${e.rop} · SS ${e.ss}`);
+  else ok(`${i.pn}: אין דעיכה — ROP/SS על הקצב הקיים, כמו קודם (וב-R3Y_NORAISE: המוצע לא מעל SAP)`,e.dec===false&&Math.abs(e.dLT-e.rate*e.ltM)<1e-9&&e.ropCalc===Math.ceil(e.dLT+e.ssCalc-1e-9)
+    &&(e.cut?(e.ropCalc>e.sap&&e.rop===e.sap):e.rop===e.ropCalc),
+   `ROP ${e.rop}${e.cut?` (חושב ${e.ropCalc}, SAP ${e.sap})`:''} · SS ${e.ss}`);
   /* SS_STAT (19.11): פריט עם צריכה עדכנית (נתיב 6 החודשים) — SS סטטיסטי, רצפת ssMin אינה קובעת;
      פריט בנתיב 3 השנים (כולל הדעיכה) — SS ≥ ssMin כמו קודם. ssMin עצמו תמיד הערך מהדוח. */
   if(e.statOnly)ok(`${i.pn}: ssMin = הערך מהדוח; פריט עם צריכה — SS = max(סטטיסטי, רצפת מדיניות)`,e.ssMin===i.ssMin&&e.ss===Math.max(e.ssStat,e.lowFloor),`ssMin ${e.ssMin} · SS ${e.ss} · סטטיסטי ${e.ssStat}`);

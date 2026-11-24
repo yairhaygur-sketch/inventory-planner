@@ -347,29 +347,36 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
     tRatio:r.tRatio,trendF:+(r.trendF||0).toFixed(2),tgap:trendGap(r),
     why2:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
     cov:r.cov==null?null:+r.cov.toFixed(1),rop:r.rop,sugROP:r.sugROP,
+    /* R3Y_NORAISE (24.11): ה-ROP המוצע בנתיב 3 השנים אינו עולה על SAP. ההשוואות של החישוב
+       עצמו נעשות על ה-ROP שהנוסחה נתנה (calc = rop3yCalc כשהכלל חתך, אחרת sugROP) */
+    calc:r.rop3yCalc!=null?r.rop3yCalc:r.sugROP,cut:r.rop3yCalc!=null,
     excess:r.excessQty||0,pf:!!r.paramFix,dec:!!r.rateDecay,dLT:r.dLT,ltM:r.ltM,sugSS:r.sugSS,
     why:(r.why||[]).map(w=>w&&w[1]).filter(Boolean).join(' ¦ '),
     act:(r.act||[]).filter(Boolean).join(' ¦ ')};return o});
   ok('צריכה תלת-שנתית מעל הסף נותנת קצב, גם כשהחלון הקצר אפס',
     g['R3-FAT'].rate>0&&g['R3-FAT'].from3y,`rate=${g['R3-FAT'].rate} from3y=${g['R3-FAT'].from3y}`);
   ok('ונקודת ההזמנה המוצעת כבר אינה נשענת על רצפות בלבד',
-    g['R3-FAT'].sugROP>g['R3-THIN'].sugROP,
-    `FAT=${g['R3-FAT'].sugROP} THIN=${g['R3-THIN'].sugROP}`);
+    g['R3-FAT'].calc>g['R3-THIN'].calc,
+    `FAT=${g['R3-FAT'].calc} THIN=${g['R3-THIN'].calc}`);
+  ok('R3Y_NORAISE: ה-ROP המוצע בנתיב 3 השנים אינו עולה על ROP שב-SAP — וכשהחישוב גבוה ממנו, הוא נשאר כמו ב-SAP',
+    g['R3-FAT'].cut&&['R3-FAT','R3-THIN','R3-DECAY','R3-CURM','R3-BADDATA'].every(k=>!g[k].from3y?!g[k].cut
+      :g[k].calc>(g[k].rop||0)?(g[k].cut&&g[k].sugROP===(g[k].rop||0)):(!g[k].cut&&g[k].sugROP===g[k].calc)),
+    ['R3-FAT','R3-THIN','R3-DECAY','R3-CURM','R3-BADDATA'].map(k=>`${k}:${g[k].calc}→${g[k].sugROP}/SAP ${g[k].rop}`).join(' · '));
   ok('ובלי דעיכה — ROP/SS על קצב 3 השנים (RATE_3Y נשמר)',
     !g['R3-FAT'].dec&&Math.abs(g['R3-FAT'].dLT-g['R3-FAT'].rate*g['R3-FAT'].ltM)<0.01,
     `dec=${g['R3-FAT'].dec} dLT=${g['R3-FAT'].dLT}`);
   /* RATE_DECAY — רגרסיה מפורשת: אפס ב-11 חודשים, ביקוש היסטורי שדעך */
   ok('דעיכה: אפס ב-11 חודשים וצריכה ב-2024 בלבד — ROP על הקצב העדכני',
-    g['R3-DECAY'].dec&&g['R3-DECAY'].sugROP===g['R3-THIN'].sugROP&&g['R3-DECAY'].sugROP<g['R3-FAT'].sugROP,
-    `DECAY=${g['R3-DECAY'].sugROP} THIN=${g['R3-THIN'].sugROP} FAT=${g['R3-FAT'].sugROP}`);
+    g['R3-DECAY'].dec&&g['R3-DECAY'].calc===g['R3-THIN'].calc&&g['R3-DECAY'].calc<g['R3-FAT'].calc,
+    `DECAY=${g['R3-DECAY'].calc} THIN=${g['R3-THIN'].calc} FAT=${g['R3-FAT'].calc}`);
   /* הסיווג עצמו נגזר מה-ROP (פער מ-SAP), ולכן אינו חלק מההשוואה */
   ok('ו-rate והכיסוי נשארים על קצב 3 השנים',
     g['R3-DECAY'].rate===g['R3-FAT'].rate&&g['R3-DECAY'].from3y&&g['R3-DECAY'].cov===g['R3-FAT'].cov,
     `rate=${g['R3-DECAY'].rate} cov=${g['R3-DECAY'].cov} cat=${g['R3-DECAY'].cat}`);
   ok('מכירה בחודש הנוכחי — אין דעיכה, ROP על קצב 3 השנים',
-    !g['R3-CURM'].dec&&g['R3-CURM'].sugROP>g['R3-THIN'].sugROP,`dec=${g['R3-CURM'].dec} ROP=${g['R3-CURM'].sugROP}`);
+    !g['R3-CURM'].dec&&g['R3-CURM'].calc>g['R3-THIN'].calc,`dec=${g['R3-CURM'].dec} ROP=${g['R3-CURM'].calc}`);
   ok('נתונים שאינם מתיישבים — הכלל לא חל, החישוב הקיים נשאר',
-    !g['R3-BADDATA'].dec&&g['R3-BADDATA'].sugROP===g['R3-FAT'].sugROP,`dec=${g['R3-BADDATA'].dec} ROP=${g['R3-BADDATA'].sugROP}`);
+    !g['R3-BADDATA'].dec&&g['R3-BADDATA'].calc===g['R3-FAT'].calc,`dec=${g['R3-BADDATA'].dec} ROP=${g['R3-BADDATA'].calc}`);
   ok('יחידה אחת בשלוש שנים אינה קצב — הסף חוסם',
     g['R3-THIN'].rate===0&&!g['R3-THIN'].from3y,`rate=${g['R3-THIN'].rate}`);
   /* הרגרסיה שהמדידה תפסה: 45 פריטים עברו איטי→עודף בגלל הסרגל */

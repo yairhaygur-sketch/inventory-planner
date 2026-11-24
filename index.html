@@ -5184,6 +5184,7 @@ const PFSIM_WHY={
     (הכול בחודש הנוכחי, והקצב מחלון 3 השנים). המפתח נשאר; הנוסח אומר את זה */
  ss_zero_rate3y:'ROP≥2 ו-SS=0 — אין צריכה ב-11 החודשים; הקצב מחלון 3 השנים'};
 let PFSIM=null;
+let R3Y_OFF=false;   /* R3Y_NORAISE כבוי בזמן סימולציית הפרופיל — ראה ב-build */
 function profSimAll(){
  if(PFSIM&&PFSIM.all===ALL&&PFSIM.raw===ALL_RAW)return PFSIM;
  const up=ALL.filter(r=>{const i=profInfo(r);return !!i&&i.state==='up'});
@@ -5199,7 +5200,8 @@ function profSimAll(){
    const rows=[];
    for(const [pn,s] of src){if(s.n!==1)continue;
     const c=s.row.slice();c[m.mrp]='ZM';c[m.srv]=PFSIM_SRV;if(m.abc>=0)c[m.abc]='C';rows.push(c)}
-   for(const it of build(rows,hdr)){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
+   R3Y_OFF=true;let built;try{built=build(rows,hdr)}finally{R3Y_OFF=false}
+   for(const it of built){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
     res.map.set(it.pn,{rop:ropMin?PD_ROP_MIN:it.sugROP,ropCalc:it.sugROP,ropMin,ss:it.sugSS,
     rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,zEff:it.zEff,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,sdTot:it.sdTot,ltD:it.ltD,
     ssStat:it.ssStat,ssMin:it.ssMin,ssMinEff:it.ssMinEff,lowFloor:it.lowFloor,ssSrc:it.ssSrc,
@@ -5740,9 +5742,11 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        נמדד לפני השינוי: דוח א׳ — 36 פריטים, 55 יח׳ (כ-$2,300 וכ-₪8,400); דוח ב׳ —
        184 פריטים, 228 יח׳ (כ-259 אלף SEK). `rate`, הכיסוי והסיווג לא זזים.
        rop3yCalc — ה-ROP שחושב, לשקיפות בכרטיס; קיים רק בפריט שבו הכלל חל.
-       ss3yCalc — ה-SS שחושב, רק כשהוא נחתך ל-ROP (כדי ש«איך חושב» יראה את החישוב המקורי). */
+       ss3yCalc — ה-SS שחושב, רק כשהוא נחתך ל-ROP (כדי ש«איך חושב» יראה את החישוב המקורי).
+       לא בסימולציית PD → ZM-C (R3Y_OFF, profSimAll): ל-PD אין ROP אמיתי ב-SAP שישמש תקרה —
+       הסימולציה אומדת מה ZM-C ידרוש. */
     const ropSAP=Math.max(0,NUM(r[m.rop])||0);
-    const rop3yCalc=(rateFrom3y&&!noRec&&!isODStatic&&sugROP>ropSAP)?sugROP:null;
+    const rop3yCalc=(!R3Y_OFF&&rateFrom3y&&!noRec&&!isODStatic&&sugROP>ropSAP)?sugROP:null;
     let ss3yCalc=null;
     if(rop3yCalc!=null){sugROP=ropSAP;if(sugSS>sugROP){ss3yCalc=sugSS;sugSS=sugROP}}
     /* ============ LT_PLANNED — אין המלצת SS/ROP בלי זמן אספקה ============
