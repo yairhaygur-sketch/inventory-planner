@@ -5184,6 +5184,7 @@ const PFSIM_WHY={
     (הכול בחודש הנוכחי, והקצב מחלון 3 השנים). המפתח נשאר; הנוסח אומר את זה */
  ss_zero_rate3y:'ROP≥2 ו-SS=0 — אין צריכה ב-11 החודשים; הקצב מחלון 3 השנים'};
 let PFSIM=null;
+let R3Y_OFF=false;   /* R3Y_NORAISE כבוי בזמן סימולציית הפרופיל — ראה ב-build */
 function profSimAll(){
  if(PFSIM&&PFSIM.all===ALL&&PFSIM.raw===ALL_RAW)return PFSIM;
  const up=ALL.filter(r=>{const i=profInfo(r);return !!i&&i.state==='up'});
@@ -5199,7 +5200,8 @@ function profSimAll(){
    const rows=[];
    for(const [pn,s] of src){if(s.n!==1)continue;
     const c=s.row.slice();c[m.mrp]='ZM';c[m.srv]=PFSIM_SRV;if(m.abc>=0)c[m.abc]='C';rows.push(c)}
-   for(const it of build(rows,hdr)){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
+   R3Y_OFF=true;let built;try{built=build(rows,hdr)}finally{R3Y_OFF=false}
+   for(const it of built){const noRec=it.isODStatic||it.noStock,ropMin=!noRec&&!it.ltBad&&it.sugROP<PD_ROP_MIN;
     res.map.set(it.pn,{rop:ropMin?PD_ROP_MIN:it.sugROP,ropCalc:it.sugROP,ropMin,ss:it.sugSS,
     rate:it.rate,rateFrom3y:it.rateFrom3y,d12:it.d12,z:it.z,zEff:it.zEff,srv:it.srv,dLT:it.dLT,sdLT:it.sdLT,sdTot:it.sdTot,ltD:it.ltD,
     ssStat:it.ssStat,ssMin:it.ssMin,ssMinEff:it.ssMinEff,lowFloor:it.lowFloor,ssSrc:it.ssSrc,
@@ -5732,6 +5734,21 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
        הזמנה 0» — כולם עם קצב אפס, ב-SAP מלאי ביטחון 1 ונקודת הזמנה 2–6.
        הכרטיס עצמו מציג «כלל SS≤ROP» ולכן גם סתר את עצמו. */
     if(sugSS>sugROP)sugROP=sugSS;
+    /* ============ R3Y_NORAISE — קצב 3 שנים אינו מעלה ROP (אושר 24.11) ============
+       פריט עם 3 יח׳ או פחות ב-11 החודשים מקבל את קצב 3 השנים (RATE_3Y). הקצב הזה
+       טוב לסיווג (איטי / מת / עודף), אבל כ-ROP הוא מקפיץ: PN-01 — 2 יח׳ בשנה האחרונה,
+       90 בשלוש שנים, LT ‏120 יום → ROP 15 מול 6 ב-SAP. החלטת המעתד: בנתיב הזה ה-ROP
+       המוצע אינו עולה על ROP שב-SAP — רק נשאר או יורד. SS נחתך ל-ROP (SS ≤ ROP).
+       נמדד לפני השינוי: דוח א׳ — 36 פריטים, 55 יח׳ (כ-$2,300 וכ-₪8,400); דוח ב׳ —
+       184 פריטים, 228 יח׳ (כ-259 אלף SEK). `rate`, הכיסוי והסיווג לא זזים.
+       rop3yCalc — ה-ROP שחושב, לשקיפות בכרטיס; קיים רק בפריט שבו הכלל חל.
+       ss3yCalc — ה-SS שחושב, רק כשהוא נחתך ל-ROP (כדי ש«איך חושב» יראה את החישוב המקורי).
+       לא בסימולציית PD → ZM-C (R3Y_OFF, profSimAll): ל-PD אין ROP אמיתי ב-SAP שישמש תקרה —
+       הסימולציה אומדת מה ZM-C ידרוש. */
+    const ropSAP=Math.max(0,NUM(r[m.rop])||0);
+    const rop3yCalc=(!R3Y_OFF&&rateFrom3y&&!noRec&&!isODStatic&&sugROP>ropSAP)?sugROP:null;
+    let ss3yCalc=null;
+    if(rop3yCalc!=null){sugROP=ropSAP;if(sugSS>sugROP){ss3yCalc=sugSS;sugSS=sugROP}}
     /* ============ LT_PLANNED — אין המלצת SS/ROP בלי זמן אספקה ============
        בלי זמן אספקה מתוכנן אין ביקוש בזמן אספקה ואין מרכיב סטטיסטי —
        מה שנשאר הוא רצפות בלבד, וזו אינה המלצה. ההמלצה מנוטרלת: השדות
@@ -5810,7 +5827,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
          אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
       ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
       ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT:sdLTEff,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),...(rop3yCalc!=null?{rop3yCalc}:{}),...(ss3yCalc!=null?{ss3yCalc}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT:sdLTEff,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 /* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
@@ -6543,6 +6560,10 @@ function classify(items){const Q={waiting:[],immediate:[],follow:[],prevent:[],e
  /* סימון שפג — הפריט חזר לסיווג רגיל, וזה חייב להיאמר. בניגוד
     ל«לפי דרישה» שיש לו רונג משלו, כאן לא כופים שורת עבודה: פריט
     שסומן «טופל» ובאמת תקין היום צריך להישאר «תקין». */
+ /* R3Y_NORAISE — ראה ב-build: ה-ROP המחושב מחלון 3 השנים לא מועלה מעל SAP, וזה נאמר */
+ for(const it of items){if(it.rop3yCalc==null||it.ltBad)continue;
+  it.why.push(['info',`נקודת ההזמנה נשארת ${it.rop} (ב-SAP): בשנה האחרונה נמכרו רק ${it.d12} יח׳, והקצב בא מחלון 3 השנים — `+
+   `לפיו נקודת ההזמנה הייתה ${it.rop3yCalc}. קצב 3 שנים אינו מעלה נקודת הזמנה`])}
  for(const it of items){const mk=it.markStale;if(!mk)continue;
   const lbl=MARK_LABEL[mk.t]||'מסומן', days=markAgeD(mk);
   it.why.push(['info',`הסימון «${lbl}» פג — עברו ${days} ימים מאז שסומן, `+
@@ -12487,7 +12508,8 @@ function explain(r){const A=r.A;
  /* ROP נגזר מה-SS הסופי, ולכן הטבלה מראה את אותו מספר שהשורה מעל
     הסתיימה בו. שתי המדיניות שיכולות לדרוס אותו — נוכחות מינימלית
     וכלל SS ≤ ROP — מקבלות שורה משלהן במקום להיעלם בתוצאה. */
- const ropCalc=Math.ceil(r.dLT+r.sugSS);
+ const ssCalc=r.ss3yCalc!=null?r.ss3yCalc:r.sugSS;   /* R3Y_NORAISE: ה-SS שבו השתמש החישוב, לפני החיתוך ל-ROP של SAP */
+ const ropCalc=Math.ceil(r.dLT+ssCalc);
  const ropRows=noSS?`<tr class="step"><td>${r.noStock?'סטטוס שאינו לחידוש מלאי (04 / 14) — ללא נקודת הזמנה':isPDItem?'PD — לפי הזמנה, ללא נקודת הזמנה':'לפי דרישה — ללא נקודת הזמנה'}</td><td>0</td></tr><tr class="total"><td>ROP מוצע</td><td>0</td></tr>`
   /* ============ RATE_3Y — «מתוקן מול גולמי» אינו מה שקרה כאן ============
      «מתוקן» בכלי הזה פירושו תיקון אזילה: המדף היה ריק, הצריכה
@@ -12502,12 +12524,13 @@ function explain(r){const A=r.A;
     ${r.rateW!=null?`<tr><td>קצב ל-ROP · משוקלל</td><td>${r.rateW.toFixed(2)} <span style="color:#7c3aed">(ביקוש ${esc(r.A.pattern)}: 70% קצב 6 החודשים (${r.rate.toFixed(2)}) · 20% השנה הקודמת · 10% לפני שנתיים — ROP וסיכון הספק על הקצב הזה; σ מהחודשים, רצפת ssMin נשמרת)</span></td></tr>`:''}
     <tr><td>LT בחודשים</td><td>${ltM}</td></tr>
     <tr class="step"><td>ביקוש צפוי בזמן האספקה = ${r.rateDecay?'קצב עדכני':r.sharpDrop?'קצב 3 החודשים האחרונים':r.rateW!=null?'קצב משוקלל':'קצב'} × LT</td><td>${(r.rateDecay||r.sharpDrop||r.rateW!=null?r.rateROP:r.rate).toFixed(2)} × ${ltM} = ${dLT}</td></tr>
-    <tr><td>+ SS סופי</td><td>${r.sugSS}</td></tr>
-    <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${r.sugSS}⌉ = ${ropCalc}</td></tr>
-    ${r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
+    <tr><td>+ SS סופי</td><td>${ssCalc}${r.ss3yCalc!=null?` <span class="note">(הוצע ${r.sugSS} — SS ≤ ROP)</span>`:''}</td></tr>
+    <tr class="total"><td>ROP סופי = ⌈ ביקוש_LT + SS ⌉</td><td>⌈${dLT} + ${ssCalc}⌉ = ${ropCalc}</td></tr>
+    ${r.rop3yCalc!=null?`<tr class="total"><td>קצב 3 שנים אינו מעלה נקודת הזמנה (R3Y_NORAISE) — לפי החישוב ${r.rop3yCalc}, נשאר כמו ב-SAP</td><td>ROP מוצע = ${r.sugROP}</td></tr>`
+     :r.sugROP!==ropCalc?`<tr class="total"><td>${(ropCalc===0&&r.sugROP===ROP_MIN_ACT)?`נוכחות מינימלית — ROP ב-SAP = ${ROP_MIN_ACT}, לא מורידים`:'כלל SS ≤ ROP'}</td><td>ROP מוצע = ${r.sugROP}</td></tr>`:''}`;
  /* הכלל מוצג רק כשהוא באמת דרס את הנוסחה. אחרת ROP=SS הוא פשוט
     התוצאה (ביקוש בזמן אספקה = 0), ולא כלל שהתערב. */
- const guard=(r.sugSS>0&&r.sugROP!==ropCalc&&r.sugROP===r.sugSS)?`<div class="flag">ℹ כלל הברזל: SS מוצע ≤ ROP מוצע — לכן ROP הועלה ל-${r.sugROP}.</div>`:'';
+ const guard=(r.sugSS>0&&r.sugROP!==ropCalc&&r.sugROP===r.sugSS&&r.rop3yCalc==null)?`<div class="flag">ℹ כלל הברזל: SS מוצע ≤ ROP מוצע — לכן ROP הועלה ל-${r.sugROP}.</div>`:'';
  const mvRow=(r.sales!=null||r.entries!=null)?`<tr><td>תנועה אחרונה — מכירה/כניסה</td><td>${movText(r.sales)} / ${movText(r.entries)}</td></tr>`:'';
  document.getElementById('mtitle').textContent=`מאחורי החישוב — ${r.pn}`;
  document.getElementById('mbody').innerHTML=`${flags||''}

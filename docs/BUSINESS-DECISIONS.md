@@ -1060,6 +1060,15 @@ Changes to these areas require explicit business approval.
 
 Details, numbers and open items: `docs/PROJECT-STATUS.md`.
 
+- **24.11 — R3Y_NORAISE: a 3-year rate never raises ROP.** The planner noted
+  that the 3-year window inflates ROP and risks excess stock. For an item
+  with 3 units or fewer in the last 11 months (rate from the 3-year window),
+  the suggested ROP may stay or go down but never exceed the ROP in SAP; SS is
+  cut to ROP when needed. The rate, cover and classification are unchanged.
+  Measured against main: report A — 62 items, −100 units of ROP, «עדכון
+  פרמטרים» 231 → 202, the month SAP file 253 → 225 rows; report B — 188 items,
+  −233 units, 1,070 → 897, 1,350 → 1,170 rows. Details: `docs/ROP-SS-POLICY.md`.
+
 ---
 
 # Summary

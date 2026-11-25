@@ -151,7 +151,8 @@ const SNAP=()=>{
  /* ואותו build() על אותה שורה, כשמשנים את שלושת התאים ביד */
  const same=await p.evaluate(()=>{const m=mapCols(ALL_RAW.hdr);const r0=Object.assign({},ROWS),d0=DIAG;
   try{const rows=ALL_RAW.rows.filter(row=>PFSIM.map.has(CLEAN(row[m.pn]))&&CLEAN(row[m.pn])!=='PF-DUP').map(row=>{const c=row.slice();c[m.mrp]='ZM';c[m.srv]=80;c[m.abc]='C';return c});
-   const b=build(rows,ALL_RAW.hdr);return b.length===PFSIM.map.size&&b.every(it=>{const x=PFSIM.map.get(it.pn);/* 2.11: ROP המוצע = לפחות PD_ROP_MIN; החישוב עצמו נשמר ב-ropCalc */
+   /* R3Y_NORAISE (24.11) כבוי בסימולציה (ל-PD אין ROP אמיתי ב-SAP) — וכך גם כאן */
+   R3Y_OFF=true;let b;try{b=build(rows,ALL_RAW.hdr)}finally{R3Y_OFF=false}return b.length===PFSIM.map.size&&b.every(it=>{const x=PFSIM.map.get(it.pn);/* 2.11: ROP המוצע = לפחות PD_ROP_MIN; החישוב עצמו נשמר ב-ropCalc */
    const fl=!(it.isODStatic||it.noStock)&&!it.ltBad&&it.sugROP<PD_ROP_MIN; /* כלי עבודה/אביזרים ו-LT חסר — בלי רצפה */
    return x&&x.ropCalc===it.sugROP&&x.rop===(fl?PD_ROP_MIN:it.sugROP)&&x.ropMin===fl&&x.ss===it.sugSS})}
   finally{Object.assign(ROWS,r0);DIAG=d0}});
