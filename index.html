@@ -3364,7 +3364,7 @@ body.freeze #tbl tbody tr.sel td:nth-child(-n+3){background:var(--mark-bg)}
    כל מה שאינו התצוגה, האבחון, הטעינה, ההדגמה וההודעות — מוסתר. הכלי
    המלא נשאר ב-DOM ועובד כרגיל מאחור: ממנו באים הקובץ, המנוע והתורים. */
 #lite{display:none}
-html.lite body>:not(#lite):not(#tpd):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(#modalwrap):not(#colpop):not(script){display:none!important}
+html.lite body>:not(#lite):not(#tpd):not(#diag):not(#loadbox):not(#demobar):not(#toast):not(#modalwrap):not(#colpop):not(#tpsug):not(script){display:none!important}
 html.lite body{overflow:auto;background:var(--paper)}
 html.lite #lite{display:block;color:var(--ink);font-size:var(--f-base);line-height:1.5}
 #lite .tph{background:var(--shell);color:var(--shell-ink);padding:10px 24px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
@@ -3458,9 +3458,15 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 @media(min-width:1920px){html.lite #tpd:not([hidden]){width:640px}}
 #tpd .dh{padding:10px 18px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 #tpd .dnav{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-#tpd .tpprev{margin:6px 0 0;padding:6px 9px;border-inline-start:3px solid var(--accent-ink);background:var(--surface-2);font-size:var(--f-sm,13px)}
+/* TP_NOTE_BOX (25.11): ההערה מ«טופל» הקודם — תיבה בולטת בראש הכרטיס, מעל מצב המלאי */
+#tpd .tpprev{display:block;margin:0 0 12px;padding:10px 12px;border:1px solid var(--org);border-inline-start:6px solid var(--org);background:var(--orgL);border-radius:4px}
+#tpd .tpprev .nt{display:block;font-size:16px;font-weight:700;line-height:1.4}
+#tpd .tpprev .nt.none{font-weight:600;color:var(--dim)}
+#tpd .tpprev .mt{display:block;margin-top:4px;font-size:var(--f-sm,13px);color:var(--dim)}
 #lite .tpnote{cursor:help;margin-inline-end:4px}
-#tpd .tpprev.worse{border-inline-start-color:var(--red)}
+#tpd .tpprev.worse{border-color:var(--red);background:var(--redL)}
+#tpd .tpprev.worse .mt b{color:var(--red)}
+#tpsug{width:420px;max-height:min(60vh,520px)}
 #lite .tpnote.worse{color:var(--red)}
 #tpd .dnav .tpdone{font-weight:700;color:var(--accent-ink);border-color:var(--accent-ink)}
 #tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
@@ -9322,6 +9328,8 @@ function normMap(s,dropSpace){s=String(s==null?'':s);const out=[],map=[];
  for(let i=0;i<s.length;i++){let ch=s[i];const cc=s.charCodeAt(i);
   if(cc>=0x0591&&cc<=0x05c7)continue;                 /* ניקוד וטעמים */
   if(cc===0x200e||cc===0x200f||(cc>=0x202a&&cc<=0x202e))continue;
+  /* TP_SEARCH (25.11): תווים בלתי נראים שמגיעים בהעתקה מ-SAP — רווח ברוחב אפס, BOM, מקף רך */
+  if((cc>=0x200b&&cc<=0x200d)||cc===0x2060||cc===0xfeff||cc===0x00ad)continue;
   if(/\s/.test(ch)){if(dropSpace)continue;
     if(!out.length||out[out.length-1]===' ')continue;ch=' '}
   else{if(SDROP.indexOf(ch)>=0)continue;
@@ -15284,10 +15292,12 @@ function tpCopy(t){
  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>toast('הועתק ✓')).catch(()=>{});
  else{const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
   try{document.execCommand('copy');toast('הועתק ✓')}catch(_){}ta.remove()}}
-function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],q=TP.q.trim().toLowerCase(),
+/* TP_SEARCH (בקשת המעתד 25.11, אושר) — אותו מנוע חיפוש של הכלי המלא (parseQ/scoreRow): ניקוי תווי
+   כיוון ותווים נסתרים מהעתקה מ-SAP, רווחים, מקפים ונקודות; כל השדות; אותה התאמה כמו בחלונית שם */
+function tpRows(t,ignoreCat){const T=TOPICS[t],k=ignoreCat?'':TP.cat[t],Qy=TP.q?parseQ(TP.q):null,
   cat=k?T.cats.find(c=>c[0]===k):null;
  return T.rows().filter(r=>(t==='all'||(!tpDone(r)&&!isNeutral(r)))&&(!TP.pl||r.planner===TP.pl)&&tpFilt(r)
-  &&(!q||(r.pn+' '+(r.desc||'')).toLowerCase().includes(q))&&(!cat||cat[3](r))&&tpCF(t,r))}
+  &&(!Qy||scoreRow(r,Qy)>0)&&(!cat||cat[3](r))&&tpCF(t,r))}
 /* ============ TP_COLFILT — מיון וסינון בכותרות, כמו בכלי המלא (הערת משתמשים 23.11, אושר) ============
    לחיצה על כותרת ממיינת (כמו קודם); ▾ פותח חלונית: מיון עולה/יורד, חיפוש בעמודה, רשימת ערכים לסימון
    (עמודת טקסט) או מ-עד (עמודת מספר). סינון לכל נושא בנפרד (TP.cf), על הערך של העמודה (c.v) — אותו
@@ -15485,8 +15495,8 @@ function tpdBody(t,r){
  const supply=(r.po>0||r.etaHas)?`<section><h3>אספקות</h3>${tpdEta(r)}</section>`:'';
  /* TP_STOCK_TOP (23.11, הערת משתמשים; אושר) — מצב המלאי ב-SAP הוא הדבר הראשון בכרטיס: השורה
     (לקוח · פנוי · רכש פתוח · בהעברה · פער) וסה״כ המלאי. «תנועה אחרונה» נשארת למטה */
- return `<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
-   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p>${tpPrevNote(r)}</section>
+ return `${tpPrevNote(r)}<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
+   <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p></section>
   <section class="q3 ${tone}">
    <div class="qa"><h3>מה הבעיה</h3><div class="big">${tpdProblem(t,r)}</div>
     ${why.length?`<ul>${why.map(([c,m])=>`<li class="${esc(c)}">${esc(m)}</li>`).join('')}</ul>`:''}</div>
@@ -15532,7 +15542,8 @@ const tpPrev=r=>{const m=r&&(r.markWorse||r.markStale);return m&&m.t==='handled'
 /* HANDLED_WORSE: פריט שחזר מוקדם — «החמיר מאז הסימון» ומה החמיר */
 const tpWorseTxt=r=>{const w=r&&r.markWorse?markWorse(r,r.markWorse):null;return w?`החמיר מאז הסימון: ${w.join('; ')}`:''};
 function tpPrevNote(r){const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
- return `<p class="tpprev${w?' worse':''}">סומן «טופל» ב-${esc(tpFmtTs(m.ts))}${m.note?`: <b>${esc(m.note)}</b>`:' (בלי הערה)'} — ${w?`<b>${esc(w)}</b> — וחזר לרשימה לפני הזמן.`:'וחזר לרשימה.'}</p>`}
+ return `<div class="tpprev${w?' worse':''}" role="note"><span class="nt${m.note?'':' none'}">📝 ${m.note?esc(m.note):'(בלי הערה)'}</span>`+
+  `<span class="mt">סומן «טופל» ב-${esc(tpFmtTs(m.ts))} — ${w?`<b>${esc(w)}</b> — וחזר לרשימה לפני הזמן.`:'וחזר לרשימה.'}</span></div>`}
 const tpPrevIcon=r=>{const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
  return `<span class="tpnote${w?' worse':''}" title="${esc(`סומן «טופל» ב-${tpFmtTs(m.ts)}${m.note?': '+m.note:''}${w?' — '+w:''}`)}" aria-label="${w?'החמיר מאז הסימון':'הערה קודמת'}">${w?'⚠':'📝'}</span>`};
 function tpDoneAsk(btn,r){const pop=document.getElementById('colpop');if(!pop)return;
@@ -15646,6 +15657,34 @@ function tpNeuPanel(){const L=tpNeuRows().slice().sort((a,b)=>((b.mark||{}).ts||
 function tpEtaState(){if(!ETA)return '<span class="src eta">אין דוח ETA</span>';
  const c=document.getElementById('etachip'),t=(c&&c.textContent)||('ETA · '+ETA.parts.toLocaleString('he-IL')+' מק״טים');
  return `<span class="src eta${/⚠/.test(t)?' warn':''}">${esc(t)}</span>`}
+/* ============ TP_SEARCH — רשימה נפתחת בחיפוש, כמו בכלי המלא (בקשת המעתד 25.11, אושר) ============
+   מחפשת בכל פריטי הדוח (searchAll — אותו מנוע ואותו דירוג), ולכל תוצאה הנושא שלה. לחיצה, או Enter,
+   פותחת את הכרטיס: בנושא הראשון של הפריט, או ב«כל הפריטים» כשאינו בנושא (או שטופל/נוטרל).
+   ↑↓ מעבר · Esc סגירה. הטבלה שמתחת ממשיכה להסתנן כמו קודם. */
+const TPSUG={rows:[],i:-1};
+function tpSugEl(){let p=document.getElementById('tpsug');
+ if(!p){p=document.createElement('div');p.id='tpsug';p.className='qsug';p.setAttribute('role','listbox');p.setAttribute('aria-label','תוצאות חיפוש');
+  p.addEventListener('mousedown',e=>{const it=e.target.closest('.sgi');if(!it)return;e.preventDefault();const r=TPSUG.rows[+it.dataset.i];if(r)tpSugPick(r)});
+  document.body.appendChild(p)}
+ return p}
+function tpSugClose(){const p=document.getElementById('tpsug');if(p)p.classList.remove('open');TPSUG.i=-1}
+function tpSugOpen(){const p=document.getElementById('tpsug');return !!p&&p.classList.contains('open')}
+function tpSugTopic(r){const ts=tpTopicsOf(r);return (!tpDone(r)&&!isNeutral(r)&&ts[0])||'all'}
+function tpSugShow(inp){const Qy=TP.q?parseQ(TP.q):null;if(!Qy||!inp){tpSugClose();return}
+ const p=tpSugEl(),R=searchAll(Qy,8);TPSUG.rows=R.rows;TPSUG.i=-1;
+ const tn=r=>{const ts=tpTopicsOf(r);return ts.length?ts.map(k=>TOPICS[k].t).join(' · '):'לא בנושא'};
+ p.innerHTML=R.n?`<div class="sgh" style="padding:6px 12px;font-size:12px">${R.n.toLocaleString('he-IL')} פריטים מתאימים בדוח${R.n>R.rows.length?` · ${R.rows.length} הראשונים`:''}</div>`+
+  R.rows.map((r,i)=>`<div class="sgi s${r.sev||0}" role="option" data-i="${i}"><div class="r1"><span class="p">${hlMark(r.pn,Qy)}</span><span class="m">${tpN(r.free)} פנוי</span></div>`+
+   `<div class="d">${hlMark(r.desc||'',Qy)}</div><div class="c"><i>${esc(tn(r))}</i>${tpDone(r)?'<i>✓ טופל</i>':''}${isNeutral(r)?'<i>מנוטרל</i>':''}</div></div>`).join('')+
+  `<div class="sgf">Enter — פתיחה · ↑↓ — מעבר · Esc — סגירה</div>`
+  :`<div class="sgn">אין פריט מתאים בדוח</div>`;
+ const rc=inp.getBoundingClientRect();p.style.top=(rc.bottom+4)+'px';
+ const w=Math.max(rc.width,420);let left=rc.right-w;if(left<8)left=8;p.style.left=left+'px';p.style.width=w+'px';
+ p.classList.add('open')}
+function tpSugMark(){const p=document.getElementById('tpsug');if(!p)return;
+ p.querySelectorAll('.sgi').forEach((x,i)=>{x.classList.toggle('on',i===TPSUG.i);x.setAttribute('aria-selected',i===TPSUG.i)});
+ const on=p.querySelector('.sgi.on');if(on)on.scrollIntoView({block:'nearest'})}
+function tpSugPick(r){tpSugClose();if(TP.open)tpdClose();TP.view='';TP.tab=tpSugTopic(r);TP.cat={};tpRender();tpdShow(r)}
 function tpRender(){const el=document.getElementById('lite');if(!el)return;
  const src=(document.getElementById('updated')||{}).textContent||'';
  const head=`<header class="tph"><h1>תכנון מלאי — 4 נושאים</h1><span class="src">${esc(src)}</span>
@@ -15799,7 +15838,16 @@ if(LITE){
   if(k!==th.dataset.tpCol)tpColsMove(TP.tab,k,to)});
  let qt=null;
  el.addEventListener('input',e=>{if(e.target.dataset.tp!=='q')return;TP.q=e.target.value;clearTimeout(qt);
-  qt=setTimeout(()=>{tpRender();const i=el.querySelector('[data-tp="q"]');if(i){i.focus();i.setSelectionRange(TP.q.length,TP.q.length)}},250)});
+  qt=setTimeout(()=>{tpRender();const i=el.querySelector('[data-tp="q"]');if(i){i.focus();i.setSelectionRange(TP.q.length,TP.q.length)}tpSugShow(i)},250)});
+ /* TP_SEARCH: מקלדת ברשימה הנפתחת */
+ el.addEventListener('keydown',e=>{if(!e.target.matches||!e.target.matches('[data-tp="q"]'))return;
+  if(e.key==='Escape'){if(tpSugOpen()){tpSugClose();e.preventDefault()}return}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!tpSugOpen()){tpSugShow(e.target);return}const n=TPSUG.rows.length;if(!n)return;
+   TPSUG.i=e.key==='ArrowDown'?Math.min(n-1,TPSUG.i+1):Math.max(-1,TPSUG.i-1);tpSugMark();e.preventDefault();return}
+  if(e.key==='Enter'){clearTimeout(qt);TP.q=e.target.value;
+   const Qy=TP.q?parseQ(TP.q):null;if(!Qy)return;const rows=tpSugOpen()?TPSUG.rows:searchAll(Qy,8).rows;
+   const r=rows[TPSUG.i>=0?TPSUG.i:0];if(r){e.preventDefault();tpSugPick(r)}}});
+ el.addEventListener('focusout',e=>{if(e.target.matches&&e.target.matches('[data-tp="q"]'))setTimeout(()=>{const a=document.activeElement;if(!a||!a.matches||!a.matches('[data-tp="q"]'))tpSugClose()},120)});
  /* קיצורי המקלדת של הכלי המלא פועלים על מסך מוסתר — כאן הם כבויים.
     במקומם: Enter על שורה פותח · ↑↓ מעבר בין פריטים כשהכרטיס פתוח ·
     Esc סוגר את «מאחורי החישוב» אם פתוח, ואחרת את הכרטיס. */

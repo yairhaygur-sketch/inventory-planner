@@ -1078,6 +1078,15 @@ Details, numbers and open items: `docs/PROJECT-STATUS.md`.
   last one listed, so an item already under review keeps its main reason.
   Measured: report A — «להעלות» 27 → 24, «לבדוק» 9 → 12; report B — 10 → 7,
   78 → 81. The candidate list and its count do not change.
+- **25.11 — the 4-topics view: note box, search dropdown, SAP paste (screen
+  only).** The note from an earlier «טופל» is a coloured box at the top of the
+  card, above the stock section (large bold note, date below; red when the
+  item got worse). Search uses the full tool's engine — the same cleanup of
+  hidden direction marks, zero-width characters, spaces, hyphens and dots that
+  come with a part number pasted from SAP — and opens a dropdown of the best
+  matches across the whole report, each with its topic; Enter or a click opens
+  the card (in the item's first topic, or «כל הפריטים»). No calculation,
+  count or export changes.
 
 ---
 
