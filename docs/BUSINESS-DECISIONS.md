@@ -1085,8 +1085,9 @@ Details, numbers and open items: `docs/PROJECT-STATUS.md`.
   hidden direction marks, zero-width characters, spaces, hyphens and dots that
   come with a part number pasted from SAP — and opens a dropdown of the best
   matches across the whole report, each with its topic; Enter or a click opens
-  the card (in the item's first topic, or «כל הפריטים»). No calculation,
-  count or export changes.
+  the card (in the item's first topic, or «כל הפריטים»). The card also shows
+  the unit FOB price, in the item's currency, in the stock-section heading
+  («מחיר FOB חסר» when missing). No calculation, count or export changes.
 
 ---
 

@@ -70,6 +70,16 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  ok('ההערה עצמה גדולה ומודגשת (16px), עם 📝',B.nt.includes('הזמנה דחופה מהספק')&&B.nt.includes('📝')&&B.fs>=16&&B.fw>=700,`${B.fs}px ${B.fw}`);
  ok('רקע צבעוני, ומתחת התאריך ו«וחזר לרשימה»',B.bg!=='rgba(0, 0, 0, 0)'&&/סומן «טופל» ב-/.test(B.meta)&&/וחזר לרשימה/.test(B.meta),B.bg+' · '+B.meta);
 
+ /* 4 · TP_CARD_FOB — מחיר FOB בכותרת מצב המלאי */
+ await p.setViewportSize({width:1366,height:768});
+ const F=await p.evaluate(()=>{const withP=ALL.find(r=>!r.priceMissing&&r.price>0&&tpTopicsOf(r).length),noP=ALL.find(r=>(r.priceMissing||!(r.price>0))&&tpTopicsOf(r).length);
+  const card=r=>{if(!r)return null;TP.tab=tpTopicsOf(r)[0];TP.cat={};tpRender();tpdShow(r);const h=document.querySelector('#tpd .tpstock h3'),f=h&&h.querySelector('.tpfob');
+   const v={h:h?h.textContent:'',f:f?f.textContent:'',miss:!!f&&f.classList.contains('miss'),fits:!!h&&h.scrollWidth<=h.clientWidth+1,price:r.price,cur:r.currency};tpdClose();return v};
+  return {a:card(withP),b:card(noP)}});
+ ok('בכותרת «מצב המלאי» — מחיר FOB ליחידה, במטבע של הפריט',!!F.a&&/^מצב המלאי/.test(F.a.h)&&/מחיר FOB/.test(F.a.f)&&!F.a.miss&&F.a.f.replace(/[^\d.]/g,'').length>0,F.a&&F.a.f);
+ ok('פריט בלי מחיר: «מחיר FOB חסר»',!F.b||(/מחיר FOB חסר/.test(F.b.f)&&F.b.miss),F.b?F.b.f:'אין פריט כזה בנושאים');
+ ok('ב-1366: הכותרת לא גולשת',F.a&&F.a.fits);
+
  ok('אין שגיאות JS',errs.length===0,errs.slice(0,2).join(' | '));
  await b.close();
  console.log(out.join('\n'));console.log(bad?`\n${bad} כשלים`:`\nכל ${out.length} הבדיקות עברו`);

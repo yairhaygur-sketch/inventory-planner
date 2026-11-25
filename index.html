@@ -3467,6 +3467,8 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 #tpd .tpprev.worse{border-color:var(--red);background:var(--redL)}
 #tpd .tpprev.worse .mt b{color:var(--red)}
 #tpsug{width:420px;max-height:min(60vh,520px)}
+#tpd .tpstock h3 .tpfob{margin-inline-start:14px;padding:1px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-size:14px;font-weight:700;color:inherit;white-space:nowrap}
+#tpd .tpstock h3 .tpfob.miss{color:var(--red);font-weight:600}
 #lite .tpnote.worse{color:var(--red)}
 #tpd .dnav .tpdone{font-weight:700;color:var(--accent-ink);border-color:var(--accent-ink)}
 #tpd .dnav .pos{color:var(--ink-3);font-size:var(--f-sm);margin-inline-end:auto}
@@ -15495,7 +15497,11 @@ function tpdBody(t,r){
  const supply=(r.po>0||r.etaHas)?`<section><h3>אספקות</h3>${tpdEta(r)}</section>`:'';
  /* TP_STOCK_TOP (23.11, הערת משתמשים; אושר) — מצב המלאי ב-SAP הוא הדבר הראשון בכרטיס: השורה
     (לקוח · פנוי · רכש פתוח · בהעברה · פער) וסה״כ המלאי. «תנועה אחרונה» נשארת למטה */
- return `${tpPrevNote(r)}<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}</h3>${coverStrip(r)}
+ /* TP_CARD_FOB (בקשת המעתד 25.11): מחיר FOB ליחידה בכותרת מצב המלאי, במטבע של הפריט. במסך בלבד */
+ const fobK=String(r.currency||'').trim().toUpperCase();
+ const fob=r.priceMissing||!(r.price>0)?`<span class="tpfob miss">מחיר FOB חסר</span>`
+  :`<span class="tpfob" title="מחיר FOB ליחידה (BZ)${fobK?' · '+esc(fobK):''}">מחיר FOB ${tpFobCell(r)}${fobK&&CURSYM[fobK]?` <small>${esc(fobK)}</small>`:''}</span>`;
+ return `${tpPrevNote(r)}<section class="tpstock"><h3>מצב המלאי ${TPD_SRC.sap}${fob}</h3>${coverStrip(r)}
    <p class="note">סה״כ מלאי ${tpN(r.stock)}${r.blockedCust>0?` · ${tpN(r.blockedCust)} יח׳ חסומות למשלוח (לא נספרות בהזמנת הלקוח)`:''}${r.has3y?` · צריכה ב-3 שנים ${tpN(r.cons3y)}`:''}</p></section>
   <section class="q3 ${tone}">
    <div class="qa"><h3>מה הבעיה</h3><div class="big">${tpdProblem(t,r)}</div>
