@@ -5182,7 +5182,9 @@ const PFSIM_WHY={
  ss_zero:'ROP=1 ו-SS=0',
  /* ZMC_PR2 — נבדק לפני שינוי השם: אחרי SS_LTVAR מועמד מגיע לכאן רק בלי צריכה ב-11 החודשים
     (הכול בחודש הנוכחי, והקצב מחלון 3 השנים). המפתח נשאר; הנוסח אומר את זה */
- ss_zero_rate3y:'ROP≥2 ו-SS=0 — אין צריכה ב-11 החודשים; הקצב מחלון 3 השנים'};
+ ss_zero_rate3y:'ROP≥2 ו-SS=0 — אין צריכה ב-11 החודשים; הקצב מחלון 3 השנים',
+ /* PD_ONE_MONTH (אושר 25.11) — ראה oneMonth ב-build */
+ one_month:'צריכה בחודש אחד בלבד, בלי צריכה בשנים הקודמות'};
 let PFSIM=null;
 let R3Y_OFF=false;   /* R3Y_NORAISE כבוי בזמן סימולציית הפרופיל — ראה ב-build */
 function profSimAll(){
@@ -5233,6 +5235,8 @@ function profSplit(r){const i=profInfo(r);if(!i||i.state!=='up')return null;
   if(rc<=0&&sim.ss<=0)
    why.push(sim.d12>LOWDEM_MAX?'zero_silent':sim.priceMissing?'zero_noprice':'zero_low');
   else if(sim.ss<=0)why.push(rc>=2?'ss_zero_rate3y':'ss_zero')}
+ /* PD_ONE_MONTH — אחרונה בסדר: בפריט שכבר «לבדוק» הסיבה הראשית אינה מתחלפת */
+ if(r.oneMonth)why.push('one_month');
  const ok=!why.length&&!!sim&&sim.rop>0&&sim.ss>0;
  return {grp:ok?'ok':'rev',reasons:why,primary:why[0]||null,sim}}
 /* נרשם אחרי כל טעינה: הפרופיל המוצע של כל פריט שמתחת לפרופיל שלו,
@@ -5619,6 +5623,18 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
     const rateDrop=sharpDrop?sdRec3/3:null;
     const sdLTEff=sharpDrop?sdSample(sdR3)*Math.sqrt(Math.max(ltM,0)):sdLT;
     /* RATE_W — ראה ההגדרה ליד SHARP_MIN_PRE */
+    /* ============ PD_ONE_MONTH — צריכה בחודש אחד בלבד (אושר 25.11) ============
+       מועמד PD → ZM-C שכל הצריכה שלו ב-11 החודשים (ובחודש הנוכחי) באה מחודש אחד, ושלא נמכר
+       בשנים הקודמות (השנה שעברה בלי חודשיה שבחלון, ולפני שנתיים), עובר ל«לבדוק» — המעתד
+       לעיתים קרובות אינו משנה פרופיל על הזמנה חד-פעמית, ו«להעלות» על פריט כזה הוא רעש.
+       צריכה בשני חודשים ומעלה, או מכירה בשנים הקודמות — הביקוש חוזר, והפריט נשאר «להעלות».
+       בלי עמודות שנתיות אין ראיה לחזרה — נחשב חודש אחד. מחושב רק בפריט PD. נמדד לפני השינוי: דוח א׳ — 10 מתוך 36
+       מועמדים בחודש אחד (7 «להעלות»); דוח ב׳ — 64 מתוך 88 (7 «להעלות»). השדה קיים רק כשהוא אמת. */
+    const actMo=months.filter(v=>v>0).length+((curMonth||0)>0?1:0);
+    const An1=ANCHOR.getMonth()+1;
+    const rawLast1=months.slice(Math.min(An1,11),11).reduce((a,v)=>a+Math.max(0,v),0);
+    const priorOut=has3y?Math.max(0,y3[1]-rawLast1)+y3[2]:0;
+    const oneMonth=isPD(CLEAN(r[m.mrp]))&&actMo===1&&priorOut<=0;   /* רק בפריט PD — שם הוא משמש */
     let rateW=null;
     /* rate>0: פריט שקט ב-6 החודשים נשאר בלי קצב — השקלול אינו ממציא ביקוש מהשנים הקודמות */
     if(rate>0&&!noRec&&!sharpDrop&&!rateFrom3y&&d12>3&&has3y&&A&&RATE_W_PAT.includes(A.pattern)){
@@ -5827,7 +5843,7 @@ function build(rows,hdr){const m=mapCols(hdr),out=[];
          אחר יישאר זהה לחלוטין. ltPlan/ltRawOf/ssCalc משלימים כשהשדה חסר */
       ...(ltBad?{ltBad:true,ltRaw}:{}),...(ltPlanned!==ltD?{ltPlanned}:{}),
       ...(isPDItem?{net12}:{}),...(sugSSCalc!==sugSS?{sugSSCalc}:{}),
-      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),...(rop3yCalc!=null?{rop3yCalc}:{}),...(ss3yCalc!=null?{ss3yCalc}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT:sdLTEff,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
+      ssMin,ltD,ltM,free,stock,po,transfer,transferKnown,avail,covA,lowFloor,lowBand,cust,custRaw,...(openDel?{openDel}:{}),...(rop3yCalc!=null?{rop3yCalc}:{}),...(oneMonth?{oneMonth}:{}),...(ss3yCalc!=null?{ss3yCalc}:{}),blockedCust,custBlockedKnown,warranty:NUM(r[m.warranty]),warrantyKnown,price,currency,matType,isOD:isODStatic,isODStatic,sugSSBase:sugSS,sugROPBase:sugROP,priceMissing,srvMissing,d12,d6,c3,r3,months,curMonth,sales,entries,rate,rateFrom3y,rawRate,cov,sugSS,sugROP,dLT,z,sdLT:sdLTEff,ltvP,rateSS,sdSup,sdTot,zEff,srvAct,ssStat,ssSrc,ssMinEff,ssSrcBase:ssSrc,ssMinEffBase:ssMinEff,lowFloorBase:lowFloor,noStock,isPDItem,
       tRatio,tRec,tPre,trendF,rateT,sugROPT,riseF,rateU,sugROPU,silent,A})}
   return out}
 /* ============ CLEAN_SERIES — הסדרה המנוקה, מקור אחד ============
