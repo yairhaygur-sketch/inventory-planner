@@ -51,16 +51,19 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
   return {pn:r.pn,key:markKey(r),inShort:TOPICS.short.rows().includes(r),inCust:TOPICS.cust.rows().includes(r),n0:profRows().filter(profActive).length}});
  await T.evaluate(pn=>{TP.cat.fix='prof';TP.q=pn;tpRender()},pick.pn);
  await T.click('#lite tr.r');await T.waitForSelector('#tpd [data-profoff="1"]');
- await T.click('#tpd [data-profoff="1"]');await T.waitForTimeout(400);
+ /* PROF_NOTE (25.11): הלחיצה פותחת שדה הערה לא חובה — Enter מאשר */
+ await T.click('#tpd [data-profoff="1"]');await T.waitForSelector('#nAskN');await T.press('#nAskN','Enter');await T.waitForTimeout(400);
  const a1=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);
   return {off:profOff(r),up:pdUpgrade(r),info:profInfo(r),inProf:TOPICS.fix.rows().filter(TOPICS.fix.cats.find(c=>c[0]==='prof')[3]).includes(r),
    inShort:TOPICS.short.rows().includes(r),inCust:TOPICS.cust.rows().includes(r),n1:profRows().filter(profActive).length,
-   undo:!!document.querySelector('#tpd [data-profoff="0"]'),stored:JSON.parse(localStorage.getItem('planner_profoff_v1')||'{}')[k],
+   undo:!!document.querySelector('#tpd [data-profoff="0"]')||!!document.querySelector(`#lite [data-tp="profon"][data-pn="${CSS.escape(k)}"]`),
+   moved:!TP.open||markKey(TP.open)!==k,stored:JSON.parse(localStorage.getItem('planner_profoff_v1')||'{}')[k],
    why:(r.why||[]).map(w=>w[1]).join(' | '),backup:Object.keys(stateBlob().keys).includes('planner_profoff_v1')}},pick.key);
  ok('נטרול מהכרטיס: אין המלצת פרופיל (pdUpgrade/profInfo), והפריט ירד מ«שינוי פרופיל MRP»',a1.off&&!a1.up&&a1.info===null&&!a1.inProf&&a1.n1===pick.n0-1,JSON.stringify({off:a1.off,up:a1.up,n:[pick.n0,a1.n1]}));
  ok('הפריט נשאר בשאר הנושאים',a1.inShort===pick.inShort&&a1.inCust===pick.inCust,JSON.stringify({before:[pick.inShort,pick.inCust],after:[a1.inShort,a1.inCust]}));
  ok('הנימוק במנוע אינו ממליץ עוד על ZM-C',!/ל-ZM-C בעקבות צריכה/.test(a1.why),a1.why.slice(0,120));
- ok('נשמר במפתח נפרד (planner_profoff_v1), נכלל בגיבוי, והכרטיס מציע ביטול',!!a1.stored&&a1.stored.ts>0&&a1.backup&&a1.undo);
+ ok('נשמר במפתח נפרד (planner_profoff_v1), נכלל בגיבוי, ויש ביטול (ברשימת «ללא שינוי פרופיל»)',!!a1.stored&&a1.stored.ts>0&&a1.backup&&a1.undo);
+ ok('PROF_NOTE (25.11): הפריט יצא מהרשימה — הכרטיס עבר לפריט הבא, כמו ב«טופל»',a1.moved);
  await T.evaluate(()=>{TP.q='';TP.cat.fix='';tpdClose();tpRender()});
  const lst=await T.evaluate(()=>{const d=document.querySelector('#lite details.off');return d?{t:d.querySelector('summary').textContent,n:d.querySelectorAll('li').length}:null});
  ok('«טיוב נתונים»: רשימת המנוטרלים עם ביטול',!!lst&&lst.n===1&&/ללא שינוי פרופיל/.test(lst.t),JSON.stringify(lst));
@@ -75,10 +78,16 @@ const sheetjs=fs.readFileSync(require.resolve('xlsx/dist/xlsx.full.min.js'),'utf
  ok('ביטול בכרטיס הפריט בכלי המלא מחזיר את ההמלצה',!f2.off&&f2.up&&f2.btn,JSON.stringify(f2));
  const t2=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);return {off:profOff(r)}},pick.key);
  ok('והלשונית של התצוגה המצומצמת רואה את הביטול (סנכרון בין לשוניות)',!t2.off);
- /* קבוע עד ביטול ידני (BUSINESS-DECISIONS 2.11) — גם אחרי שנה */
- const exp=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k);PROFOFF[k]={ts:Date.now()-400*864e5,pn:r.pn};
-  const a={off:profOff(r),up:pdUpgrade(r)};delete PROFOFF[k];return a},pick.key);
- ok('נטרול אינו פג — גם אחרי יותר משנה, עד ביטול ידני',exp.off&&!exp.up);
+ /* קבוע עד ביטול ידני (BUSINESS-DECISIONS 2.11) — גם אחרי שנה, כל עוד אין מכירה אחרי יום הנטרול.
+    PROF_OFF_LIFT (25.11): בפריט PD, מכירה אחרי יום הנטרול מבטלת אותו — וההמלצה חוזרת */
+ const exp=await T.evaluate(k=>{const r=ALL.find(x=>markKey(x)===k),s0=r.sales,ts=Date.now()-400*864e5;PROFOFF[k]={ts,pn:r.pn};
+  r.sales={date:new Date(ts-5*864e5)};PFSIM=null;const a={off:profOff(r),up:pdUpgrade(r)};
+  r.sales={date:new Date(ts+30*864e5)};const b={off:profOff(r),up:pdUpgrade(r),lifted:!!profOffLifted(r),txt:profOffLiftTxt(r)};
+  r.sales={date:new Date(new Date(ts).setHours(12,0,0,0))};const c={off:profOff(r)};
+  r.sales=s0;delete PROFOFF[k];return {a,b,c,pd:isPD(r.mrp)}},pick.key);
+ ok('נטרול אינו פג — גם אחרי יותר משנה, כשאין מכירה אחרי יום הנטרול',exp.a.off&&!exp.a.up);
+ ok('PROF_OFF_LIFT: פריט PD עם מכירה אחרי יום הנטרול — הנטרול אינו פעיל, ההמלצה חוזרת, עם «בוטל — מכירה חדשה»',exp.pd&&!exp.b.off&&exp.b.up&&exp.b.lifted&&/בוטל — מכירה חדשה/.test(exp.b.txt),JSON.stringify(exp.b));
+ ok('מכירה באותו יום של הנטרול — אינה מבטלת',exp.c.off);
  /* הורדת ZM (לא PD) — אותו כפתור */
  const zm=await T.evaluate(()=>{const r=QF.all.find(x=>profActive(x)&&!pdUpgrade(x));if(!r)return null;
   setProfOff(r,true);const r2=ALL.find(x=>x.pn===r.pn);const a={pn:r.pn,off:profOff(r2),act:profActive(r2)};setProfOff(r2,false);

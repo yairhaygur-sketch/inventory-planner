@@ -51,6 +51,7 @@ const out=[];let bad=0;const ok=(n,c,x)=>{if(!c)bad++;out.push((c?'PASS':'FAIL')
  await p.evaluate(()=>{TP.tab='cust';TP.cat={};tpRender();tpdShow(TP.shown[0])});
  const U1=await p.evaluate(()=>{const r=TP.open,k=markKey(r),btns=[...document.querySelectorAll('#tpd [data-tpd="neu"]')].map(x=>x.dataset.t);
   document.querySelector('#tpd [data-tpd="neu"][data-t="season"]').click();
+  document.getElementById('nAskOk').click();   /* NEUTRAL_NOTE (25.11): שדה הערה לא חובה — אישור */
   const head=document.querySelector('#lite [data-tp="neulist"]').textContent;
   return {k,btns,gone:!TP.list.some(x=>markKey(x)===k),moved:!TP.open||markKey(TP.open)!==k,head,mark:(MARKS[k]||{}).t}});
  ok('כרטיס: שלושה כפתורי נטרול',U1.btns.join()==='neutral,season,campaign',U1.btns.join());
