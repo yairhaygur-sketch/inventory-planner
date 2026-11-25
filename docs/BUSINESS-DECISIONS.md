@@ -1068,6 +1068,16 @@ Details, numbers and open items: `docs/PROJECT-STATUS.md`.
   Measured against main: report A — 62 items, −100 units of ROP, «עדכון
   פרמטרים» 231 → 202, the month SAP file 253 → 225 rows; report B — 188 items,
   −233 units, 1,070 → 897, 1,350 → 1,170 rows. Details: `docs/ROP-SS-POLICY.md`.
+- **25.11 — PD_ONE_MONTH: a PD → ZM-C candidate sold in one month only goes
+  to «לבדוק».** The planner noted that a candidate whose consumption came from
+  a single month is often not moved, and the «להעלות» list carries that noise.
+  Chosen (four questions): such a candidate moves to «לבדוק» with the reason
+  «consumption in one month only»; two months or more counts as spread; a
+  sale in earlier years (last year outside the 11-month window, or two years
+  ago) counts as recurring and keeps «להעלות»; both tools. The reason is the
+  last one listed, so an item already under review keeps its main reason.
+  Measured: report A — «להעלות» 27 → 24, «לבדוק» 9 → 12; report B — 10 → 7,
+  78 → 81. The candidate list and its count do not change.
 
 ---
 
