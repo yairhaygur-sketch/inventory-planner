@@ -3466,6 +3466,9 @@ html.lite #tpd:not([hidden]){display:flex;flex-direction:column;position:fixed;t
 #lite .tpnote{cursor:help;margin-inline-end:4px}
 #tpd .tpprev.worse{border-color:var(--red);background:var(--redL)}
 #tpd .tpprev.worse .mt b{color:var(--red)}
+#tpd .tpprev.neu{border-color:var(--neutral);background:var(--neutralL)}
+#tpd .tplift{padding:6px 9px;border-inline-start:4px solid var(--org);background:var(--orgL);font-weight:600}
+#tpd .tpnotel{font-size:15px}
 #tpsug{width:420px;max-height:min(60vh,520px)}
 #tpd .tpstock h3 .tpfob{margin-inline-start:14px;padding:1px 8px;border:1px solid var(--line);border-radius:4px;background:var(--panel2);font-size:14px;font-weight:700;color:inherit;white-space:nowrap}
 #tpd .tpstock h3 .tpfob.miss{color:var(--red);font-weight:600}
@@ -5030,10 +5033,20 @@ const ssCalc=r=>r.sugSSCalc!=null?r.sugSSCalc:r.sugSS;
 const PROFOFF_KEY='planner_profoff_v1';
 let PROFOFF={};try{const v=JSON.parse(localStorage.getItem(PROFOFF_KEY));if(v&&typeof v==='object')PROFOFF=v}catch(_){}
 function profOffLoad(track=true){try{const v=JSON.parse(stateRaw(PROFOFF_KEY,track));PROFOFF=(v&&typeof v==='object')?v:{}}catch(_){PROFOFF={}}}
-function profOffMark(r){const e=r?PROFOFF[markKey(r)]:null;return (e&&e.ts)?e:null}
+/* ============ PROF_OFF_LIFT — נטרול PD ← ZM-C מתבטל במכירה חדשה (אושר 25.11) ============
+   «ללא שינוי פרופיל» על פריט PD (המלצת PD ← ZM-C) אינו פעיל כשתאריך המכירה האחרונה בדוח מאוחר
+   מיום הנטרול — ההמלצה חוזרת עם «הנטרול בוטל — מכירה חדשה». הרשומה נשמרת (התאריך וההערה מוצגים);
+   נטרול מחדש לוקח תאריך חדש. נטרול של המלצה אחרת (לא PD) — עד ביטול ידני, כמו קודם.
+   מכירה באותו יום של הנטרול אינה מבטלת: הדוח שהמעתד ראה כנראה כבר כלל אותה. */
+function profOffEntry(r){const e=r?PROFOFF[markKey(r)]:null;return (e&&e.ts)?e:null}
+function profOffLiftSale(r,e){if(!r||!e||!isPD(r.mrp))return null;const d=r.sales&&r.sales.date;if(!(d instanceof Date)||isNaN(d))return null;
+ const day=new Date(e.ts);day.setHours(0,0,0,0);day.setDate(day.getDate()+1);return d>=day?d:null}
+function profOffLifted(r){const e=profOffEntry(r);return e&&profOffLiftSale(r,e)?e:null}
+function profOffMark(r){const e=profOffEntry(r);return e&&!profOffLiftSale(r,e)?e:null}
 function profOff(r){return !!profOffMark(r)}
-function setProfOff(r,on){if(!r)return;const k=markKey(r);
- const edit=()=>{if(on)PROFOFF[k]={ts:Date.now(),pn:r.pn};else delete PROFOFF[k]};
+function setProfOff(r,on,note){if(!r)return;const k=markKey(r);
+ /* PROF_NOTE (25.11): הערה לא חובה — למה לא לשנות פרופיל */
+ const edit=()=>{if(on)PROFOFF[k]={ts:Date.now(),pn:r.pn,...(note?{note:String(note)}:{})};else delete PROFOFF[k]};
  if(DEMO)edit();
  else{if(stateChanged(PROFOFF_KEY))profOffLoad();edit();
   statePersist(PROFOFF_KEY,()=>storeSet(PROFOFF_KEY,JSON.stringify(PROFOFF),'נטרול שינוי פרופיל'),()=>{profOffLoad();edit()})}
@@ -5048,7 +5061,20 @@ function profExclRows(){return ((QF&&QF.all)||[]).filter(r=>{if(profOff(r))retur
 function profExclWhy(r){return profOff(r)?'ידני — ללא שינוי פרופיל':profMarkWhy(r)}
 function profExclDate(r){const m=profOffMark(r)||((typeof MARKS!=='undefined')&&(MARKS[markKey(r)]||MARKS[r.pn]))||null;
  return m&&m.ts?new Date(m.ts).toLocaleDateString('he-IL'):''}
-function profExclNote(r){const m=(typeof MARKS!=='undefined')&&(MARKS[markKey(r)]||MARKS[r.pn]);return m&&m.note?String(m.note):''}
+function profExclNote(r){const o=profOffMark(r);if(o&&o.note)return String(o.note);
+ const m=(typeof MARKS!=='undefined')&&(MARKS[markKey(r)]||MARKS[r.pn]);return m&&m.note?String(m.note):''}
+/* הנטרול בוטל במכירה חדשה — המשפט לכרטיס בשני הכלים */
+function profOffLiftTxt(r){const e=profOffLifted(r);if(!e)return '';const d=profOffLiftSale(r,e);
+ return `«ללא שינוי פרופיל» בוטל — מכירה חדשה ב-${fmtDate(d)} (נוטרל ב-${new Date(e.ts).toLocaleDateString('he-IL')}${e.note?`: ${e.note}`:''})`}
+/* ============ NOTE_ASK — שדה הערה קצר בחלונית (משותף לשני הכלים) ============ */
+function noteAsk(btn,o,go){const pop=document.getElementById('colpop');if(!pop){go('');return}
+ pop.innerHTML=`<label class="mini" for="nAskN">${esc(o.label||'הערה (לא חובה)')}</label><input class="cs" id="nAskN" maxlength="200" placeholder="${esc(o.ph||'')}">
+  <div class="act"><button type="button" id="nAskX">ביטול</button><button type="button" class="ok" id="nAskOk">${esc(o.ok||'אישור')}</button></div>`;
+ const rc=btn.getBoundingClientRect();pop.style.top=(rc.bottom+4)+'px';let left=rc.right-260;if(left<8)left=8;pop.style.left=left+'px';
+ pop.classList.add('open');pop.onclick=e=>e.stopPropagation();
+ const inp=document.getElementById('nAskN'),ok=()=>{const n=inp.value.trim();closeColPop();go(n)};
+ document.getElementById('nAskOk').onclick=ok;document.getElementById('nAskX').onclick=()=>closeColPop();
+ inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();ok()}else if(e.key==='Escape'){e.preventDefault();closeColPop()}};inp.focus()}
 /* שורות הגיליון «ללא שינוי פרופיל» — העמודות שאושרו 2.11 */
 function profExclAoa(){const l=profExclRows();if(!l.length)return null;
  const N=k=>k?PROF_NAME[k]:'';
@@ -12257,7 +12283,7 @@ function decisionBlock(r){
    <div class="dcxl">${xOther(r).map(k=>`<button type="button" class="xgo" data-go="${k}">${esc(XNAME[k])}</button>`).join('')}</div>
    <div class="dcxn">אותה שורה, כותרת אחרת — ולא בהכרח אותה הוראה. בדוק את שתיהן לפני שאתה מעדכן פרמטר.</div></div>`:'')+`</details>`})()}
   <div class="dcb"><button class="bpri" data-dmark="${done?'':'handled'}">${done?'בטל סימון טופל':'✓ סמן כטופל'}</button>
-   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button>${profOffBtn(r,'bsec')}</div>
+   <button class="bsec" data-dcopy="${esc(r.pn)}">העתק מק״ט</button>${profOffBtn(r,'bsec')}</div>${profOffLifted(r)?`<div class="flag">ℹ ${esc(profOffLiftTxt(r))}</div>`:''}
   <!-- ============ מה הסימון הזה אינו ============
        הסייג חייב לשבת ליד הכפתור: מי שלוחץ «טופל» בפעם הראשונה מניח
        שזה מעדכן משהו. אבל פסקה שלמה ליד כפתור היא עומס — לכן שורה
@@ -12434,7 +12460,8 @@ function detail(r){CURRENT_DETAIL=r;openDetail();const A=r.A;const ic={err:'✖'
    setMode(k);
    const nr=(ALL||[]).find(x=>x.pn===r.pn);if(nr)detail(nr)});
  const po=document.querySelector('#detail [data-profoff]');
- if(po)po.onclick=()=>{setProfOff(r,po.dataset.profoff==='1');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
+ if(po)po.onclick=e=>{const on=po.dataset.profoff==='1',fin=n=>{setProfOff(r,on,n);const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
+  if(on){e.stopPropagation();noteAsk(po,{label:'למה לא לשנות פרופיל? (לא חובה)',ph:'למשל: פריט קמפיין, הזמנה חד-פעמית',ok:'ללא שינוי פרופיל'},fin)}else fin('')};
  const dm=document.querySelector('#detail [data-dmark]');
  if(dm)dm.onclick=()=>{setMark(r,dm.dataset.dmark||'', '');const nr=ALL.find(x=>x.pn===r.pn);if(nr)detail(nr)};
  const dc=document.querySelector('#detail [data-dcopy]');
@@ -15521,11 +15548,11 @@ function tpdIssues(r){const out=[];
   ${(x=>x&&x.k==='rev'?`<p><b style="color:var(--high)">לבדוק — לא לעדכן פרופיל אוטומטית:</b> ${esc(x.why)}.</p>`:'')(profStatus(r))}
   ${r.ltBad?`<p>${esc(PD_LT_MSG)}</p>`:''}
   ${(q=>q.ropMin?`<p>נקודת הזמנה מינימלית: <b>${tpN(q.rop)}</b> (החישוב אחרי ZM-C נתן ${tpN(q.ropCalc)}) — המלצת PD ← ZM-C מחזיקה לפחות ${PD_ROP_MIN} יח׳.</p>`:'')(tpRec(r))}
-  <p>${profOffBtn(r,'btn')}</p></div></section>`);
+  ${profOffLifted(r)?`<p class="tplift">${esc(profOffLiftTxt(r))}</p>`:''}<p>${profOffBtn(r,'btn')}</p></div></section>`);
  else if(profActive(r)){const i=profInfo(r),x=profStatus(r);out.push(`<section class="q3 blu"><div class="qa"><h3>המלצת פרופיל ${TPD_SRC.rec}</h3><div class="big">${esc(PROF_NAME[i.cur]||i.cur)} ← ${esc(PROF_NAME[i.tgt])}</div>
-  <p><b>${esc(x.t)}</b> · ${esc(x.why||'')}</p><p>${profOffBtn(r,'btn')}</p></div></section>`)}
+  <p><b>${esc(x.t)}</b> · ${esc(x.why||'')}</p>${profOffLifted(r)?`<p class="tplift">${esc(profOffLiftTxt(r))}</p>`:''}<p>${profOffBtn(r,'btn')}</p></div></section>`)}
  else if(profOff(r))out.push(`<section class="q3"><div class="qa"><h3>שינוי פרופיל — מנוטרל</h3>
-  <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — עד ביטול ידני.</p><p>${profOffBtn(r,'btn')}</p></div></section>`);
+  <p>ההמלצה לשינוי פרופיל MRP בוטלה ידנית ב-${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}, בשני הכלים — ${isPD(r.mrp)?'עד ביטול ידני, או עד מכירה חדשה':'עד ביטול ידני'}.</p>${profOffMark(r).note?`<p class="tpnotel">📝 <b>${esc(profOffMark(r).note)}</b></p>`:''}<p>${profOffBtn(r,'btn')}</p></div></section>`);
  if(tpSrvMissing(r))out.push(`<section class="q3 red"><div class="qa"><h3>רמת שירות חסרה</h3><div class="big">רמת שירות חסרה או 0 ב-SAP</div>
   <p>בלי רמת שירות מאושרת אין מקדם z, ולכן אין מלאי ביטחון סטטיסטי — המלצת SS/ROP אינה ניתנת לאישור. לא נעשה שימוש בברירת מחדל שקטה.</p>
   <p class="note">להזין רמת שירות מאושרת ב-SAP. בהעלאת הדוח הבא החישוב יחזור.</p></div></section>`);
@@ -15547,7 +15574,9 @@ const tpFmtTs=ts=>{const d=new Date(ts);return `${d.toLocaleDateString('he-IL')}
 const tpPrev=r=>{const m=r&&(r.markWorse||r.markStale);return m&&m.t==='handled'?m:null};
 /* HANDLED_WORSE: פריט שחזר מוקדם — «החמיר מאז הסימון» ומה החמיר */
 const tpWorseTxt=r=>{const w=r&&r.markWorse?markWorse(r,r.markWorse):null;return w?`החמיר מאז הסימון: ${w.join('; ')}`:''};
-function tpPrevNote(r){const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
+function tpPrevNote(r){const nm=r&&isNeutral(r)?(r.mark||MARKS[markKey(r)]):null;
+ if(nm)return `<div class="tpprev neu" role="note"><span class="nt${nm.note?'':' none'}">📝 ${nm.note?esc(nm.note):'(בלי הערה)'}</span><span class="mt">נוטרל («${esc(MARK_LABEL[nm.t]||nm.t)}») ב-${esc(tpFmtTs(nm.ts))} — מחוץ לכל הנושאים ולקובץ SAP, עד ביטול.</span></div>`;
+ const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
  return `<div class="tpprev${w?' worse':''}" role="note"><span class="nt${m.note?'':' none'}">📝 ${m.note?esc(m.note):'(בלי הערה)'}</span>`+
   `<span class="mt">סומן «טופל» ב-${esc(tpFmtTs(m.ts))} — ${w?`<b>${esc(w)}</b> — וחזר לרשימה לפני הזמן.`:'וחזר לרשימה.'}</span></div>`}
 const tpPrevIcon=r=>{const m=tpPrev(r);if(!m)return '';const w=tpWorseTxt(r);
@@ -15655,8 +15684,8 @@ function tpBurn(){const L=tpBurnRows();
 function tpNeuRows(){return ((QF&&QF.all)||[]).filter(isNeutral)}
 function tpNeuPanel(){const L=tpNeuRows().slice().sort((a,b)=>((b.mark||{}).ts||0)-((a.mark||{}).ts||0));
  return `<section class="neul" aria-label="מנוטרלים"><h2>מנוטרלים <span class="mini">${tpN(L.length)} פריטים · מחוץ לכל הנושאים ולקובץ העדכון ל-SAP, בשני הכלים, עד ביטול</span></h2>
-  ${L.length?`<table><thead><tr><th>מק״ט</th><th>תיאור</th><th>סיבה</th><th>סומן</th><th class="n">ימים</th><th></th></tr></thead><tbody>${L.map(r=>{const mk=r.mark||MARKS[markKey(r)]||{};
-   return `<tr><td><b>${esc(r.pn)}</b></td><td class="d">${esc(r.desc||'')}</td><td>${esc(MARK_LABEL[mk.t]||mk.t||'')}</td>
+  ${L.length?`<table><thead><tr><th>מק״ט</th><th>תיאור</th><th>סיבה</th><th>הערה</th><th>סומן</th><th class="n">ימים</th><th></th></tr></thead><tbody>${L.map(r=>{const mk=r.mark||MARKS[markKey(r)]||{};
+   return `<tr><td><b>${esc(r.pn)}</b></td><td class="d">${esc(r.desc||'')}</td><td>${esc(MARK_LABEL[mk.t]||mk.t||'')}</td><td class="d">${mk.note?esc(mk.note):'—'}</td>
     <td>${mk.ts?esc(new Date(mk.ts).toLocaleDateString('he-IL')):'—'}</td><td class="n">${mk.ts?tpN(markAgeD(mk)):'—'}</td>
     <td><button type="button" class="btn" data-tp="neuoff" data-key="${esc(markKey(r))}">↺ בטל נטרול</button></td></tr>`}).join('')}</tbody></table>`
    :'<p class="mini">אין פריטים מנוטרלים. מנטרלים מכרטיס הפריט: «נטרול: כללי · עונתיות · קמפיין».</p>'}</section>`}
@@ -15761,7 +15790,7 @@ function tpRender(){const el=document.getElementById('lite');if(!el)return;
 /* «ללא שינוי פרופיל» — הפריטים שנוטרלו, וביטול לכל אחד. ברשימה מקופלת: אינם תת-קטגוריה */
 function tpOffList(){const l=profOffRows();if(!l.length)return '';
  return `<details class="off"><summary>${l.length.toLocaleString('he-IL')} פריטים ללא שינוי פרופיל (נוטרלו ידנית — בשני הכלים)</summary><ul>${l.map(r=>
-  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))} <button type="button" class="btn" data-tp="profon" data-pn="${esc(markKey(r))}">↺ החזר המלצה</button></li>`).join('')}</ul></details>`}
+  `<li><b>${esc(r.pn)}</b> ${esc(r.desc||'')} · ${esc(new Date(profOffMark(r).ts).toLocaleDateString('he-IL'))}${profOffMark(r).note?` · <i>${esc(profOffMark(r).note)}</i>`:''} <button type="button" class="btn" data-tp="profon" data-pn="${esc(markKey(r))}">↺ החזר המלצה</button></li>`).join('')}</ul></details>`}
 function tpCsv(){const t=TP.tab,cols=TP_HEAD.concat(TOPICS[t].cols),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
  /* שלב 2: שדה סטטוס נפרד — הסבר למה אין מספר, בלי לשים טקסט בתא מספרי */
  const xs=cols.flatMap(c=>c.x||[[c.l,c.v]]).concat([['סטטוס המלצה',r=>recStatus(r)]])
@@ -15821,13 +15850,21 @@ if(LITE){
   else if(k==='next')tpdStep(1);
   else if(k==='done'){if(TP.open){e.stopPropagation();tpDoneAsk(b,TP.open)}}
   else if(k==='explain'&&TP.open)explain(TP.open);
-  else if(k==='profoff'&&TP.open){const r=TP.open;setProfOff(r,b.dataset.profoff==='1');tpdShow(r,true);
-   toast(profOff(r)?'שינוי הפרופיל נוטרל — בשני הכלים':'המלצת הפרופיל הוחזרה')}
+  /* PROF_NOTE (25.11): «ללא שינוי פרופיל» — הערה לא חובה, ומעבר לפריט הבא כשהפריט יוצא מהרשימה (כמו «טופל») */
+  else if(k==='profoff'&&TP.open){const r=TP.open;
+   if(b.dataset.profoff!=='1'){setProfOff(r,false);tpdShow(r,true);toast('המלצת הפרופיל הוחזרה');return}
+   e.stopPropagation();noteAsk(b,{label:'למה לא לשנות פרופיל? (לא חובה)',ph:'למשל: פריט קמפיין, הזמנה חד-פעמית',ok:'ללא שינוי פרופיל'},n=>{
+    const L0=TP.list||[],i0=L0.indexOf(r);setProfOff(r,true,n);toast('שינוי הפרופיל נוטרל — בשני הכלים');
+    const L=TP.list||[];if(L.includes(r)){tpdShow(r,true);return}
+    const nx=L[Math.min(Math.max(i0,0),L.length-1)];if(nx)tpdShow(nx);else tpdClose()})}
   else if(k==='copy'&&TP.open)tpCopy(TP.open.pn)
   /* NEUTRAL: הפריט יוצא מהרשימה — הכרטיס עובר לבא, כמו «טופל» */
-  else if(k==='neu'&&TP.open){const r=TP.open,L0=TP.list||[],i0=L0.indexOf(r);setMark(r,b.dataset.t,'');
-   toast(`${r.pn} נוטרל («${MARK_LABEL[b.dataset.t]}») — יצא מהנושאים ומקובץ SAP, בשני הכלים. ביטול: «מנוטרלים» בכותרת`);
-   const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(nx&&nx!==r)tpdShow(nx);else tpdClose()}});
+  /* NEUTRAL_NOTE (25.11): הערה לא חובה — סיבת הנטרול */
+  else if(k==='neu'&&TP.open){const r=TP.open,t=b.dataset.t;e.stopPropagation();
+   noteAsk(b,{label:`סיבת הנטרול («${MARK_LABEL[t]}») — לא חובה`,ph:t==='season'?'למשל: חורף, לפני הקיץ':t==='campaign'?'למשל: שם הקמפיין':'למשל: פריט מוחלף, הוחלט לא לנהל',ok:'נטרל'},n=>{
+    const L0=TP.list||[],i0=L0.indexOf(r);setMark(r,t,n);
+    toast(`${r.pn} נוטרל («${MARK_LABEL[t]}») — יצא מהנושאים ומקובץ SAP, בשני הכלים. ביטול: «מנוטרלים» בכותרת`);
+    const L=TP.list||[],nx=L[Math.min(Math.max(i0,0),L.length-1)];if(nx&&nx!==r)tpdShow(nx);else tpdClose()})}});
  el.addEventListener('change',e=>{if(e.target.dataset.tpcVis){tpColsVis(TP.tab,e.target.dataset.tpcVis,e.target.checked);
    const f=el.querySelector(`[data-tpc-vis="${e.target.dataset.tpcVis}"]`);if(f)f.focus();return}
   if(e.target.dataset.tp==='pl'){TP.pl=e.target.value;TP.lim=200;tpRender()}

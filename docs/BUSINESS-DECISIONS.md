@@ -1089,6 +1089,18 @@ Details, numbers and open items: `docs/PROJECT-STATUS.md`.
   the unit FOB price, in the item's currency, in the stock-section heading
   («מחיר FOB חסר» when missing). No calculation, count or export changes.
 
+- **25.11 — profile «ללא שינוי פרופיל» and neutral marks get a note; a PD → ZM-C
+  exclusion lifts on a new sale.** Chosen (four questions): «ללא שינוי
+  פרופיל» asks for an optional note in both tools; in the 4-topics view the
+  card moves on to the next item, like «טופל». The note shows in the
+  «ללא שינוי פרופיל» list, its sheet and the card. Neutral marks («כללי»,
+  «עונתיות», «קמפיין») ask for an optional reason, shown in «מנוטרלים» and in
+  the card. A «ללא שינוי פרופיל» on a PD item (the PD → ZM-C recommendation)
+  stops being active when the report's last sale date is later than the day
+  of the exclusion — the recommendation returns with «בוטל — מכירה חדשה»;
+  excluding again takes a new date. Exclusions of other recommendations stay
+  until undone by hand. Without stored exclusions nothing changes.
+
 ---
 
 # Summary
